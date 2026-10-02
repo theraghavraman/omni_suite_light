@@ -13,4 +13,4 @@ if (Has "winget") {
   Write-Host "Install winget or Chocolatey, then rerun this script."
   exit 1
 }
-Write-Host "Restart your terminal, then run start_omni.bat."
+Write-Host "Downloading browser assets for offline mode..."\npython prepare_offline.py\nWrite-Host "Restart your terminal, then run start_omni.bat."
