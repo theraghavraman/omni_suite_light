@@ -24,6 +24,7 @@ TOOLS = {
     "ffprobe": ["ffprobe", "-version"],
     "qpdf": ["qpdf", "--version"],
     "pdftoppm": ["pdftoppm", "-v"],
+    "pdftotext": ["pdftotext", "-v"],
     "magick": ["magick", "-version"],
     "convert": ["convert", "-version"],
     "tesseract": ["tesseract", "--version"],
@@ -42,6 +43,10 @@ def tool_path(name):
         return p
     if name == "magick":
         return shutil.which("convert")
+    if name == "soffice":
+        return shutil.which("libreoffice")
+    if name == "libreoffice":
+        return shutil.which("soffice") or shutil.which("libreoffice")
     return None
 
 def tool_versions():
