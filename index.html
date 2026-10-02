@@ -3226,9 +3226,19 @@
       audioFileName.textContent = file.name;
       audioPlayer.src = URL.createObjectURL(file);
 
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const ab = await file.arrayBuffer();
-      audioBuffer = await ctx.decodeAudioData(ab);
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ab = await file.arrayBuffer();
+        audioBuffer = await ctx.decodeAudioData(ab);
+        if (ctx.close) ctx.close();
+      } catch (err) {
+        audioBuffer = null;
+        audioDropzone.style.display = 'block';
+        audioControls.style.display = 'none';
+        audioInput.value = '';
+        alert('This audio format could not be decoded by the browser: ' + (err.message || err));
+        return;
+      }
       const dur = audioBuffer.duration;
 
       audioFileMeta.textContent = `Duration: ${formatTime(dur)} • ${audioBuffer.sampleRate} Hz`;
@@ -3390,6 +3400,7 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+        if (!blob) throw new Error('Could not capture the current video frame.');
         downloadBlob(blob, `${base}_snapshot.jpg`);
 
       } else if (action === 'extract_audio') {
@@ -3415,9 +3426,19 @@
 
         const start = Math.max(0, parseFloat(videoStartSec.value) || 0);
         const end = Math.min(videoPlayer.duration, parseFloat(videoEndSec.value) || videoPlayer.duration);
-        if (!(end > start)) throw new Error('End time must be greater than start time.');
+        if (!(end > start)) {
+          alert('End time must be greater than start time.');
+          videoProgressWrapper.style.display = 'none';
+          videoProcessBtn.disabled = false;
+          return;
+        }
         const stream = videoPlayer.captureStream ? videoPlayer.captureStream() : (videoPlayer.mozCaptureStream ? videoPlayer.mozCaptureStream() : null);
-        if (!stream) throw new Error('This browser cannot capture the video stream for trimming.');
+        if (!stream) {
+          alert('This browser cannot capture the video stream for trimming.');
+          videoProgressWrapper.style.display = 'none';
+          videoProcessBtn.disabled = false;
+          return;
+        }
 
         const candidates = [
           'video/webm;codecs=vp9,opus',
@@ -3425,7 +3446,13 @@
           'video/webm'
         ];
         let mime = candidates.find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
-        if (!mime) throw new Error('This browser cannot record a compatible video format. Try Chrome/Edge/Firefox on desktop or use a supported local video engine.');
+        if (!mime) {
+          alert('This browser cannot record a compatible video format. Try Chrome/Edge/Firefox on desktop or use a supported local video engine.');
+          stream.getTracks().forEach(t => t.stop());
+          videoProgressWrapper.style.display = 'none';
+          videoProcessBtn.disabled = false;
+          return;
+        }
         const recorder = new MediaRecorder(stream, { mimeType: mime });
         const chunks = [];
 
