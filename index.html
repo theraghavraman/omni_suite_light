@@ -998,3 +998,1747 @@
                 <option value="hybrid" selected>🏆 Hybrid: Visual Layout Replica + Formatted Editable Text</option>
                 <option value="visual">🖼️ Visual Replica Only (100% Exact Layout, Tables &amp; Graphics)</option>
                 <option value="reflow">📄 Enhanced Semantic Text (Headings, Bold, Clean Flow)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="p2wRunBtn">Convert to .DOCX</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text to DOCX Card -->
+      <div class="card">
+        <h2>3. Text / Markdown to DOCX &amp; PDF</h2>
+        <div class="sub">Create compliant Word documents or PDFs locally from raw text or Markdown headers.</div>
+        <div class="options-grid">
+          <div class="form-group"><label>Title</label><input type="text" id="t2dTitle" class="form-input" value="My Document"></div>
+          <div class="form-group"><label>Format</label><select id="t2dStyle" class="form-select"><option value="headings" selected>Detect # Markdown Headings</option><option value="normal">Plain Paragraphs</option></select></div>
+        </div>
+        <textarea id="t2dText" class="form-textarea" style="margin-top:10px;" placeholder="# Heading 1&#10;&#10;Write your content here...&#10;&#10;## Subheading&#10;More text..."></textarea>
+        <div class="actions-bar">
+          <button class="btn btn-primary" id="t2dDocxBtn">Create Word DOCX</button>
+          <button class="btn btn-success" id="t2dPdfBtn">Create Text PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. EPUB STUDIO -->
+    <div class="module-panel" id="tabEpub">
+      <div class="card">
+        <h2>1. EPUB to PDF &amp; Readable JPG Pages</h2>
+        <div class="sub">Converts EPUB books into formatted PDFs (with full WinAnsi sanitization) or renders chapter pages to readable JPG images.</div>
+        <div class="dropzone" id="epubDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <h3>Upload EPUB Book (.epub)</h3>
+          <input type="file" id="epubInput" class="file-input" accept=".epub">
+        </div>
+
+        <div class="controls-panel" id="epubControls" style="display: none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="epubFileName">book.epub</div>
+              <div class="file-meta" id="epubFileMeta">0 KB</div>
+            </div>
+            <button class="btn-reset" id="epubResetBtn">Reset</button>
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="epubTargetAction">Conversion Task</label>
+              <select id="epubTargetAction" class="form-select">
+                <option value="pdf" selected>📄 Convert EPUB to PDF Document</option>
+                <option value="jpg_pages">🖼️ Render Book Pages to JPG Images (Text + Layout)</option>
+                <option value="jpg_assets">🎨 Extract Embedded Illustrations / Photos Only (.zip)</option>
+                <option value="txt">📝 Extract Clean Book Text (.txt)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="epubRunBtn">Process EPUB</button>
+          </div>
+
+          <div class="progress-wrapper" id="epubProgressWrapper">
+            <div class="progress-info"><span id="epubProgressText">Processing...</span><span id="epubProgressPercent">0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="epubProgressBar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF to EPUB Card -->
+      <div class="card">
+        <h2>2. PDF to EPUB 3 (.epub) with Enhanced Navigation</h2>
+        <div class="sub">Compiles compliant EPUB 3 books with nav.xhtml, toc.ncx, cover metadata, and texture preservation.</div>
+        <div class="dropzone" id="p2eDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <h3>Upload PDF to Create EPUB eBook</h3>
+          <input type="file" id="p2eInput" class="file-input" accept="application/pdf">
+        </div>
+
+        <div class="controls-panel" id="p2eControls" style="display: none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="p2eFileName">document.pdf</div>
+              <div class="file-meta" id="p2eFileMeta">0 pages</div>
+            </div>
+            <button class="btn-reset" id="p2eResetBtn">Reset</button>
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="p2eMode">Fidelity Mode</label>
+              <select id="p2eMode" class="form-select">
+                <option value="illustrated" selected>🏆 Illustrated eBook: High-Res Page Graphic + Styled Text (Recommended)</option>
+                <option value="fixed">📖 Fixed-Layout eBook (1:1 Exact Page Spreads for Apple Books &amp; Kindle)</option>
+                <option value="reflow">📱 Reflowable Text Only (Clean Typography)</option>
+              </select>
+            </div>
+            <div class="form-group"><label for="p2eTitle">Book Title</label><input type="text" id="p2eTitle" class="form-input" placeholder="Title"></div>
+            <div class="form-group"><label for="p2eAuthor">Author</label><input type="text" id="p2eAuthor" class="form-input" placeholder="Author" value="Author"></div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="p2eRunBtn">Create &amp; Download EPUB</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. IMAGE TOOLS -->
+    <div class="module-panel" id="tabImages">
+      <div class="card">
+        <h2>1. Batch Image Format Converter (JPG ↔ PNG ↔ WebP ↔ HEIC)</h2>
+        <div class="sub">Convert, compress, and resize multiple images simultaneously.</div>
+        <div class="dropzone" id="imgDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+          <h3>Upload Images to Convert</h3>
+          <p>JPG to PNG, PNG to JPG, HEIC, WebP</p>
+          <input type="file" id="imgInput" class="file-input" accept="image/*" multiple>
+        </div>
+
+        <div class="controls-panel" id="imgControls" style="display: none;">
+          <div class="file-summary">
+            <div><div class="file-name" id="imgSummary">0 images selected</div></div>
+            <button class="btn-reset" id="imgResetBtn">Reset</button>
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="imgTargetFmt">Target Format</label>
+              <select id="imgTargetFmt" class="form-select">
+                <option value="png" selected>PNG (Lossless Transparency)</option>
+                <option value="jpg">JPG (JPEG)</option>
+                <option value="heic">HEIC (Apple High Efficiency)</option>
+                <option value="webp">WebP (Modern Compact)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imgQualitySelect">Quality</label>
+              <select id="imgQualitySelect" class="form-select">
+                <option value="0.95" selected>Highest (95%)</option>
+                <option value="0.85">High (85%)</option>
+                <option value="0.75">Medium (75%)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="imgRunBtn">Convert Images</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-section" id="imgResultsSection">
+        <div class="results-header">
+          <h2>Converted Images</h2>
+          <button class="btn btn-success" id="imgDownloadAll">Download All as ZIP</button>
+        </div>
+        <div class="pages-grid" id="imgGrid"></div>
+      </div>
+
+      <!-- Images to PDF Card -->
+      <div class="card">
+        <h2>2. Images to PDF (JPG / PNG / WebP ➔ PDF)</h2>
+        <div class="sub">Combine multiple images into a clean single PDF with aspect-ratio fitting.</div>
+        <div class="dropzone" id="i2pDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <h3>Select Images to Combine into a PDF</h3>
+          <input type="file" id="i2pInput" class="file-input" accept="image/*" multiple>
+        </div>
+
+        <div class="controls-panel" id="i2pControls" style="display: none;">
+          <div class="file-summary">
+            <div><div class="file-name" id="i2pSummary">0 images</div></div>
+            <button class="btn-reset" id="i2pReset">Clear</button>
+          </div>
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="i2pBtn">Combine into PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. OCR: IMAGE TO TEXT -->
+    <div class="module-panel" id="tabOcr">
+      <div class="card">
+        <h2>🔎 Image to Text Extraction (OCR)</h2>
+        <div class="sub">Extract editable text from screenshots, scanned documents, receipts, and images using in-browser Tesseract OCR.</div>
+        <div class="dropzone" id="ocrDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <h3>Upload Image or Photo to Extract Text</h3>
+          <input type="file" id="ocrInput" class="file-input" accept="image/*">
+        </div>
+
+        <div class="controls-panel" id="ocrControls" style="display: none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="ocrFileName">image.png</div>
+              <div class="file-meta" id="ocrFileMeta">0 KB</div>
+            </div>
+            <button class="btn-reset" id="ocrResetBtn">Reset</button>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="ocrRunBtn">Start Text Recognition (OCR)</button>
+          </div>
+
+          <div class="progress-wrapper" id="ocrProgressWrapper">
+            <div class="progress-info"><span id="ocrProgressText">Recognizing text...</span><span id="ocrProgressPercent">0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="ocrProgressBar"></div></div>
+          </div>
+
+          <div id="ocrOutputContainer" style="display:none; margin-top: 14px;">
+            <label style="font-size:0.875rem; font-weight:700; color:#c8d4e8;">Extracted Text:</label>
+            <textarea id="ocrOutputText" class="form-textarea" style="margin-top:6px; width:100%;"></textarea>
+            <div class="actions-bar" style="margin-top:10px;">
+              <button class="btn btn-secondary" id="ocrCopyBtn">📋 Copy Text</button>
+              <button class="btn btn-primary" id="ocrDownloadTxtBtn">💾 Save as .TXT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. AUDIO STUDIO -->
+    <div class="module-panel" id="tabAudio">
+      <div class="card">
+        <h2>🎵 Universal Audio Studio: Convert, Cut &amp; Tune Speed</h2>
+        <div class="sub">Decode any browser-supported audio format, trim segments with sample accuracy, adjust playback speed, and export uncompressed 16-bit PCM WAV.</div>
+        <div class="dropzone" id="audioDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12 0c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          <h3>Upload Any Audio File</h3>
+          <p>MP3, WAV, AAC, M4A, OGG, FLAC, WebM</p>
+          <input type="file" id="audioInput" class="file-input" accept="audio/*">
+        </div>
+
+        <div class="controls-panel" id="audioControls" style="display: none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="audioFileName">song.mp3</div>
+              <div class="file-meta" id="audioFileMeta">Duration: 0:00</div>
+            </div>
+            <button class="btn-reset" id="audioResetBtn">Reset</button>
+          </div>
+
+          <div class="media-player-container">
+            <audio id="audioPlayer" controls></audio>
+          </div>
+
+          <div class="options-grid" style="margin-top: 10px;">
+            <div class="form-group">
+              <label>Audio Cutter / Trimmer</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="audioStartSec" class="form-input" style="width:110px;" value="0" min="0" step="0.1">
+                <span style="color:var(--text-muted)">to</span>
+                <input type="number" id="audioEndSec" class="form-input" style="width:110px;" value="10" min="0.1" step="0.1">
+                <span style="color:var(--text-muted)">sec</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="audioSpeedSelect">Playback Speed Enhancer</label>
+              <select id="audioSpeedSelect" class="form-select">
+                <option value="0.5">0.5x (Slow-Mo)</option>
+                <option value="0.75">0.75x</option>
+                <option value="1.0" selected>1.0x (Normal)</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2.0">2.0x (Double Speed)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="audioProcessBtn">Process &amp; Download WAV Audio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. VIDEO STUDIO -->
+    <div class="module-panel" id="tabVideo">
+      <div class="card">
+        <h2>🎬 Universal Video Studio: Cut, Speed Enhancer &amp; Audio Extractor</h2>
+        <div class="sub">Trim video clips, modify playback speeds, capture current video frames as high-res images, or extract audio tracks into lossless WAV.</div>
+        <div class="dropzone" id="videoDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <h3>Upload Video File</h3>
+          <p>MP4, WebM, MOV, MKV</p>
+          <input type="file" id="videoInput" class="file-input" accept="video/*">
+        </div>
+
+        <div class="controls-panel" id="videoControls" style="display: none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="videoFileName">clip.mp4</div>
+              <div class="file-meta" id="videoFileMeta">0:00</div>
+            </div>
+            <button class="btn-reset" id="videoResetBtn">Reset</button>
+          </div>
+
+          <div class="media-player-container">
+            <video id="videoPlayer" controls style="max-height: 320px;"></video>
+          </div>
+
+          <div class="options-grid" style="margin-top: 10px;">
+            <div class="form-group">
+              <label>Video Cutter (Seconds)</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="videoStartSec" class="form-input" style="width:110px;" value="0" min="0" step="0.5">
+                <span style="color:var(--text-muted)">to</span>
+                <input type="number" id="videoEndSec" class="form-input" style="width:110px;" value="10" min="1" step="0.5">
+                <span style="color:var(--text-muted)">sec</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="videoSpeedSelect">Speed Enhancer</label>
+              <select id="videoSpeedSelect" class="form-select">
+                <option value="0.5">0.5x Slow-Motion</option>
+                <option value="0.75">0.75x</option>
+                <option value="1.0" selected>1.0x Normal Speed</option>
+                <option value="1.25">1.25x Fast</option>
+                <option value="1.5">1.5x</option>
+                <option value="2.0">2.0x Double Speed</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="videoActionSelect">Output Action</label>
+              <select id="videoActionSelect" class="form-select">
+                <option value="trim_video" selected>✂️ Cut / Trim Video</option>
+                <option value="extract_audio">🎵 Extract Audio Soundtrack (.wav)</option>
+                <option value="snapshot">📸 Capture Current Frame as JPG</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="videoProcessBtn">Process Video</button>
+          </div>
+
+          <div class="progress-wrapper" id="videoProgressWrapper">
+            <div class="progress-info"><span id="videoProgressText">Processing video...</span><span id="videoProgressPercent">0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="videoProgressBar"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      OmniConverter Studio &bull; Universal Client-Side Converter &bull; 100% Private &bull; In-Browser Processing
+    </footer>
+  </div>
+
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // Tabs
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const modulePanels = document.querySelectorAll('.module-panel');
+
+    navBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navBtns.forEach(b => b.classList.remove('active'));
+        modulePanels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+
+    // ==========================================
+    // BULLETPROOF ENCODING SANITIZER (Fixes WinAnsi 0x0009 Bug)
+    // ==========================================
+    function sanitizeForWinAnsi(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/\t/g, '    ')                     // Eliminate 0x0009 tab bug
+        .replace(/[\u201C\u201D\u201E\u201F]/g, '"') // Smart quotes
+        .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // Smart apostrophes
+        .replace(/[\u2013\u2014\u2015]/g, '-')       // En/Em dashes
+        .replace(/\u2026/g, '...')                   // Ellipsis
+        .replace(/\u2022/g, '*')                     // Bullet
+        .replace(/\u00A0/g, ' ')                     // Non-breaking space
+        .replace(/[^\x20-\x7E\xA0-\xFF]/g, ' ')      // Replace non-WinAnsi characters
+        .replace(/[\r\n]+/g, ' ');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+
+    function formatTime(sec) {
+      sec = Math.max(0, sec || 0);
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function parsePageRange(rangeStr, totalPages) {
+      if (!rangeStr || !rangeStr.trim()) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      const pages = new Set();
+      const parts = rangeStr.split(',');
+      for (const part of parts) {
+        const clean = part.trim();
+        if (clean.includes('-')) {
+          const [startStr, endStr] = clean.split('-');
+          const start = parseInt(startStr, 10);
+          const end = parseInt(endStr, 10);
+          if (!isNaN(start) && !isNaN(end)) {
+            for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) pages.add(p);
+          }
+        } else {
+          const p = parseInt(clean, 10);
+          if (!isNaN(p) && p >= 1 && p <= totalPages) pages.add(p);
+        }
+      }
+      return Array.from(pages).sort((a, b) => a - b);
+    }
+
+    function escapeXml(str) {
+      return String(str || '').replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+        }
+      });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function setupDragDrop(el, onFiles) {
+      ['dragenter', 'dragover'].forEach(n => {
+        el.addEventListener(n, (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add('dragover'); });
+      });
+      ['dragleave', 'drop'].forEach(n => {
+        el.addEventListener(n, (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove('dragover'); });
+      });
+      el.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) onFiles(e.dataTransfer.files);
+      });
+    }
+
+    // ==========================================
+    // 1. PDF TO IMAGES & MERGE
+    // ==========================================
+    const pdf2imgDropzone = document.getElementById('pdf2imgDropzone');
+    const pdf2imgInput = document.getElementById('pdf2imgInput');
+    const pdf2imgControls = document.getElementById('pdf2imgControls');
+    const pdf2imgName = document.getElementById('pdf2imgName');
+    const pdf2imgMeta = document.getElementById('pdf2imgMeta');
+    const pdf2imgReset = document.getElementById('pdf2imgReset');
+    const pdf2imgFormat = document.getElementById('pdf2imgFormat');
+    const pdf2imgDpi = document.getElementById('pdf2imgDpi');
+    const pdf2imgPages = document.getElementById('pdf2imgPages');
+    const pdf2imgBtn = document.getElementById('pdf2imgBtn');
+    const pdf2imgResultsSection = document.getElementById('pdf2imgResultsSection');
+    const pdf2imgGrid = document.getElementById('pdf2imgGrid');
+    const pdf2imgDownloadAll = document.getElementById('pdf2imgDownloadAll');
+
+    let currentPdfDoc = null;
+    let currentPdfFile = null;
+    let pdfConvertedImgs = [];
+
+    pdf2imgDropzone.addEventListener('click', () => pdf2imgInput.click());
+    setupDragDrop(pdf2imgDropzone, (files) => { if (files[0]) loadPdfForImg(files[0]); });
+    pdf2imgInput.addEventListener('change', (e) => { if (e.target.files[0]) loadPdfForImg(e.target.files[0]); });
+
+    async function loadPdfForImg(file) {
+      currentPdfFile = file;
+      pdf2imgDropzone.style.display = 'none';
+      pdf2imgControls.style.display = 'flex';
+      pdf2imgName.textContent = file.name;
+      pdf2imgMeta.textContent = 'Loading...';
+
+      try {
+        const ab = await file.arrayBuffer();
+        currentPdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+        pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
+      } catch (e) {
+        alert('Could not read PDF.');
+        resetPdf2Img();
+      }
+    }
+
+    pdf2imgReset.addEventListener('click', resetPdf2Img);
+    function resetPdf2Img() {
+      currentPdfDoc = null;
+      currentPdfFile = null;
+      pdfConvertedImgs = [];
+      pdf2imgDropzone.style.display = 'block';
+      pdf2imgControls.style.display = 'none';
+      pdf2imgResultsSection.style.display = 'none';
+      pdf2imgGrid.innerHTML = '';
+      pdf2imgInput.value = '';
+    }
+
+    pdf2imgBtn.addEventListener('click', async () => {
+      if (!currentPdfDoc) return;
+      pdf2imgBtn.disabled = true;
+      pdfConvertedImgs = [];
+      pdf2imgGrid.innerHTML = '';
+
+      const scale = parseFloat(pdf2imgDpi.value) || 2.0;
+      const fmt = pdf2imgFormat.value;
+      const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
+
+      for (let i = 0; i < pages.length; i++) {
+        const pNum = pages[i];
+        const page = await currentPdfDoc.getPage(pNum);
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        const ctx = canvas.getContext('2d');
+
+        if (fmt === 'jpg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+        let mime = 'image/jpeg';
+        let ext = fmt;
+        if (fmt === 'png') mime = 'image/png';
+        else if (fmt === 'webp') mime = 'image/webp';
+        else if (fmt === 'heic') mime = 'image/heic';
+
+        let blob = await new Promise(r => canvas.toBlob(r, mime, 0.95));
+        if (!blob || blob.type !== mime) {
+          blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+          ext = 'jpg';
+        }
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const filename = `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_page_${pNum}.${ext}`;
+        pdfConvertedImgs.push({ pNum, blob, dataUrl, filename, ext });
+      }
+
+      pdf2imgResultsSection.style.display = 'block';
+      pdfConvertedImgs.forEach(img => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.innerHTML = `
+          <div class="page-preview-wrapper"><img src="${img.dataUrl}"></div>
+          <div class="page-meta">
+            <div class="page-num">Page ${img.pNum}</div>
+            <a class="btn-download-single" href="${URL.createObjectURL(img.blob)}" download="${img.filename}">Save .${img.ext.toUpperCase()}</a>
+          </div>
+        `;
+        pdf2imgGrid.appendChild(card);
+      });
+      pdf2imgBtn.disabled = false;
+      pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    pdf2imgDownloadAll.addEventListener('click', async () => {
+      if (!pdfConvertedImgs.length) return;
+      const zip = new JSZip();
+      pdfConvertedImgs.forEach(item => zip.file(item.filename, item.blob));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_images.zip`);
+    });
+
+    // Merge PDFs
+    const pdfMergeInput = document.getElementById('pdfMergeInput');
+    const pdfMergeBtn = document.getElementById('pdfMergeBtn');
+    pdfMergeBtn.addEventListener('click', async () => {
+      const files = Array.from(pdfMergeInput.files);
+      if (files.length < 2) { alert('Please select at least 2 PDF files.'); return; }
+      pdfMergeBtn.disabled = true;
+      try {
+        const merged = await PDFLib.PDFDocument.create();
+        for (const file of files) {
+          const ab = await file.arrayBuffer();
+          const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
+          const pages = await merged.copyPages(doc, doc.getPageIndices());
+          pages.forEach(p => merged.addPage(p));
+        }
+        const bytes = await merged.save();
+        downloadBlob(new Blob([bytes], { type: 'application/pdf' }), 'merged.pdf');
+      } catch (e) {
+        alert('Merge error: ' + e.message);
+      } finally {
+        pdfMergeBtn.disabled = false;
+      }
+    });
+
+    // Split PDF
+    const pdfSplitInput = document.getElementById('pdfSplitInput');
+    const pdfSplitRange = document.getElementById('pdfSplitRange');
+    const pdfSplitBtn = document.getElementById('pdfSplitBtn');
+    pdfSplitBtn.addEventListener('click', async () => {
+      const file = pdfSplitInput.files[0];
+      if (!file) { alert('Please choose a PDF to split.'); return; }
+      pdfSplitBtn.disabled = true;
+      try {
+        const ab = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
+        const total = doc.getPageCount();
+        const targetPages = parsePageRange(pdfSplitRange.value, total);
+
+        const newDoc = await PDFLib.PDFDocument.create();
+        const indices = targetPages.map(p => p - 1);
+        const copied = await newDoc.copyPages(doc, indices);
+        copied.forEach(p => newDoc.addPage(p));
+
+        const bytes = await newDoc.save();
+        downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${file.name.replace(/\.[^/.]+$/, "")}_split.pdf`);
+      } catch (e) {
+        alert('Split error: ' + e.message);
+      } finally {
+        pdfSplitBtn.disabled = false;
+      }
+    });
+
+    // ==========================================
+    // 2. WORD & DOCS (DOCX TO PDF & TXT, TEXT TO DOCX)
+    // ==========================================
+    const w2pDropzone = document.getElementById('w2pDropzone');
+    const w2pInput = document.getElementById('w2pInput');
+    const w2pControls = document.getElementById('w2pControls');
+    const w2pFileName = document.getElementById('w2pFileName');
+    const w2pFileMeta = document.getElementById('w2pFileMeta');
+    const w2pResetBtn = document.getElementById('w2pResetBtn');
+    const w2pRunBtn = document.getElementById('w2pRunBtn');
+    const w2pTxtBtn = document.getElementById('w2pTxtBtn');
+
+    let currentW2pFile = null;
+    let extractedDocxText = '';
+
+    w2pDropzone.addEventListener('click', () => w2pInput.click());
+    setupDragDrop(w2pDropzone, (files) => { if (files[0]) loadW2pFile(files[0]); });
+    w2pInput.addEventListener('change', (e) => { if (e.target.files[0]) loadW2pFile(e.target.files[0]); });
+
+    async function loadW2pFile(file) {
+      currentW2pFile = file;
+      w2pDropzone.style.display = 'none';
+      w2pControls.style.display = 'flex';
+      w2pFileName.textContent = file.name;
+      w2pFileMeta.textContent = formatFileSize(file.size);
+
+      try {
+        const ab = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(ab);
+        const docXml = zip.file('word/document.xml');
+        if (docXml) {
+          const xmlStr = await docXml.async('text');
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+          const pElements = xmlDoc.getElementsByTagName('w:p');
+          const paras = [];
+
+          for (let i = 0; i < pElements.length; i++) {
+            let pText = '';
+            const tElements = pElements[i].getElementsByTagName('w:t');
+            for (let j = 0; j < tElements.length; j++) pText += tElements[j].textContent;
+            const clean = sanitizeForWinAnsi(pText.trim());
+            if (clean) paras.push(clean);
+          }
+          extractedDocxText = paras.join('\n\n');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    w2pResetBtn.addEventListener('click', () => {
+      currentW2pFile = null; extractedDocxText = '';
+      w2pDropzone.style.display = 'block'; w2pControls.style.display = 'none';
+      w2pInput.value = '';
+    });
+
+    w2pTxtBtn.addEventListener('click', () => {
+      if (!extractedDocxText) return;
+      downloadBlob(new Blob([extractedDocxText], { type: 'text/plain;charset=utf-8' }), `${currentW2pFile.name.replace(/\.docx$/i, "")}.txt`);
+    });
+
+    w2pRunBtn.addEventListener('click', async () => {
+      if (!extractedDocxText) { alert('No readable text found in DOCX.'); return; }
+      w2pRunBtn.disabled = true;
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.create();
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+        const pageW = 612; const pageH = 792; const margin = 45;
+        let page = pdfDoc.addPage([pageW, pageH]);
+        let y = pageH - margin;
+
+        const paragraphs = extractedDocxText.split('\n\n');
+
+        for (const p of paragraphs) {
+          const isH = p.length < 55 && !p.endsWith('.');
+          const curFont = isH ? fontBold : font;
+          const sz = isH ? 14 : 10.5;
+          const lh = sz + 5;
+
+          const words = p.split(' ');
+          let line = '';
+
+          for (const w of words) {
+            const test = line ? line + ' ' + w : w;
+            if (curFont.widthOfTextAtSize(test, sz) > (pageW - margin * 2)) {
+              if (y < margin + lh) { page = pdfDoc.addPage([pageW, pageH]); y = pageH - margin; }
+              page.drawText(line, { x: margin, y, size: sz, font: curFont });
+              y -= lh;
+              line = w;
+            } else {
+              line = test;
+            }
+          }
+          if (line) {
+            if (y < margin + lh) { page = pdfDoc.addPage([pageW, pageH]); y = pageH - margin; }
+            page.drawText(line, { x: margin, y, size: sz, font: curFont });
+            y -= (lh + 6);
+          }
+        }
+
+        const bytes = await pdfDoc.save();
+        downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${currentW2pFile.name.replace(/\.[^/.]+$/, "")}.pdf`);
+      } catch (e) {
+        alert('Conversion error: ' + e.message);
+      } finally {
+        w2pRunBtn.disabled = false;
+      }
+    });
+
+    // PDF to DOCX
+    const p2wDropzone = document.getElementById('p2wDropzone');
+    const p2wInput = document.getElementById('p2wInput');
+    const p2wControls = document.getElementById('p2wControls');
+    const p2wFileName = document.getElementById('p2wFileName');
+    const p2wFileMeta = document.getElementById('p2wFileMeta');
+    const p2wResetBtn = document.getElementById('p2wResetBtn');
+    const p2wMode = document.getElementById('p2wMode');
+    const p2wRunBtn = document.getElementById('p2wRunBtn');
+
+    let currentP2wPdf = null;
+    let currentP2wFile = null;
+
+    p2wDropzone.addEventListener('click', () => p2wInput.click());
+    setupDragDrop(p2wDropzone, (files) => { if (files[0]) loadP2wPdf(files[0]); });
+    p2wInput.addEventListener('change', (e) => { if (e.target.files[0]) loadP2wPdf(e.target.files[0]); });
+
+    async function loadP2wPdf(file) {
+      currentP2wFile = file;
+      p2wDropzone.style.display = 'none';
+      p2wControls.style.display = 'flex';
+      p2wFileName.textContent = file.name;
+      try {
+        const ab = await file.arrayBuffer();
+        currentP2wPdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages`;
+      } catch (e) {
+        alert('Could not read PDF.');
+        resetP2w();
+      }
+    }
+    p2wResetBtn.addEventListener('click', resetP2w);
+    function resetP2w() {
+      currentP2wPdf = null; currentP2wFile = null;
+      p2wDropzone.style.display = 'block'; p2wControls.style.display = 'none';
+      p2wInput.value = '';
+    }
+
+    p2wRunBtn.addEventListener('click', async () => {
+      if (!currentP2wPdf) return;
+      p2wRunBtn.disabled = true;
+      const mode = p2wMode.value;
+      const zip = new JSZip();
+
+      try {
+        let bodyXml = '';
+        let relsXml = '';
+
+        for (let i = 1; i <= currentP2wPdf.numPages; i++) {
+          const page = await currentP2wPdf.getPage(i);
+          if (mode === 'visual' || mode === 'hybrid') {
+            const vp = page.getViewport({ scale: 2.0 });
+            const cvs = document.createElement('canvas');
+            cvs.width = vp.width; cvs.height = vp.height;
+            const ctx = cvs.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+            const blob = await new Promise(r => cvs.toBlob(r, 'image/jpeg', 0.95));
+            zip.file(`word/media/img${i}.jpg`, blob);
+            relsXml += `  <Relationship Id="rIdImg${i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${i}.jpg"/>\n`;
+
+            const cx = 5800000;
+            const cy = Math.round(cx / (vp.width / vp.height));
+
+            bodyXml += `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${i}" name="Page ${i}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${i}" name="Img ${i}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImg${i}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+          }
+
+          if (mode === 'hybrid' || mode === 'reflow') {
+            const textContent = await page.getTextContent();
+            textContent.items.forEach(it => {
+              if (it.str.trim()) {
+                bodyXml += `<w:p><w:r><w:t xml:space="preserve">${escapeXml(it.str)}</w:t></w:r></w:p>`;
+              }
+            });
+          }
+          if (i < currentP2wPdf.numPages) bodyXml += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+        }
+
+        zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
+        zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+        zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relsXml}</Relationships>`);
+        zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/></w:sectPr></w:body></w:document>`);
+
+        const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        downloadBlob(blob, `${currentP2wFile.name.replace(/\.[^/.]+$/, "")}.docx`);
+      } catch (err) {
+        alert('DOCX error: ' + err.message);
+      } finally {
+        p2wRunBtn.disabled = false;
+      }
+    });
+
+    // Text to DOCX / PDF
+    const t2dTitle = document.getElementById('t2dTitle');
+    const t2dStyle = document.getElementById('t2dStyle');
+    const t2dText = document.getElementById('t2dText');
+    const t2dDocxBtn = document.getElementById('t2dDocxBtn');
+    const t2dPdfBtn = document.getElementById('t2dPdfBtn');
+
+    t2dDocxBtn.addEventListener('click', async () => {
+      const title = t2dTitle.value || 'Document';
+      const text = t2dText.value;
+      const detectH = t2dStyle.value === 'headings';
+      const zip = new JSZip();
+
+      const lines = text.replace(/\r/g, '').split('\n');
+      let body = '';
+      for (const line of lines) {
+        if (!line.trim()) { body += '<w:p/>'; continue; }
+        let t = escapeXml(line);
+        let pPr = '';
+        if (detectH && /^#{1,6}\s+/.test(line)) {
+          const m = line.match(/^(#{1,6})\s+(.*)$/);
+          t = escapeXml(m[2]);
+          pPr = `<w:pPr><w:pStyle w:val="Heading${m[1].length}"/></w:pPr>`;
+        }
+        body += `<w:p>${pPr}<w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+      }
+
+      zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
+      zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+      zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/></w:sectPr></w:body></w:document>`);
+
+      const b = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      downloadBlob(b, `${title.replace(/[^\w\-]+/g, '_')}.docx`);
+    });
+
+    t2dPdfBtn.addEventListener('click', async () => {
+      const title = t2dTitle.value || 'Document';
+      const text = t2dText.value;
+      const pdfDoc = await PDFLib.PDFDocument.create();
+      const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+      const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+      const pageW = 612; const pageH = 792; const margin = 45;
+      let page = pdfDoc.addPage([pageW, pageH]);
+      let y = pageH - margin;
+
+      const lines = text.replace(/\r/g, '').split('\n');
+
+      for (const line of lines) {
+        if (!line.trim()) { y -= 12; continue; }
+        const isH = /^#{1,3}\s+/.test(line);
+        const clean = sanitizeForWinAnsi(isH ? line.replace(/^#{1,3}\s+/, '') : line);
+        const curFont = isH ? fontBold : font;
+        const sz = isH ? 14 : 10.5;
+        const lh = sz + 5;
+
+        if (y < margin + lh) { page = pdfDoc.addPage([pageW, pageH]); y = pageH - margin; }
+        page.drawText(clean, { x: margin, y, size: sz, font: curFont });
+        y -= (lh + (isH ? 6 : 2));
+      }
+
+      const bytes = await pdfDoc.save();
+      downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${title.replace(/[^\w\-]+/g, '_')}.pdf`);
+    });
+
+    // ==========================================
+    // 3. EPUB STUDIO (WITH WINANSI FIX & PAGE RENDERING)
+    // ==========================================
+    const epubDropzone = document.getElementById('epubDropzone');
+    const epubInput = document.getElementById('epubInput');
+    const epubControls = document.getElementById('epubControls');
+    const epubFileName = document.getElementById('epubFileName');
+    const epubFileMeta = document.getElementById('epubFileMeta');
+    const epubResetBtn = document.getElementById('epubResetBtn');
+    const epubTargetAction = document.getElementById('epubTargetAction');
+    const epubRunBtn = document.getElementById('epubRunBtn');
+    const epubProgressWrapper = document.getElementById('epubProgressWrapper');
+    const epubProgressBar = document.getElementById('epubProgressBar');
+    const epubProgressText = document.getElementById('epubProgressText');
+    const epubProgressPercent = document.getElementById('epubProgressPercent');
+
+    let currentEpubZip = null;
+    let currentEpubFile = null;
+
+    epubDropzone.addEventListener('click', () => epubInput.click());
+    setupDragDrop(epubDropzone, (files) => { if (files[0]) loadEpub(files[0]); });
+    epubInput.addEventListener('change', (e) => { if (e.target.files[0]) loadEpub(e.target.files[0]); });
+
+    async function loadEpub(file) {
+      currentEpubFile = file;
+      epubDropzone.style.display = 'none';
+      epubControls.style.display = 'flex';
+      epubFileName.textContent = file.name;
+      epubFileMeta.textContent = formatFileSize(file.size);
+
+      try {
+        const ab = await file.arrayBuffer();
+        currentEpubZip = await JSZip.loadAsync(ab);
+      } catch (e) {
+        alert('Could not read EPUB archive.');
+        resetEpubModule();
+      }
+    }
+
+    epubResetBtn.addEventListener('click', resetEpubModule);
+    function resetEpubModule() {
+      currentEpubFile = null; currentEpubZip = null;
+      epubDropzone.style.display = 'block'; epubControls.style.display = 'none';
+      epubProgressWrapper.style.display = 'none'; epubInput.value = '';
+    }
+
+    epubRunBtn.addEventListener('click', async () => {
+      if (!currentEpubZip) return;
+      const action = epubTargetAction.value;
+      epubRunBtn.disabled = true;
+      epubProgressWrapper.style.display = 'block';
+
+      try {
+        if (action === 'pdf' || action === 'txt') {
+          epubProgressText.textContent = 'Parsing EPUB text content...';
+          epubProgressBar.style.width = '30%';
+
+          const htmlFiles = Object.keys(currentEpubZip.files).filter(f => /\.(xhtml|html|htm)$/i.test(f));
+          const paragraphs = [];
+
+          for (const f of htmlFiles) {
+            const htmlStr = await currentEpubZip.file(f).async('text');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlStr, 'text/html');
+            doc.querySelectorAll('script, style, nav').forEach(el => el.remove());
+            const nodes = doc.querySelectorAll('h1, h2, h3, h4, p');
+
+            nodes.forEach(n => {
+              const raw = n.textContent.trim();
+              if (raw) {
+                const clean = sanitizeForWinAnsi(raw);
+                if (clean) paragraphs.push({ text: clean, isHeader: /^H[1-4]$/i.test(n.tagName) });
+              }
+            });
+          }
+
+          if (action === 'txt') {
+            const fullTxt = paragraphs.map(p => p.text).join('\n\n');
+            downloadBlob(new Blob([fullTxt], { type: 'text/plain;charset=utf-8' }), `${currentEpubFile.name.replace(/\.[^/.]+$/, "")}.txt`);
+          } else {
+            epubProgressBar.style.width = '70%';
+            epubProgressText.textContent = 'Generating PDF...';
+
+            const pdfDoc = await PDFLib.PDFDocument.create();
+            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+            const pageW = 612; const pageH = 792; const margin = 45;
+            let page = pdfDoc.addPage([pageW, pageH]);
+            let y = pageH - margin;
+
+            for (const item of paragraphs) {
+              const curFont = item.isHeader ? fontBold : font;
+              const sz = item.isHeader ? 14 : 10.5;
+              const lh = sz + 5;
+
+              const words = item.text.split(' ');
+              let line = '';
+
+              for (const word of words) {
+                const test = line ? line + ' ' + word : word;
+                const textW = curFont.widthOfTextAtSize(test, sz);
+
+                if (textW > (pageW - margin * 2)) {
+                  if (y < margin + lh) { page = pdfDoc.addPage([pageW, pageH]); y = pageH - margin; }
+                  page.drawText(line, { x: margin, y, size: sz, font: curFont });
+                  y -= lh;
+                  line = word;
+                } else {
+                  line = test;
+                }
+              }
+
+              if (line) {
+                if (y < margin + lh) { page = pdfDoc.addPage([pageW, pageH]); y = pageH - margin; }
+                page.drawText(line, { x: margin, y, size: sz, font: curFont });
+                y -= (lh + 6);
+              }
+            }
+
+            epubProgressBar.style.width = '100%';
+            const bytes = await pdfDoc.save();
+            downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${currentEpubFile.name.replace(/\.[^/.]+$/, "")}.pdf`);
+          }
+
+        } else if (action === 'jpg_pages') {
+          // Render readable book pages with text + headings to JPGs
+          epubProgressText.textContent = 'Rendering readable book pages to JPG...';
+          epubProgressBar.style.width = '30%';
+
+          const htmlFiles = Object.keys(currentEpubZip.files).filter(f => /\.(xhtml|html|htm)$/i.test(f));
+          const zipOut = new JSZip();
+          let pageIndex = 1;
+
+          for (let fIdx = 0; fIdx < htmlFiles.length; fIdx++) {
+            const f = htmlFiles[fIdx];
+            const htmlStr = await currentEpubZip.file(f).async('text');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlStr, 'text/html');
+            doc.querySelectorAll('script, style, nav').forEach(el => el.remove());
+            const nodes = doc.querySelectorAll('h1, h2, h3, p');
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1000;
+            canvas.height = 1400;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a';
+
+            let curY = 80;
+            const leftMargin = 70;
+            const maxWidth = canvas.width - (leftMargin * 2);
+
+            ctx.font = '600 18px sans-serif';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText(`Chapter ${fIdx + 1} • Page ${pageIndex}`, leftMargin, 45);
+            ctx.fillStyle = '#0f172a';
+
+            let hasContent = false;
+
+            nodes.forEach(node => {
+              const text = node.textContent.trim();
+              if (!text) return;
+              hasContent = true;
+
+              const isHeading = /^H[1-3]$/i.test(node.tagName);
+              const fontSize = isHeading ? 28 : 20;
+              const lineHeight = fontSize + 12;
+              ctx.font = isHeading ? `700 ${fontSize}px sans-serif` : `400 ${fontSize}px Georgia, serif`;
+
+              const words = text.split(' ');
+              let line = '';
+
+              for (const w of words) {
+                const test = line ? line + ' ' + w : w;
+                if (ctx.measureText(test).width > maxWidth) {
+                  if (curY < canvas.height - 80) {
+                    ctx.fillText(line, leftMargin, curY);
+                    curY += lineHeight;
+                  }
+                  line = w;
+                } else {
+                  line = test;
+                }
+              }
+              if (line && curY < canvas.height - 80) {
+                ctx.fillText(line, leftMargin, curY);
+                curY += (lineHeight + (isHeading ? 14 : 8));
+              }
+            });
+
+            if (hasContent) {
+              const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+              zipOut.file(`page_${String(pageIndex).padStart(3, '0')}.jpg`, blob);
+              pageIndex++;
+            }
+          }
+
+          epubProgressBar.style.width = '100%';
+          const zipBlob = await zipOut.generateAsync({ type: 'blob' });
+          downloadBlob(zipBlob, `${currentEpubFile.name.replace(/\.[^/.]+$/, "")}_rendered_pages.zip`);
+
+        } else {
+          // Extract embedded illustrations / photos
+          epubProgressText.textContent = 'Extracting images...';
+          const imgZip = new JSZip();
+          let count = 0;
+          const files = Object.keys(currentEpubZip.files);
+          for (const f of files) {
+            if (/\.(jpg|jpeg|png|webp|gif)$/i.test(f)) {
+              const blob = await currentEpubZip.file(f).async('blob');
+              imgZip.file(f.split('/').pop(), blob);
+              count++;
+            }
+          }
+          if (count === 0) alert('No images found in EPUB.');
+          else {
+            const outZip = await imgZip.generateAsync({ type: 'blob' });
+            downloadBlob(outZip, `${currentEpubFile.name.replace(/\.[^/.]+$/, "")}_images.zip`);
+          }
+        }
+
+      } catch (err) {
+        alert('EPUB error: ' + err.message);
+      } finally {
+        epubRunBtn.disabled = false;
+        epubProgressWrapper.style.display = 'none';
+      }
+    });
+
+    // PDF to EPUB
+    const p2eDropzone = document.getElementById('p2eDropzone');
+    const p2eInput = document.getElementById('p2eInput');
+    const p2eControls = document.getElementById('p2eControls');
+    const p2eFileName = document.getElementById('p2eFileName');
+    const p2eFileMeta = document.getElementById('p2eFileMeta');
+    const p2eResetBtn = document.getElementById('p2eResetBtn');
+    const p2eMode = document.getElementById('p2eMode');
+    const p2eTitle = document.getElementById('p2eTitle');
+    const p2eAuthor = document.getElementById('p2eAuthor');
+    const p2eRunBtn = document.getElementById('p2eRunBtn');
+
+    let currentP2ePdf = null;
+    let currentP2eFile = null;
+
+    p2eDropzone.addEventListener('click', () => p2eInput.click());
+    setupDragDrop(p2eDropzone, (files) => { if (files[0]) loadP2ePdf(files[0]); });
+    p2eInput.addEventListener('change', (e) => { if (e.target.files[0]) loadP2ePdf(e.target.files[0]); });
+
+    async function loadP2ePdf(file) {
+      currentP2eFile = file;
+      p2eDropzone.style.display = 'none';
+      p2eControls.style.display = 'flex';
+      p2eFileName.textContent = file.name;
+      p2eTitle.value = file.name.replace(/\.[^/.]+$/, "");
+
+      try {
+        const ab = await file.arrayBuffer();
+        currentP2ePdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        p2eFileMeta.textContent = `${currentP2ePdf.numPages} pages`;
+      } catch (e) {
+        alert('Could not read PDF.');
+        resetP2e();
+      }
+    }
+
+    p2eResetBtn.addEventListener('click', resetP2e);
+    function resetP2e() {
+      currentP2ePdf = null; currentP2eFile = null;
+      p2eDropzone.style.display = 'block'; p2eControls.style.display = 'none';
+      p2eInput.value = '';
+    }
+
+    p2eRunBtn.addEventListener('click', async () => {
+      if (!currentP2ePdf) return;
+      p2eRunBtn.disabled = true;
+      p2eRunBtn.textContent = 'Generating EPUB 3...';
+
+      const mode = p2eMode.value;
+      const title = escapeXml(p2eTitle.value || 'eBook');
+      const author = escapeXml(p2eAuthor.value || 'Author');
+      const uuid = 'urn:uuid:' + Math.random().toString(36).substring(2) + Date.now();
+      const zip = new JSZip();
+
+      try {
+        zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+        zip.file('META-INF/container.xml', `<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`);
+        zip.file('OEBPS/stylesheet.css', `body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",serif;line-height:1.6;margin:0;padding:1.5rem;color:#1e293b;background:#fff}.page-container{max-width:800px;margin:0 auto;page-break-after:always}.page-image{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);border:1px solid #e2e8f0;margin-bottom:1.5rem}h1,h2{color:#0f172a;margin-top:1.25rem;margin-bottom:0.5rem}p{margin-bottom:0.75rem;font-size:1rem}`);
+
+        let manifest = '';
+        let spine = '';
+        let navPoints = '';
+        let navList = '';
+
+        for (let i = 1; i <= currentP2ePdf.numPages; i++) {
+          const page = await currentP2ePdf.getPage(i);
+          const vp = page.getViewport({ scale: 2.0 });
+          const cvs = document.createElement('canvas');
+          cvs.width = vp.width; cvs.height = vp.height;
+          const ctx = cvs.getContext('2d');
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+          const imgBlob = await new Promise(r => cvs.toBlob(r, 'image/jpeg', 0.95));
+          zip.file(`OEBPS/images/page_${i}.jpg`, imgBlob);
+          manifest += `    <item id="img_${i}" href="images/page_${i}.jpg" media-type="image/jpeg"/>\n`;
+
+          const textContent = await page.getTextContent();
+          let pageText = '';
+          textContent.items.forEach(it => { if (it.str.trim()) pageText += `<p>${escapeXml(it.str)}</p>\n`; });
+
+          const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div></body></html>`;
+
+          zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
+          manifest += `    <item id="p_${i}" href="page_${i}.xhtml" media-type="application/xhtml+xml"/>\n`;
+          spine += `    <itemref idref="p_${i}"/>\n`;
+          navPoints += `    <navPoint id="np_${i}" playOrder="${i}"><navLabel><text>Page ${i}</text></navLabel><content src="page_${i}.xhtml"/></navPoint>\n`;
+          navList += `      <li><a href="page_${i}.xhtml">Page ${i}</a></li>\n`;
+        }
+
+        zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Table of Contents</title></head><body><nav epub:type="toc" id="toc"><h1>Table of Contents</h1><ol>${navList}</ol></nav></body></html>`);
+        manifest += `    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>\n`;
+
+        zip.file('OEBPS/toc.ncx', `<?xml version="1.0" encoding="UTF-8"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="${uuid}"/><meta name="dtb:depth" content="1"/><meta name="dtb:totalPageCount" content="0"/><meta name="dtb:maxPageNumber" content="0"/></head><docTitle><text>${title}</text></docTitle><navMap>${navPoints}</navMap></ncx>`);
+
+        zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookID" version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${title}</dc:title><dc:creator>${author}</dc:creator><dc:identifier id="BookID">${uuid}</dc:identifier><dc:language>en</dc:language></metadata><manifest><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/><item id="css" href="stylesheet.css" media-type="text/css"/>${manifest}</manifest><spine toc="ncx">${spine}</spine></package>`);
+
+        const epubBlob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+        downloadBlob(epubBlob, `${currentP2eFile.name.replace(/\.[^/.]+$/, "")}.epub`);
+
+      } catch (err) {
+        alert('EPUB generation error: ' + err.message);
+      } finally {
+        p2eRunBtn.disabled = false;
+        p2eRunBtn.textContent = 'Create & Download EPUB';
+      }
+    });
+
+    // ==========================================
+    // 4. IMAGE TOOLS (CONVERT & TO PDF)
+    // ==========================================
+    const imgDropzone = document.getElementById('imgDropzone');
+    const imgInput = document.getElementById('imgInput');
+    const imgControls = document.getElementById('imgControls');
+    const imgSummary = document.getElementById('imgSummary');
+    const imgResetBtn = document.getElementById('imgResetBtn');
+    const imgTargetFmt = document.getElementById('imgTargetFmt');
+    const imgQualitySelect = document.getElementById('imgQualitySelect');
+    const imgRunBtn = document.getElementById('imgRunBtn');
+    const imgResultsSection = document.getElementById('imgResultsSection');
+    const imgGrid = document.getElementById('imgGrid');
+    const imgDownloadAll = document.getElementById('imgDownloadAll');
+
+    let imgFiles = [];
+    let convertedImageResults = [];
+
+    imgDropzone.addEventListener('click', () => imgInput.click());
+    setupDragDrop(imgDropzone, (files) => handleImgs(Array.from(files)));
+    imgInput.addEventListener('change', (e) => handleImgs(Array.from(e.target.files)));
+
+    function handleImgs(files) {
+      imgFiles = files.filter(f => f.type.startsWith('image/'));
+      if (!imgFiles.length) return;
+      imgDropzone.style.display = 'none';
+      imgControls.style.display = 'flex';
+      imgSummary.textContent = `${imgFiles.length} image(s) selected`;
+    }
+
+    imgResetBtn.addEventListener('click', () => {
+      imgFiles = []; convertedImageResults = [];
+      imgDropzone.style.display = 'block'; imgControls.style.display = 'none';
+      imgResultsSection.style.display = 'none'; imgInput.value = '';
+    });
+
+    imgRunBtn.addEventListener('click', async () => {
+      if (!imgFiles.length) return;
+      imgRunBtn.disabled = true;
+      convertedImageResults = [];
+      imgGrid.innerHTML = '';
+
+      const target = imgTargetFmt.value;
+      const q = parseFloat(imgQualitySelect.value) || 0.95;
+
+      for (const f of imgFiles) {
+        const bmp = await createImageBitmap(f);
+        const cvs = document.createElement('canvas');
+        cvs.width = bmp.width; cvs.height = bmp.height;
+        const ctx = cvs.getContext('2d');
+        if (target === 'jpg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cvs.width, cvs.height); }
+        ctx.drawImage(bmp, 0, 0);
+
+        let mime = 'image/png';
+        let ext = target;
+        if (target === 'jpg') mime = 'image/jpeg';
+        else if (target === 'webp') mime = 'image/webp';
+        else if (target === 'heic') mime = 'image/heic';
+
+        let blob = await new Promise(r => cvs.toBlob(r, mime, q));
+        if (!blob || blob.type !== mime) {
+          blob = await new Promise(r => cvs.toBlob(r, 'image/jpeg', q));
+          ext = 'jpg';
+        }
+        const fname = `${f.name.replace(/\.[^/.]+$/, "")}_converted.${ext}`;
+        convertedImageResults.push({ filename: fname, blob, dataUrl: cvs.toDataURL('image/jpeg', 0.8), ext });
+      }
+
+      imgResultsSection.style.display = 'block';
+      convertedImageResults.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.innerHTML = `<div class="page-preview-wrapper"><img src="${item.dataUrl}"></div><div class="page-meta"><div class="page-num" style="font-size:0.8rem;">${item.filename}</div><a class="btn-download-single" href="${URL.createObjectURL(item.blob)}" download="${item.filename}">Save</a></div>`;
+        imgGrid.appendChild(card);
+      });
+      imgRunBtn.disabled = false;
+      imgResultsSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    imgDownloadAll.addEventListener('click', async () => {
+      const zip = new JSZip();
+      convertedImageResults.forEach(item => zip.file(item.filename, item.blob));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, 'converted_images.zip');
+    });
+
+    // Images to PDF
+    const i2pDropzone = document.getElementById('i2pDropzone');
+    const i2pInput = document.getElementById('i2pInput');
+    const i2pControls = document.getElementById('i2pControls');
+    const i2pSummary = document.getElementById('i2pSummary');
+    const i2pReset = document.getElementById('i2pReset');
+    const i2pBtn = document.getElementById('i2pBtn');
+    let i2pImgs = [];
+
+    i2pDropzone.addEventListener('click', () => i2pInput.click());
+    setupDragDrop(i2pDropzone, (files) => {
+      i2pImgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (i2pImgs.length) {
+        i2pDropzone.style.display = 'none'; i2pControls.style.display = 'flex';
+        i2pSummary.textContent = `${i2pImgs.length} images selected`;
+      }
+    });
+    i2pInput.addEventListener('change', (e) => {
+      i2pImgs = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+      if (i2pImgs.length) {
+        i2pDropzone.style.display = 'none'; i2pControls.style.display = 'flex';
+        i2pSummary.textContent = `${i2pImgs.length} images selected`;
+      }
+    });
+    i2pReset.addEventListener('click', () => {
+      i2pImgs = []; i2pDropzone.style.display = 'block'; i2pControls.style.display = 'none';
+      i2pInput.value = '';
+    });
+
+    i2pBtn.addEventListener('click', async () => {
+      if (!i2pImgs.length) return;
+      i2pBtn.disabled = true;
+      try {
+        const doc = await PDFLib.PDFDocument.create();
+        for (const f of i2pImgs) {
+          const ab = await f.arrayBuffer();
+          let emb;
+          if (f.type === 'image/png' || f.name.toLowerCase().endsWith('.png')) {
+            emb = await doc.embedPng(ab);
+          } else {
+            emb = await doc.embedJpg(ab);
+          }
+          const p = doc.addPage([emb.width, emb.height]);
+          p.drawImage(emb, { x: 0, y: 0, width: emb.width, height: emb.height });
+        }
+        const b = await doc.save();
+        downloadBlob(new Blob([b], { type: 'application/pdf' }), 'images_combined.pdf');
+      } catch (err) {
+        alert('Images to PDF error: ' + err.message);
+      } finally {
+        i2pBtn.disabled = false;
+      }
+    });
+
+    // ==========================================
+    // 5. OCR: IMAGE TO TEXT (Tesseract.js)
+    // ==========================================
+    const ocrDropzone = document.getElementById('ocrDropzone');
+    const ocrInput = document.getElementById('ocrInput');
+    const ocrControls = document.getElementById('ocrControls');
+    const ocrFileName = document.getElementById('ocrFileName');
+    const ocrFileMeta = document.getElementById('ocrFileMeta');
+    const ocrResetBtn = document.getElementById('ocrResetBtn');
+    const ocrRunBtn = document.getElementById('ocrRunBtn');
+    const ocrProgressWrapper = document.getElementById('ocrProgressWrapper');
+    const ocrProgressBar = document.getElementById('ocrProgressBar');
+    const ocrProgressText = document.getElementById('ocrProgressText');
+    const ocrProgressPercent = document.getElementById('ocrProgressPercent');
+    const ocrOutputContainer = document.getElementById('ocrOutputContainer');
+    const ocrOutputText = document.getElementById('ocrOutputText');
+    const ocrCopyBtn = document.getElementById('ocrCopyBtn');
+    const ocrDownloadTxtBtn = document.getElementById('ocrDownloadTxtBtn');
+
+    let currentOcrFile = null;
+
+    ocrDropzone.addEventListener('click', () => ocrInput.click());
+    setupDragDrop(ocrDropzone, (files) => { if (files[0]) loadOcrFile(files[0]); });
+    ocrInput.addEventListener('change', (e) => { if (e.target.files[0]) loadOcrFile(e.target.files[0]); });
+
+    function loadOcrFile(file) {
+      currentOcrFile = file;
+      ocrDropzone.style.display = 'none';
+      ocrControls.style.display = 'flex';
+      ocrFileName.textContent = file.name;
+      ocrFileMeta.textContent = formatFileSize(file.size);
+      ocrOutputContainer.style.display = 'none';
+    }
+
+    ocrResetBtn.addEventListener('click', () => {
+      currentOcrFile = null;
+      ocrDropzone.style.display = 'block';
+      ocrControls.style.display = 'none';
+      ocrProgressWrapper.style.display = 'none';
+      ocrOutputContainer.style.display = 'none';
+      ocrInput.value = '';
+    });
+
+    ocrRunBtn.addEventListener('click', async () => {
+      if (!currentOcrFile) return;
+      ocrRunBtn.disabled = true;
+      ocrProgressWrapper.style.display = 'block';
+
+      try {
+        const worker = await Tesseract.createWorker('eng');
+        const ret = await worker.recognize(currentOcrFile);
+        await worker.terminate();
+
+        ocrProgressWrapper.style.display = 'none';
+        ocrOutputContainer.style.display = 'block';
+        ocrOutputText.value = ret.data.text || 'No text recognized.';
+      } catch (err) {
+        alert('OCR error: ' + err.message);
+        ocrProgressWrapper.style.display = 'none';
+      } finally {
+        ocrRunBtn.disabled = false;
+      }
+    });
+
+    ocrCopyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(ocrOutputText.value);
+      ocrCopyBtn.textContent = '✅ Copied!';
+      setTimeout(() => ocrCopyBtn.textContent = '📋 Copy Text', 2000);
+    });
+
+    ocrDownloadTxtBtn.addEventListener('click', () => {
+      const blob = new Blob([ocrOutputText.value], { type: 'text/plain;charset=utf-8' });
+      downloadBlob(blob, `${currentOcrFile.name.replace(/\.[^/.]+$/, "")}_extracted.txt`);
+    });
+
+    // ==========================================
+    // 6. AUDIO STUDIO (CONVERT, CUT, SPEED & WAV ENCODER)
+    // ==========================================
+    const audioDropzone = document.getElementById('audioDropzone');
+    const audioInput = document.getElementById('audioInput');
+    const audioControls = document.getElementById('audioControls');
+    const audioFileName = document.getElementById('audioFileName');
+    const audioFileMeta = document.getElementById('audioFileMeta');
+    const audioResetBtn = document.getElementById('audioResetBtn');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioStartSec = document.getElementById('audioStartSec');
+    const audioEndSec = document.getElementById('audioEndSec');
+    const audioSpeedSelect = document.getElementById('audioSpeedSelect');
+    const audioProcessBtn = document.getElementById('audioProcessBtn');
+
+    let currentAudioFile = null;
+    let audioBuffer = null;
+
+    audioDropzone.addEventListener('click', () => audioInput.click());
+    setupDragDrop(audioDropzone, (files) => { if (files[0]) loadAudioFile(files[0]); });
+    audioInput.addEventListener('change', (e) => { if (e.target.files[0]) loadAudioFile(e.target.files[0]); });
+
+    async function loadAudioFile(file) {
+      currentAudioFile = file;
+      audioDropzone.style.display = 'none';
+      audioControls.style.display = 'flex';
+      audioFileName.textContent = file.name;
+      audioPlayer.src = URL.createObjectURL(file);
+
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ab = await file.arrayBuffer();
+      audioBuffer = await ctx.decodeAudioData(ab);
+      const dur = audioBuffer.duration;
+
+      audioFileMeta.textContent = `Duration: ${formatTime(dur)} • ${audioBuffer.sampleRate} Hz`;
+      audioStartSec.value = 0;
+      audioEndSec.value = dur.toFixed(1);
+      audioEndSec.max = dur.toFixed(1);
+    }
+
+    audioResetBtn.addEventListener('click', () => {
+      currentAudioFile = null; audioBuffer = null;
+      audioDropzone.style.display = 'block'; audioControls.style.display = 'none';
+      audioPlayer.src = ''; audioInput.value = '';
+    });
+
+    audioSpeedSelect.addEventListener('change', () => {
+      audioPlayer.playbackRate = parseFloat(audioSpeedSelect.value);
+    });
+
+    audioProcessBtn.addEventListener('click', async () => {
+      if (!audioBuffer) return;
+      audioProcessBtn.disabled = true;
+      audioProcessBtn.textContent = 'Processing Audio...';
+
+      try {
+        const start = Math.max(0, parseFloat(audioStartSec.value) || 0);
+        const end = Math.min(audioBuffer.duration, parseFloat(audioEndSec.value) || audioBuffer.duration);
+        const speed = parseFloat(audioSpeedSelect.value) || 1.0;
+
+        const sampleRate = audioBuffer.sampleRate;
+        const startSample = Math.floor(start * sampleRate);
+        const endSample = Math.floor(end * sampleRate);
+        const sliceLength = endSample - startSample;
+
+        const targetLength = Math.floor(sliceLength / speed);
+        const offlineCtx = new OfflineAudioContext(audioBuffer.numberOfChannels, targetLength, sampleRate);
+
+        const src = offlineCtx.createBufferSource();
+        src.buffer = audioBuffer;
+        src.playbackRate.value = speed;
+        src.connect(offlineCtx.destination);
+        src.start(0, start, end - start);
+
+        const renderedBuffer = await offlineCtx.startRendering();
+        const wavBlob = audioBufferToWav(renderedBuffer);
+
+        const base = currentAudioFile.name.replace(/\.[^/.]+$/, "");
+        downloadBlob(wavBlob, `${base}_tuned.wav`);
+
+      } catch (err) {
+        alert('Audio error: ' + err.message);
+      } finally {
+        audioProcessBtn.disabled = false;
+        audioProcessBtn.textContent = 'Process & Download WAV Audio';
+      }
+    });
+
+    // Pure 16-bit PCM WAV Encoder
+    function audioBufferToWav(abuffer) {
+      const numOfChan = abuffer.numberOfChannels;
+      const length = abuffer.length * numOfChan * 2 + 44;
+      const out = new DataView(new ArrayBuffer(length));
+      const channels = [];
+      let pos = 0;
+
+      function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
+      function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
+
+      setUint32(0x46464952); // "RIFF"
+      setUint32(length - 8);
+      setUint32(0x45564157); // "WAVE"
+      setUint32(0x20746d66); // "fmt "
+      setUint32(16);
+      setUint16(1);          // PCM
+      setUint16(numOfChan);
+      setUint32(abuffer.sampleRate);
+      setUint32(abuffer.sampleRate * 2 * numOfChan);
+      setUint16(numOfChan * 2);
+      setUint16(16);         // 16-bit
+      setUint32(0x61746164); // "data"
+      setUint32(length - pos - 4);
+
+      for (let i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+
+      let offset = 0;
+      while (offset < abuffer.length) {
+        for (let i = 0; i < numOfChan; i++) {
+          let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+          out.setInt16(pos, sample, true);
+          pos += 2;
+        }
+        offset++;
+      }
+      return new Blob([out], { type: 'audio/wav' });
+    }
+
+    // ==========================================
+    // 7. VIDEO STUDIO (CUT, SPEED, EXTRACT AUDIO)
+    // ==========================================
+    const videoDropzone = document.getElementById('videoDropzone');
+    const videoInput = document.getElementById('videoInput');
+    const videoControls = document.getElementById('videoControls');
+    const videoFileName = document.getElementById('videoFileName');
+    const videoFileMeta = document.getElementById('videoFileMeta');
+    const videoResetBtn = document.getElementById('videoResetBtn');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoStartSec = document.getElementById('videoStartSec');
+    const videoEndSec = document.getElementById('videoEndSec');
+    const videoSpeedSelect = document.getElementById('videoSpeedSelect');
+    const videoActionSelect = document.getElementById('videoActionSelect');
+    const videoProcessBtn = document.getElementById('videoProcessBtn');
+    const videoProgressWrapper = document.getElementById('videoProgressWrapper');
+    const videoProgressBar = document.getElementById('videoProgressBar');
+    const videoProgressText = document.getElementById('videoProgressText');
+
+    let currentVideoFile = null;
+
+    videoDropzone.addEventListener('click', () => videoInput.click());
+    setupDragDrop(videoDropzone, (files) => { if (files[0]) loadVideoFile(files[0]); });
+    videoInput.addEventListener('change', (e) => { if (e.target.files[0]) loadVideoFile(e.target.files[0]); });
+
+    function loadVideoFile(file) {
+      currentVideoFile = file;
+      videoDropzone.style.display = 'none';
+      videoControls.style.display = 'flex';
+      videoFileName.textContent = file.name;
+      videoPlayer.src = URL.createObjectURL(file);
+
+      videoPlayer.onloadedmetadata = () => {
+        const dur = videoPlayer.duration;
+        videoFileMeta.textContent = `Duration: ${formatTime(dur)} • ${videoPlayer.videoWidth}x${videoPlayer.videoHeight}`;
+        videoStartSec.value = 0;
+        videoEndSec.value = Math.min(dur, 10).toFixed(1);
+        videoEndSec.max = dur.toFixed(1);
+      };
+    }
+
+    videoResetBtn.addEventListener('click', () => {
+      currentVideoFile = null;
+      videoDropzone.style.display = 'block'; videoControls.style.display = 'none';
+      videoPlayer.src = ''; videoInput.value = '';
+    });
+
+    videoSpeedSelect.addEventListener('change', () => {
+      videoPlayer.playbackRate = parseFloat(videoSpeedSelect.value);
+    });
+
+    videoProcessBtn.addEventListener('click', async () => {
+      if (!currentVideoFile) return;
+      const action = videoActionSelect.value;
+      const base = currentVideoFile.name.replace(/\.[^/.]+$/, "");
+
+      if (action === 'snapshot') {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoPlayer.videoWidth || 1280;
+        canvas.height = videoPlayer.videoHeight || 720;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+        downloadBlob(blob, `${base}_snapshot.jpg`);
+
+      } else if (action === 'extract_audio') {
+        videoProcessBtn.disabled = true;
+        videoProcessBtn.textContent = 'Extracting audio...';
+        try {
+          const ab = await currentVideoFile.arrayBuffer();
+          const actx = new (window.AudioContext || window.webkitAudioContext)();
+          const decoded = await actx.decodeAudioData(ab);
+          const wavBlob = audioBufferToWav(decoded);
+          downloadBlob(wavBlob, `${base}_audio.wav`);
+        } catch (e) {
+          alert('Could not extract audio track: ' + e.message);
+        } finally {
+          videoProcessBtn.disabled = false;
+          videoProcessBtn.textContent = 'Process Video';
+        }
+
+      } else {
+        videoProcessBtn.disabled = true;
+        videoProgressWrapper.style.display = 'block';
+        videoProgressText.textContent = 'Recording trimmed segment...';
+
+        const start = parseFloat(videoStartSec.value) || 0;
+        const end = parseFloat(videoEndSec.value) || videoPlayer.duration;
+
+        const stream = videoPlayer.captureStream ? videoPlayer.captureStream() : videoPlayer.mozCaptureStream();
+        let mime = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/mp4';
+
+        const recorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          videoProgressWrapper.style.display = 'none';
+          videoProcessBtn.disabled = false;
+          const outBlob = new Blob(chunks, { type: mime });
+          const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+          downloadBlob(outBlob, `${base}_cut.${ext}`);
+        };
+
+        videoPlayer.currentTime = start;
+        videoPlayer.onseeked = () => {
+          videoPlayer.onseeked = null;
+          recorder.start();
+          videoPlayer.play();
+
+          const checkInterval = setInterval(() => {
+            if (videoPlayer.currentTime >= end || videoPlayer.paused) {
+              clearInterval(checkInterval);
+              videoPlayer.pause();
+              recorder.stop();
+            }
+          }, 100);
+        };
+      }
+    });
+  </script>
+
+  <!-- OMNI_TAB_NAVIGATION_FAILSAFE -->
+  <script>
+  (function () {
+    function activateOmniTab(tabId) {
+      var panels = document.querySelectorAll('.module-panel');
+      var buttons = document.querySelectorAll('.nav-btn');
+      buttons.forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
+        b.setAttribute('type', 'button');
+      });
+      panels.forEach(function (p) {
+        p.classList.toggle('active', p.id === tabId);
+      });
+      var panel = document.getElementById(tabId);
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    document.addEventListener('click', function (event) {
+      var button = event.target.closest ? event.target.closest('.nav-btn') : null;
+      if (!button) return;
+      var tabId = button.getAttribute('data-tab');
+      if (!tabId || !document.getElementById(tabId)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      activateOmniTab(tabId);
+    }, true);
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.nav-btn').forEach(function (button) {
+        button.setAttribute('type', 'button');
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
