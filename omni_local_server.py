@@ -27,8 +27,13 @@ TOOLS = {
     "magick": ["magick", "-version"],
     "convert": ["convert", "-version"],
     "tesseract": ["tesseract", "--version"],
+    "soffice": ["soffice", "--version"],
+    "libreoffice": ["libreoffice", "--version"],
+    "ebook-convert": ["ebook-convert", "--version"],
+    "pandoc": ["pandoc", "--version"],
     "zip": ["zip", "-v"],
     "unzip": ["unzip", "-v"],
+    "7z": ["7z", "--help"],
 }
 
 def tool_path(name):
@@ -216,6 +221,49 @@ def process_job(payload):
         shutil.move(str(txt), str(out))
         return file_result(out, out.name, "text/plain")
 
+    if op == "office_convert":
+        office = tool_path("soffice") or tool_path("libreoffice")
+        if not office:
+            raise RuntimeError("LibreOffice is not installed. Run the platform installer.")
+        inp = get_file(payload["input"])
+        fmt = str(payload.get("format", "pdf")).lower().lstrip(".")
+        allowed = {"pdf","docx","doc","odt","ods","odp","rtf","txt","html"}
+        if fmt not in allowed:
+            raise ValueError("Unsupported Office output format")
+        work = ROOT / new_id("office")
+        work.mkdir()
+        run([office, "--headless", "--convert-to", fmt, "--outdir", str(work), str(inp)], timeout=3600)
+        outputs = list(work.glob("*"))
+        if not outputs:
+            shutil.rmtree(work, ignore_errors=True)
+            raise RuntimeError("LibreOffice did not produce an output file")
+        out = output_path(inp.stem, outputs[0].suffix.lstrip(".") or fmt)
+        shutil.move(str(outputs[0]), str(out))
+        shutil.rmtree(work, ignore_errors=True)
+        return file_result(out, out.name)
+
+    if op == "ebook_convert":
+        ebook = tool_path("ebook-convert")
+        if not ebook:
+            raise RuntimeError("Calibre ebook-convert is not installed. Run the platform installer.")
+        inp = get_file(payload["input"])
+        fmt = str(payload.get("format", "pdf")).lower().lstrip(".")
+        allowed = {"pdf","epub","mobi","azw3","txt","docx","htmlz"}
+        if fmt not in allowed:
+            raise ValueError("Unsupported ebook output format")
+        out = output_path(inp.stem, fmt)
+        run([ebook, str(inp), str(out)], timeout=7200)
+        return file_result(out, out.name)
+
+    if op == "pdf_to_text":
+        pdftotext = shutil.which("pdftotext")
+        if not pdftotext:
+            raise RuntimeError("Poppler pdftotext is not installed.")
+        inp = get_file(payload["input"])
+        out = output_path(inp.stem + "_text", "txt")
+        run([pdftotext, "-layout", str(inp), str(out)], timeout=3600)
+        return file_result(out, out.name, "text/plain")
+
     if op == "zip":
         inputs = [get_file(x) for x in payload.get("inputs", [])]
         if not inputs:
@@ -264,9 +312,44 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "*")
         self.end_headers()
 
+    def serve_static(self, parsed_path):
+        root = Path(__file__).resolve().parent
+        rel = urllib.parse.unquote(parsed_path.lstrip("/"))
+        if not rel or rel.endswith("/"):
+            rel = "index.html"
+        target = (root / rel).resolve()
+        try:
+            target.relative_to(root)
+        except ValueError:
+            self.send_json({"ok":False,"error":"Forbidden"},403)
+            return True
+        if not target.is_file():
+            return False
+        ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        if target.suffix.lower() == ".js":
+            ctype = "application/javascript"
+        if target.suffix.lower() in {".wasm",".traineddata"}:
+            ctype = "application/octet-stream"
+        size = target.stat().st_size
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(size))
+        self.end_headers()
+        with open(target,"rb") as src:
+            while True:
+                chunk=src.read(1024*1024)
+                if not chunk: break
+                self.wfile.write(chunk)
+        return True
+
     def do_GET(self):
         cleanup_old()
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path not in ("/api/health",) and not parsed.path.startswith("/api/"):
+            if self.serve_static(parsed.path):
+                return
         if parsed.path in ("/", "/api/health"):
             self.send_json(process_job({"op":"health"}))
             return
@@ -332,7 +415,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     print("OmniConverter Local Engine")
-    print(f"Listening on http://{HOST}:{PORT}")
+    print(f"Local UI: http://{HOST}:{PORT}/")
+    print(f"API:      http://{HOST}:{PORT}/api/health")
     print("Installed engines:", json.dumps(tool_versions(), indent=2))
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
     try:
