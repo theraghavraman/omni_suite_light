@@ -330,23 +330,70 @@ class Handler(BaseHTTPRequestHandler):
             return True
         if not target.is_file():
             return False
+
+        data = None
+        if target.name == "index.html":
+            data = target.read_bytes()
+            vendor = root / "vendor"
+            local_ready = (
+                (vendor / "pdfjs/pdf.min.js").is_file()
+                and (vendor / "pdfjs/pdf.worker.min.js").is_file()
+                and (vendor / "jszip/jszip.min.js").is_file()
+                and (vendor / "pdf-lib/pdf-lib.min.js").is_file()
+                and (vendor / "tesseract/tesseract.min.js").is_file()
+                and (vendor / "tesseract/worker.min.js").is_file()
+                and (vendor / "tesseract/core/tesseract-core.wasm.js").is_file()
+                and (vendor / "tesseract/core/tesseract-core-simd.wasm.js").is_file()
+                and (vendor / "tesseract/lang/eng.traineddata.gz").is_file()
+            )
+            if local_ready:
+                html = data.decode("utf-8")
+                html = html.replace(
+                    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
+                    "./vendor/pdfjs/pdf.min.js"
+                ).replace(
+                    "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+                    "./vendor/jszip/jszip.min.js"
+                ).replace(
+                    "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
+                    "./vendor/pdf-lib/pdf-lib.min.js"
+                ).replace(
+                    "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js",
+                    "./vendor/tesseract/tesseract.min.js"
+                ).replace(
+                    "window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'",
+                    "'./vendor/pdfjs/pdf.worker.min.js'"
+                )
+                html = html.replace(
+                    '<head>',
+                    '<head><script>window.OMNI_PDF_WORKER="./vendor/pdfjs/pdf.worker.min.js";window.OMNI_TESSERACT_OPTIONS={workerPath:"./vendor/tesseract/worker.min.js",langPath:"./vendor/tesseract/lang/",corePath:"./vendor/tesseract/core/",workerBlobURL:false};</script>',
+                    1
+                )
+                data = html.encode("utf-8")
+        if data is None:
+            size = target.stat().st_size
+        else:
+            size = len(data)
+
         ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
         if target.suffix.lower() == ".js":
             ctype = "application/javascript"
-        if target.suffix.lower() in {".wasm",".traineddata"}:
-            ctype = "application/octet-stream"
-        size = target.stat().st_size
+        if target.suffix.lower() == ".wasm":
+            ctype = "application/wasm"
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(size))
         self.end_headers()
-        with open(target,"rb") as src:
-            while True:
-                chunk=src.read(1024*1024)
-                if not chunk: break
-                self.wfile.write(chunk)
+        if data is not None:
+            self.wfile.write(data)
+        else:
+            with open(target,"rb") as src:
+                while True:
+                    chunk=src.read(1024*1024)
+                    if not chunk: break
+                    self.wfile.write(chunk)
         return True
 
     def do_GET(self):
