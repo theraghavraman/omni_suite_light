@@ -4092,5 +4092,127 @@ async function updateMode(){const p=document.getElementById('omniModePill');if(!
 updateMode();
 })();
 </script>
+<script id="omni-file-capture-repair">
+(function(){
+  'use strict';
+
+  /*
+   * Universal file-input safety net.
+   * Some mobile WebViews open the picker correctly but occasionally fail to
+   * let the module's original handler update its UI. This bridge verifies the
+   * selected FileList and supplies a module-specific fallback without replacing
+   * the existing handlers.
+   */
+  const map = {
+    pdf2imgInput: { zone:'pdf2imgDropzone', controls:'pdf2imgControls', name:'pdf2imgName', meta:'pdf2imgMeta', loader:'loadPdfForImg' },
+    w2pInput: { zone:'w2pDropzone', controls:'w2pControls', name:'w2pFileName', meta:'w2pFileMeta', loader:'loadW2pFile' },
+    p2wInput: { zone:'p2wDropzone', controls:'p2wControls', name:'p2wFileName', meta:'p2wFileMeta', loader:'loadP2wPdf' },
+    epubInput: { zone:'epubDropzone', controls:'epubControls', name:'epubFileName', meta:'epubFileMeta', loader:'loadEpub' },
+    p2eInput: { zone:'p2eDropzone', controls:'p2eControls', name:'p2eFileName', loader:'loadP2ePdf' },
+    imgResizeInput: { zone:'imgResizeDropzone', controls:'imgResizeControls', name:'imgResizeName', meta:'imgResizeMeta', loader:'loadResizeImage' },
+    ocrInput: { zone:'ocrDropzone', controls:'ocrControls', name:'ocrFileName', meta:'ocrFileMeta', loader:'loadOcrFile' },
+    audioInput: { zone:'audioDropzone', controls:'audioControls', name:'audioFileName', loader:'loadAudioFile' },
+    videoInput: { zone:'videoDropzone', controls:'videoControls', name:'videoFileName', loader:'loadVideoFile' }
+  };
+
+  function sizeOf(file){
+    if(window.formatFileSize) return window.formatFileSize(file.size);
+    const n=file.size||0;
+    return n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB';
+  }
+
+  function basicShow(cfg,file){
+    const zone=document.getElementById(cfg.zone);
+    const controls=document.getElementById(cfg.controls);
+    if(zone) zone.style.display='none';
+    if(controls) controls.style.display='flex';
+    const name=document.getElementById(cfg.name);
+    const meta=document.getElementById(cfg.meta);
+    if(name) name.textContent=file.name;
+    if(meta) meta.textContent=sizeOf(file);
+  }
+
+  document.querySelectorAll('input[type="file"]').forEach(function(input){
+    input.addEventListener('change',function(){
+      const files=Array.from(this.files||[]);
+      if(!files.length) return;
+
+      const cfg=map[this.id];
+      if(cfg){
+        /* Give the original module listener the first chance. */
+        setTimeout(function(){
+          const controls=document.getElementById(cfg.controls);
+          const zone=document.getElementById(cfg.zone);
+          const visible=controls && getComputedStyle(controls).display!=='none';
+          if(!visible && typeof window[cfg.loader]==='function'){
+            try { window[cfg.loader](files[0]); return; } catch(e){ console.warn('File loader fallback:',this.id,e); }
+          }
+          if(!visible) basicShow(cfg,files[0]);
+        },0);
+      }
+
+      if(this.id==='imgInput'){
+        setTimeout(function(){
+          const controls=document.getElementById('imgControls');
+          if(controls && getComputedStyle(controls).display==='none'){
+            const valid=files.filter(f=>f.type.startsWith('image/'));
+            if(valid.length){
+              const zone=document.getElementById('imgDropzone');
+              if(zone) zone.style.display='none';
+              controls.style.display='flex';
+              const summary=document.getElementById('imgSummary');
+              if(summary) summary.textContent=valid.length+' image(s) selected';
+            }
+          }
+        },0);
+      }
+
+      if(this.id==='i2pInput'){
+        setTimeout(function(){
+          const valid=files.filter(f=>f.type.startsWith('image/'));
+          const controls=document.getElementById('i2pControls');
+          if(valid.length && controls && getComputedStyle(controls).display==='none'){
+            const zone=document.getElementById('i2pDropzone');
+            if(zone) zone.style.display='none';
+            controls.style.display='flex';
+            const summary=document.getElementById('i2pSummary');
+            if(summary) summary.textContent=valid.length+' images selected';
+          }
+        },0);
+      }
+
+      if(this.id==='compressInput'){
+        setTimeout(function(){
+          const controls=document.getElementById('compressControls');
+          if(controls && getComputedStyle(controls).display==='none'){
+            const zone=document.getElementById('compressDropzone');
+            if(zone) zone.style.display='none';
+            controls.style.display='flex';
+            const summary=document.getElementById('compressSummary');
+            if(summary) summary.textContent=files.length+' file(s) selected';
+            const meta=document.getElementById('compressMeta');
+            if(meta) meta.textContent=files.length+' file(s) • '+sizeOf(files.reduce((n,f)=>n+f.size,0));
+          }
+        },0);
+      }
+
+      if(this.id==='decompressInput'){
+        setTimeout(function(){
+          const controls=document.getElementById('decompressControls');
+          if(controls && getComputedStyle(controls).display==='none'){
+            const zone=document.getElementById('decompressDropzone');
+            if(zone) zone.style.display='none';
+            controls.style.display='flex';
+            const name=document.getElementById('decompressName');
+            const meta=document.getElementById('decompressMeta');
+            if(name) name.textContent=files[0].name;
+            if(meta) meta.textContent=sizeOf(files[0]);
+          }
+        },0);
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>
