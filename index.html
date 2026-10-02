@@ -924,7 +924,7 @@
       width:58px;
       min-width:58px;
       min-height:64px !important;
-      flex-direction:column;
+      flex-direction:row !important;
       justify-content:center;
       gap:0 !important;
       padding:7px 6px !important;
@@ -1047,34 +1047,39 @@
       transform:scale(1.04);
     }
 
-    /* Labels are deliberately hidden until the studio is selected. */
+    /* Labels use a real inline slot: collapsed = zero width, active = expands.
+       This is more reliable across mobile browsers than absolutely-positioned text. */
     .studio-label{
-      position:absolute;
-      z-index:1;
-      left:50px;
-      top:50%;
-      transform:translate(10px,-50%) scale(.82);
-      transform-origin:left center;
-      opacity:0;
-      width:max-content;
-      max-width:92px;
+      position:relative;
+      left:auto;
+      top:auto;
+      display:inline-block;
+      flex:0 0 auto;
+      width:auto;
+      max-width:0;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
+      opacity:0;
+      transform:translateX(-8px) scale(.88);
+      transform-origin:left center;
       font-size:.78rem;
-      line-height:1.05;
+      line-height:1;
       font-weight:850;
+      color:inherit;
       pointer-events:none;
       transition:
-        opacity .22s ease .02s,
-        transform .4s cubic-bezier(.16,1,.3,1) .04s,
-        max-width .42s cubic-bezier(.16,1,.3,1);
+        max-width .42s cubic-bezier(.16,1,.3,1),
+        opacity .22s ease .06s,
+        transform .38s cubic-bezier(.16,1,.3,1) .03s,
+        margin-left .38s cubic-bezier(.16,1,.3,1);
     }
 
     .nav-btn.active .studio-label{
+      max-width:110px;
+      margin-left:9px;
       opacity:1;
-      max-width:98px;
-      transform:translate(8px,-50%) scale(1);
+      transform:translateX(0) scale(1);
     }
 
     .nav-btn small{
@@ -1108,11 +1113,13 @@
       }
       .studio-svg{width:18px;height:18px;}
       .studio-label{
-        left:45px;
-        max-width:78px;
+        max-width:0;
         font-size:.67rem;
       }
-      .nav-btn.active .studio-label{max-width:82px;}
+      .nav-btn.active .studio-label{
+        max-width:88px;
+        margin-left:8px;
+      }
     }
 
     @media(prefers-reduced-motion:reduce){
