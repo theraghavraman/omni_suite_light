@@ -7,7 +7,7 @@ OmniConverter Local Engine
 - Heavy media/PDF/image/OCR work is delegated to native tools when installed.
 """
 from __future__ import annotations
-import base64, hashlib, json, mimetypes, os, platform, shutil, subprocess, tempfile, threading, time, urllib.parse, zipfile, gzip
+import base64, hashlib, json, mimetypes, os, platform, shutil, subprocess, tempfile, threading, time, urllib.parse, zipfile, gzip, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -419,6 +419,7 @@ def main():
     print(f"API:      http://{HOST}:{PORT}/api/health")
     print("Installed engines:", json.dumps(tool_versions(), indent=2))
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    threading.Timer(0.8, lambda: webbrowser.open(f"http://{HOST}:{PORT}/")).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
