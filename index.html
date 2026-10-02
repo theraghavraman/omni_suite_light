@@ -1404,6 +1404,21 @@
             <button class="btn-reset" id="ocrResetBtn">Reset</button>
           </div>
 
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="ocrLanguage">OCR Language</label>
+              <select id="ocrLanguage" class="form-select">
+                <option value="eng" selected>English</option>
+                <option value="hin">Hindi</option>
+                <option value="eng+hin">English + Hindi</option>
+                <option value="deu">German</option>
+                <option value="fra">French</option>
+                <option value="spa">Spanish</option>
+                <option value="chi_sim">Chinese (Simplified)</option>
+              </select>
+              <div class="form-hint">The offline package includes English and Hindi browser models; other languages use the online fallback unless native Tesseract is used.</div>
+            </div>
+          </div>
           <div class="actions-bar">
             <button class="btn btn-primary" id="ocrRunBtn">Start Text Recognition (OCR)</button>
           </div>
@@ -3234,7 +3249,7 @@
       ocrProgressWrapper.style.display = 'block';
 
       try {
-        const worker = await Tesseract.createWorker('eng', 1, Object.assign({}, window.OMNI_TESSERACT_OPTIONS || {}, {
+        const worker = await Tesseract.createWorker(document.getElementById('ocrLanguage')?.value || 'eng', 1, Object.assign({}, window.OMNI_TESSERACT_OPTIONS || {}, {
           logger: m => {
             if (m.status) ocrProgressText.textContent = m.status;
             if (typeof m.progress === 'number') {
