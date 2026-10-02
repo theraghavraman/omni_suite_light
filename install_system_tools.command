@@ -7,6 +7,7 @@ if [ "$OS" = "Darwin" ]; then
   if ! have brew; then echo "Homebrew is required. Install it, then rerun this script."; exit 1; fi
   brew update
   brew install ffmpeg qpdf poppler imagemagick tesseract python
+  python3 prepare_offline.py
   exit 0
 fi
 if [ "$OS" = "Linux" ]; then
@@ -15,6 +16,7 @@ if [ "$OS" = "Linux" ]; then
   elif have pacman; then sudo pacman -Sy --needed --noconfirm ffmpeg qpdf poppler imagemagick tesseract python
   elif have zypper; then sudo zypper install -y ffmpeg qpdf poppler-tools ImageMagick tesseract python3
   else echo "No supported Linux package manager detected."; exit 1; fi
+  python3 prepare_offline.py
   exit 0
 fi
 echo "Unsupported OS: $OS"; exit 1
