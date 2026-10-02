@@ -274,14 +274,19 @@ class Handler(BaseHTTPRequestHandler):
             fid = parsed.path.rsplit("/", 1)[-1]
             try:
                 p = get_file(fid)
-                data = p.read_bytes()
+                size = p.stat().st_size
                 self.send_response(200)
                 self.send_header("Content-Type", mimetypes.guess_type(p.name)[0] or "application/octet-stream")
                 self.send_header("Content-Disposition", f'attachment; filename="{safe_name(p.name)}"')
-                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Content-Length", str(size))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-                self.wfile.write(data)
+                with open(p, "rb") as src:
+                    while True:
+                        chunk = src.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
             except Exception as e:
                 self.send_json({"ok":False,"error":str(e)}, 404)
             return
