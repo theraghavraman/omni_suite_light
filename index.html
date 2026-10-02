@@ -688,7 +688,7 @@
     .chip-one{right:7%;top:17%}.chip-two{left:5%;top:18%;animation-delay:-1.8s}.chip-three{right:7%;bottom:13%;animation-delay:-3.4s}
 
     .nav-bar {
-      position:sticky; top:12px; z-index:30; overflow:visible; display:grid; grid-template-columns:repeat(8,1fr); gap:6px;
+      position:sticky; top:12px; z-index:30; overflow:visible; display:grid; grid-template-columns:repeat(9,1fr); gap:6px;
       padding:7px; background:rgba(255,255,255,.64); border:1px solid rgba(191,201,219,.82); border-radius:21px;
       box-shadow:0 18px 40px rgba(58,70,102,.13), inset 0 1px 0 rgba(255,255,255,.94); backdrop-filter:blur(22px) saturate(140%); -webkit-backdrop-filter:blur(22px) saturate(140%);
     }
@@ -904,7 +904,83 @@
       <button class="nav-btn" data-tab="tabAudio"><span>🎵</span> Audio Studio</button>
       <button class="nav-btn" data-tab="tabVideo"><span>🎬</span> Video Studio</button>
       <button class="nav-btn" data-tab="tabCompress"><span>🗜️</span> File Compressor</button>
+      <button class="nav-btn" data-tab="tabLocal"><span>⚙️</span> Local Engine</button>
     </nav>
+
+
+    <!-- 9. LOCAL NATIVE ENGINE -->
+    <div class="module-panel" id="tabLocal">
+      <div class="card">
+        <h2>9. Local Native Engine</h2>
+        <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div>
+        <div id="omniLocalStatus" style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#f6f7fb;border:1px solid #dce3ef;font-weight:700;color:#647089;">Checking local engine…</div>
+        <div class="dropzone" id="omniLocalDropzone">
+          <h3>Choose files for local processing</h3>
+          <p>Multiple files are supported for merge and archive operations.</p>
+          <input type="file" id="omniLocalFiles" class="file-input" multiple>
+        </div>
+        <div id="omniLocalFileList" class="items-list" style="display:none;"></div>
+        <div class="controls-panel">
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="omniLocalOp">Native Operation</label>
+              <select id="omniLocalOp" class="form-select">
+                <option value="pdf_merge">PDF — Merge files</option>
+                <option value="pdf_split">PDF — Split into pages ZIP</option>
+                <option value="pdf_compress">PDF — Compress / optimize</option>
+                <option value="pdf_render">PDF — Render pages to PNG ZIP</option>
+                <option value="media">Media — Convert / transcode</option>
+                <option value="image">Image — Convert / resize</option>
+                <option value="ocr">OCR — Local Tesseract</option>
+                <option value="zip">Archive — ZIP</option>
+                <option value="gzip">Archive — GZIP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="omniLocalFormat">Output format</label>
+              <select id="omniLocalFormat" class="form-select">
+                <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option>
+                <option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option>
+                <option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option>
+                <option value="avif">AVIF</option><option value="tiff">TIFF</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="omniLocalWidth">Image width (optional)</label>
+              <input id="omniLocalWidth" class="form-input" type="number" min="1" placeholder="e.g. 2000">
+            </div>
+            <div class="form-group">
+              <label for="omniLocalQuality">Quality (1–100)</label>
+              <input id="omniLocalQuality" class="form-input" type="number" min="1" max="100" value="85">
+            </div>
+            <div class="form-group">
+              <label for="omniLocalStart">Media start seconds</label>
+              <input id="omniLocalStart" class="form-input" type="number" min="0" step="0.01" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label for="omniLocalEnd">Media end seconds</label>
+              <input id="omniLocalEnd" class="form-input" type="number" min="0" step="0.01" placeholder="Optional">
+            </div>
+            <div class="form-group">
+              <label for="omniLocalDpi">PDF render DPI</label>
+              <input id="omniLocalDpi" class="form-input" type="number" min="36" max="600" value="150">
+            </div>
+            <div class="form-group">
+              <label for="omniLocalLang">OCR language</label>
+              <input id="omniLocalLang" class="form-input" value="eng" placeholder="eng or eng+hin">
+            </div>
+          </div>
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="omniLocalRun">Run with Local Engine</button>
+            <button class="btn btn-secondary" id="omniLocalRefresh">Refresh Engine Status</button>
+          </div>
+          <div class="progress-wrapper" id="omniLocalProgress">
+            <div class="progress-info"><span id="omniLocalProgressText">Preparing…</span><span id="omniLocalProgressPct">0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="omniLocalProgressBar"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 1. PDF SUITE -->
     <div class="module-panel active" id="tabPdf">
@@ -3490,6 +3566,108 @@
       }
     });
   </script>
+
+
+<script id="omni-local-engine">
+(function(){
+  const BASE = "http://127.0.0.1:8765";
+  const $ = id => document.getElementById(id);
+  const filesInput = $("omniLocalFiles"), drop = $("omniLocalDropzone"), list = $("omniLocalFileList");
+  const status = $("omniLocalStatus"), op = $("omniLocalOp");
+  const progress = $("omniLocalProgress"), pbar = $("omniLocalProgressBar"), ptxt = $("omniLocalProgressText"), ppct = $("omniLocalProgressPct");
+  let selected = [];
+
+  function setStatus(ok, msg){
+    status.textContent = msg;
+    status.style.color = ok ? "#087a5b" : "#7b6470";
+    status.style.background = ok ? "#ecfbf5" : "#fff7f8";
+    status.style.borderColor = ok ? "#b9ead9" : "#efd2d8";
+  }
+  function setProgress(v, msg){
+    v=Math.max(0,Math.min(100,v)); progress.style.display="block";
+    pbar.style.width=v+"%"; ppct.textContent=Math.round(v)+"%"; ptxt.textContent=msg;
+  }
+  async function health(){
+    try {
+      const r=await fetch(BASE+"/api/health",{cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      const installed=Object.entries(j.tools||{}).filter(([k,v])=>v.installed).map(([k])=>k);
+      setStatus(true,"● Local Engine connected • "+(installed.length?installed.join(", "):"Python bridge only"));
+      return j;
+    } catch(e) {
+      setStatus(false,"○ Browser-only mode • Start start_omni.bat / start_omni.command to enable native processing");
+      return null;
+    }
+  }
+  function renderFiles(){
+    list.innerHTML="";
+    list.style.display=selected.length?"flex":"none";
+    selected.forEach((f,i)=>{
+      const li=document.createElement("li"); li.className="item-row";
+      li.innerHTML='<div><div class="item-row-title"></div><div class="item-row-meta"></div></div><button class="btn-icon" type="button">Remove</button>';
+      li.querySelector(".item-row-title").textContent=f.name;
+      li.querySelector(".item-row-meta").textContent=(f.size/1024/1024).toFixed(2)+" MB";
+      li.querySelector("button").onclick=()=>{selected.splice(i,1);renderFiles();};
+      list.appendChild(li);
+    });
+  }
+  function addFiles(fs){ selected=selected.concat(Array.from(fs||[])); renderFiles(); }
+  filesInput.addEventListener("change",e=>addFiles(e.target.files));
+  drop.addEventListener("click",()=>filesInput.click());
+  ["dragenter","dragover"].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add("dragover");}));
+  ["dragleave","drop"].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove("dragover");}));
+  drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+  $("omniLocalRefresh").onclick=health;
+
+  async function upload(file, i, total){
+    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream"},body:file});
+    if(!r.ok) throw new Error((await r.text()).slice(0,500));
+    setProgress(8+(i/Math.max(1,total))*45,"Uploading "+file.name+"…");
+    return (await r.json()).file_id;
+  }
+  async function run(){
+    if(!selected.length){alert("Choose at least one file.");return;}
+    const h=await health(); if(!h) {alert("Local Engine is not running. Start start_omni.bat (Windows) or start_omni.command (macOS/Linux).");return;}
+    const kind=op.value;
+    try{
+      setProgress(2,"Preparing local job…");
+      const ids=[];
+      for(let i=0;i<selected.length;i++) ids.push(await upload(selected[i],i,selected.length));
+      const payload={op:kind};
+      if(kind==="pdf_merge"||kind==="zip") payload.inputs=ids;
+      else payload.input=ids[0];
+      if(kind==="media") {
+        payload.format=$("omniLocalFormat").value;
+        const s=parseFloat($("omniLocalStart").value); const e=parseFloat($("omniLocalEnd").value);
+        if(Number.isFinite(s)) payload.start=s; if(Number.isFinite(e)) payload.end=e;
+      }
+      if(kind==="image"){
+        payload.format=$("omniLocalFormat").value;
+        const w=parseInt($("omniLocalWidth").value,10); if(Number.isFinite(w)&&w>0) payload.width=w;
+        payload.quality=parseInt($("omniLocalQuality").value,10)||85;
+      }
+      if(kind==="pdf_render") payload.dpi=parseInt($("omniLocalDpi").value,10)||150;
+      if(kind==="ocr") payload.lang=$("omniLocalLang").value.trim()||"eng";
+      setProgress(60,"Running native "+kind.replaceAll("_"," ")+"…");
+      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const out=await rr.json(); if(!rr.ok||!out.ok) throw new Error(out.error||"Local operation failed");
+      setProgress(92,"Preparing download…");
+      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id));
+      if(!dl.ok) throw new Error("Output download failed");
+      const blob=await dl.blob();
+      const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=out.name||"omni-output"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      setProgress(100,"Complete • "+out.name+" ("+(out.size/1024/1024).toFixed(2)+" MB)");
+      setStatus(true,"● Local Engine connected • Job completed successfully");
+    }catch(e){
+      setProgress(0,"Job failed"); setStatus(false,"Local job error: "+e.message); alert("Local Engine: "+e.message);
+    }
+  }
+  $("omniLocalRun").onclick=run;
+  health();
+})();
+</script>
 
   <!-- OMNI_TAB_NAVIGATION_FAILSAFE -->
   <script>
