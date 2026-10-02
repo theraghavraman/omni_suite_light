@@ -2342,7 +2342,7 @@
     const compressProgressBar = document.getElementById('compressProgressBar');
     const compressProgressText = document.getElementById('compressProgressText');
     const compressProgressPercent = document.getElementById('compressProgressPercent');
-    let compressFiles = [];
+    var compressFiles = window.compressFiles || [];
 
     const decompressDropzone = document.getElementById('decompressDropzone');
     const decompressInput = document.getElementById('decompressInput');
@@ -2353,7 +2353,7 @@
     const decompressBtn = document.getElementById('decompressBtn');
     const decompressSaveAll = document.getElementById('decompressSaveAll');
     const decompressList = document.getElementById('decompressList');
-    let decompressFile = null;
+    var decompressFile = window.decompressFile || null;
     let decompressedItems = [];
 
     function setCompressionProgress(p, text) {
@@ -3449,7 +3449,7 @@
     const imgGrid = document.getElementById('imgGrid');
     const imgDownloadAll = document.getElementById('imgDownloadAll');
 
-    let imgFiles = [];
+    var imgFiles = window.imgFiles || [];
     let convertedImageResults = [];
 
     imgDropzone.addEventListener('click', () => imgInput.click());
@@ -3527,7 +3527,7 @@
     const i2pSummary = document.getElementById('i2pSummary');
     const i2pReset = document.getElementById('i2pReset');
     const i2pBtn = document.getElementById('i2pBtn');
-    let i2pImgs = [];
+    var i2pImgs = window.i2pImgs || [];
 
     i2pDropzone.addEventListener('click', () => i2pInput.click());
     setupDragDrop(i2pDropzone, (files) => {
@@ -4153,16 +4153,15 @@ updateMode();
 
       if(this.id==='imgInput'){
         setTimeout(function(){
+          const valid=files.filter(f=>f.type.startsWith('image/'));
+          if(valid.length) window.imgFiles = valid.slice();
           const controls=document.getElementById('imgControls');
-          if(controls && getComputedStyle(controls).display==='none'){
-            const valid=files.filter(f=>f.type.startsWith('image/'));
-            if(valid.length){
-              const zone=document.getElementById('imgDropzone');
-              if(zone) zone.style.display='none';
-              controls.style.display='flex';
-              const summary=document.getElementById('imgSummary');
-              if(summary) summary.textContent=valid.length+' image(s) selected';
-            }
+          if(controls && getComputedStyle(controls).display==='none' && valid.length){
+            const zone=document.getElementById('imgDropzone');
+            if(zone) zone.style.display='none';
+            controls.style.display='flex';
+            const summary=document.getElementById('imgSummary');
+            if(summary) summary.textContent=valid.length+' image(s) selected';
           }
         },0);
       }
@@ -4170,6 +4169,7 @@ updateMode();
       if(this.id==='i2pInput'){
         setTimeout(function(){
           const valid=files.filter(f=>f.type.startsWith('image/'));
+          if(valid.length) window.i2pImgs = valid.slice();
           const controls=document.getElementById('i2pControls');
           if(valid.length && controls && getComputedStyle(controls).display==='none'){
             const zone=document.getElementById('i2pDropzone');
@@ -4183,6 +4183,7 @@ updateMode();
 
       if(this.id==='compressInput'){
         setTimeout(function(){
+          window.compressFiles = files.slice();
           const controls=document.getElementById('compressControls');
           if(controls && getComputedStyle(controls).display==='none'){
             const zone=document.getElementById('compressDropzone');
@@ -4193,11 +4194,15 @@ updateMode();
             const meta=document.getElementById('compressMeta');
             if(meta) meta.textContent=files.length+' file(s) • '+sizeOf(files.reduce((n,f)=>n+f.size,0));
           }
+          if(typeof window.updateCompressionSelection==='function'){
+            try{ window.updateCompressionSelection(); }catch(_){}
+          }
         },0);
       }
 
       if(this.id==='decompressInput'){
         setTimeout(function(){
+          window.decompressFile = files[0] || null;
           const controls=document.getElementById('decompressControls');
           if(controls && getComputedStyle(controls).display==='none'){
             const zone=document.getElementById('decompressDropzone');
