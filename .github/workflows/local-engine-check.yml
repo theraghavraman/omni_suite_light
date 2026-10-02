@@ -1,0 +1,37 @@
+name: Validate OmniConverter local engine
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-local-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Python bridge syntax
+        run: python3 -m py_compile omni_local_server.py
+      - name: Validate installer files exist
+        run: |
+          test -s install_system_tools.command
+          test -s install_windows.ps1
+          test -s start_omni.bat
+          test -s start_omni.command
+      - name: Validate local-engine UI hooks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path("index.html").read_text(encoding="utf-8")
+          required = [
+              'data-tab="tabLocal"',
+              'id="tabLocal"',
+              'id="omniLocalRun"',
+              '/api/upload',
+              '/api/process',
+              '/api/download/'
+          ]
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit("Missing UI hooks: " + ", ".join(missing))
+          print("Local engine UI hooks: OK")
+          PY
