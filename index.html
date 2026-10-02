@@ -919,15 +919,15 @@
     </section>
 
     <nav class="nav-bar">
-      <button type="button"> class="nav-btn active" data-tab="tabPdf"><span>📄</span> PDF Suite</button>
-      <button type="button"> class="nav-btn" data-tab="tabWord"><span>📝</span> Word &amp; Docs</button>
-      <button type="button"> class="nav-btn" data-tab="tabEpub"><span>📚</span> EPUB Studio</button>
-      <button type="button"> class="nav-btn" data-tab="tabImages"><span>🖼️</span> Image Tools</button>
-      <button type="button"> class="nav-btn" data-tab="tabOcr"><span>🔎</span> Image to Text (OCR)</button>
-      <button type="button"> class="nav-btn" data-tab="tabAudio"><span>🎵</span> Audio Studio</button>
-      <button type="button"> class="nav-btn" data-tab="tabVideo"><span>🎬</span> Video Studio</button>
-      <button type="button"> class="nav-btn" data-tab="tabCompress"><span>🗜️</span> File Compressor</button>
-      <button type="button"> class="nav-btn" data-tab="tabLocal"><span>⚙️</span> Local Engine</button>
+      <button type="button" class="nav-btn active" data-tab="tabPdf"><span>📄</span> PDF Suite</button>
+      <button type="button" class="nav-btn" data-tab="tabWord"><span>📝</span> Word &amp; Docs</button>
+      <button type="button" class="nav-btn" data-tab="tabEpub"><span>📚</span> EPUB Studio</button>
+      <button type="button" class="nav-btn" data-tab="tabImages"><span>🖼️</span> Image Tools</button>
+      <button type="button" class="nav-btn" data-tab="tabOcr"><span>🔎</span> Image to Text (OCR)</button>
+      <button type="button" class="nav-btn" data-tab="tabAudio"><span>🎵</span> Audio Studio</button>
+      <button type="button" class="nav-btn" data-tab="tabVideo"><span>🎬</span> Video Studio</button>
+      <button type="button" class="nav-btn" data-tab="tabCompress"><span>🗜️</span> File Compressor</button>
+      <button type="button" class="nav-btn" data-tab="tabLocal"><span>⚙️</span> Local Engine</button>
     </nav>
 
 
@@ -999,8 +999,8 @@
             </div>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="omniLocalRun">Run with Local Engine</button>
-            <button type="button"> class="btn btn-secondary" id="omniLocalRefresh">Refresh Engine Status</button>
+            <button type="button" class="btn btn-primary" id="omniLocalRun">Run with Local Engine</button>
+            <button type="button" class="btn btn-secondary" id="omniLocalRefresh">Refresh Engine Status</button>
           </div>
           <div class="progress-wrapper" id="omniLocalProgress">
             <div class="progress-info"><span id="omniLocalProgressText">Preparing…</span><span id="omniLocalProgressPct">0%</span></div>
@@ -1028,7 +1028,7 @@
               <div class="file-name" id="pdf2imgName">document.pdf</div>
               <div class="file-meta" id="pdf2imgMeta">0 pages</div>
             </div>
-            <button type="button"> class="btn-reset" id="pdf2imgReset">Reset</button>
+            <button type="button" class="btn-reset" id="pdf2imgReset">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1056,7 +1056,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="pdf2imgBtn">Convert to Images</button>
+            <button type="button" class="btn btn-primary" id="pdf2imgBtn">Convert to Images</button>
           </div>
         </div>
       </div>
@@ -1064,8 +1064,8 @@
       <div class="results-section" id="pdf2imgResultsSection">
         <div class="results-header">
           <h2 id="pdf2imgCount">Converted Images</h2>
-          <button type="button"> class="btn btn-success" id="pdf2imgDownloadAll">Download All as ZIP</button>
-          <button type="button"> class="btn btn-secondary" id="pdf2imgFolderExport">Export Pages to Folder</button>
+          <button type="button" class="btn btn-success" id="pdf2imgDownloadAll">Download All as ZIP</button>
+          <button type="button" class="btn btn-secondary" id="pdf2imgFolderExport">Export Pages to Folder</button>
         </div>
         <div class="pages-grid" id="pdf2imgGrid"></div>
       </div>
@@ -1078,13 +1078,13 @@
           <div class="form-group">
             <label>Merge Multiple PDFs</label>
             <input type="file" id="pdfMergeInput" class="form-input" accept="application/pdf" multiple>
-            <button type="button"> class="btn btn-primary" style="margin-top:8px;" id="pdfMergeBtn">Merge Files into One</button>
+            <button type="button" class="btn btn-primary" style="margin-top:8px;" id="pdfMergeBtn">Merge Files into One</button>
           </div>
           <div class="form-group">
             <label>Split / Extract PDF Pages</label>
             <input type="file" id="pdfSplitInput" class="form-input" accept="application/pdf">
             <input type="text" id="pdfSplitRange" class="form-input" style="margin-top:6px;" placeholder="Pages to extract (e.g. 1-3, 5)">
-            <button type="button"> class="btn btn-primary" style="margin-top:6px;" id="pdfSplitBtn">Extract Pages</button>
+            <button type="button" class="btn btn-primary" style="margin-top:6px;" id="pdfSplitBtn">Extract Pages</button>
           </div>
         </div>
       </div>
@@ -1107,11 +1107,11 @@
               <div class="file-name" id="w2pFileName">document.docx</div>
               <div class="file-meta" id="w2pFileMeta">0 KB</div>
             </div>
-            <button type="button"> class="btn-reset" id="w2pResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="w2pResetBtn">Reset</button>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-success" id="w2pRunBtn">Convert DOCX to PDF</button>
-            <button type="button"> class="btn btn-secondary" id="w2pTxtBtn">Export as .TXT</button>
+            <button type="button" class="btn btn-success" id="w2pRunBtn">Convert DOCX to PDF</button>
+            <button type="button" class="btn btn-secondary" id="w2pTxtBtn">Export as .TXT</button>
           </div>
         </div>
       </div>
@@ -1131,7 +1131,7 @@
               <div class="file-name" id="p2wFileName">document.pdf</div>
               <div class="file-meta" id="p2wFileMeta">0 pages</div>
             </div>
-            <button type="button"> class="btn-reset" id="p2wResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="p2wResetBtn">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1146,7 +1146,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="p2wRunBtn">Convert to .DOCX</button>
+            <button type="button" class="btn btn-primary" id="p2wRunBtn">Convert to .DOCX</button>
           </div>
         </div>
       </div>
@@ -1161,8 +1161,8 @@
         </div>
         <textarea id="t2dText" class="form-textarea" style="margin-top:10px;" placeholder="# Heading 1&#10;&#10;Write your content here...&#10;&#10;## Subheading&#10;More text..."></textarea>
         <div class="actions-bar">
-          <button type="button"> class="btn btn-primary" id="t2dDocxBtn">Create Word DOCX</button>
-          <button type="button"> class="btn btn-success" id="t2dPdfBtn">Create Text PDF</button>
+          <button type="button" class="btn btn-primary" id="t2dDocxBtn">Create Word DOCX</button>
+          <button type="button" class="btn btn-success" id="t2dPdfBtn">Create Text PDF</button>
         </div>
       </div>
     </div>
@@ -1184,7 +1184,7 @@
               <div class="file-name" id="epubFileName">book.epub</div>
               <div class="file-meta" id="epubFileMeta">0 KB</div>
             </div>
-            <button type="button"> class="btn-reset" id="epubResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="epubResetBtn">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1200,7 +1200,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="epubRunBtn">Process EPUB</button>
+            <button type="button" class="btn btn-primary" id="epubRunBtn">Process EPUB</button>
           </div>
 
           <div class="progress-wrapper" id="epubProgressWrapper">
@@ -1226,7 +1226,7 @@
               <div class="file-name" id="p2eFileName">document.pdf</div>
               <div class="file-meta" id="p2eFileMeta">0 pages</div>
             </div>
-            <button type="button"> class="btn-reset" id="p2eResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="p2eResetBtn">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1243,7 +1243,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="p2eRunBtn">Create &amp; Download EPUB</button>
+            <button type="button" class="btn btn-primary" id="p2eRunBtn">Create &amp; Download EPUB</button>
           </div>
         </div>
       </div>
@@ -1264,7 +1264,7 @@
         <div class="controls-panel" id="imgControls" style="display: none;">
           <div class="file-summary">
             <div><div class="file-name" id="imgSummary">0 images selected</div></div>
-            <button type="button"> class="btn-reset" id="imgResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="imgResetBtn">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1288,7 +1288,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="imgRunBtn">Convert Images</button>
+            <button type="button" class="btn btn-primary" id="imgRunBtn">Convert Images</button>
           </div>
         </div>
       </div>
@@ -1296,7 +1296,7 @@
       <div class="results-section" id="imgResultsSection">
         <div class="results-header">
           <h2>Converted Images</h2>
-          <button type="button"> class="btn btn-success" id="imgDownloadAll">Download All as ZIP</button>
+          <button type="button" class="btn btn-success" id="imgDownloadAll">Download All as ZIP</button>
         </div>
         <div class="pages-grid" id="imgGrid"></div>
       </div>
@@ -1320,7 +1320,7 @@
               <div class="file-name" id="imgResizeName">image.jpg</div>
               <div class="file-meta" id="imgResizeMeta">0 × 0 px</div>
             </div>
-            <button type="button"> class="btn-reset" id="imgResizeReset">Reset</button>
+            <button type="button" class="btn-reset" id="imgResizeReset">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1370,11 +1370,11 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="imgResizePixelsBtn">📐 Resize to Pixel Size</button>
-            <button type="button"> class="btn btn-secondary" id="imgResizeDpiBtn">🎯 Resize by DPI + mm</button>
-            <button type="button"> class="btn btn-secondary" id="imgPassportBtn">🇮🇳 Indian Passport Photo</button>
-            <button type="button"> class="btn btn-secondary" id="imgId2x2Btn">🪪 2×2 ID Photo</button>
-            <button type="button"> class="btn btn-secondary" id="imgSignatureBtn">✍️ Signature Size</button>
+            <button type="button" class="btn btn-primary" id="imgResizePixelsBtn">📐 Resize to Pixel Size</button>
+            <button type="button" class="btn btn-secondary" id="imgResizeDpiBtn">🎯 Resize by DPI + mm</button>
+            <button type="button" class="btn btn-secondary" id="imgPassportBtn">🇮🇳 Indian Passport Photo</button>
+            <button type="button" class="btn btn-secondary" id="imgId2x2Btn">🪪 2×2 ID Photo</button>
+            <button type="button" class="btn btn-secondary" id="imgSignatureBtn">✍️ Signature Size</button>
           </div>
           <div class="form-hint" id="imgResizeHint">DPI/PPI controls the pixel calculation from physical dimensions. A raster image's true embedded print-DPI metadata is not reliably writable with Canvas alone, so this tool makes the pixel dimensions explicit.</div>
         </div>
@@ -1401,10 +1401,10 @@
         <div class="controls-panel" id="i2pControls" style="display: none;">
           <div class="file-summary">
             <div><div class="file-name" id="i2pSummary">0 images</div></div>
-            <button type="button"> class="btn-reset" id="i2pReset">Clear</button>
+            <button type="button" class="btn-reset" id="i2pReset">Clear</button>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="i2pBtn">Combine into PDF</button>
+            <button type="button" class="btn btn-primary" id="i2pBtn">Combine into PDF</button>
           </div>
         </div>
       </div>
@@ -1427,7 +1427,7 @@
               <div class="file-name" id="ocrFileName">image.png</div>
               <div class="file-meta" id="ocrFileMeta">0 KB</div>
             </div>
-            <button type="button"> class="btn-reset" id="ocrResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="ocrResetBtn">Reset</button>
           </div>
 
           <div class="options-grid">
@@ -1455,7 +1455,7 @@
             </div>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="ocrRunBtn">Start Text Recognition (OCR)</button>
+            <button type="button" class="btn btn-primary" id="ocrRunBtn">Start Text Recognition (OCR)</button>
           </div>
 
           <div class="progress-wrapper" id="ocrProgressWrapper">
@@ -1467,8 +1467,8 @@
             <label style="font-size:0.875rem; font-weight:700; color:#c8d4e8;">Extracted Text:</label>
             <textarea id="ocrOutputText" class="form-textarea" style="margin-top:6px; width:100%;"></textarea>
             <div class="actions-bar" style="margin-top:10px;">
-              <button type="button"> class="btn btn-secondary" id="ocrCopyBtn">📋 Copy Text</button>
-              <button type="button"> class="btn btn-primary" id="ocrDownloadTxtBtn">💾 Save as .TXT</button>
+              <button type="button" class="btn btn-secondary" id="ocrCopyBtn">📋 Copy Text</button>
+              <button type="button" class="btn btn-primary" id="ocrDownloadTxtBtn">💾 Save as .TXT</button>
             </div>
           </div>
         </div>
@@ -1493,7 +1493,7 @@
               <div class="file-name" id="audioFileName">song.mp3</div>
               <div class="file-meta" id="audioFileMeta">Duration: 0:00</div>
             </div>
-            <button type="button"> class="btn-reset" id="audioResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="audioResetBtn">Reset</button>
           </div>
 
           <div class="media-player-container">
@@ -1525,7 +1525,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="audioProcessBtn">Process &amp; Download WAV Audio</button>
+            <button type="button" class="btn btn-primary" id="audioProcessBtn">Process &amp; Download WAV Audio</button>
           </div>
         </div>
       </div>
@@ -1549,7 +1549,7 @@
               <div class="file-name" id="videoFileName">clip.mp4</div>
               <div class="file-meta" id="videoFileMeta">0:00</div>
             </div>
-            <button type="button"> class="btn-reset" id="videoResetBtn">Reset</button>
+            <button type="button" class="btn-reset" id="videoResetBtn">Reset</button>
           </div>
 
           <div class="media-player-container">
@@ -1590,7 +1590,7 @@
           </div>
 
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="videoProcessBtn">Process Video</button>
+            <button type="button" class="btn btn-primary" id="videoProcessBtn">Process Video</button>
           </div>
 
           <div class="progress-wrapper" id="videoProgressWrapper">
@@ -1643,10 +1643,10 @@
               <div class="file-name" id="compressSummary">0 files</div>
               <div class="file-meta" id="compressMeta">Ready</div>
             </div>
-            <button type="button"> class="btn-reset" id="compressReset">Reset</button>
+            <button type="button" class="btn-reset" id="compressReset">Reset</button>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="compressBtn">🗜️ Compress Files</button>
+            <button type="button" class="btn btn-primary" id="compressBtn">🗜️ Compress Files</button>
           </div>
           <div class="progress-wrapper" id="compressProgress">
             <div class="progress-info"><span id="compressProgressText">Compressing...</span><span id="compressProgressPercent">0%</span></div>
@@ -1670,11 +1670,11 @@
               <div class="file-name" id="decompressName">archive.zip</div>
               <div class="file-meta" id="decompressMeta"></div>
             </div>
-            <button type="button"> class="btn-reset" id="decompressReset">Reset</button>
+            <button type="button" class="btn-reset" id="decompressReset">Reset</button>
           </div>
           <div class="actions-bar">
-            <button type="button"> class="btn btn-primary" id="decompressBtn">📂 Extract / Decompress</button>
-            <button type="button"> class="btn btn-success" id="decompressSaveAll" style="display:none;">Save All as ZIP</button>
+            <button type="button" class="btn btn-primary" id="decompressBtn">📂 Extract / Decompress</button>
+            <button type="button" class="btn btn-success" id="decompressSaveAll" style="display:none;">Save All as ZIP</button>
           </div>
           <div class="items-list" id="decompressList"></div>
         </div>
