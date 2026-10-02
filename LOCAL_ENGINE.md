@@ -1,44 +1,106 @@
-# OmniConverter Studio — Local Engine
+# OmniConverter Studio — Full Local / Offline Edition
 
-OmniConverter can run in two modes:
+This repository supports two modes:
 
-- **Browser mode:** no installation; best for normal-sized jobs.
-- **Local Engine mode:** optional native processing for large PDFs, media, images, archives and OCR.
+1. **GitHub/browser mode** — open the Pages site and use browser-side features.
+2. **Full local mode** — install the native engines once, prepare the browser assets once, then run the complete UI from `127.0.0.1` without Internet access.
 
-## Install
+## One-click setup
 
 ### Windows
-Run `install_windows.ps1` in PowerShell, then start `start_omni.bat`.
+
+Double-click:
+
+`setup_and_start.bat`
+
+or run:
+
+`powershell -ExecutionPolicy Bypass -File install_windows.ps1`
+
+then:
+
+`start_omni.bat`
 
 ### macOS / Linux
-Run `bash install_system_tools.command`, then `bash start_omni.command`.
 
-The local service listens only on loopback at port 8765.
+Run:
 
-## Native capabilities
+`bash setup_and_start.command`
 
-- FFmpeg: audio/video conversion and trimming.
-- qpdf: PDF merge, split and compression.
-- Poppler: PDF page rendering.
-- ImageMagick: image conversion, resizing and compression.
-- Tesseract: local OCR.
-- Python standard library: ZIP/GZIP and the local HTTP bridge.
+or separately:
 
-Native binaries are installed through the user's platform package manager rather than stored in GitHub.
+`bash install_system_tools.command`
 
-## Using it from the website
+then:
 
-Open the GitHub Pages site and select **Local Engine**. The status indicator changes to **connected** when the local bridge is running. Select files, choose an operation, and run the job.
+`bash start_omni.command`
 
-The server exposes predefined operations only; it is not an arbitrary command-execution API.
+The setup phase needs Internet access once because it downloads the browser libraries, Tesseract.js worker/core assets and selected OCR language models. After that, the local application is designed to run without Internet.
 
-## Troubleshooting
+## Native engines
 
-If the website says Browser-only mode:
+The installer attempts to provide:
 
-1. Make sure the local engine terminal is still running.
-2. Open `http://127.0.0.1:8765/api/health` in the browser.
-3. Restart the engine after installing native tools so PATH changes are loaded.
-4. Refresh the Local Engine panel.
+- FFmpeg — audio/video conversion, extraction, trimming and transcoding.
+- qpdf — PDF merging, splitting and optimization.
+- Poppler — PDF rendering and text extraction.
+- ImageMagick — image conversion, resizing, density and quality.
+- Tesseract — native OCR.
+- LibreOffice — Word/Excel/PowerPoint/OpenDocument conversions.
+- Calibre — EPUB/ebook conversion.
+- Python standard library — local HTTP server, ZIP/GZIP and file streaming.
 
-For security, the service binds to 127.0.0.1 rather than a LAN interface.
+## Browser assets
+
+`prepare_offline.py` downloads pinned browser dependencies into `vendor/`:
+
+- PDF.js 3.11.174
+- JSZip 3.10.1
+- pdf-lib 1.17.1
+- Tesseract.js 5.0.5
+- tesseract.js-core 5.1.1
+- OCR models for English, Hindi, Bengali, Marathi, Tamil, Telugu, Gujarati, Punjabi, German, French, Spanish and Simplified Chinese.
+
+Tesseract.js requires its worker, core and language resources to be hosted locally for a genuinely offline browser deployment. citeturn4search2turn7search1
+
+## Local UI
+
+The local server serves the actual `index.html` and `vendor/` directory, so users do not need GitHub Pages while working offline:
+
+`http://127.0.0.1:8765/`
+
+It automatically attempts to open the browser.
+
+## Heavy-job routing
+
+The Local Engine panel exposes native operations for:
+
+- PDF merge
+- PDF split
+- PDF compression
+- PDF rendering
+- PDF text extraction
+- Office document conversion
+- EPUB/ebook conversion
+- audio/video conversion and trimming
+- image conversion/resizing
+- OCR
+- ZIP/GZIP
+
+The browser features remain available for lightweight jobs.
+
+## Security
+
+The local service binds to loopback only. It does not expose an arbitrary shell command endpoint. Browser requests select predefined operations. Uploaded and generated files are stored in the operating system temporary directory and stale files are cleaned automatically.
+
+## Large files
+
+Uploads and output downloads are streamed to disk instead of being read into Python memory in one operation. This makes the local path substantially more suitable for large files than a pure browser workflow.
+
+## Native binaries
+
+The repository does not redistribute FFmpeg, qpdf, Poppler, ImageMagick, Tesseract, LibreOffice or Calibre binaries. The setup scripts obtain platform-appropriate packages. Their respective licenses and distribution terms apply.
+
+## GitHub Pages
+
+The public Pages version continues to use the browser/CDN path and does not require the local engine. For maximum offline capability, use the local launcher after running setup.
