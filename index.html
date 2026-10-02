@@ -1475,6 +1475,24 @@
     const pdf2imgGrid = document.getElementById('pdf2imgGrid');
     const pdf2imgDownloadAll = document.getElementById('pdf2imgDownloadAll');
 
+
+    // Large-file PDF transport. PDF.js requests only the byte ranges it needs,
+    // avoiding a full-file ArrayBuffer for large local PDFs.
+    class FileRangeTransport extends pdfjsLib.PDFDataRangeTransport {
+      constructor(file) {
+        super(file.size, null, true);
+        this.file = file;
+      }
+      requestDataRange(begin, end) {
+        this.file.slice(begin, end).arrayBuffer().then(buffer => {
+          this.onDataRange(begin, new Uint8Array(buffer));
+        }).catch(err => {
+          console.error('PDF range read failed', err);
+          this.onDataRange(begin, new Uint8Array(0));
+        });
+      }
+    }
+
     let currentPdfDoc = null;
     let currentPdfFile = null;
     let pdfConvertedImgs = [];
@@ -1488,15 +1506,29 @@
       pdf2imgDropzone.style.display = 'none';
       pdf2imgControls.style.display = 'flex';
       pdf2imgName.textContent = file.name;
-      pdf2imgMeta.textContent = 'Loading...';
+      pdf2imgMeta.textContent = 'Opening large-file PDF engine…';
 
       try {
-        const ab = await file.arrayBuffer();
-        currentPdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
-        pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
+        const transport = new FileRangeTransport(file);
+        currentPdfDoc = await pdfjsLib.getDocument({
+          range: transport,
+          length: file.size,
+          disableAutoFetch: true,
+          disableStream: true,
+          rangeChunkSize: 1024 * 1024,
+          useWorkerFetch: false
+        }).promise;
+        pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)} • Large-file mode`;
       } catch (e) {
-        alert('Could not read PDF.');
-        resetPdf2Img();
+        console.warn('Range PDF loader failed; using compatibility loader', e);
+        try {
+          const ab = await file.arrayBuffer();
+          currentPdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
+        } catch (fallbackError) {
+          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\\n\\n' + fallbackError.message);
+          resetPdf2Img();
+        }
       }
     }
 
@@ -1522,6 +1554,7 @@
       const fmt = pdf2imgFormat.value;
       const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
 
+      try {
       for (let i = 0; i < pages.length; i++) {
         const pNum = pages[i];
         const page = await currentPdfDoc.getPage(pNum);
@@ -1552,6 +1585,9 @@
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         const filename = `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_page_${pNum}.${ext}`;
         pdfConvertedImgs.push({ pNum, blob, dataUrl, filename, ext });
+        if (page.cleanup) page.cleanup();
+        if (currentPdfDoc.cleanup) currentPdfDoc.cleanup();
+        pdf2imgCount.textContent = `Converted ${i + 1} / ${pages.length} pages`;
       }
 
       pdf2imgResultsSection.style.display = 'block';
@@ -1567,15 +1603,26 @@
         `;
         pdf2imgGrid.appendChild(card);
       });
-      pdf2imgBtn.disabled = false;
+      }
+      } catch (err) {
+        console.error('PDF to image error', err);
+        alert('PDF to image failed: ' + err.message);
+      } finally {
+        pdf2imgBtn.disabled = false;
+      }
       pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
     });
 
     pdf2imgDownloadAll.addEventListener('click', async () => {
       if (!pdfConvertedImgs.length) return;
+      const totalBytes = pdfConvertedImgs.reduce((n, x) => n + (x.blob?.size || 0), 0);
+      if (totalBytes > 300 * 1024 * 1024 || pdfConvertedImgs.length > 150) {
+        alert('The output is ' + formatFileSize(totalBytes) + '. Individual page downloads remain available; ZIP is disabled for this large job to prevent browser memory exhaustion.');
+        return;
+      }
       const zip = new JSZip();
-      pdfConvertedImgs.forEach(item => zip.file(item.filename, item.blob));
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      pdfConvertedImgs.forEach(item => zip.file(item.filename, item.blob, { compression: 'STORE' }));
+      const zipBlob = await zip.generateAsync({ type: 'blob', streamFiles: true });
       downloadBlob(zipBlob, `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_images.zip`);
     });
 
@@ -2711,19 +2758,6 @@
   <!-- OMNI_TAB_NAVIGATION_FAILSAFE -->
   <script>
   (function () {
-    function activateOmniTab(tabId) {
-      var panels = document.querySelectorAll('.module-panel');
-      var buttons = document.querySelectorAll('.nav-btn');
-      buttons.forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
-        b.setAttribute('type', 'button');
-      });
-      panels.forEach(function (p) {
-        p.classList.toggle('active', p.id === tabId);
-      });
-      var panel = document.getElementById(tabId);
-      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
     document.addEventListener('click', function (event) {
       var button = event.target.closest ? event.target.closest('.nav-btn') : null;
       if (!button) return;
@@ -2731,14 +2765,11 @@
       if (!tabId || !document.getElementById(tabId)) return;
       event.preventDefault();
       event.stopPropagation();
-      activateOmniTab(tabId);
+      document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.toggle('active',b===button);});
+      document.querySelectorAll('.module-panel').forEach(function(p){p.classList.toggle('active',p.id===tabId);});
     }, true);
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.nav-btn').forEach(function (button) {
-        button.setAttribute('type', 'button');
-      });
-    });
   })();
   </script>
 </body>
+</html>
 </html>
