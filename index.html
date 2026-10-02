@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniConverter Studio - Universal Media & Document Suite</title>
-  <!-- Core Engines with Offline Fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- Local-first engine loader: local package when launched from localhost, CDN fallback on GitHub Pages. -->
+  <script src="./omni_runtime.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -1647,7 +1644,7 @@
       }
     });
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
     // Tabs
@@ -3232,7 +3229,7 @@
       ocrProgressWrapper.style.display = 'block';
 
       try {
-        const worker = await Tesseract.createWorker('eng', 1, {
+        const worker = await Tesseract.createWorker('eng', 1, Object.assign({}, window.OMNI_TESSERACT_OPTIONS || {}, {
           logger: m => {
             if (m.status) ocrProgressText.textContent = m.status;
             if (typeof m.progress === 'number') {
@@ -3241,7 +3238,7 @@
               ocrProgressPercent.textContent = pct + '%';
             }
           }
-        });
+        }));
         const ret = await worker.recognize(currentOcrFile);
         await worker.terminate();
 
