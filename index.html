@@ -895,7 +895,7 @@
               <select id="pdf2imgFormat" class="form-select">
                 <option value="jpg" selected>JPG (JPEG)</option>
                 <option value="png">PNG (Lossless)</option>
-                <option value="heic">HEIC (Apple High Efficiency)</option>
+                <option value="heic">HEIC (browser-dependent)</option>
                 <option value="webp">WebP</option>
               </select>
             </div>
@@ -923,6 +923,7 @@
         <div class="results-header">
           <h2 id="pdf2imgCount">Converted Images</h2>
           <button class="btn btn-success" id="pdf2imgDownloadAll">Download All as ZIP</button>
+          <button class="btn btn-secondary" id="pdf2imgFolderExport">Export Pages to Folder</button>
         </div>
         <div class="pages-grid" id="pdf2imgGrid"></div>
       </div>
@@ -1130,7 +1131,7 @@
               <select id="imgTargetFmt" class="form-select">
                 <option value="png" selected>PNG (Lossless Transparency)</option>
                 <option value="jpg">JPG (JPEG)</option>
-                <option value="heic">HEIC (Apple High Efficiency)</option>
+                <option value="heic">HEIC (browser-dependent)</option>
                 <option value="webp">WebP (Modern Compact)</option>
               </select>
             </div>
@@ -1625,6 +1626,69 @@
       const zipBlob = await zip.generateAsync({ type: 'blob', streamFiles: true });
       downloadBlob(zipBlob, `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_images.zip`);
     });
+
+    // Large-job folder export: writes one rendered page at a time.
+    // This avoids retaining the complete output set in browser RAM.
+    const pdf2imgFolderExport = document.getElementById('pdf2imgFolderExport');
+    if (pdf2imgFolderExport) {
+      pdf2imgFolderExport.addEventListener('click', async () => {
+        if (!currentPdfDoc || !currentPdfFile) return;
+        if (!window.showDirectoryPicker) {
+          alert('Folder export is not supported by this browser. Use a Chromium-based desktop browser, or use the individual Save buttons.');
+          return;
+        }
+
+        pdf2imgFolderExport.disabled = true;
+        const originalText = pdf2imgFolderExport.textContent;
+        try {
+          const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+          const scale = parseFloat(pdf2imgDpi.value) || 2.0;
+          const fmt = pdf2imgFormat.value;
+          const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
+
+          for (let i = 0; i < pages.length; i++) {
+            const pNum = pages[i];
+            pdf2imgFolderExport.textContent = `Rendering ${i + 1}/${pages.length}…`;
+            const page = await currentPdfDoc.getPage(pNum);
+            const vp = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            const ctx = canvas.getContext('2d', { alpha: fmt !== 'jpg' });
+            if (fmt === 'jpg') {
+              ctx.fillStyle = '#fff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+            let mime = fmt === 'png' ? 'image/png' : fmt === 'webp' ? 'image/webp' : 'image/jpeg';
+            let ext = fmt === 'png' ? 'png' : fmt === 'webp' ? 'webp' : 'jpg';
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
+            if (!blob) throw new Error('Browser could not encode page ' + pNum);
+
+            const safeBase = currentPdfFile.name.replace(/\.[^/.]+$/, '');
+            const handle = await dir.getFileHandle(`${safeBase}_page_${String(pNum).padStart(4, "0")}.${ext}`, { create: true });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            canvas.width = 1;
+            canvas.height = 1;
+            if (page.cleanup) page.cleanup();
+            await new Promise(requestAnimationFrame);
+          }
+          alert('Export complete. ' + pages.length + ' page(s) written to the selected folder.');
+        } catch (err) {
+          if (err && err.name !== 'AbortError') {
+            console.error('Folder export error', err);
+            alert('Folder export stopped: ' + err.message);
+          }
+        } finally {
+          pdf2imgFolderExport.disabled = false;
+          pdf2imgFolderExport.textContent = originalText;
+        }
+      });
+    }
 
     // Merge PDFs
     const pdfMergeInput = document.getElementById('pdfMergeInput');
