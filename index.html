@@ -3068,19 +3068,7 @@
           let pageText = '';
           textContent.items.forEach(it => { if (it.str.trim()) pageText += `<p>${escapeXml(it.str)}</p>\n`; });
 
-          const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div><script id="omni-interaction-repair">
-(function(){
-'use strict';
-function notify(message,error){if(typeof window.omniNotify==='function'){try{window.omniNotify(message,!!error);return}catch(_){}}const p=document.getElementById('omniModePill');if(p)p.textContent=message}
-function openPicker(input){if(!input)return false;try{if(typeof input.showPicker==='function'){input.showPicker();return true}}catch(_){}try{input.click();return true}catch(_){notify('The browser blocked the file picker. Try Chrome/Edge/Safari and tap again.',true);return false}}
-document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.querySelector('input[type="file"]');if(!input||zone.dataset.omniPickerRepair==='1')return;zone.dataset.omniPickerRepair='1';zone.setAttribute('tabindex','0');zone.setAttribute('role','button');zone.addEventListener('click',function(e){if(e.target===input)return;e.preventDefault();e.stopImmediatePropagation();openPicker(input)},true);zone.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker(input)}});input.addEventListener('change',function(){if(this.files&&this.files.length)notify('Selected '+this.files.length+' file'+(this.files.length===1?'':'s')+': '+this.files[0].name)})});
-document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
-function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
-const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
-async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
-updateMode();
-})();
-</script>
+          const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div>
 </body></html>`;
 
           zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
@@ -3753,5 +3741,18 @@ updateMode();
     }, true);
   })();
   </script>
+<script id="omni-interaction-repair">
+(function(){
+'use strict';
+function notify(message,error){if(typeof window.omniNotify==='function'){try{window.omniNotify(message,!!error);return}catch(_){}}const p=document.getElementById('omniModePill');if(p)p.textContent=message}
+function openPicker(input){if(!input)return false;try{if(typeof input.showPicker==='function'){input.showPicker();return true}}catch(_){}try{input.click();return true}catch(_){notify('The browser blocked the file picker. Try Chrome/Edge/Safari and tap again.',true);return false}}
+document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.querySelector('input[type="file"]');if(!input||zone.dataset.omniPickerRepair==='1')return;zone.dataset.omniPickerRepair='1';zone.setAttribute('tabindex','0');zone.setAttribute('role','button');zone.addEventListener('click',function(e){if(e.target===input)return;e.preventDefault();e.stopImmediatePropagation();openPicker(input)},true);zone.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker(input)}});input.addEventListener('change',function(){if(this.files&&this.files.length)notify('Selected '+this.files.length+' file'+(this.files.length===1?'':'s')+': '+this.files[0].name)})});
+document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
+function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
+const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
+async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
+updateMode();
+})();
+</script>
 </body>
 </html>
