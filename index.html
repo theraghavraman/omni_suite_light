@@ -853,9 +853,176 @@
       .dropzone { padding: 24px 14px; }
     }
 
-  </style>
+  
+    /* =========================================================
+       OMNI YOUTH MOTION SYSTEM
+       Visual-only layer: animated aurora, studio icon system,
+       depth, shine, hover physics and subtle ambient motion.
+       ========================================================= */
+    :root{
+      --omni-violet:#705cff;
+      --omni-purple:#a855f7;
+      --omni-cyan:#16c7d9;
+      --omni-pink:#f05bb5;
+      --omni-orange:#ff9a62;
+      --omni-lime:#8bd450;
+      --omni-ink:#20243a;
+    }
+
+    .omni-motion-bg{
+      position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+      isolation:isolate;
+    }
+    .omni-motion-bg::before{
+      content:""; position:absolute; width:42vw; height:42vw; min-width:280px; min-height:280px;
+      left:-14vw; top:9vh; border-radius:50%;
+      background:radial-gradient(circle,rgba(112,92,255,.20),rgba(112,92,255,0) 68%);
+      filter:blur(12px); animation:omniFloatA 15s ease-in-out infinite alternate;
+    }
+    .omni-motion-bg::after{
+      content:""; position:absolute; width:38vw; height:38vw; min-width:250px; min-height:250px;
+      right:-12vw; top:18vh; border-radius:50%;
+      background:radial-gradient(circle,rgba(22,199,217,.18),rgba(240,91,181,0) 68%);
+      filter:blur(16px); animation:omniFloatB 18s ease-in-out infinite alternate;
+    }
+    .omni-orbit{
+      position:absolute; width:520px; height:520px; right:-250px; bottom:-250px;
+      border:1px solid rgba(112,92,255,.10); border-radius:50%;
+      box-shadow:0 0 0 70px rgba(22,199,217,.025),0 0 0 150px rgba(240,91,181,.018);
+      animation:omniSpin 30s linear infinite;
+    }
+    .omni-grid{
+      position:absolute; inset:0; opacity:.28;
+      background-image:
+        linear-gradient(rgba(112,92,255,.035) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(112,92,255,.035) 1px,transparent 1px);
+      background-size:42px 42px;
+      mask-image:linear-gradient(to bottom,rgba(0,0,0,.85),transparent 72%);
+      animation:omniGridDrift 24s linear infinite;
+    }
+    .container{z-index:2;}
+
+    /* Studio navigation: icon-first, vivid, tactile. */
+    .nav-bar{
+      position:sticky;
+      box-shadow:0 16px 42px rgba(49,55,94,.13),0 2px 0 rgba(255,255,255,.85) inset;
+      border-color:rgba(193,201,220,.9);
+    }
+    .nav-btn{
+      position:relative; overflow:hidden;
+      min-height:64px !important;
+      flex-direction:column;
+      justify-content:center;
+      gap:4px !important;
+      padding:8px 7px !important;
+      font-size:.67rem !important;
+      letter-spacing:.015em;
+      transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,background .22s ease,color .22s ease,border-color .22s ease;
+    }
+    .nav-btn::before{
+      content:""; position:absolute; width:110px; height:110px; left:50%; top:50%;
+      transform:translate(-50%,-50%) scale(.25); border-radius:50%;
+      background:radial-gradient(circle,rgba(112,92,255,.17),transparent 68%);
+      opacity:0; transition:transform .35s ease,opacity .35s ease;
+      pointer-events:none;
+    }
+    .nav-btn::after{
+      content:""; position:absolute; left:16%; right:16%; bottom:3px; height:3px;
+      border-radius:9px; background:linear-gradient(90deg,var(--omni-violet),var(--omni-cyan),var(--omni-pink));
+      background-size:200% 100%; transform:scaleX(0); transform-origin:center;
+      transition:transform .28s cubic-bezier(.2,.8,.2,1);
+      animation:omniGradientShift 4s linear infinite;
+    }
+    .nav-btn:hover{transform:translateY(-3px); z-index:2;}
+    .nav-btn:hover::before{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    .nav-btn:active{transform:translateY(0) scale(.97);}
+    .nav-btn.active{
+      color:#332d85 !important;
+      background:linear-gradient(145deg,rgba(247,245,255,.98),rgba(235,253,255,.97)) !important;
+      border-color:rgba(188,181,255,.88) !important;
+      box-shadow:0 13px 28px rgba(86,75,194,.14),0 0 0 1px rgba(255,255,255,.8) inset;
+    }
+    .nav-btn.active::after{transform:scaleX(1);}
+    .studio-icon{
+      position:relative; z-index:1;
+      width:34px !important; height:34px !important;
+      display:grid !important; place-items:center;
+      border-radius:11px !important;
+      color:#575b77;
+      background:linear-gradient(145deg,#ffffff,#eef1f8) !important;
+      border:1px solid rgba(210,217,231,.95);
+      box-shadow:0 7px 16px rgba(56,64,98,.10),inset 0 1px 0 #fff !important;
+      transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease,color .2s ease,background .25s ease;
+    }
+    .studio-svg{width:20px;height:20px;display:block;}
+    .nav-btn:hover .studio-icon{transform:translateY(-2px) rotate(-3deg) scale(1.06);box-shadow:0 10px 22px rgba(83,72,205,.15);}
+    .nav-btn.active .studio-icon{
+      color:#5c4ee6;
+      background:linear-gradient(135deg,#eeeaff,#dcf9fb) !important;
+      border-color:rgba(157,150,246,.55);
+      box-shadow:0 10px 22px rgba(83,72,205,.16),0 0 20px rgba(22,199,217,.10) !important;
+    }
+    .studio-label{position:relative;z-index:1;line-height:1.05;white-space:nowrap;}
+    .nav-btn small{position:relative;z-index:1;font-size:.54rem;line-height:1;color:#8179c9;font-weight:900;letter-spacing:.08em;margin-top:-2px;}
+    .studio-pdf{color:#e45a68}.studio-word{color:#4778d7}.studio-epub{color:#9b62d8}.studio-image{color:#0c9b9d}.studio-ocr{color:#7a62db}.studio-audio{color:#d55aa4}.studio-video{color:#e47755}.studio-compress{color:#d38a31}.studio-engine{color:#4d8299}
+    .nav-btn:hover .studio-pdf,.nav-btn:hover .studio-word,.nav-btn:hover .studio-epub,.nav-btn:hover .studio-image,.nav-btn:hover .studio-ocr,.nav-btn:hover .studio-audio,.nav-btn:hover .studio-video,.nav-btn:hover .studio-compress,.nav-btn:hover .studio-engine{color:var(--omni-violet);}
+
+    /* Ambient movement across the workspace. */
+    .card,.dropzone,.page-card,.item-row{
+      transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease,border-color .25s ease;
+    }
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 22px 58px rgba(53,70,105,.13),0 3px 8px rgba(53,70,105,.05);
+    }
+    .card::before{
+      content:""; position:absolute; top:-2px; left:-18%; width:38%; height:2px;
+      background:linear-gradient(90deg,transparent,rgba(112,92,255,.65),rgba(22,199,217,.55),transparent);
+      filter:blur(1px); opacity:.55;
+      animation:omniCardSweep 8s ease-in-out infinite;
+      pointer-events:none;
+    }
+    .dropzone::after{
+      content:""; position:absolute; left:-30%; top:0; width:24%; height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+      transform:skewX(-18deg); animation:omniSweep 7s ease-in-out infinite;
+      pointer-events:none;
+    }
+    .btn:not(:disabled){position:relative;overflow:hidden;}
+    .btn:not(:disabled)::after{
+      content:"";position:absolute;top:-20%;left:-70%;width:42%;height:140%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);
+      transform:skewX(-18deg);animation:omniButtonShine 6.5s ease-in-out infinite;pointer-events:none;
+    }
+
+    @keyframes omniFloatA{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(9vw,5vh,0) scale(1.13)}}
+    @keyframes omniFloatB{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(-7vw,7vh,0) scale(1.08)}}
+    @keyframes omniSpin{to{transform:rotate(360deg)}}
+    @keyframes omniGridDrift{to{background-position:42px 42px}}
+    @keyframes omniGradientShift{to{background-position:200% 0}}
+    @keyframes omniCardSweep{0%,55%{left:-30%;opacity:0}65%{opacity:.7}100%{left:105%;opacity:0}}
+    @keyframes omniSweep{0%,58%{left:-30%;opacity:0}68%{opacity:.7}100%{left:115%;opacity:0}}
+    @keyframes omniButtonShine{0%,65%{left:-70%;opacity:0}72%{opacity:.65}82%,100%{left:135%;opacity:0}}
+
+    @media(max-width:760px){
+      .nav-btn{min-height:58px !important;}
+      .studio-icon{width:30px !important;height:30px !important;border-radius:10px !important;}
+      .studio-svg{width:18px;height:18px;}
+      .studio-label{font-size:.61rem;}
+      .nav-btn small{font-size:.48rem;}
+      .omni-orbit{width:360px;height:360px;right:-220px;bottom:-220px;}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .omni-motion-bg::before,.omni-motion-bg::after,.omni-orbit,.omni-grid,
+      .nav-btn::after,.card::before,.dropzone::after,.btn:not(:disabled)::after{animation:none !important;}
+      .nav-btn,.studio-icon,.card{transition:none !important;}
+      .nav-btn:hover,.card:hover{transform:none;}
+    }
+
+</style>
 </head>
 <body>
+  <div class="omni-motion-bg" aria-hidden="true"><div class="omni-grid"></div><div class="omni-orbit"></div></div>
 
   <div class="container">
     <header class="hero-header">
@@ -919,15 +1086,15 @@
     </section>
 
     <nav class="nav-bar">
-      <button type="button" class="nav-btn active" data-tab="tabPdf"><span>📄</span> PDF Suite</button>
-      <button type="button" class="nav-btn" data-tab="tabWord"><span>📝</span> Word &amp; Docs</button>
-      <button type="button" class="nav-btn" data-tab="tabEpub"><span>📚</span> EPUB Studio</button>
-      <button type="button" class="nav-btn" data-tab="tabImages"><span>🖼️</span> Image Tools</button>
-      <button type="button" class="nav-btn" data-tab="tabOcr"><span>🔎</span> Image to Text (OCR)</button>
-      <button type="button" class="nav-btn" data-tab="tabAudio"><span>🎵</span> Audio Studio</button>
-      <button type="button" class="nav-btn" data-tab="tabVideo"><span>🎬</span> Video Studio</button>
-      <button type="button" class="nav-btn" data-tab="tabCompress"><span>🗜️</span> File Compressor</button>
-      <button type="button" class="nav-btn" data-tab="tabLocal"><span>⚙️</span> Local Engine</button>
+      <button type="button" class="nav-btn active" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
+      <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Word &amp; Docs</span></button>
+      <button type="button" class="nav-btn" data-tab="tabEpub"><span class="studio-icon studio-epub"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h9.2L18.5 7v12.5H6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4.5V7h3.5M9 9h5.5M9 12h5.5M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 6.5v13a1 1 0 0 0 1 1h10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></svg></span><span class="studio-label">EPUB Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabImages"><span class="studio-icon studio-image"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="m5.5 17 4.4-4.3 3.1 3 2.2-2.1 3.3 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="studio-label">Image Tools</span></button>
+      <button type="button" class="nav-btn" data-tab="tabOcr"><span class="studio-icon studio-ocr"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 9V5.5A1.5 1.5 0 0 1 6 4h3.5M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="m13.6 13.6 3.1 3.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="studio-label">Image to Text</span><small>OCR</small></button>
+      <button type="button" class="nav-btn" data-tab="tabAudio"><span class="studio-icon studio-audio"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 10v4M8 7v10M11 4v16M14 8v8M17 6v12M20 10v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span><span class="studio-label">Audio Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabVideo"><span class="studio-icon studio-video"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="12.5" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 4.2-2.4a.9.9 0 0 1 1.3.8v7.2a.9.9 0 0 1-1.3.8L16 14M9 9.2l4.1 2.8L9 14.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span class="studio-label">Video Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabCompress"><span class="studio-icon studio-compress"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4v4M17 4v4M7 16v4M17 16v4M4 7h4M16 7h4M4 17h4M16 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6v6H9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m11 11-2-2m4 4 2 2m0-4 2-2m-6 4-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="studio-label">Compressor</span></button>
+      <button type="button" class="nav-btn" data-tab="tabLocal"><span class="studio-icon studio-engine"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.4 3.8 8.8 6a7.2 7.2 0 0 0-1.8 1l-2.2-1.1-1.6 2.8 1.8 1.5a7 7 0 0 0 0 2.1l-1.8 1.5 1.6 2.8 2.2-1.1a7.2 7.2 0 0 0 1.8 1l.6 2.2h3.2l.6-2.2a7.2 7.2 0 0 0 1.8-1l2.2 1.1 1.6-2.8-1.8-1.5a7 7 0 0 0 0-2.1l1.8-1.5-1.6-2.8-2.2 1.1a7.2 7.2 0 0 0-1.8-1l-.6-2.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><circle cx="11" cy="11.2" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="studio-label">Local Engine</span></button>
     </nav>
 
 
