@@ -926,6 +926,9 @@
                 <option value="pdf_split">PDF — Split into pages ZIP</option>
                 <option value="pdf_compress">PDF — Compress / optimize</option>
                 <option value="pdf_render">PDF — Render pages to PNG ZIP</option>
+                <option value="pdf_to_text">PDF — Extract text</option>
+                <option value="office_convert">Office — Convert document</option>
+                <option value="ebook_convert">EPUB/ebook — Convert</option>
                 <option value="media">Media — Convert / transcode</option>
                 <option value="image">Image — Convert / resize</option>
                 <option value="ocr">OCR — Local Tesseract</option>
@@ -936,6 +939,8 @@
             <div class="form-group">
               <label for="omniLocalFormat">Output format</label>
               <select id="omniLocalFormat" class="form-select">
+                <option value="pdf">PDF</option><option value="docx">DOCX</option><option value="doc">DOC</option><option value="odt">ODT</option>
+                <option value="epub">EPUB</option><option value="mobi">MOBI</option><option value="azw3">AZW3</option><option value="txt">TXT</option>
                 <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option>
                 <option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option>
                 <option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option>
@@ -3634,6 +3639,9 @@
       const payload={op:kind};
       if(kind==="pdf_merge"||kind==="zip") payload.inputs=ids;
       else payload.input=ids[0];
+      if(kind==="office_convert"||kind==="ebook_convert") {
+        payload.format=$("omniLocalFormat").value;
+      }
       if(kind==="media") {
         payload.format=$("omniLocalFormat").value;
         const s=parseFloat($("omniLocalStart").value); const e=parseFloat($("omniLocalEnd").value);
