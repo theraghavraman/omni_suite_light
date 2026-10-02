@@ -688,7 +688,7 @@
     .chip-one{right:7%;top:17%}.chip-two{left:5%;top:18%;animation-delay:-1.8s}.chip-three{right:7%;bottom:13%;animation-delay:-3.4s}
 
     .nav-bar {
-      position:sticky; top:12px; z-index:30; overflow:visible; display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+      position:sticky; top:12px; z-index:30; overflow:visible; display:grid; grid-template-columns:repeat(8,1fr); gap:6px;
       padding:7px; background:rgba(255,255,255,.64); border:1px solid rgba(191,201,219,.82); border-radius:21px;
       box-shadow:0 18px 40px rgba(58,70,102,.13), inset 0 1px 0 rgba(255,255,255,.94); backdrop-filter:blur(22px) saturate(140%); -webkit-backdrop-filter:blur(22px) saturate(140%);
     }
@@ -866,6 +866,7 @@
       <button class="nav-btn" data-tab="tabOcr"><span>🔎</span> Image to Text (OCR)</button>
       <button class="nav-btn" data-tab="tabAudio"><span>🎵</span> Audio Studio</button>
       <button class="nav-btn" data-tab="tabVideo"><span>🎬</span> Video Studio</button>
+      <button class="nav-btn" data-tab="tabCompress"><span>🗜️</span> File Compressor</button>
     </nav>
 
     <!-- 1. PDF SUITE -->
@@ -1159,6 +1160,85 @@
         <div class="pages-grid" id="imgGrid"></div>
       </div>
 
+
+      <!-- IMAGE RESIZER / DPI / PHOTO SIZE TOOLS -->
+      <div class="card">
+        <h2>3. Image Resize, DPI/PPI &amp; Photo Size Studio</h2>
+        <div class="sub">Resize by exact pixels or physical size, calculate output pixels from DPI/PPI, and use dedicated passport-photo and signature presets without stretching the image.</div>
+
+        <div class="dropzone" id="imgResizeDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <h3>Choose One Image</h3>
+          <p>JPG, PNG, WebP and other browser-readable images</p>
+          <input type="file" id="imgResizeInput" class="file-input" accept="image/*">
+        </div>
+
+        <div class="controls-panel" id="imgResizeControls" style="display:none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="imgResizeName">image.jpg</div>
+              <div class="file-meta" id="imgResizeMeta">0 × 0 px</div>
+            </div>
+            <button class="btn-reset" id="imgResizeReset">Reset</button>
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="imgResizeWidth">Width (pixels)</label>
+              <input id="imgResizeWidth" class="form-input" type="number" min="1" max="12000" value="1000">
+            </div>
+            <div class="form-group">
+              <label for="imgResizeHeight">Height (pixels)</label>
+              <input id="imgResizeHeight" class="form-input" type="number" min="1" max="12000" value="1000">
+            </div>
+            <div class="form-group">
+              <label for="imgResizeLock">Aspect Ratio</label>
+              <select id="imgResizeLock" class="form-select">
+                <option value="cover" selected>Crop to exact size (recommended)</option>
+                <option value="contain">Fit inside size (no crop)</option>
+                <option value="stretch">Stretch to exact size</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imgResizeDpi">DPI / PPI</label>
+              <select id="imgResizeDpi" class="form-select">
+                <option value="72">72 DPI</option>
+                <option value="96">96 DPI</option>
+                <option value="150">150 DPI</option>
+                <option value="200">200 DPI</option>
+                <option value="300" selected>300 DPI</option>
+                <option value="600">600 DPI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imgResizeWidthMm">Physical Width (mm)</label>
+              <input id="imgResizeWidthMm" class="form-input" type="number" min="1" step="0.1" value="35">
+            </div>
+            <div class="form-group">
+              <label for="imgResizeHeightMm">Physical Height (mm)</label>
+              <input id="imgResizeHeightMm" class="form-input" type="number" min="1" step="0.1" value="45">
+            </div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="imgResizePixelsBtn">📐 Resize to Pixel Size</button>
+            <button class="btn btn-secondary" id="imgResizeDpiBtn">🎯 Resize by DPI + mm</button>
+            <button class="btn btn-secondary" id="imgPassportBtn">🇮🇳 Indian Passport Photo</button>
+            <button class="btn btn-secondary" id="imgId2x2Btn">🪪 2×2 ID Photo</button>
+            <button class="btn btn-secondary" id="imgSignatureBtn">✍️ Signature Size</button>
+          </div>
+          <div class="form-hint" id="imgResizeHint">DPI/PPI controls the pixel calculation from physical dimensions. A raster image's true embedded print-DPI metadata is not reliably writable with Canvas alone, so this tool makes the pixel dimensions explicit.</div>
+        </div>
+
+        <div class="results-section" id="imgResizeResults" style="display:none;">
+          <div class="results-header">
+            <h2 id="imgResizeResultTitle">Resized Image</h2>
+            <span class="file-meta" id="imgResizeResultMeta"></span>
+          </div>
+          <div class="pages-grid" id="imgResizeGrid"></div>
+        </div>
+      </div>
+
       <!-- Images to PDF Card -->
       <div class="card">
         <h2>2. Images to PDF (JPG / PNG / WebP ➔ PDF)</h2>
@@ -1348,6 +1428,86 @@
       </div>
     </div>
 
+
+    <!-- 8. FILE COMPRESSION -->
+    <div class="module-panel" id="tabCompress">
+      <div class="card">
+        <h2>🗜️ File Compression &amp; Decompression Studio</h2>
+        <div class="sub">Compress files locally into ZIP, GZIP, DEFLATE, or Brotli when your browser supports it. Decompress ZIP/GZIP/DEFLATE files and save the extracted output.</div>
+
+        <div class="options-grid">
+          <div class="form-group">
+            <label for="compressFormat">Compression Format</label>
+            <select id="compressFormat" class="form-select">
+              <option value="zip" selected>ZIP — multiple files / folders</option>
+              <option value="gzip">GZIP — single file</option>
+              <option value="deflate">DEFLATE — single file</option>
+              <option value="brotli">Brotli — single file (browser-dependent)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="compressLevel">Compression Level</label>
+            <select id="compressLevel" class="form-select">
+              <option value="0">Store / Fastest</option>
+              <option value="1">1 — Fast</option>
+              <option value="3">3 — Balanced</option>
+              <option value="6" selected>6 — Normal</option>
+              <option value="9">9 — Maximum</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="dropzone" id="compressDropzone" style="margin-top:16px;">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+          <h3>Drop Files Here to Compress</h3>
+          <p>Select one or many files. ZIP supports multiple files; GZIP/DEFLATE/Brotli use one file.</p>
+          <input type="file" id="compressInput" class="file-input" multiple>
+        </div>
+
+        <div class="controls-panel" id="compressControls" style="display:none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="compressSummary">0 files</div>
+              <div class="file-meta" id="compressMeta">Ready</div>
+            </div>
+            <button class="btn-reset" id="compressReset">Reset</button>
+          </div>
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="compressBtn">🗜️ Compress Files</button>
+          </div>
+          <div class="progress-wrapper" id="compressProgress">
+            <div class="progress-info"><span id="compressProgressText">Compressing...</span><span id="compressProgressPercent">0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="compressProgressBar"></div></div>
+          </div>
+          <div class="form-hint">For very large files, ZIP generation can require substantial browser memory. The operation is performed locally; nothing is uploaded.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📦 Decompress / Extract</h2>
+        <div class="sub">Extract ZIP archives or decompress GZIP/DEFLATE/Brotli streams. ZIP contents are listed individually so you can save only what you need.</div>
+        <div class="dropzone" id="decompressDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 2h9l5 5v15H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
+          <h3>Drop a ZIP / GZIP / DEFLATE File</h3>
+          <input type="file" id="decompressInput" class="file-input">
+        </div>
+        <div class="controls-panel" id="decompressControls" style="display:none;">
+          <div class="file-summary">
+            <div>
+              <div class="file-name" id="decompressName">archive.zip</div>
+              <div class="file-meta" id="decompressMeta"></div>
+            </div>
+            <button class="btn-reset" id="decompressReset">Reset</button>
+          </div>
+          <div class="actions-bar">
+            <button class="btn btn-primary" id="decompressBtn">📂 Extract / Decompress</button>
+            <button class="btn btn-success" id="decompressSaveAll" style="display:none;">Save All as ZIP</button>
+          </div>
+          <div class="items-list" id="decompressList"></div>
+        </div>
+      </div>
+    </div>
+
     <footer>
       OmniConverter Studio &bull; Universal Client-Side Converter &bull; 100% Private &bull; In-Browser Processing
     </footer>
@@ -1458,6 +1618,369 @@
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) onFiles(e.dataTransfer.files);
       });
     }
+
+
+    // ==========================================
+    // IMAGE RESIZE / DPI / PHOTO PRESETS
+    // ==========================================
+    const imgResizeDropzone = document.getElementById('imgResizeDropzone');
+    const imgResizeInput = document.getElementById('imgResizeInput');
+    const imgResizeControls = document.getElementById('imgResizeControls');
+    const imgResizeName = document.getElementById('imgResizeName');
+    const imgResizeMeta = document.getElementById('imgResizeMeta');
+    const imgResizeReset = document.getElementById('imgResizeReset');
+    const imgResizeWidth = document.getElementById('imgResizeWidth');
+    const imgResizeHeight = document.getElementById('imgResizeHeight');
+    const imgResizeLock = document.getElementById('imgResizeLock');
+    const imgResizeDpi = document.getElementById('imgResizeDpi');
+    const imgResizeWidthMm = document.getElementById('imgResizeWidthMm');
+    const imgResizeHeightMm = document.getElementById('imgResizeHeightMm');
+    const imgResizePixelsBtn = document.getElementById('imgResizePixelsBtn');
+    const imgResizeDpiBtn = document.getElementById('imgResizeDpiBtn');
+    const imgPassportBtn = document.getElementById('imgPassportBtn');
+    const imgId2x2Btn = document.getElementById('imgId2x2Btn');
+    const imgSignatureBtn = document.getElementById('imgSignatureBtn');
+    const imgResizeResults = document.getElementById('imgResizeResults');
+    const imgResizeGrid = document.getElementById('imgResizeGrid');
+    const imgResizeResultTitle = document.getElementById('imgResizeResultTitle');
+    const imgResizeResultMeta = document.getElementById('imgResizeResultMeta');
+    let imgResizeFile = null;
+    let imgResizeObjectUrl = null;
+
+    imgResizeDropzone.addEventListener('click', () => imgResizeInput.click());
+    setupDragDrop(imgResizeDropzone, files => { if (files[0]) loadResizeImage(files[0]); });
+    imgResizeInput.addEventListener('change', e => { if (e.target.files[0]) loadResizeImage(e.target.files[0]); });
+
+    function loadResizeImage(file) {
+      if (!file.type.startsWith('image/')) return alert('Please choose an image file.');
+      imgResizeFile = file;
+      if (imgResizeObjectUrl) URL.revokeObjectURL(imgResizeObjectUrl);
+      imgResizeObjectUrl = URL.createObjectURL(file);
+      imgResizeDropzone.style.display = 'none';
+      imgResizeControls.style.display = 'flex';
+      imgResizeName.textContent = file.name;
+      imgResizeMeta.textContent = 'Loading dimensions…';
+      const im = new Image();
+      im.onload = () => {
+        imgResizeWidth.value = im.naturalWidth;
+        imgResizeHeight.value = im.naturalHeight;
+        imgResizeMeta.textContent = `${im.naturalWidth} × ${im.naturalHeight} px • ${formatFileSize(file.size)}`;
+        URL.revokeObjectURL(im.src);
+      };
+      im.src = imgResizeObjectUrl;
+    }
+
+    function mmToPx(mm, dpi) { return Math.max(1, Math.round((Number(mm) / 25.4) * Number(dpi))); }
+
+    function updateResizeHeightFromWidth() {
+      if (!imgResizeFile || imgResizeLock.value === 'stretch') return;
+      const im = document.querySelector('#imgResizePreviewTemp');
+      if (!im) return;
+    }
+
+    async function renderResizedImage(width, height, mode, title) {
+      if (!imgResizeFile) return;
+      const bitmap = await createImageBitmap(imgResizeFile);
+      const srcW = bitmap.width, srcH = bitmap.height;
+      width = Math.max(1, Math.min(12000, Math.round(width)));
+      height = Math.max(1, Math.min(12000, Math.round(height)));
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      if (mode === 'cover') {
+        const scale = Math.max(width / srcW, height / srcH);
+        const dw = srcW * scale, dh = srcH * scale;
+        ctx.drawImage(bitmap, (width - dw) / 2, (height - dh) / 2, dw, dh);
+      } else if (mode === 'contain') {
+        const scale = Math.min(width / srcW, height / srcH);
+        const dw = srcW * scale, dh = srcH * scale;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(bitmap, (width - dw) / 2, (height - dh) / 2, dw, dh);
+      } else {
+        ctx.drawImage(bitmap, 0, 0, width, height);
+      }
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+      if (!blob) throw new Error('Your browser could not encode the resized image.');
+      const safeBase = imgResizeFile.name.replace(/\.[^/.]+$/, '') || 'image';
+      const filename = `${safeBase}_${width}x${height}px.jpg`;
+      const url = URL.createObjectURL(blob);
+      imgResizeGrid.innerHTML = `
+        <div class="page-card">
+          <div class="page-preview-wrapper"><img src="${url}" alt="Resized preview"></div>
+          <div class="page-meta">
+            <div><div class="page-num">${width} × ${height} px</div><div class="file-meta">${title}</div></div>
+            <a class="btn-download-single" href="${url}" download="${filename}">Save</a>
+          </div>
+        </div>`;
+      imgResizeResults.style.display = 'block';
+      imgResizeResultTitle.textContent = title;
+      imgResizeResultMeta.textContent = `${width} × ${height} px • ${formatFileSize(blob.size)}`;
+      imgResizeResults.scrollIntoView({behavior:'smooth', block:'nearest'});
+      if (bitmap.close) bitmap.close();
+    }
+
+    imgResizePixelsBtn.addEventListener('click', () => renderResizedImage(Number(imgResizeWidth.value), Number(imgResizeHeight.value), imgResizeLock.value, 'Custom pixel dimensions'));
+    imgResizeDpiBtn.addEventListener('click', () => {
+      const dpi = Number(imgResizeDpi.value) || 300;
+      const w = mmToPx(imgResizeWidthMm.value, dpi);
+      const h = mmToPx(imgResizeHeightMm.value, dpi);
+      imgResizeWidth.value = w; imgResizeHeight.value = h;
+      renderResizedImage(w, h, imgResizeLock.value === 'stretch' ? 'stretch' : 'cover', `${imgResizeWidthMm.value} × ${imgResizeHeightMm.value} mm @ ${dpi} DPI → ${w} × ${h} px`);
+    });
+
+    imgPassportBtn.addEventListener('click', () => {
+      imgResizeDpi.value = '300';
+      imgResizeWidthMm.value = '35';
+      imgResizeHeightMm.value = '45';
+      imgResizeWidth.value = 413;
+      imgResizeHeight.value = 531;
+      renderResizedImage(413, 531, 'cover', 'Indian passport/visa photo preset • 35 × 45 mm @ 300 DPI');
+    });
+
+    imgId2x2Btn.addEventListener('click', () => {
+      imgResizeDpi.value = '300';
+      imgResizeWidthMm.value = '50.8';
+      imgResizeHeightMm.value = '50.8';
+      imgResizeWidth.value = 600;
+      imgResizeHeight.value = 600;
+      renderResizedImage(600, 600, 'cover', '2 × 2 inch ID photo preset @ 300 DPI');
+    });
+
+    imgSignatureBtn.addEventListener('click', () => {
+      imgResizeDpi.value = '300';
+      imgResizeWidthMm.value = '35';
+      imgResizeHeightMm.value = '15';
+      imgResizeWidth.value = 413;
+      imgResizeHeight.value = 177;
+      renderResizedImage(413, 177, 'contain', 'Signature preset • 35 × 15 mm @ 300 DPI');
+    });
+
+    imgResizeReset.addEventListener('click', () => {
+      imgResizeFile = null;
+      if (imgResizeObjectUrl) { URL.revokeObjectURL(imgResizeObjectUrl); imgResizeObjectUrl = null; }
+      imgResizeDropzone.style.display = 'flex';
+      imgResizeControls.style.display = 'none';
+      imgResizeResults.style.display = 'none';
+      imgResizeGrid.innerHTML = '';
+      imgResizeInput.value = '';
+    });
+
+    // ==========================================
+    // FILE COMPRESSION / DECOMPRESSION
+    // ==========================================
+    const compressDropzone = document.getElementById('compressDropzone');
+    const compressInput = document.getElementById('compressInput');
+    const compressControls = document.getElementById('compressControls');
+    const compressSummary = document.getElementById('compressSummary');
+    const compressMeta = document.getElementById('compressMeta');
+    const compressReset = document.getElementById('compressReset');
+    const compressFormat = document.getElementById('compressFormat');
+    const compressLevel = document.getElementById('compressLevel');
+    const compressBtn = document.getElementById('compressBtn');
+    const compressProgress = document.getElementById('compressProgress');
+    const compressProgressBar = document.getElementById('compressProgressBar');
+    const compressProgressText = document.getElementById('compressProgressText');
+    const compressProgressPercent = document.getElementById('compressProgressPercent');
+    let compressFiles = [];
+
+    const decompressDropzone = document.getElementById('decompressDropzone');
+    const decompressInput = document.getElementById('decompressInput');
+    const decompressControls = document.getElementById('decompressControls');
+    const decompressName = document.getElementById('decompressName');
+    const decompressMeta = document.getElementById('decompressMeta');
+    const decompressReset = document.getElementById('decompressReset');
+    const decompressBtn = document.getElementById('decompressBtn');
+    const decompressSaveAll = document.getElementById('decompressSaveAll');
+    const decompressList = document.getElementById('decompressList');
+    let decompressFile = null;
+    let decompressedItems = [];
+
+    function setCompressionProgress(p, text) {
+      const n = Math.max(0, Math.min(100, Math.round(p)));
+      compressProgressBar.style.width = n + '%';
+      compressProgressPercent.textContent = n + '%';
+      compressProgressText.textContent = text || 'Working…';
+    }
+
+    function compressionStreamSupported(format, decompress=false) {
+      const C = decompress ? window.DecompressionStream : window.CompressionStream;
+      if (!C) return false;
+      try { new C(format); return true; } catch (_) { return false; }
+    }
+
+    function streamCompress(file, format) {
+      const stream = new CompressionStream(format);
+      return new Response(file.stream().pipeThrough(stream)).blob();
+    }
+
+    function streamDecompress(blob, format) {
+      const stream = new DecompressionStream(format);
+      return new Response(blob.stream().pipeThrough(stream)).blob();
+    }
+
+    function chooseCompressedName(file, format) {
+      const base = file.name.replace(/\.(gz|gzip|deflate|br)$/i, '');
+      if (format === 'gzip') return base + '.gz';
+      if (format === 'deflate') return base + '.deflate';
+      if (format === 'brotli') return base + '.br';
+      return base + '.zip';
+    }
+
+    function updateCompressionSelection() {
+      const singleOnly = compressFormat.value !== 'zip';
+      if (singleOnly && compressFiles.length > 1) {
+        compressMeta.textContent = 'This format accepts one file — only the first file will be used.';
+      } else {
+        compressMeta.textContent = `${compressFiles.length} file(s) • ${formatFileSize(compressFiles.reduce((n,f)=>n+f.size,0))}`;
+      }
+    }
+
+    compressDropzone.addEventListener('click', () => compressInput.click());
+    setupDragDrop(compressDropzone, files => {
+      compressFiles = Array.from(files);
+      compressDropzone.style.display = 'none';
+      compressControls.style.display = 'flex';
+      compressSummary.textContent = `${compressFiles.length} file(s) selected`;
+      updateCompressionSelection();
+    });
+    compressInput.addEventListener('change', e => {
+      compressFiles = Array.from(e.target.files);
+      if (compressFiles.length) {
+        compressDropzone.style.display = 'none';
+        compressControls.style.display = 'flex';
+        compressSummary.textContent = `${compressFiles.length} file(s) selected`;
+        updateCompressionSelection();
+      }
+    });
+    compressFormat.addEventListener('change', updateCompressionSelection);
+
+    compressReset.addEventListener('click', () => {
+      compressFiles = [];
+      compressDropzone.style.display = 'flex';
+      compressControls.style.display = 'none';
+      compressInput.value = '';
+    });
+
+    compressBtn.addEventListener('click', async () => {
+      if (!compressFiles.length) return;
+      compressBtn.disabled = true;
+      compressProgress.style.display = 'block';
+      setCompressionProgress(3, 'Preparing…');
+      try {
+        const format = compressFormat.value;
+        const level = Number(compressLevel.value);
+        let outBlob, outName;
+
+        if (format === 'zip') {
+          if (!window.JSZip) throw new Error('ZIP engine is unavailable.');
+          const zip = new JSZip();
+          compressFiles.forEach(f => zip.file(f.name, f));
+          outBlob = await zip.generateAsync({type:'blob', compression: level === 0 ? 'STORE' : 'DEFLATE', compressionOptions:{level:Math.max(1,level)}}, meta => {
+            setCompressionProgress(meta.percent, 'Building ZIP…');
+          });
+          outName = 'compressed_files.zip';
+        } else {
+          const f = compressFiles[0];
+          const streamFormat = format === 'gzip' ? 'gzip' : (format === 'deflate' ? 'deflate' : 'br');
+          if (!compressionStreamSupported(streamFormat)) throw new Error(format === 'brotli' ? 'Brotli compression is not supported by this browser.' : 'Streaming compression is not supported by this browser.');
+          setCompressionProgress(20, 'Compressing…');
+          outBlob = await streamCompress(f, streamFormat);
+          outName = chooseCompressedName(f, format);
+          setCompressionProgress(95, 'Finalizing…');
+        }
+
+        downloadBlob(outBlob, outName);
+        setCompressionProgress(100, `Done • ${formatFileSize(outBlob.size)} output`);
+      } catch (err) {
+        alert('Compression error: ' + (err.message || err));
+        setCompressionProgress(0, 'Compression failed');
+      } finally {
+        compressBtn.disabled = false;
+      }
+    });
+
+    decompressDropzone.addEventListener('click', () => decompressInput.click());
+    decompressInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadDecompressFile(e.target.files[0]);
+    });
+    setupDragDrop(decompressDropzone, files => { if (files[0]) loadDecompressFile(files[0]); });
+
+    function loadDecompressFile(file) {
+      decompressFile = file;
+      decompressDropzone.style.display = 'none';
+      decompressControls.style.display = 'flex';
+      decompressName.textContent = file.name;
+      decompressMeta.textContent = formatFileSize(file.size);
+      decompressList.innerHTML = '';
+      decompressSaveAll.style.display = 'none';
+      decompressedItems = [];
+    }
+
+    decompressReset.addEventListener('click', () => {
+      decompressFile = null;
+      decompressedItems = [];
+      decompressDropzone.style.display = 'flex';
+      decompressControls.style.display = 'none';
+      decompressList.innerHTML = '';
+      decompressInput.value = '';
+    });
+
+    function addExtractedItem(name, blob) {
+      decompressedItems.push({name, blob});
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      const url = URL.createObjectURL(blob);
+      row.innerHTML = `<div><div class="item-row-title">${escapeXml(name)}</div><div class="item-row-meta">${formatFileSize(blob.size)}</div></div><div class="item-row-actions"><a class="btn-download-single" href="${url}" download="${name}">Save</a></div>`;
+      decompressList.appendChild(row);
+    }
+
+    decompressBtn.addEventListener('click', async () => {
+      if (!decompressFile) return;
+      decompressBtn.disabled = true;
+      decompressList.innerHTML = '';
+      decompressedItems = [];
+      try {
+        const lower = decompressFile.name.toLowerCase();
+        if (lower.endsWith('.zip')) {
+          if (!window.JSZip) throw new Error('ZIP engine is unavailable.');
+          const zip = await JSZip.loadAsync(decompressFile);
+          const entries = Object.values(zip.files).filter(e => !e.dir);
+          for (let i=0; i<entries.length; i++) {
+            const entry = entries[i];
+            const blob = await entry.async('blob');
+            addExtractedItem(entry.name, blob);
+          }
+        } else {
+          let format = null;
+          if (lower.endsWith('.gz') || lower.endsWith('.gzip')) format = 'gzip';
+          else if (lower.endsWith('.deflate')) format = 'deflate';
+          else if (lower.endsWith('.br')) format = 'br';
+          else throw new Error('Unknown compression type. Use .zip, .gz, .deflate or .br.');
+          if (!compressionStreamSupported(format, true)) throw new Error('This browser does not support decompression for ' + format + '.');
+          const blob = await streamDecompress(decompressFile, format);
+          const outputName = decompressFile.name.replace(/\.(gz|gzip|deflate|br)$/i, '') || 'decompressed.bin';
+          addExtractedItem(outputName, blob);
+        }
+        decompressMeta.textContent = `${decompressedItems.length} extracted item(s)`;
+        decompressSaveAll.style.display = decompressedItems.length > 1 ? 'inline-flex' : 'none';
+      } catch (err) {
+        alert('Decompression error: ' + (err.message || err));
+      } finally {
+        decompressBtn.disabled = false;
+      }
+    });
+
+    decompressSaveAll.addEventListener('click', async () => {
+      if (!decompressedItems.length || !window.JSZip) return;
+      const zip = new JSZip();
+      decompressedItems.forEach(item => zip.file(item.name, item.blob));
+      const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+      downloadBlob(blob, 'extracted_files.zip');
+    });
 
     // ==========================================
     // 1. PDF TO IMAGES & MERGE
