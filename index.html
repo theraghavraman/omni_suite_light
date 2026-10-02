@@ -798,6 +798,43 @@
       .card { border-radius:20px; padding:18px; }
     }
 
+    /* Reliability + responsive interaction layer */
+    html { scroll-behavior: smooth; }
+    body { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+    button, input, select, textarea, a { -webkit-tap-highlight-color: transparent; }
+    button, .btn, .nav-btn, .btn-reset, .btn-download-single { touch-action: manipulation; }
+    .actions-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .actions-bar .btn { flex:0 1 auto; }
+    .file-summary { gap:12px; flex-wrap:wrap; }
+    .page-preview-wrapper img { max-width:100%; max-height:100%; object-fit:contain; display:block; margin:auto; }
+    .item-row { gap:12px; flex-wrap:wrap; }
+    .item-row-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .mobile-status {
+      position:fixed; left:12px; right:12px; bottom:12px; z-index:100;
+      padding:12px 14px; border-radius:14px; background:rgba(31,36,55,.94);
+      color:#fff; box-shadow:0 18px 40px rgba(20,25,40,.28); font-size:.82rem;
+      transform:translateY(calc(100% + 20px)); opacity:0; pointer-events:none;
+      transition:transform .22s ease, opacity .22s ease;
+    }
+    .mobile-status.show { transform:translateY(0); opacity:1; }
+    @media (max-width: 760px) {
+      .options-grid { grid-template-columns:1fr !important; }
+      .actions-bar .btn, .actions-bar a.btn-download-single { flex:1 1 100%; width:100%; text-align:center; }
+      .file-summary > * { min-width:0; max-width:100%; }
+      .file-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .form-input, .form-select, .form-textarea { font-size:16px; } /* prevents iOS zoom */
+      .media-player-container video, .media-player-container audio, video, audio { width:100%; max-width:100%; }
+      .page-preview-wrapper { height:220px; }
+      .nav-bar { position:sticky; top:5px; }
+      .nav-btn { min-width:0; }
+    }
+    @media (max-width: 420px) {
+      .nav-bar { grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .nav-btn { font-size:.64rem; padding:7px 4px; }
+      .card { padding:15px; }
+      .dropzone { min-height:150px; }
+    }
+
     /* Keep the legacy mobile rules as the final constraint layer. */
     @media (max-width: 760px) {
       .container { max-width: 100%; }
@@ -896,8 +933,8 @@
               <select id="pdf2imgFormat" class="form-select">
                 <option value="jpg" selected>JPG (JPEG)</option>
                 <option value="png">PNG (Lossless)</option>
-                <option value="heic">HEIC (browser-dependent)</option>
                 <option value="webp">WebP</option>
+                <option value="avif">AVIF (browser-dependent)</option></option>
               </select>
             </div>
             <div class="form-group">
@@ -1132,8 +1169,8 @@
               <select id="imgTargetFmt" class="form-select">
                 <option value="png" selected>PNG (Lossless Transparency)</option>
                 <option value="jpg">JPG (JPEG)</option>
-                <option value="heic">HEIC (browser-dependent)</option>
                 <option value="webp">WebP (Modern Compact)</option>
+                <option value="avif">AVIF (browser-dependent)</option>
               </select>
             </div>
             <div class="form-group">
@@ -1197,6 +1234,14 @@
                 <option value="cover" selected>Crop to exact size (recommended)</option>
                 <option value="contain">Fit inside size (no crop)</option>
                 <option value="stretch">Stretch to exact size</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imgResizeOutput">Output Format</label>
+              <select id="imgResizeOutput" class="form-select">
+                <option value="jpg" selected>JPG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WebP</option>
               </select>
             </div>
             <div class="form-group">
@@ -1509,11 +1554,22 @@
     </div>
 
     <footer>
+      <div style="margin-bottom:8px;">Browser capability: <span id="omniCapabilityStatus">checking…</span></div>
       OmniConverter Studio &bull; Universal Client-Side Converter &bull; 100% Private &bull; In-Browser Processing
     </footer>
   </div>
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const status = document.getElementById('omniCapabilityStatus');
+      if (status) {
+        const caps = [];
+        if (window.CompressionStream) caps.push('stream compression');
+        if (window.MediaRecorder) caps.push('video recording');
+        if (window.showDirectoryPicker) caps.push('folder export');
+        status.textContent = caps.length ? caps.join(' • ') : 'basic browser mode';
+      }
+    });
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
@@ -1553,6 +1609,32 @@
       if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / 1048576).toFixed(2) + ' MB';
     }
+
+    function omniNotify(message, isError=false) {
+      let el = document.getElementById('omniMobileStatus');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'omniMobileStatus';
+        el.className = 'mobile-status';
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(window.__omniStatusTimer);
+      window.__omniStatusTimer = setTimeout(() => el.classList.remove('show'), isError ? 5000 : 2600);
+    }
+    function omniDownload(blob, filename) {
+      if (!blob || !blob.size) throw new Error('No output was generated.');
+      downloadBlob(blob, filename);
+    }
+    window.addEventListener('error', e => {
+      console.error('OmniConverter error:', e.error || e.message);
+      omniNotify('A tool error occurred. Check the selected file/format and try again.', true);
+    });
+    window.addEventListener('unhandledrejection', e => {
+      console.error('OmniConverter promise error:', e.reason);
+      omniNotify('A conversion step failed. Please try again with the same file or a smaller one.', true);
+    });
 
     function formatTime(sec) {
       sec = Math.max(0, sec || 0);
@@ -1604,7 +1686,7 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
     function setupDragDrop(el, onFiles) {
@@ -1633,6 +1715,7 @@
     const imgResizeHeight = document.getElementById('imgResizeHeight');
     const imgResizeLock = document.getElementById('imgResizeLock');
     const imgResizeDpi = document.getElementById('imgResizeDpi');
+    const imgResizeOutput = document.getElementById('imgResizeOutput');
     const imgResizeWidthMm = document.getElementById('imgResizeWidthMm');
     const imgResizeHeightMm = document.getElementById('imgResizeHeightMm');
     const imgResizePixelsBtn = document.getElementById('imgResizePixelsBtn');
@@ -1703,10 +1786,18 @@
         ctx.drawImage(bitmap, 0, 0, width, height);
       }
 
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+      const outMime = imgResizeOutput.value === 'png' ? 'image/png' : imgResizeOutput.value === 'webp' ? 'image/webp' : 'image/jpeg';
+      const outExt = imgResizeOutput.value;
+      if (outExt === 'jpg') {
+        const bg = document.createElement('canvas');
+        bg.width = canvas.width; bg.height = canvas.height;
+        const bctx = bg.getContext('2d'); bctx.fillStyle='#fff'; bctx.fillRect(0,0,bg.width,bg.height); bctx.drawImage(canvas,0,0);
+        canvas.width = bg.width; canvas.height = bg.height; ctx.drawImage(bg,0,0);
+      }
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, outExt === 'png' ? undefined : 0.94));
       if (!blob) throw new Error('Your browser could not encode the resized image.');
       const safeBase = imgResizeFile.name.replace(/\.[^/.]+$/, '') || 'image';
-      const filename = `${safeBase}_${width}x${height}px.jpg`;
+      const filename = `${safeBase}_${width}x${height}px.${outExt}`;
       const url = URL.createObjectURL(blob);
       imgResizeGrid.innerHTML = `
         <div class="page-card">
@@ -2098,19 +2189,19 @@
         let ext = fmt;
         if (fmt === 'png') mime = 'image/png';
         else if (fmt === 'webp') mime = 'image/webp';
-        else if (fmt === 'heic') mime = 'image/heic';
+        else if (fmt === 'avif') mime = 'image/avif';
 
         let blob = await new Promise(r => canvas.toBlob(r, mime, 0.95));
         if (!blob || blob.type !== mime) {
           blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
           ext = 'jpg';
+          omniNotify('Requested image codec is unavailable; exported JPG instead.', false);
         }
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         const filename = `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_page_${pNum}.${ext}`;
         pdfConvertedImgs.push({ pNum, blob, dataUrl, filename, ext });
         if (page.cleanup) page.cleanup();
-        if (currentPdfDoc.cleanup) currentPdfDoc.cleanup();
         pdf2imgCount.textContent = `Converted ${i + 1} / ${pages.length} pages`;
       }
 
@@ -2184,8 +2275,8 @@
             }
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-            let mime = fmt === 'png' ? 'image/png' : fmt === 'webp' ? 'image/webp' : 'image/jpeg';
-            let ext = fmt === 'png' ? 'png' : fmt === 'webp' ? 'webp' : 'jpg';
+            let mime = fmt === 'png' ? 'image/png' : fmt === 'webp' ? 'image/webp' : fmt === 'avif' ? 'image/avif' : 'image/jpeg';
+            let ext = fmt === 'png' ? 'png' : fmt === 'webp' ? 'webp' : fmt === 'avif' ? 'avif' : 'jpg';
             const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
             if (!blob) throw new Error('Browser could not encode page ' + pNum);
 
@@ -3065,7 +3156,16 @@
       ocrProgressWrapper.style.display = 'block';
 
       try {
-        const worker = await Tesseract.createWorker('eng');
+        const worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status) ocrProgressText.textContent = m.status;
+            if (typeof m.progress === 'number') {
+              const pct = Math.round(m.progress * 100);
+              ocrProgressBar.style.width = pct + '%';
+              ocrProgressPercent.textContent = pct + '%';
+            }
+          }
+        });
         const ret = await worker.recognize(currentOcrFile);
         await worker.terminate();
 
@@ -3081,7 +3181,13 @@
     });
 
     ocrCopyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(ocrOutputText.value);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(ocrOutputText.value);
+      } else {
+        ocrOutputText.focus();
+        ocrOutputText.select();
+        document.execCommand('copy');
+      }
       ocrCopyBtn.textContent = '✅ Copied!';
       setTimeout(() => ocrCopyBtn.textContent = '📋 Copy Text', 2000);
     });
@@ -3150,6 +3256,8 @@
         const start = Math.max(0, parseFloat(audioStartSec.value) || 0);
         const end = Math.min(audioBuffer.duration, parseFloat(audioEndSec.value) || audioBuffer.duration);
         const speed = parseFloat(audioSpeedSelect.value) || 1.0;
+        if (!(end > start)) throw new Error('End time must be greater than start time.');
+        if (!(speed > 0)) throw new Error('Playback speed must be greater than zero.');
 
         const sampleRate = audioBuffer.sampleRate;
         const startSample = Math.floor(start * sampleRate);
@@ -3305,20 +3413,31 @@
         videoProgressWrapper.style.display = 'block';
         videoProgressText.textContent = 'Recording trimmed segment...';
 
-        const start = parseFloat(videoStartSec.value) || 0;
-        const end = parseFloat(videoEndSec.value) || videoPlayer.duration;
+        const start = Math.max(0, parseFloat(videoStartSec.value) || 0);
+        const end = Math.min(videoPlayer.duration, parseFloat(videoEndSec.value) || videoPlayer.duration);
+        if (!(end > start)) throw new Error('End time must be greater than start time.');
+        const stream = videoPlayer.captureStream ? videoPlayer.captureStream() : (videoPlayer.mozCaptureStream ? videoPlayer.mozCaptureStream() : null);
+        if (!stream) throw new Error('This browser cannot capture the video stream for trimming.');
 
-        const stream = videoPlayer.captureStream ? videoPlayer.captureStream() : videoPlayer.mozCaptureStream();
-        let mime = 'video/webm;codecs=vp8,opus';
-        if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/mp4';
-
-        const recorder = new MediaRecorder(stream);
+        const candidates = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm'
+        ];
+        let mime = candidates.find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
+        if (!mime) throw new Error('This browser cannot record a compatible video format. Try Chrome/Edge/Firefox on desktop or use a supported local video engine.');
+        const recorder = new MediaRecorder(stream, { mimeType: mime });
         const chunks = [];
 
         recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onerror = e => {
+          console.error('MediaRecorder error', e);
+          try { if (recorder.state !== 'inactive') recorder.stop(); } catch (_) {}
+        };
         recorder.onstop = () => {
           videoProgressWrapper.style.display = 'none';
           videoProcessBtn.disabled = false;
+          stream.getTracks().forEach(t => t.stop());
           const outBlob = new Blob(chunks, { type: mime });
           const ext = mime.includes('mp4') ? 'mp4' : 'webm';
           downloadBlob(outBlob, `${base}_cut.${ext}`);
@@ -3331,6 +3450,9 @@
           videoPlayer.play();
 
           const checkInterval = setInterval(() => {
+            const progress = Math.max(0, Math.min(100, ((videoPlayer.currentTime - start) / Math.max(0.001, end - start)) * 100));
+            videoProgressBar.style.width = progress + '%';
+            videoProgressText.textContent = 'Recording trimmed segment… ' + Math.round(progress) + '%';
             if (videoPlayer.currentTime >= end || videoPlayer.paused) {
               clearInterval(checkInterval);
               videoPlayer.pause();
@@ -3358,5 +3480,4 @@
   })();
   </script>
 </body>
-</html>
 </html>
