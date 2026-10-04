@@ -4399,7 +4399,7 @@ function hasImplementationReference(id,source){
 function runStructure(clear=true){
  if(clear) reset();const source=sourceText();
  Object.entries(studioMap).forEach(([id,studio])=>{
-   const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]);
+   const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]');
    if(!panel||!nav){add(studio,'Studio panel + navigation','FAIL',(!panel?'Panel missing. ':'')+(!nav?'Navigation missing.':''));return;}
    add(studio,'Studio panel + navigation','PASS','Panel and navigation target exist');
    panel.querySelectorAll('input[type="file"]').forEach(el=>add(studio,'Upload: '+(el.id||'unnamed'),'PASS','File input is present and reachable'));
