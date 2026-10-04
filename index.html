@@ -1290,7 +1290,7 @@
 
     <nav class="nav-bar">
       <button type="button" class="nav-btn active" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
-      <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Word &amp; Docs</span></button>
+      <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Office Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabEpub"><span class="studio-icon studio-epub"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h9.2L18.5 7v12.5H6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4.5V7h3.5M9 9h5.5M9 12h5.5M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 6.5v13a1 1 0 0 0 1 1h10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></svg></span><span class="studio-label">EPUB Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabImages"><span class="studio-icon studio-image"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="m5.5 17 4.4-4.3 3.1 3 2.2-2.1 3.3 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="studio-label">Image Tools</span></button>
       <button type="button" class="nav-btn" data-tab="tabOcr"><span class="studio-icon studio-ocr"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 9V5.5A1.5 1.5 0 0 1 6 4h3.5M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="m13.6 13.6 3.1 3.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="studio-label">Image to Text</span><small>OCR</small></button>
@@ -1535,6 +1535,49 @@
         <div class="actions-bar">
           <button type="button" class="btn btn-primary" id="t2dDocxBtn">Create Word DOCX</button>
           <button type="button" class="btn btn-success" id="t2dPdfBtn">Create Text PDF</button>
+        </div>
+      </div>
+    </div>
+
+          <div class="card" id="officeFormatConverter">
+        <h2>4. Office Format Converter</h2>
+        <div class="sub">Native LibreOffice-powered conversion for Word, spreadsheets and presentations. Supports common Microsoft Office and LibreOffice formats, including XLS/XLSX/ODS/CSV and PPT/PPTX/ODP.</div>
+        <div class="dropzone" id="officeConvertDropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 4h9l3 3v13H6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M14 4v4h4"/></svg>
+          <h3>Choose an Office, Spreadsheet or Presentation file</h3>
+          <p>DOC/DOCX, XLS/XLSX/ODS/CSV, PPT/PPTX/ODP and PDF</p>
+          <input type="file" id="officeConvertInput" class="file-input" accept=".doc,.docx,.odt,.rtf,.txt,.html,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp,.pdf">
+        </div>
+        <div class="controls-panel" id="officeConvertControls" style="display:none;">
+          <div class="file-summary">
+            <div><div class="file-name" id="officeConvertName">No file selected</div><div class="file-meta" id="officeConvertMeta"></div></div>
+            <button type="button" class="btn-reset" id="officeConvertReset">Reset</button>
+          </div>
+          <div class="options-grid">
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label for="officeConvertTarget">Target format</label>
+              <select id="officeConvertTarget" class="form-select">
+                <option value="pdf">PDF — documents, spreadsheets &amp; presentations</option>
+                <option value="docx">DOCX — Word / Writer</option>
+                <option value="doc">DOC — legacy Word</option>
+                <option value="odt">ODT — LibreOffice Writer</option>
+                <option value="xls">XLS — legacy Excel</option>
+                <option value="xlsx">XLSX — Excel</option>
+                <option value="ods">ODS — LibreOffice Calc</option>
+                <option value="csv">CSV — spreadsheet data</option>
+                <option value="ppt">PPT — legacy PowerPoint</option>
+                <option value="pptx">PPTX — PowerPoint</option>
+                <option value="odp">ODP — LibreOffice Impress</option>
+              </select>
+            </div>
+          </div>
+          <div class="actions-bar">
+            <button type="button" class="btn btn-primary" id="officeConvertBtn">Convert Office File</button>
+            <button type="button" class="btn btn-success" id="officePptPdfBtn">PPT → PDF</button>
+            <button type="button" class="btn btn-secondary" id="officePdfPptBtn">PDF → PPTX</button>
+            <button type="button" class="btn btn-secondary" id="officeCsvXlsxBtn">CSV → XLSX</button>
+          </div>
+          <div class="form-hint">PPT/PPTX/ODP conversions are handled by LibreOffice. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
         </div>
       </div>
     </div>
@@ -4344,7 +4387,7 @@ updateMode();
 (function(){
 'use strict';
 const $=id=>document.getElementById(id), groups=$('omniAllGroups'), state=[];
-const studioMap={tabPdf:'PDF Suite',tabWord:'Word & Docs',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabLocal:'Local Engine'};
+const studioMap={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabLocal:'Local Engine'};
 function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function add(studio,name,status,detail){state.push({studio,name,status,detail});}
 function render(){
@@ -4382,8 +4425,16 @@ function runOptions(clear=true){
  });
  render();
 }
+function runOfficeChecks(){
+ const panel=$('tabWord');if(!panel){add('Office Studio','Office Studio panel','FAIL','Panel missing');return}
+ const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn'];
+ ids.forEach(id=>{const el=$(id);add('Office Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
+ const targets=panel.querySelectorAll('#officeConvertTarget option');
+ add('Office Studio','Office target formats','PASS',targets.length+' supported target formats');
+ ['pdf','pptx','xlsx','xls','ods','csv','ppt','odp'].forEach(fmt=>add('Office Studio','Target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
+}
 function runAll(){
- reset();runStructure(false);runOptions(false);
+ reset();runStructure(false);runOptions(false);runOfficeChecks();
  const actionRows=state.filter(x=>x.name.startsWith('Action:'));
  actionRows.forEach(r=>{if(r.status==='FAIL')return;});
  render();
@@ -4471,7 +4522,7 @@ async function runBrowserTests(){
   ];
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
-  for(const label of ['PDF Suite','Word & Docs','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Word & Docs':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
+  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
   await test('browser','PDF create → PDF.js read → text extraction',async()=>{
     const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),loaded=await pdfjsLib.getDocument({data:bytes}).promise;
     const page=await loaded.getPage(1),tc=await page.getTextContent();const text=tc.items.map(x=>x.str).join(' ');
@@ -4509,7 +4560,7 @@ async function runLocalTests(){
   let h;
   try{h=await localHealth();state.local=h;}catch(e){
     skip('local','Local Engine connection','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');
-    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','LibreOffice Office conversion','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
+    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
     return;
   }
   await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
@@ -4543,6 +4594,18 @@ async function runLocalTests(){
   } else {skip('local','qpdf PDF compression','qpdf unavailable');skip('local','qpdf PDF merge','qpdf unavailable');skip('local','qpdf PDF split','qpdf unavailable');}
   if(tool('tesseract')) await test('local','Native Tesseract OCR',async()=>{const o=await process({op:'ocr',input:ids.image,lang:'eng'});const b=await download(o.file_id);const text=await b.text();if(!/OMNI/i.test(text))throw new Error('OCR returned: '+text.trim());return 'Recognized: '+text.trim().replace(/\s+/g,' ');}); else skip('local','Native Tesseract OCR','Tesseract unavailable');
   const txtId=await upload(txt,'omni-diagnostic.txt');
+  const csv=new Blob(['Name,Value\\nOmni,42\\nSuite,99\\n'],{type:'text/csv'});
+  const csvId=await upload(csv,'omni-diagnostic.csv');
+  if(tool('soffice')){
+    await test('local','Office Studio: CSV → XLSX',async()=>{const o=await process({op:'office_convert',input:csvId,format:'xlsx'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty XLSX');return o.name+' • '+b.size+' bytes';});
+    await test('local','Office Studio: CSV → ODS',async()=>{const o=await process({op:'office_convert',input:csvId,format:'ods'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty ODS');return o.name+' • '+b.size+' bytes';});
+  } else {skip('local','Office Studio: CSV → XLSX','LibreOffice unavailable');skip('local','Office Studio: CSV → ODS','LibreOffice unavailable');}
+  if(tool('soffice')) {
+    await test('local','Office Studio: PPT → PDF',async()=>{const o=await process({op:'office_convert',input:ids.txt,format:'pptx'});const ppt=await download(o.file_id);if(!ppt.size)throw new Error('Empty PPTX');const pptId=await upload(ppt,'omni-generated.pptx');const p=await process({op:'office_convert',input:pptId,format:'pdf'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty PDF');return 'PPTX → PDF • '+b.size+' bytes';});
+    await test('local','Office Studio: XLSX → ODS',async()=>{const o=await process({op:'office_convert',input:csvId,format:'xlsx'});const x=await download(o.file_id);const xid=await upload(x,'omni-generated.xlsx');const p=await process({op:'office_convert',input:xid,format:'ods'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty ODS');return 'XLSX → ODS • '+b.size+' bytes';});
+    await test('local','Office Studio: PPTX → ODP',async()=>{const o=await process({op:'office_convert',input:ids.txt,format:'pptx'});const x=await download(o.file_id);const xid=await upload(x,'omni-generated.pptx');const p=await process({op:'office_convert',input:xid,format:'odp'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty ODP');return 'PPTX → ODP • '+b.size+' bytes';});
+  } else {skip('local','Office Studio: PPT → PDF','LibreOffice unavailable');skip('local','Office Studio: XLSX → ODS','LibreOffice unavailable');skip('local','Office Studio: PPTX → ODP','LibreOffice unavailable');}
+  if(tool('pdftoppm')) await test('local','Office Studio: PDF → PPTX',async()=>{const o=await process({op:'pdf_to_ppt',input:ids.pdf,dpi:96});const b=await download(o.file_id);if(!b.size)throw new Error('Empty PPTX');const ab=await b.arrayBuffer();const sig=new TextDecoder().decode(new Uint8Array(ab.slice(0,2)));if(sig!=='PK')throw new Error('Output is not a PPTX ZIP package');return o.name+' • '+b.size+' bytes';}); else skip('local','Office Studio: PDF → PPTX','Poppler unavailable');
   if(tool('soffice')) await test('local','LibreOffice Office conversion',async()=>{const o=await process({op:'office_convert',input:txtId,format:'pdf'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty Office conversion output');return o.name+' • '+b.size+' bytes';}); else skip('local','LibreOffice Office conversion','LibreOffice unavailable');
   const htmlId=await upload(html,'omni-diagnostic.html');
   if(tool('ebook-convert')) await test('local','Calibre ebook conversion',async()=>{const o=await process({op:'ebook_convert',input:htmlId,format:'epub'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty EPUB');return o.name+' • '+b.size+' bytes';}); else skip('local','Calibre ebook conversion','Calibre unavailable');
@@ -4560,6 +4623,61 @@ $('omniExportDiagnostics')?.addEventListener('click',()=>{
   const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='omni-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 render();
+})();
+</script>
+<script id="omni-office-studio">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const BASE='http://127.0.0.1:8765';
+let token='';
+let file=null;
+const input=$('officeConvertInput'),drop=$('officeConvertDropzone'),controls=$('officeConvertControls'),target=$('officeConvertTarget'),run=$('officeConvertBtn');
+function setFile(f){
+  if(!f)return;
+  file=f;drop.style.display='none';controls.style.display='flex';
+  $('officeConvertName').textContent=f.name;$('officeConvertMeta').textContent=(f.size/1024/1024).toFixed(2)+' MB';
+  const ext=(f.name.split('.').pop()||'').toLowerCase();
+  if(ext==='pdf')target.value='pptx';
+  else if(['ppt','pptx','odp'].includes(ext))target.value='pdf';
+  else if(ext==='csv')target.value='xlsx';
+}
+drop.addEventListener('click',e=>{if(e.target!==input)input.click()});
+input.addEventListener('change',e=>setFile(e.target.files[0]));
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');setFile(e.dataTransfer.files[0])});
+$('officeConvertReset').onclick=()=>{file=null;input.value='';drop.style.display='block';controls.style.display='none'};
+async function health(){
+  const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
+  const j=await r.json();token=j.token||token;
+  if(!(j.tools&&j.tools.soffice&&j.tools.soffice.installed))throw new Error('LibreOffice is not installed on the Local Engine');
+  return j;
+}
+async function convert(forcedTarget){
+  if(!file){alert('Choose an Office file first.');return}
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  const fmt=forcedTarget||target.value;
+  if(fmt==='pdf' && ['pdf'].includes(ext)){alert('The selected file is already PDF.');return}
+  try{
+    await health();
+    const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)};
+    const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:file});
+    if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
+    const up=await ur.json();
+    const op=(ext==='pdf'&&fmt==='pptx')?'pdf_to_ppt':'office_convert';
+    const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op,input:up.file_id,format:fmt})});
+    const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Office conversion failed');
+    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+    if(!dl.ok)throw new Error('Output download failed');
+    const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){alert('Office Studio: '+e.message)}
+}
+run.onclick=()=>convert();
+$('officePptPdfBtn').onclick=()=>{target.value='pdf';convert('pdf')};
+$('officePdfPptBtn').onclick=()=>{target.value='pptx';convert('pptx')};
+$('officeCsvXlsxBtn').onclick=()=>{target.value='xlsx';convert('xlsx')};
 })();
 </script>
 </body>
