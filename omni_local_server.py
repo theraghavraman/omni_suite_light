@@ -12,6 +12,7 @@ import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets,
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import omni_data_engine
+import omni_platform
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("OMNI_PORT", "8765"))
@@ -283,7 +284,53 @@ def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
 def process_job(payload):
     op = payload.get("op")
     if op == "health":
-        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
+        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"]}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
+
+    if op == "doctor":
+        return {"ok": True, "doctor": omni_platform.doctor()}
+
+    if op == "capability":
+        return {"ok": True, "capability": omni_platform.capability(payload.get("source_format") or payload.get("source"), payload.get("format") or payload.get("target"))}
+
+    if op == "privacy_scan":
+        inp=get_file(payload["input"])
+        report=omni_platform.privacy_scan(inp, int(payload.get("max_bytes", 8000000)))
+        out=output_path(inp.stem+"_privacy","json"); out.write_text(json.dumps(report,indent=2),encoding="utf-8")
+        return file_result(out,out.name,"application/json")
+
+    if op == "data_clean":
+        inp=get_file(payload["input"])
+        source=omni_data_engine.ext(inp,payload.get("source_format"))
+        df=omni_data_engine.read_data(inp,source,payload.get("table"))
+        df=omni_platform.clean_dataframe(df,payload.get("actions",[]))
+        target=str(payload.get("format",source)).lower().lstrip(".")
+        if target not in (omni_data_engine.DATA_FORMATS | {"jsonschema"}): raise ValueError("Unsupported Data Cleaning output format")
+        out=output_path(inp.stem+"_cleaned",target); omni_data_engine.write_data(df,out,target,payload.get("table","data"),payload.get("dialect","sqlite"))
+        return file_result(out,out.name)
+
+    if op == "batch_convert":
+        inputs=list(payload.get("inputs",[]))
+        if not inputs: raise ValueError("No input files supplied")
+        base={k:v for k,v in payload.items() if k not in {"op","inputs"}}
+        results=[]
+        for fid in inputs:
+            item={"input":fid,**base}
+            try:
+                result=process_job(item)
+                results.append({"ok":True,"input":fid,"output":result.get("file_id"),"name":result.get("name"),"payload":item})
+            except Exception as exc:
+                results.append({"ok":False,"input":fid,"error":str(exc),"payload":item})
+        manifest=omni_platform.batch_manifest(results)
+        out=output_path("omni_batch_manifest","json"); out.write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+        return file_result(out,out.name,"application/json")
+
+    if op == "database_tables":
+        return omni_platform.database_tables(str(payload["url"]))
+
+    if op == "database_query":
+        result=omni_platform.database_query(str(payload["url"]),str(payload["query"]),payload.get("params"))
+        out=output_path("database_query","json"); out.write_text(json.dumps(result,indent=2,default=str),encoding="utf-8")
+        return file_result(out,out.name,"application/json")
 
     if op == "media":
         require_tool("ffmpeg")
