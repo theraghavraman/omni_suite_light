@@ -268,6 +268,12 @@ try:
     assert (ROOT/"sample.docx").stat().st_size > 0
     print("31. Text -> DOCX native conversion: OK")
 
+    # CI coverage: spreadsheet conversion should emit a valid XLSX package.
+    out=process({"op":"office_convert","input":csvup["file_id"],"format":"xlsx"},"ci-test-token")
+    download(out["file_id"],ROOT/"spreadsheet.xlsx","ci-test-token")
+    assert (ROOT/"spreadsheet.xlsx").read_bytes()[:2]==b"PK"
+    print("32. CSV -> XLSX package validation: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
