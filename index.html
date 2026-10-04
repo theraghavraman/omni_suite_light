@@ -4056,7 +4056,7 @@
   $("omniLocalRefresh").onclick=health;
 
   async function upload(file, i, total){
-    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream","X-Omni-Token":omniToken},body:file});
+    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"Origin":location.origin,"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream","X-Omni-Token":omniToken},body:file});
     if(!r.ok) throw new Error((await r.text()).slice(0,500));
     setProgress(8+(i/Math.max(1,total))*45,"Uploading "+file.name+"…");
     return (await r.json()).file_id;
@@ -4088,10 +4088,10 @@
       if(kind==="pdf_render") payload.dpi=parseInt($("omniLocalDpi").value,10)||150;
       if(kind==="ocr") payload.lang=$("omniLocalLang").value.trim()||"eng";
       setProgress(60,"Running native "+kind.replaceAll("_"," ")+"…");
-      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":omniToken},body:JSON.stringify(payload)});
+      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Origin":location.origin,"Content-Type":"application/json","X-Omni-Token":omniToken},body:JSON.stringify(payload)});
       const out=await rr.json(); if(!rr.ok||!out.ok) throw new Error(out.error||"Local operation failed");
       setProgress(92,"Preparing download…");
-      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"X-Omni-Token":omniToken}});
+      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"Origin":location.origin,"X-Omni-Token":omniToken}});
       if(!dl.ok) throw new Error("Output download failed");
       const blob=await dl.blob();
       const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=out.name||"omni-output"; document.body.appendChild(a); a.click(); a.remove();
