@@ -132,14 +132,30 @@ try:
     download(out["file_id"],ROOT/"profile.json","ci-test-token")
     print("19. SQL dialect translation/schema/profile: OK")
 
+    sci_mods=health.get("python_modules",{})
+    for mod in ("numpy","xarray","netCDF4","h5py","astropy"):
+        assert sci_mods.get(mod), f"{mod} is required for scientific Local Engine CI"
+    import numpy as np
+    import xarray as xr
+    sci_nc=ROOT/"science.nc"
+    xr.Dataset({"temperature":(("y","x"),np.arange(12,dtype=float).reshape(3,4))}).to_netcdf(sci_nc)
+    sci_up=upload(sci_nc,"ci-test-token")
+    out=process({"op":"scientific_profile","input":sci_up["file_id"],"source_format":"netcdf"},"ci-test-token")
+    prof=ROOT/"science_profile.json";download(out["file_id"],prof,"ci-test-token")
+    assert "temperature" in prof.read_text(encoding="utf-8")
+    for fmt in ("json","csv","png","hdf5","fits"):
+        out=process({"op":"scientific_convert","input":sci_up["file_id"],"source_format":"netcdf","format":fmt},"ci-test-token")
+        download(out["file_id"],ROOT/f"science.{('h5' if fmt=='hdf5' else fmt)}","ci-test-token")
+    print("20. Scientific NetCDF -> JSON/CSV/PNG/HDF5/FITS + profile: OK")
+
     docs=ROOT/"documents.json"; docs.write_text(json.dumps([{"_id":"1","name":"Alice","score":10},{"_id":"2","name":"Bob","score":20}]),encoding="utf-8")
     docs_up=upload(docs,"ci-test-token")
     process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"jsonl"},"ci-test-token")
     process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"dynamodb-json"},"ci-test-token")
     process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"csv"},"ci-test-token")
-    print("20. NoSQL JSON/JSONL/DynamoDB/CSV bridge: OK")
+    print("21. NoSQL JSON/JSONL/DynamoDB/CSV bridge: OK")
 
-    print("Expanded native + Data Studio smoke test: PASS")
+    print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
         server.terminate()
