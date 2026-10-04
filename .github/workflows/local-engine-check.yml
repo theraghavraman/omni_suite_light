@@ -55,8 +55,9 @@ jobs:
           $extra | ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
       - name: Verify native executables
         shell: bash
+        timeout-minutes: 5
         run: |
-          set -e
+          set -euo pipefail
           for exe in ffmpeg qpdf pdftoppm pdftotext tesseract soffice ebook-convert node; do
             command -v "$exe"
           done
@@ -64,6 +65,12 @@ jobs:
           if [ "$RUNNER_OS" != "Windows" ]; then
             timeout 30s ffmpeg -version >/dev/null
             timeout 30s qpdf --version >/dev/null
+          else
+            timeout 30s ffmpeg -version >/dev/null
+            timeout 30s qpdf --version >/dev/null
+            timeout 30s tesseract --version >/dev/null
+            timeout 30s soffice --version >/dev/null
+            timeout 30s ebook-convert --version >/dev/null
           fi
 
 
