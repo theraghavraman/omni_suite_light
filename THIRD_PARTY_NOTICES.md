@@ -13,8 +13,9 @@ OmniConverter Studio does not redistribute native executable binaries. Native to
 | tesseract.js-core | 5.1.1 | Apache License 2.0 | OCR WASM core |
 | Tesseract.js worker | 5.1.1 | Apache License 2.0 | Browser OCR worker |
 | Tesseract language data | @tesseract.js-data packages 1.0.0 | Apache License 2.0 | OCR language models |
+| Inter | Current web font | SIL Open Font License 1.1 | Application UI typography |
 
-The exact download URLs and pinned versions are defined in `prepare_offline.py`. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
+The exact download URLs and pinned versions are defined in `prepare_offline.py`. Inter is loaded at runtime from Google Fonts for the public UI; its SIL Open Font License 1.1 permits use and redistribution subject to the license terms. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
 
 ## Native tools installed separately
 
