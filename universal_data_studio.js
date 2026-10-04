@@ -124,6 +124,22 @@ async function exportAs(fmt){
 }
 async function fetchURL(){
  const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';if(/audio\//i.test(ct))state.audio=buf;parseInput(name,text,buf);setStatus('Fetched '+name);}
+function encodedConvert(){
+ const input=$('udsEncodedInput')?.value.trim();if(!input)throw new Error('Enter encoded data first.');
+ const mode=$('udsEncodedMode')?.value||'hex-to-base64';
+ let bytes;
+ if(mode==='hex-to-base64'||mode==='hex-to-text'){const clean=input.replace(/0x/gi,'').replace(/[^0-9a-f]/gi,'');if(clean.length%2)throw new Error('Hex input must contain complete byte pairs.');bytes=new Uint8Array(clean.length/2);for(let i=0;i<bytes.length;i++)bytes[i]=parseInt(clean.slice(i*2,i*2+2),16);}
+ else if(mode==='base64-to-hex'||mode==='base64-to-text'){const bin=atob(input.replace(/\s/g,''));bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));}
+ else if(mode==='text-to-hex'){bytes=new TextEncoder().encode(input);}
+ else if(mode==='text-to-base64'){bytes=new TextEncoder().encode(input);}
+ else throw new Error('Unsupported encoding mode.');
+ let out='';
+ if(mode==='hex-to-base64'||mode==='text-to-base64')out=btoa(String.fromCharCode(...bytes));
+ else if(mode==='hex-to-text'||mode==='base64-to-text')out=new TextDecoder().decode(bytes);
+ else if(mode==='base64-to-hex'||mode==='text-to-hex')out=[...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
+ $('udsEncodedOutput').value=out;
+ const blob=new Blob([out],{type:'text/plain'});$('udsEncodedDownload').onclick=()=>downloadBlob(blob,'omni-encoded-conversion.txt');
+}
 function bind(){
  const d=$('udsDrop'),i=$('udsInput');if(!d||!i)return;
  const set=f=>f&&loadFile(f).catch(e=>setStatus(e.message,false));
@@ -134,6 +150,7 @@ function bind(){
  $('udsSonify')?.addEventListener('click',()=>{try{downloadBlob(sonify(Number($('udsDuration').value||8)),'omni-data-sonification.wav');setStatus('Sonification generated');}catch(e){setStatus(e.message,false)}});
  $('udsReset')?.addEventListener('click',()=>location.reload());
  $('udsPreset')?.addEventListener('change',e=>{const v=e.target.value;if(v)$('udsUrl').value=v;});
+ $('udsEncodedRun')?.addEventListener('click',()=>{try{encodedConvert();setStatus('Encoded data converted.')}catch(e){setStatus(e.message,false)}});
  window.addEventListener('resize',()=>{if(state.records.length||state.audio)draw();});
 }
 bind();
