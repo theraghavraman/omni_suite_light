@@ -54,23 +54,31 @@ jobs:
           "PATH=$machine;$user;$($extra -join ';');$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
           $extra | ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
       - name: Verify native executables
-        shell: bash
-        timeout-minutes: 5
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          set -euo pipefail
+          $ErrorActionPreference = "Stop"
+          foreach ($exe in @("ffmpeg","qpdf","pdftoppm","pdftotext","tesseract","soffice","ebook-convert","node")) {
+            $cmd = Get-Command $exe -ErrorAction Stop
+            Write-Host "$exe -> $($cmd.Source)"
+          }
+          if (Get-Command magick -ErrorAction SilentlyContinue) {
+            Write-Host "magick -> $((Get-Command magick).Source)"
+          } else {
+            $cmd = Get-Command convert -ErrorAction Stop
+            Write-Host "convert -> $($cmd.Source)"
+          }
+
+      - name: Verify native executables (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -e
           for exe in ffmpeg qpdf pdftoppm pdftotext tesseract soffice ebook-convert node; do
             command -v "$exe"
           done
           if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
-          if [ "$RUNNER_OS" != "Windows" ]; then
-            timeout 30s ffmpeg -version >/dev/null
-            timeout 30s qpdf --version >/dev/null
-          else
-            timeout 30s ffmpeg -version >/dev/null
-            timeout 30s qpdf --version >/dev/null
-            timeout 30s tesseract --version >/dev/null
-            timeout 30s soffice --version >/dev/null
-            timeout 30s ebook-convert --version >/dev/null
-          fi
+          timeout 30s ffmpeg -version >/dev/null
+          timeout 30s qpdf --version >/dev/null
 
 
