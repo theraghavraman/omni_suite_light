@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{},audio:null,animation:null};
+const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{},audio:null,animation:null,file:null};
 
 function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function ext(n){return (n.split('.').pop()||'').toLowerCase();}
@@ -62,7 +62,7 @@ function parseInput(name,text,buf){
  state.raw=text;state.sourceName=name;state.meta={bytes:buf?.byteLength||text.length,kind:state.kind,rows:state.records.length,numeric:numericFields(state.records)};
  renderPreview();updateControls();
 }
-async function loadFile(f){const buf=await f.arrayBuffer();let text='';if(!['audio','binary','scientific-binary'].includes(guessKind(f.name,''))){text=new TextDecoder().decode(buf);}else if(['txt','csv','json','geojson','gpx','kml','ndjson','jsonl','tsv'].includes(ext(f.name))){text=new TextDecoder().decode(buf);}parseInput(f.name,text,buf);}
+async function loadFile(f){state.file=f;const buf=await f.arrayBuffer();let text='';if(!['audio','binary','scientific-binary'].includes(guessKind(f.name,''))){text=new TextDecoder().decode(buf);}else if(['txt','csv','json','geojson','gpx','kml','ndjson','jsonl','tsv'].includes(ext(f.name))){text=new TextDecoder().decode(buf);}parseInput(f.name,text,buf);}
 function renderPreview(){
  const meta=$('udsMeta');if(meta)meta.innerHTML='<div class="uds-pill"><b>'+esc(state.kind.toUpperCase())+'</b><span>'+prettyBytes(state.meta.bytes||0)+'</span></div><div class="uds-pill"><b>'+state.records.length+'</b><span>normalized rows</span></div><div class="uds-pill"><b>'+state.meta.numeric.length+'</b><span>numeric fields</span></div>';
  const p=$('udsPreview');if(!p)return;
@@ -115,6 +115,7 @@ async function exportVideo(){
  requestAnimationFrame(frame);await done;downloadBlob(new Blob(chunks,{type:'video/webm'}),'omni-data-visualization.webm');
 }
 async function exportAs(fmt){
+ if(state.kind==='scientific-binary' && ['json','csv','png','netcdf','nc','hdf5','h5','fits'].includes(fmt)){setStatus('Using Local Engine scientific parser…');await localProcessScientific(fmt);setStatus('Scientific conversion complete');return;}
  if(fmt==='json'){downloadBlob(new Blob([JSON.stringify(rowsForExport(),null,2)],{type:'application/json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.json');}
  else if(fmt==='csv'){downloadBlob(new Blob([csvOut(rowsForExport())],{type:'text/csv'}),state.sourceName.replace(/\.[^.]+$/,'')+'.csv');}
  else if(fmt==='geojson'){downloadBlob(new Blob([JSON.stringify(geoJSON(),null,2)],{type:'application/geo+json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.geojson');}
@@ -124,6 +125,18 @@ async function exportAs(fmt){
  else if(fmt==='webm'){await exportVideo();}
  else if(fmt==='html'){downloadBlob(new Blob([htmlReport()],{type:'text/html'}),'omni-data-report.html');}
  else if(fmt==='txt'){downloadBlob(new Blob([state.records.map(r=>Object.entries(r).map(([k,v])=>k+'='+v).join(' | ')).join('\n')],{type:'text/plain'}),'omni-data.txt');}
+}
+async function localHealth(){
+ const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine is not running. Start Omni locally first.');const j=await r.json();window.OMNI_TOKEN=j.token||window.OMNI_TOKEN;if(!window.OMNI_TOKEN)throw new Error('Local Engine token unavailable.');return j;
+}
+async function localUpload(file){
+ await localHealth();const r=await fetch('http://127.0.0.1:8765/api/upload',{method:'POST',headers:{'X-Filename':encodeURIComponent(file.name),'X-Omni-Token':window.OMNI_TOKEN},body:file});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Local upload failed');return r.json();
+}
+async function localProcessScientific(format){
+ if(!state.file)throw new Error('No scientific file loaded.');
+ const up=await localUpload(state.file);const r=await fetch('http://127.0.0.1:8765/api/process',{method:'POST',headers:{'Content-Type':'application/json','X-Omni-Token':window.OMNI_TOKEN},body:JSON.stringify({op:'scientific_convert',input:up.file_id,source_format:state.kind==='scientific-binary'?ext(state.file.name):undefined,format})});
+ const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Scientific conversion failed');
+ const d=await fetch('http://127.0.0.1:8765/api/download/'+j.file_id,{headers:{'X-Omni-Token':window.OMNI_TOKEN}});if(!d.ok)throw new Error('Local download failed');downloadBlob(await d.blob(),j.name);return j;
 }
 async function fetchURL(){
  const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';if(/audio\//i.test(ct))state.audio=buf;parseInput(name,text,buf);setStatus('Fetched '+name);}
