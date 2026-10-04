@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OMNI_PORT=8765
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg qpdf poppler-utils imagemagick ghostscript \
+    ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript \
     tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin \
     libreoffice calibre pandoc p7zip-full zip unzip \
     libeccodes-dev libhdf5-dev libnetcdf-dev \
