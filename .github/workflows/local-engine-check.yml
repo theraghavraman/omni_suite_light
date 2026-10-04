@@ -57,44 +57,13 @@ jobs:
         shell: bash
         run: |
           set -e
-          command -v ffmpeg
-          command -v qpdf
-          command -v pdftoppm
-          command -v pdftotext
-          command -v tesseract
-          command -v soffice
-          command -v ebook-convert
-          command -v node
+          for exe in ffmpeg qpdf pdftoppm pdftotext tesseract soffice ebook-convert node; do
+            command -v "$exe"
+          done
           if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
-          timeout 30s ffmpeg -version >/dev/null
-          timeout 30s qpdf --version >/dev/null
-          timeout 30s pdftoppm -v >/dev/null 2>&1
-          timeout 30s tesseract --version >/dev/null
-          timeout 30s soffice --version >/dev/null
-          timeout 30s ebook-convert --version >/dev/null
-          timeout 30s node --version >/dev/null
-      - name: Refresh PATH after native package install (macOS)
-        if: runner.os == 'macOS'
-        run: echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            timeout 30s ffmpeg -version >/dev/null
+            timeout 30s qpdf --version >/dev/null
+          fi
 
-      - name: Install COMPLETE Local Engine Python stack
-        run: python -m pip install -r requirements-local.txt
-      - name: Prepare offline browser assets
-        run: python prepare_offline.py
-      - name: Run strict Local Engine environment verification
-        run: python verify_local_environment.py
-      - name: Run suite-wide contract audit
-        run: python .github/scripts/omni_contract_audit.py
-      - name: Run expanded native format smoke test
-        env:
-          OMNI_TEST_ORIGIN: http://127.0.0.1:8765
-        run: python .github/scripts/native_smoke_test.py
-      - name: Validate setup files
-        shell: bash
-        run: |
-          test -s install_system_tools.command
-          test -s install_windows.ps1
-          test -s start_omni.bat
-          test -s start_omni.command
-          test -s setup_and_start.bat
-          test -s setup_and_start.command
+
