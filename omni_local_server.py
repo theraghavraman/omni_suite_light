@@ -522,7 +522,7 @@ def process_job(payload):
         target=str(payload.get("format","csv")).lower().lstrip(".")
         if source not in omni_data_engine.DATA_FORMATS or target not in (omni_data_engine.DATA_FORMATS | {"jsonschema"}):
             raise ValueError("Unsupported Data Studio format")
-        df=omni_data_engine.read_data(inp,source)
+        df=omni_data_engine.read_data(inp,source,payload.get("table"))
         out=output_path(inp.stem,target)
         omni_data_engine.write_data(df,out,target,payload.get("table","data"),payload.get("dialect","sqlite"))
         return file_result(out,out.name)
@@ -543,7 +543,7 @@ def process_job(payload):
 
     if op == "data_profile":
         inp=get_file(payload["input"])
-        report=omni_data_engine.profile(inp,omni_data_engine.ext(inp,payload.get("source_format")))
+        report=omni_data_engine.profile(inp,omni_data_engine.ext(inp,payload.get("source_format")),payload.get("table"))
         out=output_path(inp.stem+"_profile","json")
         out.write_text(json.dumps(report,indent=2),encoding="utf-8")
         return file_result(out,out.name,"application/json")
