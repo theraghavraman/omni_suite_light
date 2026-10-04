@@ -29,7 +29,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick libheif-dev libeccodes-dev tesseract-ocr libreoffice calibre pandoc
+          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick librsvg2-bin libheif-dev libeccodes-dev tesseract-ocr libreoffice calibre pandoc
       - name: Install native dependencies (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
