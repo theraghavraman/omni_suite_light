@@ -14,7 +14,7 @@ from pathlib import Path
 import omni_data_engine
 import omni_platform
 
-HOST = "127.0.0.1"
+HOST = os.environ.get("OMNI_HOST", "127.0.0.1")
 PORT = int(os.environ.get("OMNI_PORT", "8765"))
 ENGINE_API_VERSION = 4
 ENGINE_BUILD = "omni-local-2026.10-complete"
