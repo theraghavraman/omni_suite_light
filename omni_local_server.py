@@ -311,10 +311,13 @@ def process_job(payload):
     if op == "batch_convert":
         inputs=list(payload.get("inputs",[]))
         if not inputs: raise ValueError("No input files supplied")
-        base={k:v for k,v in payload.items() if k not in {"op","inputs"}}
+        delegated_op=str(payload.get("job_op") or payload.get("operation") or "data_convert").strip()
+        if delegated_op not in {"data_convert","privacy_scan","data_clean"}:
+            raise ValueError("Unsupported batch operation")
+        base={k:v for k,v in payload.items() if k not in {"op","inputs","job_op","operation"}}
         results=[]
         for fid in inputs:
-            item={"input":fid,**base}
+            item={"op":delegated_op,"input":fid,**base}
             try:
                 result=process_job(item)
                 results.append({"ok":True,"input":fid,"output":result.get("file_id"),"name":result.get("name"),"payload":item})
