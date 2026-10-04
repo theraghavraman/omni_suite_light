@@ -136,7 +136,7 @@ def _mod(name, package=None):
     except Exception as exc: raise RuntimeError(f"Python package '{package or name}' is required for this Data Studio operation. Run the Local Engine data setup.") from exc
 
 def module_status():
-    names=["pandas","pyarrow","duckdb","yaml","sqlglot","openpyxl","xlrd","pyxlsb","odf","lxml","fastavro","bson","msgpack","numpy","xarray","netCDF4","h5py","h5netcdf","astropy","cdflib","cfgrib","eccodes","PIL"]
+    names=["pandas","pyarrow","duckdb","yaml","sqlglot","openpyxl","xlrd","pyxlsb","odf","lxml","fastavro","bson","msgpack","pyreadstat","numpy","xarray","netCDF4","h5py","h5netcdf","astropy","cdflib","cfgrib","eccodes","PIL"]
     out={}
     for name in names:
         try: __import__(name); out[name]=True
@@ -159,7 +159,7 @@ def _df_from_records(obj):
     if records and all(isinstance(x,dict) for x in records): return pd.json_normalize(records,sep=".")
     return pd.DataFrame(records)
 
-def read_data(path,fmt=None):
+def read_data(path,fmt=None,table=None):
     pd=_mod("pandas"); fmt=ext(path,fmt)
     if fmt in {"csv","tsv","txt"}: return pd.read_csv(path,sep="\\t" if fmt=="tsv" else ",")
     if fmt in {"json","jsonl"}:
@@ -189,14 +189,20 @@ def read_data(path,fmt=None):
         try:
             tables=[r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
             if not tables: raise RuntimeError("SQLite database contains no user tables")
-            q=tables[0].replace('"','""'); return pd.read_sql_query(f'SELECT * FROM "{q}"',con)
+            selected=(str(table).strip() if table else "") or tables[0]
+            if selected not in tables:
+                raise RuntimeError(f"SQLite table '{selected}' was not found. Available tables: {', '.join(tables)}")
+            q=selected.replace('"','""'); return pd.read_sql_query(f'SELECT * FROM "{q}"',con)
         finally: con.close()
     if fmt=="duckdb":
         duckdb=_mod("duckdb"); con=duckdb.connect(str(path),read_only=True)
         try:
-            tables=con.execute("SHOW TABLES").fetchall()
+            tables=[r[0] for r in con.execute("SHOW TABLES").fetchall()]
             if not tables: raise RuntimeError("DuckDB contains no tables")
-            q=tables[0][0].replace('"','""'); return con.execute(f'SELECT * FROM "{q}"').df()
+            selected=(str(table).strip() if table else "") or tables[0]
+            if selected not in tables:
+                raise RuntimeError(f"DuckDB table '{selected}' was not found. Available tables: {', '.join(tables)}")
+            q=selected.replace('"','""'); return con.execute(f'SELECT * FROM "{q}"').df()
         finally: con.close()
     if fmt=="sql":
         text=Path(path).read_text(encoding="utf-8-sig",errors="replace"); con=sqlite3.connect(":memory:")
@@ -269,8 +275,34 @@ def write_data(df,out,fmt,table="data",dialect="sqlite"):
     elif fmt in {"feather","arrow","ipc"}: df.reset_index(drop=True).to_feather(out)
     elif fmt=="orc": df.to_orc(out,index=False,engine="pyarrow")
     elif fmt=="avro":
-        fastavro=_mod("fastavro"); records=json.loads(df.to_json(orient="records",date_format="iso")); schema={"type":"record","name":"OmniData","fields":[{"name":str(c),"type":["null","string"],"default":None} for c in df.columns]}
-        with open(out,"wb") as fh: fastavro.writer(fh,schema,records)
+        fastavro=_mod("fastavro")
+        import datetime as _dt
+        fields=[]
+        def avro_type(series):
+            s=str(series.dtype).lower()
+            if "bool" in s: return ["null","boolean"]
+            if "int" in s: return ["null","long"]
+            if "float" in s: return ["null","double"]
+            if "datetime" in s or "timestamp" in s: return ["null",{"type":"long","logicalType":"timestamp-millis"}]
+            if "date" in s: return ["null",{"type":"int","logicalType":"date"}]
+            return ["null","string"]
+        def avro_value(v,series):
+            if v is None: return None
+            s=str(series.dtype).lower()
+            if "datetime" in s or "timestamp" in s:
+                if hasattr(v,"timestamp"): return int(v.timestamp()*1000)
+                return int(_dt.datetime.fromisoformat(str(v)).timestamp()*1000)
+            if "date" in s and "datetime" not in s:
+                if hasattr(v,"toordinal"): return v.toordinal()-_dt.date(1970,1,1).toordinal()
+            if "bool" in s: return bool(v)
+            if "int" in s: return int(v)
+            if "float" in s: return float(v)
+            return str(v)
+        for col in df.columns:
+            fields.append({"name":str(col),"type":avro_type(df[col]),"default":None})
+        normalized=[{str(col):avro_value(row[col],df[col]) for col in df.columns} for _,row in df.iterrows()]
+        schema={"type":"record","name":"OmniData","fields":fields}
+        with open(out,"wb") as fh: fastavro.writer(fh,schema,normalized)
     elif fmt in {"sqlite","db"}:
         con=sqlite3.connect(out); df.to_sql(table,con,if_exists="replace",index=False); con.close()
     elif fmt=="duckdb":
@@ -321,8 +353,8 @@ def text_lines(path,target):
         buf=io.StringIO(); w=csv.DictWriter(buf,fieldnames=["line_number","text"]); w.writeheader(); w.writerows(records); return buf.getvalue()
     raise RuntimeError("Text/Log target must be JSON, JSONL or CSV")
 
-def profile(path,fmt=None):
-    df=read_data(path,fmt); cols=[]
+def profile(path,fmt=None,table=None):
+    df=read_data(path,fmt,table); cols=[]
     for c in df.columns:
         s=df[c]; cols.append({"name":str(c),"dtype":str(s.dtype),"nulls":int(s.isna().sum()),"unique":int(s.nunique(dropna=True))})
     return {"rows":int(len(df)),"columns":int(len(df.columns)),"columns_detail":cols}
@@ -330,7 +362,7 @@ def profile(path,fmt=None):
 def transpile_sql(text,source,target):
     sqlglot=_mod("sqlglot"); return "\\n\\n".join(sqlglot.transpile(text,read=source,write=target,pretty=True))
 
-def schema(path,fmt,dialect,table): return dataframe_sql(read_data(path,fmt),table,dialect)
+def schema(path,fmt,dialect,table): return dataframe_sql(read_data(path,fmt,table),table,dialect)
 
 def _ddb_unwrap(v):
     if isinstance(v,dict) and len(v)==1:
