@@ -5011,7 +5011,33 @@ function xmlRead(t){const d=new DOMParser().parseFromString(t,'application/xml')
 async function read(f){const e=ext(f.name),t=()=>f.text();if(e==='csv'||e==='tsv')return delimited(await t(),e==='tsv'?'\t':',');if(e==='txt'||e==='log')return(await t()).replace(/\r/g,'').split('\n').filter(Boolean).map((x,i)=>({line_number:i+1,text:x}));if(e==='json')return norm(JSON.parse(await t()));if(e==='jsonl'||e==='ndjson')return norm((await t()).split(/\r?\n/).filter(Boolean).map(JSON.parse));if(e==='yaml'||e==='yml'){if(!window.jsyaml)throw Error('YAML browser engine unavailable');return norm(window.jsyaml.load(await t()))}if(e==='xml')return norm(xmlRead(await t()));if(e==='html'&&window.XLSX){const d=new DOMParser().parseFromString(await t(),'text/html'),o=[];d.querySelectorAll('table').forEach(x=>o.push(...XLSX.utils.sheet_to_json(XLSX.utils.table_to_sheet(x),{defval:null})));return o}if(e==='md')return delimited((await t()).split(/\r?\n/).filter(x=>/^\s*\|/.test(x)&&!/^\s*\|?\s*:?-+/.test(x)).join('\n'),'|');if(window.XLSX&&['xlsx','xlsm','xlsb','xls','ods','fods'].includes(e)){const w=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}),o=[];w.SheetNames.forEach(n=>XLSX.utils.sheet_to_json(w.Sheets[n],{defval:null}).forEach(r=>o.push({...r,__sheet:n})));return o}throw Error('No browser parser for .'+e)}
 function xml(rows){const e=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');const tag=x=>String(x).replace(/[^A-Za-z0-9_.-]/g,'_')||'value';return '<?xml version="1.0" encoding="UTF-8"?><rows>'+rows.map(r=>'<row>'+Object.entries(r).map(([k,v])=>'<'+tag(k)+'>'+e(typeof v==='object'?JSON.stringify(v):v)+'</'+tag(k)+'>').join('')+'</row>').join('')+'</rows>'}
 function sql(rows,d,table){const id=s=>{s=String(s).replace(/[^A-Za-z0-9_$]/g,'_');return d==='mysql'?String.fromCharCode(96)+s+String.fromCharCode(96):d==='tsql'?'['+s+']':'"'+s+'"'};const k=[...new Set(rows.flatMap(r=>Object.keys(r)))],t=id(table||'data_table'),v=x=>x===null||x===undefined?'NULL':typeof x==='number'&&!Number.isNaN(x)?String(x):typeof x==='boolean'?(x?'TRUE':'FALSE'):"'"+String(x).replace(/'/g,"''")+"'";return 'CREATE TABLE '+t+' ('+k.map(x=>id(x)+' TEXT').join(', ')+');\n\n'+rows.map(r=>'INSERT INTO '+t+' ('+k.map(id).join(', ')+') VALUES ('+k.map(x=>v(r[x])).join(', ')+');').join('\n')+'\n'}
-async function data(f,target,dialect,table){const r=await read(f);let b,n;if(target==='csv'||target==='tsv'){if(!window.XLSX)return false;b=new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(r),{FS:target==='tsv'?'\t':','})]);n='omni_browser.'+target}else if(target==='json'){b=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});n='omni_browser.json'}else if(target==='jsonl'){b=new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'});n='omni_browser.jsonl'}else if(target==='yaml'){if(!window.jsyaml)return false;b=new Blob([window.jsyaml.dump(r,{noRefs:true})],{type:'text/yaml'});n='omni_browser.yaml'}else if(target==='xml'){b=new Blob([xml(r)],{type:'application/xml'});n='omni_browser.xml'}else if(target==='html'){if(!window.XLSX)return false;b=new Blob([XLSX.utils.sheet_to_html(XLSX.utils.json_to_sheet(r))],{type:'text/html'});n='omni_browser.html'}else if(target==='md'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],ln=x=>'| '+k.map(y=>String(x[y]??'').replace(/\|/g,'\\|')).join(' | ')+' |';b=new Blob([ln(Object.fromEntries(k.map(x=>[x,x])))+'\n| '+k.map(()=> '---').join(' | ')+' |\n'+r.map(ln).join('\n')+'\n'],{type:'text/markdown'});n='omni_browser.md'}else if(target==='sql'){b=new Blob([sql(r,dialect,table)],{type:'application/sql'});n='omni_browser.sql'}else if(target==='jsonschema'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],p={};k.forEach(x=>{const v=r.map(y=>y[x]).filter(y=>y!==null&&y!==undefined),t=v.length&&v.every(y=>typeof y==='number')?'number':v.length&&v.every(y=>typeof y==='boolean')?'boolean':'string';p[x]={type:t}});b=new Blob([JSON.stringify({$schema:'https://json-schema.org/draft/2020-12/schema',type:'array',items:{type:'object',properties:p}},null,2)],{type:'application/schema+json'});n='omni_browser.schema.json'}else if(['xlsx','xlsm','xlsb','xls','ods','fods'].includes(target)){if(!window.XLSX)return false;const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(r),'Data');const out=XLSX.write(w,{bookType:target==='xls'?'biff8':target,type:'array',compression:true});b=new Blob([out]);n='omni_browser.'+target}else return false;dl(b,n);return true}
+const BROWSER_DATA_INPUTS=new Set(['csv','tsv','txt','log','json','jsonl','ndjson','yaml','yml','xml','html','md','xlsx','xlsm','xlsb','xls','ods','fods']);
+const BROWSER_DATA_TARGETS=new Set(['csv','tsv','json','jsonl','yaml','xml','html','md','sql','jsonschema','xlsx','xlsm','xlsb','xls','ods','fods']);
+async function data(f,target,dialect,table){
+  const e=ext(f.name);
+  if(!BROWSER_DATA_INPUTS.has(e)||!BROWSER_DATA_TARGETS.has(target)) return false;
+  const r=await read(f); let b,n;
+  if(target==='csv'||target==='tsv'){
+    if(!window.XLSX)return false;
+    b=new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(r),{FS:target==='tsv'?'\t':','})]);n='omni_browser.'+target;
+  }else if(target==='json'){b=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});n='omni_browser.json';
+  }else if(target==='jsonl'){b=new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'});n='omni_browser.jsonl';
+  }else if(target==='yaml'){if(!window.jsyaml)return false;b=new Blob([window.jsyaml.dump(r,{noRefs:true})],{type:'text/yaml'});n='omni_browser.yaml';
+  }else if(target==='xml'){b=new Blob([xml(r)],{type:'application/xml'});n='omni_browser.xml';
+  }else if(target==='html'){if(!window.XLSX)return false;b=new Blob([XLSX.utils.sheet_to_html(XLSX.utils.json_to_sheet(r))],{type:'text/html'});n='omni_browser.html';
+  }else if(target==='md'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],ln=x=>'| '+k.map(y=>String(x[y]??'').replace(/\|/g,'\\|')).join(' | ')+' |';b=new Blob([ln(Object.fromEntries(k.map(x=>[x,x])))+'\n| '+k.map(()=> '---').join(' | ')+' |\n'+r.map(ln).join('\n')+'\n'],{type:'text/markdown'});n='omni_browser.md';
+  }else if(target==='sql'){b=new Blob([sql(r,dialect,table)],{type:'application/sql'});n='omni_browser.sql';
+  }else if(target==='jsonschema'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],p={};k.forEach(x=>{const v=r.map(y=>y[x]).filter(y=>y!==null&&y!==undefined),t=v.length&&v.every(y=>typeof y==='number')?'number':v.length&&v.every(y=>typeof y==='boolean')?'boolean':'string';p[x]={type:t}});b=new Blob([JSON.stringify({$schema:'https://json-schema.org/draft/2020-12/schema',type:'array',items:{type:'object',properties:p}},null,2)],{type:'application/schema+json'});n='omni_browser.schema.json';
+  }else if(['xlsx','xlsm','xlsb','xls','ods','fods'].includes(target)){if(!window.XLSX)return false;const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(r),'Data');const out=XLSX.write(w,{bookType:target==='xls'?'biff8':target,type:'array',compression:true});b=new Blob([out]);n='omni_browser.'+target;
+  }else return false;
+  dl(b,n);return true;
+}
+function browserDataCapability(file,target){
+  const e=ext(file.name);
+  if(!BROWSER_DATA_INPUTS.has(e)) return {mode:'local',reason:'This source format requires the Local Engine or a future WASM parser.'};
+  if(!BROWSER_DATA_TARGETS.has(target)) return {mode:'local',reason:'This target requires the Local Engine or a future WASM writer.'};
+  return {mode:'browser',reason:'This conversion runs entirely in the browser.'};
+}
 async function profile(f){const r=await read(f),k=[...new Set(r.flatMap(x=>Object.keys(x)))],p={rows:r.length,columns:k.length,columns_detail:k.map(x=>{const v=r.map(y=>y[x]),n=v.filter(y=>y!==null&&y!==undefined&&y!=='');return{name:x,type:n.length&&[...new Set(n.map(y=>typeof y))].length===1?typeof n[0]:'mixed',nulls:v.length-n.length,unique:new Set(n.map(JSON.stringify)).size}})};dl(new Blob([JSON.stringify(p,null,2)],{type:'application/json'}),'omni_browser_profile.json');return true}
 async function sqlWeb(s,source,target){const m={oracle:[[/\bNVL\s*\(/gi,'COALESCE('],[/\bSYSDATE\b/gi,'CURRENT_TIMESTAMP'],[/\bVARCHAR2\b/gi,'VARCHAR'],[/\bNUMBER\b/gi,'DECIMAL']],tsql:[[/\bGETDATE\s*\(\s*\)/gi,'CURRENT_TIMESTAMP'],[/\bISNULL\s*\(/gi,'COALESCE('],[/\bNVARCHAR\b/gi,'VARCHAR']],mysql:[[/\bIFNULL\s*\(/gi,'COALESCE(']]},rs=m[source]||[];if(source!==target&&!rs.length)return false;let o=s;rs.forEach(([a,b])=>o=o.replace(a,b));dl(new Blob([o],{type:'application/sql'}),'omni_browser_sql.'+target+'.sql');return true}
 async function pdfPpt(f, options={}) {
@@ -5108,7 +5134,7 @@ function ddb(v){if(Array.isArray(v))return v.map(ddb);if(v&&typeof v==='object')
 function mongo(v){if(Array.isArray(v))return v.map(mongo);if(v&&typeof v==='object'){if('$oid' in v)return v.$oid;if('$date' in v)return typeof v.$date==='object'?(v.$date.$numberLong||v.$date):v.$date;if('$numberInt' in v)return Number(v.$numberInt);if('$numberLong' in v)return Number(v.$numberLong);if('$numberDouble' in v)return Number(v.$numberDouble);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,mongo(x)]))}return v}
 async function nosql(f,source,target){if(!['json','jsonl','dynamodb-json'].includes(source))return false;const t=await f.text();let v=source==='jsonl'?t.split(/\r?\n/).filter(Boolean).map(JSON.parse):JSON.parse(t);v=source==='dynamodb-json'?ddb(v):mongo(v);const r=rows(v);if(target==='json'){dl(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}),'omni_browser_nosql.json');return true}if(target==='jsonl'){dl(new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'}),'omni_browser_nosql.jsonl');return true}if(target==='csv'||target==='sql')return data(new File([JSON.stringify(v)],'browser.json',{type:'application/json'}),target,'sqlite','nosql_data');if(target==='cql'||target==='cypher'){const fr=r.map(x=>flat(x)),keys=[...new Set(fr.flatMap(x=>Object.keys(x)))];let out;if(target==='cql')out='CREATE TABLE nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')+' text').join(', ')+');\n\n'+fr.map(x=>'INSERT INTO nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')).join(', ')+') VALUES ('+keys.map(k=>"'"+String(x[k]??'').replace(/'/g,"''")+"'").join(', ')+');').join('\n');else out=fr.map(x=>'CREATE (n:NoSQLData '+JSON.stringify(x)+')').join('\n');dl(new Blob([out],{type:'text/plain'}),'omni_browser_nosql.'+target+'.txt');return true}return false}
 async function schemaWeb(f,dialect,table){const r=await read(f);const keys=[...new Set(r.flatMap(x=>Object.keys(x)))],id=s=>dialect==='mysql'?'\`'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'\`':dialect==='tsql'?'['+s.replace(/[^A-Za-z0-9_$]/g,'_')+']':'"'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'"';const ddl='CREATE TABLE '+id(table||'data_table')+' ('+keys.map(k=>id(k)+' TEXT').join(', ')+');\n';dl(new Blob([ddl],{type:'application/sql'}),'omni_browser_schema.sql');return true}
-window.OMNI_BROWSER_FIRST={dataConvert:data,profile,sql:sqlWeb,office,nosql,schema:schemaWeb};
+window.OMNI_BROWSER_FIRST={dataConvert:data,profile,sql:sqlWeb,office,nosql,schema:schemaWeb,dataCapability:browserDataCapability,dataCapabilities:{browserInputs:[...BROWSER_DATA_INPUTS],browserTargets:[...BROWSER_DATA_TARGETS]}};
 })();
 </script>
 <script id="omni-data-studio">
@@ -5129,7 +5155,7 @@ function wirePicker(inputId,dropId,setter){
  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');pick(e.dataTransfer.files[0])});
 }
-wirePicker('dataConvertInput','dataConvertDrop',f=>{dataFile=f;$('dataConvertName').textContent=f.name;$('dataConvertMeta').textContent=(f.size/1048576).toFixed(2)+' MB'});
+wirePicker('dataConvertInput','dataConvertDrop',f=>{dataFile=f;$('dataConvertName').textContent=f.name;const e=f.name.split('.').pop().toLowerCase();const b=window.OMNI_BROWSER_FIRST?.dataCapabilities?.browserInputs||[];$('dataConvertMeta').textContent=(f.size/1048576).toFixed(2)+' MB • '+(b.includes(e)?'browser-first':'Local Engine')});
 wirePicker('sqlTranslateInput','sqlTranslateDrop',f=>{sqlFile=f});
 wirePicker('schemaInput','schemaDrop',f=>{schemaFile=f});
 wirePicker('nosqlInput','nosqlDrop',f=>{nosqlFile=f});
@@ -5139,10 +5165,23 @@ function fillDialects(){
  [h,t,s].forEach(sel=>{sel.innerHTML='';names.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o)})});h.value='oracle';t.value='tsql';s.value='postgres';
 }
 fillDialects();
+function dataRouteStatus(text,mode){
+  let el=$('dataConvertCapability');
+  if(!el){el=document.createElement('div');el.id='dataConvertCapability';el.style.cssText='margin:10px 0;padding:9px 12px;border-radius:10px;font-size:.88rem;border:1px solid #d9e2f2;background:#f7faff;color:#34415c';$('dataConvertRun')?.parentElement?.prepend(el);}
+  el.textContent=text;el.dataset.mode=mode||'';
+}
 async function runData(){
  if(!dataFile)return alert('Choose a data file first.');
- try{if(await window.OMNI_BROWSER_FIRST.dataConvert(dataFile,$('dataConvertTarget').value,$('dataConvertDialect').value,$('dataConvertTable').value))return}catch(e){console.warn('Browser Data Studio failed; using Local Engine fallback.',e)}
- try{await health();const up=await upload(dataFile);const target=$('dataConvertTarget').value;const j=await process({op:'data_convert',input:up.file_id,format:target,dialect:$('dataConvertDialect').value,table:$('dataConvertTable').value});save(await download(j.file_id),j.name)}catch(e){alert('Data Converter: '+e.message)}
+ const target=$('dataConvertTarget').value,dialect=$('dataConvertDialect').value,table=$('dataConvertTable').value;
+ const cap=window.OMNI_BROWSER_FIRST.dataCapability?.(dataFile,target)||{mode:'local'};
+ dataRouteStatus(cap.mode==='browser'?'● Browser conversion — no upload required':'● Local Engine required — native/binary format or target',cap.mode);
+ try{if(cap.mode==='browser'&&await window.OMNI_BROWSER_FIRST.dataConvert(dataFile,target,dialect,table))return;}
+ catch(e){console.warn('Browser Data Studio failed; using Local Engine fallback.',e);dataRouteStatus('↻ Browser path failed; retrying with Local Engine…','fallback');}
+ try{
+   await health();const up=await upload(dataFile);
+   const j=await process({op:'data_convert',input:up.file_id,format:target,dialect,table});
+   save(await download(j.file_id),j.name);dataRouteStatus('✓ Local Engine conversion completed','local-ok');
+ }catch(e){dataRouteStatus('✕ Conversion failed: '+e.message,'error');alert('Data Converter: '+e.message);}
 }
 async function runProfile(){
  if(!dataFile)return alert('Choose a data file first.');
