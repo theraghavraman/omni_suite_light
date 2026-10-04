@@ -54,6 +54,8 @@ then:
 
 The setup phase needs Internet access once because it downloads the browser libraries, Tesseract.js worker/core assets and selected OCR language models. After that, the local application is designed to run without Internet.
 
+The setup also creates a project-local `.venv` and installs the Data Studio/scientific Python stack there. Launchers automatically prefer that environment, so the Local Engine uses the packages that setup installed instead of depending on unrelated system Python packages.
+
 ## Native engines
 
 The installer attempts to provide:
