@@ -285,6 +285,12 @@ try:
     assert (ROOT/"roundtrip.mp4").stat().st_size > 0
     print("34. Video -> MP4 conversion: OK")
 
+    # CI coverage: image bridge should support TIFF output for archival workflows.
+    out=process({"op":"image","input":up["file_id"],"format":"tiff"},"ci-test-token")
+    download(out["file_id"],ROOT/"sample.tiff","ci-test-token")
+    assert (ROOT/"sample.tiff").stat().st_size > 0
+    print("35. PNG -> TIFF image bridge: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
