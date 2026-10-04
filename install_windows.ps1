@@ -8,9 +8,8 @@ function Ensure-Admin {
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Host "[SETUP] Re-launching installer with Administrator privileges..."
         $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
-        Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        exit 0
+        $child = Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait -PassThru
+        exit $child.ExitCode
     }
 }
 
