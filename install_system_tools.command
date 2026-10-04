@@ -31,10 +31,10 @@ if [ "$OS" = "Darwin" ]; then
   fi
 
   brew update
-  brew install ffmpeg qpdf poppler imagemagick libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang python calibre eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf
+  brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang calibre eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf
   brew install --cask libreoffice
 
-  PYTHON="$(brew --prefix)/bin/python3"
+  PYTHON="$(brew --prefix python@3.13)/bin/python3.13"
   "$PYTHON" -m venv .venv
   .venv/bin/python -m pip install --upgrade pip
   .venv/bin/python -m pip install -r requirements-local.txt
