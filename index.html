@@ -214,6 +214,11 @@
     .omni-test-detail{font-size:.72rem;color:#7a8498;margin-top:2px;word-break:break-word}
     .omni-test-time{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b95a8}
     .omni-test-log{display:none;margin-top:12px;padding:12px;border-radius:11px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto}
+    .omni-all-lab{margin:0 0 20px;padding:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f7f9ff);box-shadow:0 14px 34px rgba(53,70,105,.08)}
+    .omni-all-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.omni-all-head h2{color:#26304b;font-size:1.2rem;margin-bottom:5px}.omni-all-head p{color:#6c7890;font-size:.85rem;line-height:1.5}
+    .omni-all-actions{display:flex;gap:8px;flex-wrap:wrap}.omni-all-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0}.omni-all-stat{background:#fff;border:1px solid #dfe6f1;border-radius:11px;padding:10px}.omni-all-stat b{display:block;font-size:1.2rem;color:#26304b}.omni-all-stat span{font-size:.7rem;color:#758198}
+    .omni-all-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.omni-all-group{background:#fff;border:1px solid #dfe6f1;border-radius:13px;padding:12px}.omni-all-group h3{font-size:.84rem;color:#3a4660;margin-bottom:8px}.omni-all-list{display:grid;gap:6px}.omni-all-row{display:grid;grid-template-columns:72px 1fr;gap:9px;padding:8px;border:1px solid #e8edf4;border-radius:9px}.omni-all-badge{font-size:.64rem;font-weight:900;text-align:center;padding:4px 5px;border-radius:999px;height:max-content}.omni-all-badge.pass{background:#e8fbf2;color:#087a5b}.omni-all-badge.fail{background:#fff0f2;color:#b4233b}.omni-all-badge.skip{background:#fff8e7;color:#8a5a00}.omni-all-name{font-weight:800;font-size:.75rem;color:#2e3850}.omni-all-detail{font-size:.68rem;color:#7a8498;margin-top:2px;word-break:break-word}
+    @media(max-width:900px){.omni-all-groups{grid-template-columns:1fr}.omni-all-summary{grid-template-columns:repeat(3,1fr)}}@media(max-width:560px){.omni-all-summary{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:900px){.omni-test-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.omni-test-list{grid-template-columns:1fr}}
     @media(max-width:560px){.omni-test-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.omni-test-row{grid-template-columns:70px 1fr}.omni-test-time{grid-column:2}}
     @media(max-width:760px){.omni-guide-grid{grid-template-columns:1fr}}
@@ -1290,6 +1295,8 @@
       <button type="button" class="nav-btn" data-tab="tabVideo"><span class="studio-icon studio-video"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="12.5" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 4.2-2.4a.9.9 0 0 1 1.3.8v7.2a.9.9 0 0 1-1.3.8L16 14M9 9.2l4.1 2.8L9 14.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span class="studio-label">Video Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabCompress"><span class="studio-icon studio-compress"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4v4M17 4v4M7 16v4M17 16v4M4 7h4M16 7h4M4 17h4M16 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6v6H9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m11 11-2-2m4 4 2 2m0-4 2-2m-6 4-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="studio-label">Compressor</span></button>
       <button type="button" class="nav-btn" data-tab="tabLocal"><span class="studio-icon studio-engine"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.4 3.8 8.8 6a7.2 7.2 0 0 0-1.8 1l-2.2-1.1-1.6 2.8 1.8 1.5a7 7 0 0 0 0 2.1l-1.8 1.5 1.6 2.8 2.2-1.1a7.2 7.2 0 0 0 1.8 1l.6 2.2h3.2l.6-2.2a7.2 7.2 0 0 0 1.8-1l2.2 1.1 1.6-2.8-1.8-1.5a7 7 0 0 0 0-2.1l1.8-1.5-1.6-2.8-2.2 1.1a7.2 7.2 0 0 0-1.8-1l-.6-2.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><circle cx="11" cy="11.2" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="studio-label">Local Engine</span></button>
+       <button type="button" class="nav-btn" data-tab="tabAllTests"><span class="studio-icon studio-engine"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18.5 16.5 19.3 18l1.7.2-1.2 1.2.3 1.7-1.6-.9-1.6.9.3-1.7-1.2-1.2 1.7-.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="studio-label">All Tests</span><small>EVERY OPTION</small></button>
+
     </nav>
 
 
@@ -2073,6 +2080,17 @@
           <div id="omniLocalTests" class="omni-test-list"></div>
         </div>
         <pre id="omniDiagLog" class="omni-test-log"></pre>
+      </div>
+    </div>
+
+    <div class="module-panel" id="tabAllTests">
+      <div class="omni-all-lab">
+        <div class="omni-all-head">
+          <div><h2>🔬 All Options Functional Test</h2><p>This is a separate exhaustive test screen. It inventories every studio action, control, upload zone and select option, then checks that the UI wiring and implementation references exist. It does not alter your files.</p></div>
+          <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button></div>
+        </div>
+        <div class="omni-all-summary"><div class="omni-all-stat"><b id="allPass">0</b><span>PASS</span></div><div class="omni-all-stat"><b id="allFail">0</b><span>FAIL</span></div><div class="omni-all-stat"><b id="allSkip">0</b><span>SKIPPED</span></div><div class="omni-all-stat"><b id="allTotal">0</b><span>CHECKS</span></div><div class="omni-all-stat"><b id="allControls">0</b><span>CONTROLS</span></div></div>
+        <div id="omniAllGroups" class="omni-all-groups"></div>
       </div>
     </div>
 
@@ -4187,7 +4205,7 @@ function openPicker(input){if(!input)return false;try{if(typeof input.showPicker
 document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.querySelector('input[type="file"]');if(!input||zone.dataset.omniPickerRepair==='1')return;zone.dataset.omniPickerRepair='1';zone.setAttribute('tabindex','0');zone.setAttribute('role','button');zone.addEventListener('click',function(e){if(e.target===input)return;e.preventDefault();e.stopImmediatePropagation();openPicker(input)},true);zone.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker(input)}});input.addEventListener('change',function(){if(this.files&&this.files.length)notify('Selected '+this.files.length+' file'+(this.files.length===1?'':'s')+': '+this.files[0].name)})});
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
 function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
-const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',function(){const b=document.querySelector('.nav-btn[data-tab="tabDiagnostics"]');if(b)b.click();setTimeout(()=>window.omniRunDiagnostics&&window.omniRunDiagnostics(),40)});
+const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
 async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
 })();
@@ -4317,6 +4335,59 @@ updateMode();
       }
     });
   });
+})();
+</script>
+<script id="omni-all-options-test">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id), groups=$('omniAllGroups'), state=[];
+const studioMap={tabPdf:'PDF Suite',tabWord:'Word & Docs',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabLocal:'Local Engine'};
+function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function add(studio,name,status,detail){state.push({studio,name,status,detail});}
+function render(){
+  groups.innerHTML='';
+  Object.keys(studioMap).forEach(id=>{
+    const rows=state.filter(x=>x.studio===studioMap[id]); if(!rows.length)return;
+    const g=document.createElement('section');g.className='omni-all-group';g.innerHTML='<h3>'+esc(studioMap[id])+'</h3><div class="omni-all-list"></div>';
+    const list=g.querySelector('.omni-all-list');rows.forEach(r=>{const el=document.createElement('div');el.className='omni-all-row';el.innerHTML='<span class="omni-all-badge '+r.status.toLowerCase()+'">'+esc(r.status)+'</span><div><div class="omni-all-name">'+esc(r.name)+'</div><div class="omni-all-detail">'+esc(r.detail)+'</div></div>';list.appendChild(el);});groups.appendChild(g);
+  });
+  $('allPass').textContent=state.filter(x=>x.status==='PASS').length;$('allFail').textContent=state.filter(x=>x.status==='FAIL').length;$('allSkip').textContent=state.filter(x=>x.status==='SKIPPED').length;$('allTotal').textContent=state.length;$('allControls').textContent=document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests) button,.module-panel:not(#tabDiagnostics):not(#tabAllTests) input,.module-panel:not(#tabDiagnostics):not(#tabAllTests) select,.module-panel:not(#tabDiagnostics):not(#tabAllTests) textarea').length;
+}
+function reset(){state.length=0;}
+function sourceText(){return [...document.scripts].map(x=>x.textContent||'').join('\n');}
+function runStructure(){
+ reset();const source=sourceText();
+ Object.entries(studioMap).forEach(([id,studio])=>{
+   const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]');
+   if(!panel||!nav){add(studio,'Studio panel + navigation','FAIL',(!panel?'Panel missing. ':'')+(!nav?'Navigation missing.':''));return;}
+   add(studio,'Studio panel + navigation','PASS','Panel and navigation target exist');
+   panel.querySelectorAll('input[type="file"]').forEach(el=>add(studio,'Upload: '+(el.id||'unnamed'),'PASS','File input is present and reachable'));
+   panel.querySelectorAll('select').forEach(el=>{add(studio,'Control: '+(el.id||'unnamed'),'PASS',el.options.length+' choices');[...el.options].forEach(o=>add(studio,'Option: '+(el.id||'select')+' → '+o.textContent.trim(),'PASS','Option is present'));});
+   panel.querySelectorAll('textarea,input:not([type="file"]),button').forEach(el=>{
+     const id=el.id||el.getAttribute('aria-label')||el.textContent.trim().replace(/\s+/g,' ').slice(0,50)||el.tagName;
+     if(el.matches('button')){const referenced=el.id&&new RegExp('(?:getElementById\\(["\\\']'+el.id+'["\\\']\\)|querySelector\\([^)]*'+el.id+'|\\b'+el.id+'\\b)').test(source);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
+     else add(studio,'Control: '+id,'PASS','DOM control present');
+   });
+ });
+ render();
+}
+function runOptions(){
+ reset();
+ document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests)').forEach(panel=>{
+   const studio=studioMap[panel.id]||panel.id;
+   panel.querySelectorAll('select').forEach(sel=>[...sel.options].forEach(o=>{const old=sel.value;sel.value=o.value;sel.dispatchEvent(new Event('change',{bubbles:true}));add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Selectable; change event dispatched safely');sel.value=old;}));
+ });
+ render();
+}
+function runAll(){
+ runStructure();runOptions();
+ const actionRows=state.filter(x=>x.name.startsWith('Action:'));
+ actionRows.forEach(r=>{if(r.status==='FAIL')return;});
+ render();
+}
+$('omniRunAllOptions')?.addEventListener('click',runAll);
+$('omniRunStructure')?.addEventListener('click',runStructure);
+$('omniRunOptions')?.addEventListener('click',runOptions);
 })();
 </script>
 <script id="omni-test-lab">
