@@ -645,9 +645,17 @@ def process_job(payload):
             with open(inp, "rb") as src, lzma.open(out, "wb", preset=9) as dst:
                 shutil.copyfileobj(src, dst, 1024 * 1024)
         else:
-            require_tool("7z")
             out = output_path(inp.stem, "7z")
-            run(["7z", "a", "-y", str(out), str(inp)], timeout=3600)
+            native7z = shutil.which("7z") or shutil.which("7zz")
+            if native7z:
+                run([native7z, "a", "-y", str(out), str(inp)], timeout=3600)
+            else:
+                try:
+                    import py7zr
+                except Exception as exc:
+                    raise RuntimeError("7-Zip output requires the 7z/7zz executable or the optional py7zr package.") from exc
+                with py7zr.SevenZipFile(out, "w") as archive:
+                    archive.write(inp, arcname=safe_name(inp.name))
         return file_result(out, out.name)
 
     if op == "zip":
