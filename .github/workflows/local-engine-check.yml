@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: choco install ffmpeg qpdf poppler imagemagick tesseract libreoffice calibre -y --no-progress
+      - name: Install native dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install ffmpeg qpdf poppler imagemagick tesseract python calibre
+          brew install --cask libreoffice
       - name: Verify native executables
         shell: bash
         run: |
@@ -44,6 +50,9 @@ jobs:
           $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
           $user = [Environment]::GetEnvironmentVariable("Path", "User")
           "PATH=$machine;$user;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+      - name: Refresh PATH after native package install (macOS)
+        if: runner.os == 'macOS'
+        run: echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
 
       - name: Run native 11-item smoke test
         env:
