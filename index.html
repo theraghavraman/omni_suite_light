@@ -1650,6 +1650,58 @@ body{overflow-x:hidden}
     .nav-bar{grid-template-columns:repeat(13,minmax(0,1fr))}.nav-btn:nth-child(12){--c:#06b6d4;--c2:#6366f1;--cs:rgba(6,182,212,.14)}.nav-btn:nth-child(13){--c:#f97316;--c2:#ec4899;--cs:rgba(249,115,22,.14)}
     @media(max-width:1020px){.viz-cap-grid,.viz-rules{grid-template-columns:repeat(2,minmax(0,1fr))}.viz-audit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.code-audit{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:640px){.viz-cap-grid,.viz-rules,.viz-audit-grid,.code-audit{grid-template-columns:1fr}}
+
+/* FINAL HOVER STABILITY FIX
+   Keep navigation geometry invariant on pointer entry.
+   Hover may change paint only; it must never resize/reflow a studio tile.
+*/
+.nav-btn,
+.nav-btn:hover,
+.nav-btn:focus-visible,
+.nav-btn:active{
+  flex-grow:0!important;
+  flex-shrink:0!important;
+  box-sizing:border-box!important;
+}
+.nav-btn:hover{
+  transform:none!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:inherit!important;
+}
+.nav-btn:hover .studio-icon{
+  animation:none!important;
+  transform:none!important;
+}
+.nav-btn:hover::before{
+  transform:scale(1)!important;
+}
+@media (hover:hover){
+  .nav-btn:hover{
+    border-color:var(--cs)!important;
+    box-shadow:0 18px 30px -14px var(--c)!important;
+    color:var(--c)!important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .nav-btn,.nav-btn:hover,.nav-btn.active{animation:none!important;transition:none!important}
+}
+/* Diagnostics / option controls: prevent pointer-entry geometry jumps */
+#tabAllTests .btn,
+#tabAllTests select,
+#tabAllTests .option-card,
+#tabAllTests .test-option,
+#tabAllTests .diagnostic-option{
+  box-sizing:border-box!important;
+}
+#tabAllTests .btn:hover,
+#tabAllTests .option-card:hover,
+#tabAllTests .test-option:hover,
+#tabAllTests .diagnostic-option:hover{
+  transform:none!important;
+}
 </style>
 </head>
 <body>
