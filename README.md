@@ -314,17 +314,22 @@ This is expected until the local Python engine is running. GitHub Pages is a bro
 The repository includes GitHub Actions checks for Python syntax, required setup files and native smoke tests on Windows, macOS and Ubuntu. The native matrix now exercises representative SVG/GIF image, audio, MPEG-4/MKV video, Office and ebook paths; it does not replace testing every OS release or every optional codec/delegate.
 
 For real machine validation, test at least:
-1. Image upload.
-2. Image resize.
-3. Image → PDF.
-4. PDF → image.
-5. OCR.
-6. ZIP compression/extraction.
-7. Local Engine health and native format capability inventory.
-8. FFmpeg media conversion, including representative audio/video containers.
-9. qpdf PDF operation.
-10. LibreOffice conversion across representative Word/Excel/PowerPoint families.
-11. Calibre ebook conversion across representative EPUB/MOBI/comic/document families.
+1. Local Engine health.
+2. Native format capability inventory.
+3. Image upload.
+4. Image resize.
+5. Image → PDF.
+6. PDF → image.
+7. OCR.
+8. ZIP compression/extraction.
+9. TAR/GZIP/BZIP2/XZ native archive compression.
+10. FFmpeg audio conversion.
+11. SVG → PNG and PNG → GIF.
+12. MPEG-4 → MKV/GIF.
+13. qpdf PDF operation.
+14. LibreOffice Word/Excel/PowerPoint-family conversion.
+15. Calibre ebook conversion.
+16. 7z compression when 7-Zip is installed.
 
 ## Design principle
 OmniConverter should remain useful before the user installs anything.
