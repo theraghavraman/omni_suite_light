@@ -262,6 +262,12 @@ try:
     assert batch["total"]==2 and batch["success"]==2 and batch["failed"]==0
     print("30. Batch conversion manifest: OK")
 
+    # CI coverage: native text conversion should emit a non-empty DOCX artifact.
+    out=process({"op":"office_convert","input":txtup["file_id"],"format":"docx"},"ci-test-token")
+    download(out["file_id"],ROOT/"sample.docx","ci-test-token")
+    assert (ROOT/"sample.docx").stat().st_size > 0
+    print("31. Text -> DOCX native conversion: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
