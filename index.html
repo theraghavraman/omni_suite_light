@@ -633,6 +633,94 @@ header p{font-size:clamp(.98rem,1.2vw,1.12rem)!important;line-height:1.7!importa
 @keyframes v4Sweep{0%,70%{transform:translateX(-115%)}100%{transform:translateX(115%)}}
 @keyframes v4Title{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 @keyframes v4WorkspaceIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+</style><style id="omni-design-system-v5">
+/* v5 interaction + workbench polish: navigation is explicit, responsive and visually grounded. */
+.omni-appbar{
+  min-height:52px!important;height:auto!important;padding:6px 10px!important;
+  border:1px solid #d8d5ce!important;border-radius:12px!important;background:#fffdfa!important;
+  box-shadow:0 5px 18px rgba(29,31,34,.045)!important;
+}
+.omni-appbar-brand{min-width:240px!important}.omni-brand-mark{background:#4f46e5!important;border-radius:8px!important}
+.omni-appbar-center{
+  flex:1!important;text-align:center!important;padding:8px 14px!important;border-left:1px solid #e7e3dc;border-right:1px solid #e7e3dc;
+  color:#60686e!important;font-size:9px!important
+}
+.omni-appbar-meta{padding-right:4px!important}
+.omni-appbar-meta span{padding:5px 7px;border:1px solid #e3dfd8;border-radius:6px;background:#f7f5f0!important}
+
+/* The work area gets its own real application header instead of beginning abruptly. */
+.omni-workspacebar{
+  margin:0 0 12px 252px;padding:11px 14px;min-height:48px;box-sizing:border-box;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  border:1px solid #d9d6cf;border-radius:12px;background:#fffdfa;
+  box-shadow:0 6px 18px rgba(31,33,36,.045);
+}
+.omni-workspace-title{display:flex;align-items:center;gap:10px;min-width:0}
+.omni-workspace-icon{
+  width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  color:var(--workspace-accent,#4f46e5);background:color-mix(in srgb,var(--workspace-accent,#4f46e5) 9%,#fffdfa);
+  border:1px solid color-mix(in srgb,var(--workspace-accent,#4f46e5) 23%,#ddd9d1);font-size:13px;font-weight:900;
+}
+.omni-workspace-name{font-size:13px;font-weight:800;color:#20252a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omni-workspace-context{font-size:9px;color:#858b8f;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.omni-workspace-status{display:flex;align-items:center;gap:7px;font-size:9px;color:#777e83;white-space:nowrap}
+.omni-workspace-status b{color:#14704f;font-weight:800}
+.omni-workspace-status i{width:6px;height:6px;border-radius:50%;background:#17a673;box-shadow:0 0 0 4px rgba(23,166,115,.08)}
+
+.nav-bar{
+  z-index:100!important;isolation:isolate!important;pointer-events:auto!important;
+  user-select:none!important;
+}
+.nav-bar::before{pointer-events:none!important}
+.nav-btn{
+  z-index:1!important;pointer-events:auto!important;cursor:pointer!important;
+  touch-action:manipulation!important;outline:none!important;
+}
+.nav-btn:focus-visible{outline:2px solid #4f46e5!important;outline-offset:2px!important}
+.nav-btn:active{transform:scale(.985)!important}
+.nav-btn.active{
+  position:relative!important;
+}
+.nav-btn.active::after{display:none!important}
+
+/* Better workbench spacing and hierarchy. */
+.module-panel{
+  scroll-margin-top:18px!important;
+}
+.module-panel.active .card:first-child{
+  animation:v5CardIn .34s cubic-bezier(.2,.8,.2,1) both;
+}
+.card{
+  box-shadow:0 6px 20px rgba(31,33,36,.045)!important;
+}
+.card + .card{margin-top:10px!important}
+.dropzone{
+  position:relative!important;
+}
+.dropzone::after{
+  content:"DROP FILES HERE • OR CHOOSE A FILE";
+  position:absolute;right:12px;bottom:10px;font-size:7px;letter-spacing:.1em;color:#a1a5a7;
+  pointer-events:none;
+}
+.form-select,.form-input,.form-textarea{font-size:.82rem!important}
+
+/* Make long technical content feel intentional rather than spilling into the canvas. */
+.module-panel > .card > p,
+.module-panel > .card > .sub{max-width:980px}
+.module-panel table{border-color:#ddd9d1!important}
+.module-panel th{background:#f2f0eb!important;color:#50575c!important}
+.module-panel td{background:#fffdfa!important;color:#626a6f!important}
+
+@media(max-width:1050px){
+  .omni-workspacebar{margin-left:220px!important}
+}
+@media(max-width:720px){
+  .omni-appbar{border-radius:10px!important}.omni-appbar-brand b{font-size:10px!important}
+  .omni-workspacebar{margin-left:0!important;padding:9px 11px!important}
+  .omni-workspace-status{display:none!important}
+  .dropzone::after{display:none!important}
+}
+@keyframes v5CardIn{from{opacity:.2;transform:translateY(5px)}to{opacity:1;transform:none}}
 </style></head>
 <body>
   <div class="omni-motion-bg" aria-hidden="true"><div class="omni-grid"></div><div class="omni-orbit"></div></div>
@@ -724,7 +812,13 @@ header p{font-size:clamp(.98rem,1.2vw,1.12rem)!important;line-height:1.7!importa
       <button type="button" class="nav-btn" data-tab="tabDiagnostics"><span class="studio-icon"><span class="studio-svg">✓</span></span><span class="studio-label">Diagnostics</span><small>HEALTH • TESTS</small></button>
       <button type="button" class="nav-btn" data-tab="tabAllTests"><span class="studio-icon studio-tests"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18.5 16.5 19.3 18l1.7.2-1.2 1.2.3 1.7-1.6-.9-1.6.9.3-1.7-1.2-1.2 1.7-.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="studio-label">All Tests</span><small>EVERY OPTION</small></button>
 
-    </nav>
+    </nav><div class="omni-workspacebar" id="omniWorkspaceBar" aria-live="polite">
+  <div class="omni-workspace-title">
+    <span class="omni-workspace-icon" id="omniWorkspaceIcon">01</span>
+    <div><div class="omni-workspace-name" id="omniWorkspaceName">PDF Suite</div><div class="omni-workspace-context">ACTIVE STUDIO · BROWSER-FIRST</div></div>
+  </div>
+  <div class="omni-workspace-status"><i></i><span><b>Ready</b> · local fallback available</span></div>
+</div>
 
 
     <!-- 9. DATA STUDIO -->
@@ -3401,7 +3495,54 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
           textContent.items.forEach(it => { if (it.str.trim()) pageText += `<p>${escapeXml(it.str)}</p>\n`; });
 
           const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div>
-</body></html>`;
+<script id="omni-navigation-v5">
+(function(){
+  function setupOmniNavigation(){
+    const nav=document.querySelector('.nav-bar');
+    const buttons=Array.from(document.querySelectorAll('.nav-btn'));
+    const panels=Array.from(document.querySelectorAll('.module-panel'));
+    if(!nav || !buttons.length || !panels.length) return;
+    const nameEl=document.getElementById('omniWorkspaceName');
+    const iconEl=document.getElementById('omniWorkspaceIcon');
+    const names={
+      tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',
+      tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',
+      tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',
+      tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',
+      tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'All Tests'
+    };
+    function activate(btn,move){
+      const id=btn && btn.getAttribute('data-tab');
+      const panel=id && document.getElementById(id);
+      if(!panel) return false;
+      buttons.forEach(b=>b.classList.toggle('active',b===btn));
+      panels.forEach(p=>p.classList.toggle('active',p===panel));
+      if(nameEl) nameEl.textContent=names[id]||btn.textContent.trim();
+      if(iconEl) iconEl.textContent=String(Math.max(1,buttons.indexOf(btn)+1)).padStart(2,'0');
+      if(move) panel.scrollIntoView({behavior:'smooth',block:'start'});
+      return true;
+    }
+    buttons.forEach(btn=>{
+      btn.addEventListener('click',function(ev){
+        ev.preventDefault();ev.stopPropagation();
+        activate(btn,true);
+      },{capture:false});
+      btn.addEventListener('keydown',function(ev){
+        if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();activate(btn,true);}
+      });
+    });
+    /* Delegated fallback protects navigation if another studio script replaces/rebuilds a button. */
+    nav.addEventListener('click',function(ev){
+      const btn=ev.target.closest('.nav-btn');
+      if(btn && nav.contains(btn)){ev.preventDefault();activate(btn,true);}
+    },true);
+    const initial=buttons.find(b=>b.classList.contains('active'))||buttons[0];
+    activate(initial,false);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setupOmniNavigation,{once:true});
+  else setupOmniNavigation();
+})();
+</script></body></html>`;
 
           zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
           manifest += `    <item id="p_${i}" href="page_${i}.xhtml" media-type="application/xhtml+xml"/>\n`;
