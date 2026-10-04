@@ -1,0 +1,3 @@
+# Optional ML vision/OCR stack
+# Not installed by the standard Local Engine bootstrap.
+easyocr>=1.7
