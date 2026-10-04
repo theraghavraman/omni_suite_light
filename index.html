@@ -4650,10 +4650,11 @@ drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag
 drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
 drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');setFile(e.dataTransfer.files[0])});
 $('officeConvertReset').onclick=()=>{file=null;input.value='';drop.style.display='block';controls.style.display='none'};
-async function health(){
+async function health(required){
   const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
   const j=await r.json();token=j.token||token;
-  if(!(j.tools&&j.tools.soffice&&j.tools.soffice.installed))throw new Error('LibreOffice is not installed on the Local Engine');
+  const toolName=required==='pdf_to_ppt'?'pdftoppm':'soffice';
+  if(!(j.tools&&j.tools[toolName]&&j.tools[toolName].installed))throw new Error((toolName==='pdftoppm'?'Poppler pdftoppm':'LibreOffice')+' is not installed on the Local Engine');
   return j;
 }
 async function convert(forcedTarget){
@@ -4662,12 +4663,12 @@ async function convert(forcedTarget){
   const fmt=forcedTarget||target.value;
   if(fmt==='pdf' && ['pdf'].includes(ext)){alert('The selected file is already PDF.');return}
   try{
-    await health();
+    const op=(ext==='pdf'&&fmt==='pptx')?'pdf_to_ppt':'office_convert';
+    await health(op);
     const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:file});
     if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
     const up=await ur.json();
-    const op=(ext==='pdf'&&fmt==='pptx')?'pdf_to_ppt':'office_convert';
     const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op,input:up.file_id,format:fmt})});
     const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Office conversion failed');
     const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
