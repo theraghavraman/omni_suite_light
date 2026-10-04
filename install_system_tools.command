@@ -8,6 +8,7 @@ if [ "$OS" = "Darwin" ]; then
   brew update
   brew install ffmpeg qpdf poppler imagemagick tesseract python calibre
   brew install --cask libreoffice
+  python3 -m pip install -r requirements-data.txt || echo "[WARN] Data Studio Python packages could not be installed."
   python3 prepare_offline.py
   exit 0
 fi
