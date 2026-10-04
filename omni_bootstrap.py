@@ -33,11 +33,21 @@ def run_setup() -> None:
         raise SystemExit(cp.returncode)
 
 def verify() -> bool:
+    """Verify only the launch-critical runtime, not optional studio capabilities."""
     p = pyexe()
     if not p.is_file():
         return False
-    cp = subprocess.run([str(p), str(ROOT / "verify_local_environment.py")], cwd=ROOT)
-    return cp.returncode == 0
+    cp = subprocess.run(
+        [str(p), "-c", "import omni_local_server, omni_data_engine, omni_platform"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if cp.returncode != 0:
+        print("[ERROR] Core Local Engine import check failed:", flush=True)
+        print((cp.stderr or cp.stdout or "unknown Python import error").strip(), flush=True)
+        return False
+    return True
 
 def health():
     try:
@@ -90,10 +100,14 @@ def main() -> int:
     print(f"Platform: {platform.platform()}")
 
     if not verify():
-        print("[SETUP] Local dependency verification failed. Running the complete installer...")
-        run_setup()
+        print("[SETUP] Launch runtime is not ready. Running the complete installer...")
+        try:
+            run_setup()
+        except Exception as exc:
+            print(f"[ERROR] Installer failed: {exc}", flush=True)
+            return 1
         if not verify():
-            print("[ERROR] Complete Local Engine setup still fails verification.")
+            print("[ERROR] Core Local Engine still cannot start after setup.")
             return 1
 
     existing = health()
@@ -111,7 +125,11 @@ def main() -> int:
 
     p = pyexe()
     print("[OK] Starting current Local Engine...")
-    return subprocess.call([str(p), "-u", str(ROOT / "omni_local_server.py")], cwd=ROOT)
+    try:
+        return subprocess.call([str(p), "-u", str(ROOT / "omni_local_server.py")], cwd=ROOT)
+    except OSError as exc:
+        print(f"[ERROR] Could not launch Python engine: {exc}", flush=True)
+        return 1
 
 if __name__ == "__main__":
     raise SystemExit(main())
