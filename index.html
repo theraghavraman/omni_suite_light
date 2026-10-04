@@ -413,7 +413,39 @@ span.studio-svg{font-size:19px;line-height:24px;font-weight:800;text-align:cente
 @media(max-width:1180px){.nav-bar{grid-template-columns:repeat(7,minmax(0,1fr))}}
 @media(max-width:920px){.nav-bar{grid-template-columns:repeat(5,minmax(0,1fr))}.uds-presets{grid-template-columns:1fr}.omni-command{display:none}.omni-cap{display:none}}
 @media(max-width:640px){
-  .nav-bar{position:sticky;top:60px;display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;border-radius:20px}.nav-bar::-webkit-scrollbar{display:none}
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .omni-appbar{width:100%;max-width:100%;min-width:0;overflow:hidden;gap:8px;padding:8px 10px}
+  .omni-brand{flex:0 0 auto;min-width:38px}
+  .omni-brand-copy{display:none}
+  .omni-command{flex:1 1 auto;min-width:0;width:auto;max-width:none;margin:0;padding:7px 9px;overflow:hidden}
+  .omni-command-copy{min-width:0;overflow:hidden}
+  .omni-command-copy b{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .omni-command-copy span{display:none}
+  .omni-command kbd{display:none}
+  .container{width:100%;max-width:100%;min-width:0;padding:14px 12px 0}
+  .hero-header{grid-template-columns:minmax(0,1fr);gap:18px;margin-bottom:18px;padding:8px 0 2px;min-width:0}
+  .hero-copy{min-width:0;padding:8px 2px}
+  header h1{font-size:clamp(2.25rem,11vw,3.6rem);overflow-wrap:anywhere}
+  header p{font-size:.96rem;line-height:1.55}
+  .hero-metrics{gap:7px;margin:16px 0 12px}
+  .metric-pill{padding:8px 11px}
+  .metric-pill strong{font-size:1.05rem}
+  .metric-pill span{font-size:.7rem}
+  .badge-privacy{font-size:.72rem;padding:7px 11px;max-width:100%;white-space:normal}
+  .hero-render{width:100%;min-width:0;min-height:270px;border-radius:24px}
+  .render-window{width:min(90%,460px)}
+  .window-body{grid-template-columns:1fr;gap:10px;padding:12px}
+  .pipeline{display:none}
+  .render-paper{min-height:150px}
+  .omni-guide{padding:12px;border-radius:20px}
+  .omni-guide-grid{grid-template-columns:1fr;gap:8px}
+  .omni-guide-item{padding:12px 12px 12px 16px}
+  .nav-bar{position:sticky;top:60px;display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;border-radius:20px;max-width:100%;min-width:0}
+  .nav-bar::-webkit-scrollbar{display:none}
+  .nav-btn{flex:0 0 96px;min-height:80px;scroll-snap-align:center}
+  .omni-brand-copy span{display:none}.omni-office-conversion-grid{grid-template-columns:1fr}
+  .studio-workspace-head{padding:16px}
+}display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;border-radius:20px}.nav-bar::-webkit-scrollbar{display:none}
   .nav-btn{flex:0 0 96px;min-height:80px;scroll-snap-align:center}
   .omni-brand-copy span{display:none}.omni-office-conversion-grid{grid-template-columns:1fr}
   .studio-workspace-head{padding:16px}
