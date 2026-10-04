@@ -41,6 +41,9 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 | fastavro | MIT | Apache Avro serialization |
 | pymongo | Apache License 2.0 | MongoDB BSON representation support |
 | msgpack | Apache License 2.0 | MessagePack serialization |
+| SheetJS Community Edition | 0.20.3 | Apache License 2.0 | Browser-first spreadsheet parsing/writing |
+| PptxGenJS | 4.0.1 | MIT | Browser-first PPTX generation and PDF-page-to-PPTX rendering |
+| js-yaml | 4.1.0 | MIT | Browser-first YAML parsing/serialization |
 
 These native programs are not bundled by this repository. If a future release bundles any native executable, revisit the applicable distribution obligations for that specific build.
 
