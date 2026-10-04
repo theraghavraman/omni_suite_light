@@ -164,7 +164,7 @@ The browser layer intentionally stays conservative because browsers cannot encod
 
 **Ebooks:** AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ. Calibre documents a broad input/output conversion matrix; not every output is appropriate for every source. citeturn1search24
 
-**PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX is a visual replica: one rendered PDF page per slide, not editable-object reconstruction.
+**Archives / compression:** ZIP, TAR, GZIP, BZIP2, XZ and 7z are available through the native archive bridge; ZIP/GZIP/DEFLATE/Brotli also remain available in the browser studio. Native 7z requires the local 7-Zip executable. Python provides the standard-library TAR/GZIP/BZIP2/XZ paths. citeturn10search0turn10search1\n\n**PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX is a visual replica: one rendered PDF page per slide, not editable-object reconstruction.
 
 **Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`. citeturn3search1turn3search2
 
