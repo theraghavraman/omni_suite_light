@@ -74,6 +74,7 @@ NATIVE_GROUPS = {
     "Poppler pdftoppm": ("pdftoppm",),
     "Poppler pdftotext": ("pdftotext",),
     "ImageMagick": ("magick", "convert"),
+    "rsvg-convert": ("rsvg-convert",),
     "Ghostscript": ("gs", "gswin64c"),
     "Tesseract": ("tesseract",),
     "LibreOffice": ("soffice", "libreoffice"),
@@ -95,7 +96,16 @@ OFFLINE_ASSETS = (
 )
 
 def check_python() -> dict[str, bool]:
-    return {label: importlib.util.find_spec(module) is not None for label, module in PYTHON_IMPORTS.items()}
+    """Probe optional imports without letting missing parent packages crash the verifier."""
+    result = {}
+    for label, module in PYTHON_IMPORTS.items():
+        try:
+            result[label] = importlib.util.find_spec(module) is not None
+        except (ImportError, ModuleNotFoundError, AttributeError, ValueError):
+            result[label] = False
+        except Exception:
+            result[label] = False
+    return result
 
 def check_native() -> dict[str, str | None]:
     result = {}
