@@ -139,7 +139,7 @@ async function localProcessScientific(format){
  const d=await fetch('http://127.0.0.1:8765/api/download/'+j.file_id,{headers:{'X-Omni-Token':window.OMNI_TOKEN}});if(!d.ok)throw new Error('Local download failed');downloadBlob(await d.blob(),j.name);return j;
 }
 async function fetchURL(){
- const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';if(/audio\//i.test(ct))state.audio=buf;parseInput(name,text,buf);setStatus('Fetched '+name);}
+ const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';parseInput(name,text,buf);setStatus('Fetched '+name);}
 function encodedConvert(){
  const input=$('udsEncodedInput')?.value.trim();if(!input)throw new Error('Enter encoded data first.');
  const mode=$('udsEncodedMode')?.value||'hex-to-base64';
