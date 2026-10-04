@@ -5416,6 +5416,10 @@ cards.forEach(wire);
       const r=await fetch(BASE+"/api/health",{cache:"no-store"});
       if(!r.ok) throw new Error("HTTP "+r.status);
       const j=await r.json();
+      if(Number(j.engine_api_version||0)<4){
+        setStatus(false,"⚠ Local Engine outdated • Relaunch the current Omni command");
+        return null;
+      }
       omniToken = j.token || omniToken;
       const installed=Object.entries(j.tools||{}).filter(([k,v])=>v.installed).map(([k])=>k);
       setStatus(true,"● Local Engine connected • "+(installed.length?installed.join(", "):"Python bridge only"));
@@ -5989,7 +5993,9 @@ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drago
 $('officeConvertReset').onclick=()=>{file=null;input.value='';drop.style.display='block';controls.style.display='none'};
 async function health(required){
   const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
-  const j=await r.json();token=j.token||token;
+  const j=await r.json();
+  if(Number(j.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch using the current repository launcher.');
+  token=j.token||token;
   const toolName=required==='pdf_to_ppt'?'pdftoppm':'soffice';
   if(!(j.tools&&j.tools[toolName]&&j.tools[toolName].installed))throw new Error((toolName==='pdftoppm'?'Poppler pdftoppm':'LibreOffice')+' is not installed on the Local Engine');
   return j;
