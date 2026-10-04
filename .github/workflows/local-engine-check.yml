@@ -23,16 +23,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick libheif-dev libeccodes-dev tesseract-ocr libreoffice calibre
+          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick libheif-dev libeccodes-dev tesseract-ocr libreoffice calibre pandoc
       - name: Install native dependencies (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: choco install ffmpeg qpdf poppler imagemagick tesseract libreoffice calibre -y --no-progress
+        run: choco install ffmpeg qpdf poppler imagemagick tesseract libreoffice calibre pandoc -y --no-progress
       - name: Install native dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ffmpeg qpdf poppler imagemagick libheif eccodes tesseract python calibre
+          brew install ffmpeg qpdf poppler imagemagick libheif eccodes tesseract python calibre pandoc
           brew install --cask libreoffice
       - name: Verify native executables
         shell: bash
