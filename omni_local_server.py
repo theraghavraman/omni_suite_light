@@ -682,11 +682,17 @@ class Handler(BaseHTTPRequestHandler):
                 and (vendor / "tesseract/worker.min.js").is_file()
                 and (vendor / "tesseract/core/tesseract-core.wasm.js").is_file()
                 and (vendor / "tesseract/core/tesseract-core-simd.wasm.js").is_file()
-                and (vendor / "tesseract/lang/eng.traineddata.gz").is_file()
+                and (vendor / "sheetjs/xlsx.full.min.js").is_file()
+                and (vendor / "jsyaml/js-yaml.min.js").is_file()
+                and all((vendor / "tesseract/lang" / f"{lang}.traineddata.gz").is_file() for lang in ("eng","hin","ben","mar","tam","tel","guj","pan","deu","fra","spa","chi_sim"))
             )
             if local_ready:
                 html = data.decode("utf-8")
                 html = html.replace(
+                    "./vendor/sheetjs/xlsx.full.min.js", "./vendor/sheetjs/xlsx.full.min.js"
+                ).replace(
+                    "./vendor/jsyaml/js-yaml.min.js", "./vendor/jsyaml/js-yaml.min.js"
+                ).replace(
                     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
                     "./vendor/pdfjs/pdf.min.js"
                 ).replace(
