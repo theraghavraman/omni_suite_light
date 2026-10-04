@@ -4455,20 +4455,20 @@ function render(){
 }
 function reset(){state.length=0;}
 function sourceText(){return [...document.scripts].map(x=>x.textContent||'').join('\n');}
-function regexEscape(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 function hasImplementationReference(id,source){
  if(!id)return false;
- const e=regexEscape(id);
- const patterns=[
-  new RegExp('getElementById\\\\(\\\\s*["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\)','m'),
-  new RegExp('(?:querySelector|querySelectorAll)\\\\(\\\\s*["\\\\\\\'][^"\\\\\\\']*#'+e+'[^"\\\\\\\']*["\\\\\\\']\\\\s*\\\\)','m'),
-  new RegExp('\\\\$\\\\(\\\\s*["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\)','m'),
-  new RegExp('\\\\b(?:id|button|input|target|run|reset|element)\\\\s*:\\\\s*["\\\\\\\']'+e+'["\\\\\\\']','m'),
-  new RegExp('["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\.\\\\s*(?:onclick|addEventListener)','m'),
-  new RegExp('\\\\b'+e+'\\\\b[\\\\s\\\\S]{0,220}(?:addEventListener|onclick|dispatchEvent|click\\\\s*\\\\()','m')
+ const direct=[
+  'getElementById("'+id+'")',
+  "getElementById('"+id+"')",
+  '$("'+id+'")',
+  "$('"+id+"')",
+  '"'+id+'".addEventListener',
+  "'"+id+"'.addEventListener",
+  '"'+id+'".onclick',
+  "'"+id+"'.onclick"
  ];
- if(patterns.some(p=>p.test(source)))return true;
- const mentions=(source.match(new RegExp('\\\\b'+e+'\\\\b','g'))||[]).length;
+ if(direct.some(x=>source.includes(x)))return true;
+ const mentions=(source.match(new RegExp('\\b'+String(id).replace(/[.*+?^${}()|[\\]\\]/g,'\\\\$&')+'\\b','g'))||[]).length;
  return mentions>=2;
 }
 function runStructure(clear=true){
