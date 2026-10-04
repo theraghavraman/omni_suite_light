@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate Python bridge syntax
         run: python -m py_compile omni_local_server.py omni_data_engine.py prepare_offline.py
+      - name: Validate Universal Data JavaScript syntax
+        run: node --check universal_data_studio.js
       - name: Install native dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
