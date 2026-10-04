@@ -11,7 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
   <script src="./vendor/sheetjs/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'"></script>
-  <script src="./vendor/pptxgenjs/pptxgen.bundle.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@4.0.1/dist/pptxgen.bundle.js'"></script>
   <script src="./vendor/jsyaml/js-yaml.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js'"></script>
   <style>
     /* Outfit is distributed under the SIL Open Font License 1.1. System fallbacks keep the UI usable offline. */
@@ -1700,7 +1699,7 @@
             <button type="button" class="btn btn-secondary" id="officeSheetXlsxBtn">Excel/ODS → XLSX</button>
             <button type="button" class="btn btn-secondary" id="officeDeckPptxBtn">PPT/ODP → PPTX</button>
           </div>
-          <div class="form-hint">LibreOffice handles the broad Office/ODF family. Macro-enabled files can be converted, but VBA/macros and application-specific features are not guaranteed to survive. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
+          <div class="form-hint">LibreOffice handles the broad Office/ODF family. Macro-enabled files can be converted, but VBA/macros and application-specific features are not guaranteed to survive. PDF → PPTX is generated directly in the browser as a high-resolution visual slide replica; the browser path does not require Poppler. Large PDFs can use the Local Engine instead.</div>
         </div>
       </div>
 
@@ -1741,7 +1740,7 @@
             <div class="actions-bar">
               <button type="button" class="btn btn-primary" id="officePresentationRun">Convert Presentation</button>
             </div>
-            <div class="form-hint">Browser-first: PDF → PPTX is rendered entirely in the browser when supported. Local Engine is used only when the browser cannot safely preserve the presentation format.</div>
+            <div class="form-hint">Browser-first: PDF → PPTX is generated directly in the browser with PDF.js + JSZip and does not require Poppler. The Local Engine remains available for larger PDFs and native presentation conversions.</div>
           </div>
         </div>
 
