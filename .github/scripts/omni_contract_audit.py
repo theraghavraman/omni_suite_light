@@ -46,3 +46,6 @@ assert (ROOT/"verify_local_environment.py").is_file(), "Strict local environment
 for launcher in ["Omni.bat","Omni.command","start_omni.bat","start_omni.command","setup_and_start.bat","setup_and_start.command"]:
     assert (ROOT/launcher).is_file() and (ROOT/launcher).stat().st_size>0, f"Missing launcher: {launcher}"
 
+
+assert "ENGINE_API_VERSION = 4" in server, "Local Engine API version handshake missing"
+assert (ROOT/"omni_bootstrap.py").is_file(), "Self-healing local bootstrap is missing"
