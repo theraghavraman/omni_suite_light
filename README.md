@@ -174,7 +174,7 @@ The browser layer intentionally stays conservative because browsers cannot encod
 ### Data Studio — structured, semi-structured and database data
 The Data Studio is the new data-engineering layer. It uses pandas/PyArrow/DuckDB and optional format-specific libraries locally; no dataset is uploaded to a cloud service by OmniConverter.
 
-**Structured:** CSV/TSV, XLS/XLSX/XLSB, ODS, Parquet, ORC, Feather/Arrow IPC, Avro, SQLite and DuckDB.
+**Structured:** CSV/TSV, XLS/XLSX/XLSB, ODS, HDF5, Parquet, ORC, Feather/Arrow IPC, Avro, SQLite and DuckDB, plus Stata/SAS/SPSS readers.
 
 **Semi-structured:** JSON, JSONL/NDJSON, YAML, XML, HTML tables, MessagePack and JSON Schema generation.
 
