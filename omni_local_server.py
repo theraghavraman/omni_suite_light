@@ -7,7 +7,7 @@ OmniConverter Local Engine
 - Heavy media/PDF/image/OCR work is delegated to native tools when installed.
 """
 from __future__ import annotations
-import base64, hashlib, json, mimetypes, os, platform, shutil, subprocess, tempfile, threading, time, urllib.parse, zipfile, gzip, webbrowser
+import base64, hashlib, json, mimetypes, os, platform, secrets, shutil, subprocess, tempfile, threading, time, urllib.parse, zipfile, gzip, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -18,6 +18,29 @@ ROOT.mkdir(parents=True, exist_ok=True)
 LOCK = threading.Lock()
 FILES: dict[str, Path] = {}
 MAX_UPLOAD = int(os.environ.get("OMNI_MAX_UPLOAD", str(8 * 1024**3)))
+TOKEN = os.environ.get("OMNI_TOKEN") or secrets.token_urlsafe(32)
+ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765", "https://theraghavraman.github.io"}
+ALLOWED_ORIGINS.update(origin.strip().rstrip("/") for origin in os.environ.get("OMNI_ALLOWED_ORIGINS", "").split(",") if origin.strip())
+
+def request_origin(handler):
+    return handler.headers.get("Origin", "").rstrip("/")
+
+def origin_allowed(handler):
+    origin = request_origin(handler)
+    return not origin or origin in ALLOWED_ORIGINS
+
+def cors_origin(handler):
+    origin = request_origin(handler)
+    return origin if origin in ALLOWED_ORIGINS else ""
+
+def authorize(handler):
+    if not origin_allowed(handler):
+        handler.send_json({"ok": False, "error": "Origin not allowed"}, 403)
+        return False
+    if not secrets.compare_digest(handler.headers.get("X-Omni-Token", ""), TOKEN):
+        handler.send_json({"ok": False, "error": "Missing or invalid local-engine token"}, 401)
+        return False
+    return True
 
 TOOLS = {
     "ffmpeg": ["ffmpeg", "-version"],
@@ -303,7 +326,10 @@ class Handler(BaseHTTPRequestHandler):
         data = json.dumps(obj).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = cors_origin(self)
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
         self.send_header("Content-Length", str(len(data)))
@@ -312,9 +338,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = cors_origin(self)
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
         self.end_headers()
 
     def serve_static(self, parsed_path):
@@ -380,10 +409,18 @@ class Handler(BaseHTTPRequestHandler):
             ctype = "application/javascript"
         if target.suffix.lower() == ".wasm":
             ctype = "application/wasm"
+        if target.name == "index.html" and data is not None:
+            html = data.decode("utf-8")
+            html = html.replace("</head>", "<script>window.OMNI_TOKEN=" + json.dumps(TOKEN) + ";</script></head>", 1)
+            data = html.encode("utf-8")
+            size = len(data)
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = cors_origin(self)
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Content-Length", str(size))
         self.end_headers()
         if data is not None:
@@ -403,9 +440,16 @@ class Handler(BaseHTTPRequestHandler):
             if self.serve_static(parsed.path):
                 return
         if parsed.path in ("/", "/api/health"):
-            self.send_json(process_job({"op":"health"}))
+            if not origin_allowed(self):
+                self.send_json({"ok": False, "error": "Origin not allowed"}, 403)
+                return
+            health = process_job({"op":"health"})
+            health["token"] = TOKEN
+            self.send_json(health)
             return
         if parsed.path.startswith("/api/download/"):
+            if not authorize(self):
+                return
             fid = parsed.path.rsplit("/", 1)[-1]
             try:
                 p = get_file(fid)
@@ -414,7 +458,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", mimetypes.guess_type(p.name)[0] or "application/octet-stream")
                 self.send_header("Content-Disposition", f'attachment; filename="{safe_name(p.name)}"')
                 self.send_header("Content-Length", str(size))
-                self.send_header("Access-Control-Allow-Origin", "*")
+                origin = cors_origin(self)
+                if origin:
+                    self.send_header("Access-Control-Allow-Origin", origin)
+                    self.send_header("Vary", "Origin")
                 self.end_headers()
                 with open(p, "rb") as src:
                     while True:
@@ -431,6 +478,8 @@ class Handler(BaseHTTPRequestHandler):
         cleanup_old()
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/upload":
+            if not authorize(self):
+                return
             try:
                 length = int(self.headers.get("Content-Length","0"))
                 if length <= 0 or length > MAX_UPLOAD:
@@ -453,6 +502,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":False,"error":str(e)},400)
             return
         if parsed.path == "/api/process":
+            if not authorize(self):
+                return
             try:
                 length = int(self.headers.get("Content-Length","0"))
                 if length > 10*1024*1024:

@@ -1,17 +1,46 @@
-name: Validate OmniConverter local engine
+name: Validate OmniConverter
 
 on:
   push:
   pull_request:
 
 jobs:
-  validate-local-engine:
-    runs-on: ubuntu-latest
+  native-smoke:
+    name: Native smoke test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
     steps:
       - uses: actions/checkout@v4
       - name: Validate Python bridge syntax
-        run: python3 -m py_compile omni_local_server.py prepare_offline.py
-      - name: Validate installer files exist
+        run: python -m py_compile omni_local_server.py prepare_offline.py
+      - name: Install native dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick tesseract-ocr libreoffice calibre
+      - name: Install native dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ffmpeg qpdf poppler imagemagick tesseract libreoffice calibre -y --no-progress
+      - name: Verify native executables
+        shell: bash
+        run: |
+          ffmpeg -version
+          qpdf --version
+          pdftoppm -v
+          pdftotext -v
+          (magick -version || convert -version)
+          tesseract --version
+          soffice --version
+          ebook-convert --version
+      - name: Run native 11-item smoke test
+        run: python .github/scripts/native_smoke_test.py
+      - name: Validate setup files
+        shell: bash
         run: |
           test -s install_system_tools.command
           test -s install_windows.ps1
@@ -19,21 +48,3 @@ jobs:
           test -s start_omni.command
           test -s setup_and_start.bat
           test -s setup_and_start.command
-      - name: Validate local-engine UI hooks
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          s = Path("index.html").read_text(encoding="utf-8")
-          required = [
-              'data-tab="tabLocal"',
-              'id="tabLocal"',
-              'id="omniLocalRun"',
-              '/api/upload',
-              '/api/process',
-              '/api/download/'
-          ]
-          missing = [x for x in required if x not in s]
-          if missing:
-              raise SystemExit("Missing UI hooks: " + ", ".join(missing))
-          print("Local engine UI hooks: OK")
-          PY

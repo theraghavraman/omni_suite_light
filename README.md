@@ -21,7 +21,7 @@ Open the published GitHub Pages site.
 6. Press the action button that appears.
 7. The generated file is downloaded by the browser.
 
-Desktop users can also drag files onto upload areas. Browser file inputs and drag/drop are standard File API mechanisms. citeturn0search0turn0search2
+Desktop users can also drag files onto upload areas. Browser file inputs and drag/drop are standard File API mechanisms.
 
 ## 2. Browser mode vs Local Engine
 
@@ -100,9 +100,9 @@ The installer recognizes common package managers such as Homebrew, apt, dnf, pac
 
 ## 5. What “Local Engine connected” means
 
-The Local Engine listens only on 127.0.0.1:8765.
+The Local Engine listens only on 127.0.0.1:8765. Mutating/processing API requests require a per-launch `X-Omni-Token`, and browser origins are restricted to the local UI plus the published GitHub Pages origin by default. Custom trusted origins can be added with `OMNI_ALLOWED_ORIGINS`.
 
-The browser UI checks http://127.0.0.1:8765/api/health and reports detected native utilities.
+The browser UI checks http://127.0.0.1:8765/api/health and uses that response to pair the published UI with the running local engine.
 
 If the engine is not running, the browser UI remains usable for browser-capable tools.
 
@@ -156,7 +156,7 @@ If an upload area does nothing:
 
 Diagnostics report core UI status, PDF.js, JSZip, pdf-lib, Tesseract.js, file-input count, upload-zone count and browser capabilities.
 
-The application uses a direct user-gesture file-picker path with showPicker() when available and falls back to the normal file-input click. File pickers require user activation. citeturn1search0turn1search2
+The application uses a direct user-gesture file-picker path with showPicker() when available and falls back to the normal file-input click. File pickers require user activation.
 
 If a library is missing, the browser may be blocked from loading a CDN resource. Use the local launcher and prepare_offline.py.
 
@@ -166,9 +166,10 @@ For Android/iPhone:
 - Tap the upload area rather than trying to drag files.
 - Select Files, Photos or the appropriate system picker.
 - Wait for the selected filename/control panel.
-- For large media/PDF jobs, use a PC/Mac Local Engine.
+- Browser-capable tools work on mobile without Python.
+- Native FFmpeg/LibreOffice/Calibre/qpdf/Poppler/ImageMagick jobs require the Local Engine on a Windows/macOS/Linux computer; a phone cannot launch that desktop engine by itself.
 
-The browser receives a File object supplied by the user's selection; it does not receive the device's private filesystem path. citeturn0search0turn0search11
+The browser receives a File object supplied by the user's selection; it does not receive the device's private filesystem path.
 
 ## 10. Large-file guidance
 
@@ -261,9 +262,7 @@ This is expected until the local Python engine is running. GitHub Pages is a bro
 
 ## 15. Development / validation
 
-The repository includes GitHub Actions checks for Python syntax, required setup files and local-engine UI hooks.
-
-These checks do not claim that native applications have been executed on every operating system.
+The repository includes GitHub Actions checks for Python syntax, required setup files, local-engine UI hooks and native smoke tests on Windows and Ubuntu. The native matrix exercises the representative 11-item validation list in CI; it does not replace testing every Linux distribution or macOS release.
 
 For real machine validation, test at least:
 1. Image upload.
@@ -286,7 +285,11 @@ The browser experience is therefore the first layer.
 The Local Engine is the second layer for capabilities that browsers cannot reliably provide.
 
 ### References
-- MDN File API — browser file access and File objects. citeturn0search0
-- MDN Using files from web applications — file inputs and drag/drop. citeturn0search2
-- MDN showPicker() — user-gesture file picker behavior. citeturn1search0
-- MDN User Activation — protected APIs require user activation. citeturn1search2
+- MDN File API — browser file access and File objects.
+- MDN Using files from web applications — file inputs and drag/drop.
+- MDN showPicker() — user-gesture file picker behavior.
+- MDN User Activation — protected APIs require user activation.
+
+## License
+
+OmniConverter Studio source code is released under the MIT License. Third-party dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

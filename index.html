@@ -1273,7 +1273,7 @@
     <div class="module-panel" id="tabLocal">
       <div class="card">
         <h2>9. Local Native Engine</h2>
-        <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div>
+        <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div><div style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #f0d9a3;color:#6d5520;"><b>Browser/mobile note:</b> GitHub Pages can process browser-capable files, but it cannot launch desktop programs. FFmpeg, LibreOffice, Calibre, qpdf, Poppler and other native jobs require the Local Engine running on a Windows/macOS/Linux computer. A phone browser cannot start that desktop engine by itself.</div>
         <div id="omniLocalStatus" style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#f6f7fb;border:1px solid #dce3ef;font-weight:700;color:#647089;">Checking local engine…</div>
         <div class="dropzone" id="omniLocalDropzone">
           <h3>Choose files for local processing</h3>
@@ -3983,6 +3983,7 @@
 <script id="omni-local-engine">
 (function(){
   const BASE = "http://127.0.0.1:8765";
+  let omniToken = window.OMNI_TOKEN || "";
   const $ = id => document.getElementById(id);
   const filesInput = $("omniLocalFiles"), drop = $("omniLocalDropzone"), list = $("omniLocalFileList");
   const status = $("omniLocalStatus"), op = $("omniLocalOp");
@@ -4004,6 +4005,7 @@
       const r=await fetch(BASE+"/api/health",{cache:"no-store"});
       if(!r.ok) throw new Error("HTTP "+r.status);
       const j=await r.json();
+      omniToken = j.token || omniToken;
       const installed=Object.entries(j.tools||{}).filter(([k,v])=>v.installed).map(([k])=>k);
       setStatus(true,"● Local Engine connected • "+(installed.length?installed.join(", "):"Python bridge only"));
       return j;
@@ -4033,7 +4035,7 @@
   $("omniLocalRefresh").onclick=health;
 
   async function upload(file, i, total){
-    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream"},body:file});
+    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream","X-Omni-Token":omniToken},body:file});
     if(!r.ok) throw new Error((await r.text()).slice(0,500));
     setProgress(8+(i/Math.max(1,total))*45,"Uploading "+file.name+"…");
     return (await r.json()).file_id;
@@ -4065,10 +4067,10 @@
       if(kind==="pdf_render") payload.dpi=parseInt($("omniLocalDpi").value,10)||150;
       if(kind==="ocr") payload.lang=$("omniLocalLang").value.trim()||"eng";
       setProgress(60,"Running native "+kind.replaceAll("_"," ")+"…");
-      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":omniToken},body:JSON.stringify(payload)});
       const out=await rr.json(); if(!rr.ok||!out.ok) throw new Error(out.error||"Local operation failed");
       setProgress(92,"Preparing download…");
-      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id));
+      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"X-Omni-Token":omniToken}});
       if(!dl.ok) throw new Error("Output download failed");
       const blob=await dl.blob();
       const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=out.name||"omni-output"; document.body.appendChild(a); a.click(); a.remove();
@@ -4108,7 +4110,7 @@ document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.q
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
 function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
 const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
-async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
+async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
 })();
 </script>

@@ -91,7 +91,15 @@ The browser features remain available for lightweight jobs.
 
 ## Security
 
-The local service binds to loopback only. It does not expose an arbitrary shell command endpoint. Browser requests select predefined operations. Uploaded and generated files are stored in the operating system temporary directory and stale files are cleaned automatically.
+The local service binds to loopback only. It does not expose an arbitrary shell command endpoint. Browser requests select predefined operations.
+
+API hardening has two layers:
+- **Origin allowlist:** by default the server accepts browser requests from `127.0.0.1:8765`, `localhost:8765` and the project's GitHub Pages origin. Additional trusted origins can be supplied through `OMNI_ALLOWED_ORIGINS`.
+- **Per-launch token:** the server generates a cryptographically random token at startup (or uses `OMNI_TOKEN` when explicitly supplied). Upload, processing and output-download requests must provide it in `X-Omni-Token`. The health endpoint is used to pair an allowed browser origin with the running engine.
+
+This prevents an unrelated website from using the loopback API merely because the engine happens to be running. Do not expose the service beyond loopback or weaken the origin/token checks.
+
+Uploaded and generated files are stored in the operating system temporary directory and stale files are cleaned automatically.
 
 ## Large files
 
