@@ -72,6 +72,48 @@
     .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
     .nav-btn.active { background: #1d3155; color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 
+    /* 18-studio navigation: compact multi-row grid on desktop, horizontal rail on phones. */
+    .nav-bar {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 6px;
+      overflow: visible;
+      align-items: stretch;
+      position: relative;
+      top: auto;
+    }
+    .nav-btn {
+      min-width: 0;
+      flex: none;
+      min-height: 58px;
+      padding: 8px 10px;
+      line-height: 1.05;
+    }
+    .nav-btn .studio-label { text-align: center; }
+    @media (max-width: 1180px) {
+      .nav-bar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    }
+    @media (max-width: 820px) {
+      .nav-bar {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        position: sticky;
+        top: 8px;
+        padding-bottom: 8px;
+        scrollbar-width: thin;
+      }
+      .nav-btn {
+        flex: 0 0 132px;
+        min-height: 54px;
+      }
+    }
+    @media (max-width: 520px) {
+      .nav-bar { gap: 5px; }
+      .nav-btn { flex-basis: 118px; min-height: 52px; padding: 7px 8px; }
+    }
+
     /* Panels */
     .module-panel { display: none; }
     .module-panel.active { display: block; }
