@@ -6233,5 +6233,140 @@ if(docx) docx.addEventListener("click",async e=>{
       window.OMNI_CAPABILITY_NOTES={version:1,get:getCap,refresh:inject};
     })();
 </script>
+<script id="omni-quality-batch-doctor">
+(function(){
+'use strict';
+const BASE='http://127.0.0.1:8765';
+const $=id=>document.getElementById(id);
+let token='',cleanFile=null,batchFiles=[],lastBatch=null,lastManifestBlob=null;
+
+function show(id,value){const el=$(id);if(el)el.textContent=typeof value==='string'?value:JSON.stringify(value,null,2);}
+function setText(id,value){const el=$(id);if(el)el.textContent=value;}
+async function health(){
+  const r=await fetch(BASE+'/api/health',{cache:'no-store'});
+  if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
+  const h=await r.json(); token=h.token||''; return h;
+}
+async function ensureLocal(){
+  try{return await health();}
+  catch(e){throw new Error('Local Engine is not running. Start OmniConverter Local Engine first at http://127.0.0.1:8765/.');}
+}
+async function upload(file){
+  const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
+  if(!r.ok)throw new Error((await r.text()).slice(0,500));
+  return r.json();
+}
+async function processJob(payload){
+  const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  let j;try{j=await r.json();}catch(_){throw new Error('Local Engine returned invalid JSON (HTTP '+r.status+').');}
+  if(!r.ok||!j.ok)throw new Error(j.error||'Local Engine operation failed');
+  return j;
+}
+async function downloadFile(id){
+  const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});
+  if(!r.ok)throw new Error('Output download failed (HTTP '+r.status+').');
+  return r.blob();
+}
+function save(blob,name){
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),60000);
+}
+
+/* Data Clean */
+const cleanInput=$('cleanInput');
+if(cleanInput){
+  cleanInput.addEventListener('change',()=>{cleanFile=cleanInput.files?.[0]||null;setText('cleanName',cleanFile?.name||'No file selected');});
+  const drop=cleanInput.closest('.dropzone');
+  if(drop){
+    drop.addEventListener('click',e=>{if(e.target!==cleanInput)cleanInput.click();});
+    drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover');});
+    drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
+    drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');const f=e.dataTransfer.files?.[0];if(f){cleanFile=f;setText('cleanName',f.name);}});
+  }
+}
+$('cleanBtn')?.addEventListener('click',async()=>{
+  try{
+    if(!cleanFile)throw new Error('Choose a data file first.');
+    show('cleanOutput','Cleaning and exporting…');
+    await ensureLocal();
+    const up=await upload(cleanFile);
+    const actions=[...document.querySelectorAll('.clean-action:checked')].map(x=>x.value);
+    if(!actions.length)throw new Error('Select at least one cleaning action.');
+    const format=$('cleanTarget')?.value||'csv';
+    const result=await processJob({op:'data_clean',input:up.file_id,format,actions});
+    save(await downloadFile(result.file_id),result.name||('cleaned.'+format));
+    show('cleanOutput',{ok:true,input:cleanFile.name,output:result.name,actions});
+  }catch(e){show('cleanOutput','ERROR: '+e.message);}
+});
+$('privacyBtn')?.addEventListener('click',async()=>{
+  try{
+    if(!cleanFile)throw new Error('Choose a data file first.');
+    show('cleanOutput','Scanning for likely sensitive data…');
+    await ensureLocal();
+    const up=await upload(cleanFile);
+    const result=await processJob({op:'privacy_scan',input:up.file_id});
+    let report;const blob=await downloadFile(result.file_id);
+    try{report=JSON.parse(await blob.text());}catch(_){report=await blob.text();}
+    show('cleanOutput',report);
+  }catch(e){show('cleanOutput','ERROR: '+e.message);}
+});
+
+/* Batch Lab */
+const batchInput=$('batchInput');
+if(batchInput)batchInput.addEventListener('change',()=>{
+  batchFiles=[...batchInput.files];
+  setText('batchList',batchFiles.length?batchFiles.map(f=>f.name).join(' • '):'No files selected.');
+  setText('batchCapability',batchFiles.length?'Ready: '+batchFiles.length+' file(s). Failures will be isolated.':'Capability: select files to evaluate the route.');
+});
+async function runBatch(ids,op,format){
+  const payload={op:'batch_convert',inputs:ids,job_op:op};
+  if(format)payload.format=format;
+  return processJob(payload);
+}
+$('batchRunBtn')?.addEventListener('click',async()=>{
+  try{
+    if(!batchFiles.length)throw new Error('Choose one or more files first.');
+    show('batchOutput','Uploading '+batchFiles.length+' file(s)…');
+    await ensureLocal();
+    const ids=[];
+    for(const file of batchFiles)ids.push((await upload(file)).file_id);
+    const op=$('batchOp')?.value||'data_convert';
+    const format=op==='privacy_scan'?null:($('batchTarget')?.value||'csv');
+    const result=await runBatch(ids,op,format);
+    lastManifestBlob=await downloadFile(result.file_id);
+    lastBatch=JSON.parse(await lastManifestBlob.text());
+    show('batchOutput',lastBatch);
+    $('batchRetryBtn').disabled=!lastBatch.failed;
+    $('batchDownloadBtn').disabled=false;
+  }catch(e){show('batchOutput','ERROR: '+e.message);}
+});
+$('batchRetryBtn')?.addEventListener('click',async()=>{
+  try{
+    const failed=(lastBatch?.results||[]).filter(x=>!x.ok);
+    if(!failed.length){show('batchOutput','No failed files to retry.');return;}
+    await ensureLocal();
+    const first=failed[0].payload||{};
+    const result=await runBatch(failed.map(x=>x.input),first.op||'data_convert',first.format);
+    lastManifestBlob=await downloadFile(result.file_id);
+    lastBatch=JSON.parse(await lastManifestBlob.text());
+    show('batchOutput',lastBatch);
+    $('batchRetryBtn').disabled=!lastBatch.failed;
+  }catch(e){show('batchOutput','ERROR: '+e.message);}
+});
+$('batchDownloadBtn')?.addEventListener('click',()=>{if(lastManifestBlob)save(lastManifestBlob,'omni-batch-manifest.json');});
+
+/* System Doctor */
+$('doctorBtn')?.addEventListener('click',async()=>{
+  try{
+    show('doctorOutput','Checking Local Engine and installed dependencies…');
+    const h=await ensureLocal();
+    const result=await processJob({op:'doctor'});
+    show('doctorOutput',{ok:true,engine:{reachable:true,url:BASE,python:h.python||null},doctor:result.doctor||result});
+  }catch(e){show('doctorOutput','ERROR: '+e.message);}
+});
+})();
+</script>
+
 </body>
 </html>
