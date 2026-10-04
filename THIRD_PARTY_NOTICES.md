@@ -37,6 +37,7 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 | xlrd | BSD 3-Clause | Legacy XLS reading |
 | pyxlsb | BSD 3-Clause | XLSB reading |
 | odfpy | Apache License 2.0 | OpenDocument spreadsheet I/O |
+| PyTables | BSD 3-Clause | HDF5-based pandas table storage |
 | fastavro | MIT | Apache Avro serialization |
 | pymongo | Apache License 2.0 | MongoDB BSON representation support |
 | msgpack | Apache License 2.0 | MessagePack serialization |
