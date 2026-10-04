@@ -242,6 +242,14 @@ try:
     assert (ROOT/"sample.7z").stat().st_size > 0
     print("27. 7z archive/fallback path: OK")
 
+    # CI coverage: Database Studio must execute read-only SQLite SELECT queries.
+    db_url="sqlite:///"+str(db)
+    out=process({"op":"database_query","url":db_url,"query":"SELECT total FROM orders WHERE total > :minimum","params":{"minimum":50}},"ci-test-token")
+    download(out["file_id"],ROOT/"query.json","ci-test-token")
+    query=json.loads((ROOT/"query.json").read_text(encoding="utf-8"))
+    assert query["row_count"]==1 and query["rows"][0]["total"]==99.5
+    print("28. Read-only Database Studio query: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
