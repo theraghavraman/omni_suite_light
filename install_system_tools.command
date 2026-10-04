@@ -32,7 +32,7 @@ if [ "$OS" = "Darwin" ]; then
 
   brew update
   brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang calibre eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf
-  brew install --cask libreoffice
+  brew install --cask libreoffice calibre
 
   PYTHON="$(brew --prefix python@3.13)/bin/python3.13"
   "$PYTHON" -m venv .venv
