@@ -57,11 +57,11 @@ The installer attempts to provide:
 - PDF.js 3.11.174
 - JSZip 3.10.1
 - pdf-lib 1.17.1
-- Tesseract.js 5.0.5
+- Tesseract.js 5.1.1
 - tesseract.js-core 5.1.1
 - OCR models for English, Hindi, Bengali, Marathi, Tamil, Telugu, Gujarati, Punjabi, German, French, Spanish and Simplified Chinese.
 
-Tesseract.js requires its worker, core and language resources to be hosted locally for a genuinely offline browser deployment. citeturn4search2turn7search1
+Tesseract.js requires its worker, core and language resources to be hosted locally for a genuinely offline browser deployment.
 
 ## Local UI
 

@@ -25,9 +25,15 @@ ALLOWED_ORIGINS.update(origin.strip().rstrip("/") for origin in os.environ.get("
 def request_origin(handler):
     return handler.headers.get("Origin", "").rstrip("/")
 
+def host_allowed(handler):
+    host = handler.headers.get("Host", "").split(":", 1)
+    hostname = host[0].strip().lower()
+    port = host[1] if len(host) == 2 else "80"
+    return hostname in {"127.0.0.1", "localhost"} and port == "8765"
+
 def origin_allowed(handler):
     origin = request_origin(handler)
-    return not origin or origin in ALLOWED_ORIGINS
+    return bool(origin) and origin in ALLOWED_ORIGINS
 
 def cors_origin(handler):
     origin = request_origin(handler)
@@ -337,6 +343,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_OPTIONS(self):
+        if not host_allowed(self):
+            self.send_json({"ok": False, "error": "Host not allowed"}, 403)
+            return
         self.send_response(204)
         origin = cors_origin(self)
         if origin:
@@ -435,6 +444,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         cleanup_old()
+        if not host_allowed(self):
+            self.send_json({"ok": False, "error": "Host not allowed"}, 403)
+            return
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path not in ("/api/health",) and not parsed.path.startswith("/api/"):
             if self.serve_static(parsed.path):
@@ -444,7 +456,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok": False, "error": "Origin not allowed"}, 403)
                 return
             health = process_job({"op":"health"})
-            health["token"] = TOKEN
+            # Never disclose the engine token to requests without an allowed browser Origin.
+            if request_origin(self):
+                health["token"] = TOKEN
             self.send_json(health)
             return
         if parsed.path.startswith("/api/download/"):
@@ -476,6 +490,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         cleanup_old()
+        if not host_allowed(self):
+            self.send_json({"ok": False, "error": "Host not allowed"}, 403)
+            return
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/upload":
             if not authorize(self):

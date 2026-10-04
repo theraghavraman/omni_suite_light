@@ -11,7 +11,7 @@ OmniConverter Studio does not redistribute native executable binaries. Native to
 | pdf-lib | 1.17.1 | MIT | PDF creation/manipulation |
 | Tesseract.js | 5.1.1 | Apache License 2.0 | Browser OCR |
 | tesseract.js-core | 5.1.1 | Apache License 2.0 | OCR WASM core |
-| Tesseract.js worker | 5.0.5 | Apache License 2.0 | Browser OCR worker |
+| Tesseract.js worker | 5.1.1 | Apache License 2.0 | Browser OCR worker |
 | Tesseract language data | @tesseract.js-data packages 1.0.0 | Apache License 2.0 | OCR language models |
 
 The exact download URLs and pinned versions are defined in `prepare_offline.py`. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
