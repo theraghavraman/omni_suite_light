@@ -360,9 +360,15 @@ For real machine validation, test at least:
 ## Design principle
 OmniConverter should remain useful before the user installs anything.
 
-The browser experience is therefore the first layer.
+The browser experience is therefore the first layer, and conversion dispatch is explicitly browser-first.
 
-The Local Engine is the second layer for capabilities that browsers cannot reliably provide.
+For common structured/semi-structured data, OmniConverter now performs CSV/TSV/JSON/JSONL/YAML/XML/HTML/Markdown and common Excel/ODS-family conversions in the browser when the required browser engine is available. Data profiling and several document/NoSQL bridge operations also prefer browser execution.
+
+Office Studio similarly prefers browser execution for common spreadsheet conversions, PDF → PPTX page-replica generation, and safe PPTX/PPSX/POTX package-type changes. Heavy native conversions such as high-fidelity Office rendering, PPT/PDF round-trips, legacy binary formats outside browser support, HDF5/Parquet/ORC/Avro database files, and other operations that browsers cannot reliably preserve fall back to the Local Engine.
+
+The Local Engine is the second layer for capabilities that browsers cannot reliably provide. It should therefore be a fallback, not the default path. Browser conversion failures are caught and routed to the native engine only when appropriate.
+
+The offline setup also vendors the browser conversion engines when prepare_offline.py is run; the public GitHub Pages build uses the same local-first assets with CDN fallback when the vendor assets are not present.
 
 ### References
 - MDN File API — browser file access and File objects.
