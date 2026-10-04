@@ -230,6 +230,12 @@ try:
     assert len(jsonl)==2 and json.loads(jsonl[0])["name"]=="Alice"
     print("24. Text-lines JSONL bridge: OK")
 
+    # CI coverage: qpdf page splitting should return a non-empty ZIP of individual pages.
+    out=process({"op":"pdf_split","input":pdf["file_id"]},"ci-test-token")
+    download(out["file_id"],ROOT/"split.zip","ci-test-token")
+    with zipfile.ZipFile(ROOT/"split.zip") as z: assert any(n.endswith(".pdf") for n in z.namelist())
+    print("25. PDF split archive: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
