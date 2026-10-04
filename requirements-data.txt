@@ -13,11 +13,13 @@ lxml>=5.3
 fastavro>=1.9
 pymongo>=4.8
 msgpack>=1.0
+tabulate>=0.9
 pyreadstat>=1.2
 
 # Scientific / astronomy / earth-observation Local Engine
 numpy>=1.26
 xarray>=2024.10
+cftime>=1.6
 netCDF4>=1.7
 h5py>=3.11
 h5netcdf>=1.3
