@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{},audio:null,animation:null,file:null};
+const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{bytes:0,kind:'unknown',rows:0,numeric:[]},audio:null,animation:null,file:null};\nlet __udsBound=false;
 
 function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function ext(n){return (n.split('.').pop()||'').toLowerCase();}
@@ -157,7 +157,7 @@ function encodedConvert(){
  const blob=new Blob([out],{type:'text/plain'});$('udsEncodedDownload').onclick=()=>downloadBlob(blob,'omni-encoded-conversion.txt');
 }
 function bind(){
- const d=$('udsDrop'),i=$('udsInput');if(!d||!i)return;
+ if(__udsBound)return; const d=$('udsDrop'),i=$('udsInput');if(!d||!i){console.warn('[OMNI Universal Data] controls not found');return;} __udsBound=true;
  const set=f=>f&&loadFile(f).catch(e=>setStatus(e.message,false));
  i.addEventListener('change',e=>set(e.target.files[0]));d.addEventListener('click',e=>{if(e.target!==i)i.click()});d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('dragover')});d.addEventListener('dragleave',()=>d.classList.remove('dragover'));d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('dragover');set(e.dataTransfer.files[0])});
  $('udsFetch')?.addEventListener('click',()=>fetchURL().catch(e=>setStatus(e.message,false)));
@@ -169,6 +169,5 @@ function bind(){
  $('udsEncodedRun')?.addEventListener('click',()=>{try{encodedConvert();setStatus('Encoded data converted.')}catch(e){setStatus(e.message,false)}});
  window.addEventListener('resize',()=>{if(state.records.length||state.audio)draw();});
 }
-bind();
-window.OMNI_UNIVERSAL_DATA={state,exportAs,sonify,fetchURL};
+try{\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();\n  window.OMNI_UNIVERSAL_DATA={state,exportAs,sonify,fetchURL,loadFile};\n}catch(e){console.error('[OMNI Universal Data] init failed',e);const s=$('udsStatus');if(s){s.textContent='Universal Data engine failed to initialize: '+e.message;s.className='uds-status warn';}}
 })();
