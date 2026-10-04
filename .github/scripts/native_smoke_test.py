@@ -105,7 +105,41 @@ try:
     htmlup=upload(html,"ci-test-token")
     process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("16. Calibre ebook conversion: OK")
 
-    print("Expanded native format smoke test: PASS")
+    data_caps=health.get("data",{})
+    assert data_caps.get("modules",{}).get("pandas"), "pandas is required for Data Studio CI"
+    assert data_caps.get("modules",{}).get("pyarrow"), "pyarrow is required for Data Studio CI"
+    assert data_caps.get("modules",{}).get("sqlglot"), "sqlglot is required for Data Studio CI"
+    data_csv=ROOT/"data.csv"; data_csv.write_text("id,name,amount\n1,Alice,10.5\n2,Bob,20\n",encoding="utf-8")
+    data_up=upload(data_csv,"ci-test-token")
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"json"},"ci-test-token"); download(out["file_id"],ROOT/"data.json","ci-test-token")
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"parquet"},"ci-test-token"); download(out["file_id"],ROOT/"data.parquet","ci-test-token")
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"xlsx"},"ci-test-token"); download(out["file_id"],ROOT/"data.xlsx","ci-test-token")
+    print("17. Data Studio CSV -> JSON/Parquet/XLSX: OK")
+
+    yaml_file=ROOT/"data.yaml"; yaml_file.write_text("records:\n  - id: 1\n    name: Alice\n  - id: 2\n    name: Bob\n",encoding="utf-8")
+    yaml_up=upload(yaml_file,"ci-test-token")
+    process({"op":"data_convert","input":yaml_up["file_id"],"format":"json"},"ci-test-token")
+    process({"op":"data_convert","input":data_up["file_id"],"format":"yaml"},"ci-test-token")
+    print("18. YAML/JSON structured-data conversion: OK")
+
+    sql_file=ROOT/"oracle.sql"; sql_file.write_text("SELECT NVL(amount, 0) AS amount FROM sales WHERE id = 1",encoding="utf-8")
+    sql_up=upload(sql_file,"ci-test-token")
+    out=process({"op":"sql_transpile","input":sql_up["file_id"],"source":"oracle","target":"tsql"},"ci-test-token")
+    download(out["file_id"],ROOT/"tsql.sql","ci-test-token")
+    out=process({"op":"schema_generate","input":data_up["file_id"],"source_format":"csv","dialect":"postgres","table":"sales"},"ci-test-token")
+    download(out["file_id"],ROOT/"schema.sql","ci-test-token")
+    out=process({"op":"data_profile","input":data_up["file_id"]},"ci-test-token")
+    download(out["file_id"],ROOT/"profile.json","ci-test-token")
+    print("19. SQL dialect translation/schema/profile: OK")
+
+    docs=ROOT/"documents.json"; docs.write_text(json.dumps([{"_id":"1","name":"Alice","score":10},{"_id":"2","name":"Bob","score":20}]),encoding="utf-8")
+    docs_up=upload(docs,"ci-test-token")
+    process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"jsonl"},"ci-test-token")
+    process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"dynamodb-json"},"ci-test-token")
+    process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"csv"},"ci-test-token")
+    print("20. NoSQL JSON/JSONL/DynamoDB/CSV bridge: OK")
+
+    print("Expanded native + Data Studio smoke test: PASS")
 finally:
     if server:
         server.terminate()
