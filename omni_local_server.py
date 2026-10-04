@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import omni_data_engine
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("OMNI_PORT", "8765"))
@@ -259,7 +260,7 @@ def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
 def process_job(payload):
     op = payload.get("op")
     if op == "health":
-        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"]}}
+        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"]}}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
 
     if op == "media":
         require_tool("ffmpeg")
@@ -423,6 +424,46 @@ def process_job(payload):
         out = output_path(inp.stem + "_text", "txt")
         run([pdftotext, "-layout", str(inp), str(out)], timeout=3600)
         return file_result(out, out.name, "text/plain")
+
+    if op == "data_convert":
+        inp=get_file(payload["input"])
+        source=omni_data_engine.ext(inp,payload.get("source_format"))
+        target=str(payload.get("format","csv")).lower().lstrip(".")
+        if source not in omni_data_engine.DATA_FORMATS or target not in (omni_data_engine.DATA_FORMATS | {"jsonschema"}):
+            raise ValueError("Unsupported Data Studio format")
+        df=omni_data_engine.read_data(inp,source)
+        out=output_path(inp.stem,target)
+        omni_data_engine.write_data(df,out,target,payload.get("table","data"),payload.get("dialect","sqlite"))
+        return file_result(out,out.name)
+
+    if op == "data_profile":
+        inp=get_file(payload["input"])
+        report=omni_data_engine.profile(inp,omni_data_engine.ext(inp,payload.get("source_format")))
+        out=output_path(inp.stem+"_profile","json")
+        out.write_text(json.dumps(report,indent=2),encoding="utf-8")
+        return file_result(out,out.name,"application/json")
+
+    if op == "sql_transpile":
+        inp=get_file(payload["input"])
+        text=inp.read_text(encoding="utf-8-sig",errors="replace")
+        result=omni_data_engine.transpile_sql(text,str(payload.get("source","sqlite")),str(payload.get("target","postgres")))
+        out=output_path(inp.stem+"_transpiled","sql")
+        out.write_text(result,encoding="utf-8")
+        return file_result(out,out.name,"application/sql")
+
+    if op == "schema_generate":
+        inp=get_file(payload["input"])
+        result=omni_data_engine.schema(inp,omni_data_engine.ext(inp,payload.get("source_format")),str(payload.get("dialect","postgres")),safe_name(payload.get("table","data"),"data"))
+        out=output_path(inp.stem+"_schema","sql")
+        out.write_text(result,encoding="utf-8")
+        return file_result(out,out.name,"application/sql")
+
+    if op == "nosql_convert":
+        inp=get_file(payload["input"])
+        target=str(payload.get("target","json"))
+        out=output_path(inp.stem+"_nosql",target)
+        omni_data_engine.nosql_convert(inp,out,str(payload.get("source","json")),target)
+        return file_result(out,out.name)
 
     if op == "archive":
         inp = get_file(payload["input"])
