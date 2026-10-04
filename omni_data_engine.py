@@ -100,7 +100,7 @@ def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
     if target in {"netcdf","nc"}:
         xr=_mod("xarray"); data={};
         for v in variables:
-            arr=np.asarray(v["data"]); dims=tuple(v["dims"]); 
+            arr=np.asarray(v["data"]); dims=tuple((v["name"].replace("/","_") or "data")+"_dim_"+str(i) for i in range(arr.ndim));
             if arr.ndim==0: data[v["name"].replace("/","_")]=xr.DataArray(arr)
             else: data[v["name"].replace("/","_")]=(dims,arr)
         xr.Dataset(data,attrs=attrs).to_netcdf(out); return
@@ -118,7 +118,14 @@ def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
         for v in variables:
             arr=np.asarray(v["data"])
             if arr.ndim>=2: hdus.append(fits.ImageHDU(data=arr,name=v["name"][:68]))
-            elif arr.ndim==1: hdus.append(fits.BinTableHDU.from_columns([fits.Column(name="value",array=arr,format="D")],name=v["name"][:68]))
+            elif arr.ndim==1:
+                kind=arr.dtype.kind
+                if kind in "iu": form="K"
+                elif kind in "f": form="D"
+                elif kind=="b": form="L"
+                else:
+                    width=max(1,min(1024,max((len(str(x)) for x in arr[:10000]),default=1))); form=f"{width}A"; arr=arr.astype(f"U{width}")
+                hdus.append(fits.BinTableHDU.from_columns([fits.Column(name="value",array=arr,format=form)],name=v["name"][:68]))
         fits.HDUList(hdus).writeto(out,overwrite=True); return
     raise RuntimeError("Scientific target must be JSON, CSV, PNG, NetCDF, HDF5 or FITS.")
 
