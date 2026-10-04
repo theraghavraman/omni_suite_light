@@ -120,7 +120,6 @@ def execute(language: str, source: str, stdin: str = "", timeout: int = 8) -> di
                 raise RuntimeError("TypeScript compiler (tsc) is not installed. Use the browser TypeScript runner instead.")
         elif lang == "bash":
             source_file = work / "main.sh"
-            source_file.chmod(0o700)
             command = [_which("bash") or "bash", str(source_file)]
         elif lang == "ruby":
             source_file = work / "main.rb"
