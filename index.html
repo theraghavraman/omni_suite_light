@@ -216,6 +216,7 @@
     .omni-test-detail{font-size:.72rem;color:#7a8498;margin-top:2px;word-break:break-word}
     .omni-test-time{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b95a8}
     .omni-test-log{display:none;margin-top:12px;padding:12px;border-radius:11px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto}
+    .omni-data-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.omni-data-pill{padding:13px;border:1px solid #dfe6f1;border-radius:13px;background:linear-gradient(145deg,#fff,#f7f9ff)}.omni-data-pill b{display:block;color:#2f3652;margin-bottom:4px}.omni-data-pill span{display:block;color:#707c91;font-size:.78rem;line-height:1.45}@media(max-width:760px){.omni-data-grid{grid-template-columns:1fr}}
     .omni-all-lab{margin:0 0 20px;padding:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f7f9ff);box-shadow:0 14px 34px rgba(53,70,105,.08)}
     .omni-all-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.omni-all-head h2{color:#26304b;font-size:1.2rem;margin-bottom:5px}.omni-all-head p{color:#6c7890;font-size:.85rem;line-height:1.5}
     .omni-all-actions{display:flex;gap:8px;flex-wrap:wrap}.omni-all-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0}.omni-all-stat{background:#fff;border:1px solid #dfe6f1;border-radius:11px;padding:10px}.omni-all-stat b{display:block;font-size:1.2rem;color:#26304b}.omni-all-stat span{font-size:.7rem;color:#758198}
@@ -1297,16 +1298,91 @@
       <button type="button" class="nav-btn" data-tab="tabAudio"><span class="studio-icon studio-audio"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 10v4M8 7v10M11 4v16M14 8v8M17 6v12M20 10v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span><span class="studio-label">Audio Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabVideo"><span class="studio-icon studio-video"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="12.5" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 4.2-2.4a.9.9 0 0 1 1.3.8v7.2a.9.9 0 0 1-1.3.8L16 14M9 9.2l4.1 2.8L9 14.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span class="studio-label">Video Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabCompress"><span class="studio-icon studio-compress"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4v4M17 4v4M7 16v4M17 16v4M4 7h4M16 7h4M4 17h4M16 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6v6H9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m11 11-2-2m4 4 2 2m0-4 2-2m-6 4-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="studio-label">Compressor</span></button>
+      <button type="button" class="nav-btn" data-tab="tabData"><span class="studio-icon studio-data"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="7" cy="5.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="17" cy="18.5" r="1.2" fill="currentColor"/></svg></span><span class="studio-label">Data Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabLocal"><span class="studio-icon studio-engine"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.4 3.8 8.8 6a7.2 7.2 0 0 0-1.8 1l-2.2-1.1-1.6 2.8 1.8 1.5a7 7 0 0 0 0 2.1l-1.8 1.5 1.6 2.8 2.2-1.1a7.2 7.2 0 0 0 1.8 1l.6 2.2h3.2l.6-2.2a7.2 7.2 0 0 0 1.8-1l2.2 1.1 1.6-2.8-1.8-1.5a7 7 0 0 0 0-2.1l1.8-1.5-1.6-2.8-2.2 1.1a7.2 7.2 0 0 0-1.8-1l-.6-2.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><circle cx="11" cy="11.2" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="studio-label">Local Engine</span></button>
       <button type="button" class="nav-btn" data-tab="tabAllTests"><span class="studio-icon studio-tests"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18.5 16.5 19.3 18l1.7.2-1.2 1.2.3 1.7-1.6-.9-1.6.9.3-1.7-1.2-1.2 1.7-.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="studio-label">All Tests</span><small>EVERY OPTION</small></button>
 
     </nav>
 
 
-    <!-- 9. LOCAL NATIVE ENGINE -->
+    <!-- 9. DATA STUDIO -->
+    <div class="module-panel" id="tabData">
+      <div class="card">
+        <h2>🧬 9. Data Studio — Structured • Semi-Structured • Unstructured</h2>
+        <div class="sub">A local data engineering workbench for tabular files, document data, SQL dialects, schemas, binary columnar formats and NoSQL export bridges. Processing is local through the Local Engine.</div>
+        <div class="omni-data-grid">
+          <div class="omni-data-pill"><b>Structured</b><span>CSV • Excel • ODS • Parquet • ORC • Arrow • SQLite • DuckDB • Avro</span></div>
+          <div class="omni-data-pill"><b>Semi-structured</b><span>JSON • JSONL/NDJSON • YAML • XML • HTML • MessagePack</span></div>
+          <div class="omni-data-pill"><b>Database / NoSQL</b><span>Oracle • SQL Server • PostgreSQL • MySQL • Snowflake • BigQuery • MongoDB • DynamoDB • Neo4j • Cassandra • Redis</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>1. Universal Data Converter</h2>
+        <div class="sub">Convert tabular and semi-structured data through a common DataFrame/Arrow representation. Nested JSON/YAML is normalized into columns where practical.</div>
+        <div class="dropzone" id="dataConvertDrop"><h3>Choose a data file</h3><p>CSV, TSV, JSON, JSONL, YAML, XML, Excel, ODS, Parquet, Feather, Arrow, ORC, Avro, SQLite, DuckDB and more</p><input type="file" id="dataConvertInput" class="file-input" accept=".csv,.tsv,.txt,.json,.jsonl,.ndjson,.yaml,.yml,.xml,.html,.md,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.arrow,.ipc,.orc,.avro,.sqlite,.db,.duckdb,.sql,.dta,.sas,.sav,.msgpack,.mpk"></div>
+        <div class="controls-panel" id="dataConvertControls" style="display:none;">
+          <div class="file-summary"><div><div class="file-name" id="dataConvertName">No file selected</div><div class="file-meta" id="dataConvertMeta"></div></div><button type="button" class="btn-reset" id="dataConvertReset">Reset</button></div>
+          <div class="options-grid">
+            <div class="form-group"><label for="dataConvertTarget">Convert to</label><select id="dataConvertTarget" class="form-select">
+              <option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON</option><option value="jsonl">JSONL / NDJSON</option><option value="yaml">YAML</option><option value="xml">XML</option><option value="html">HTML table</option><option value="md">Markdown table</option><option value="xlsx">Excel XLSX</option><option value="ods">OpenDocument ODS</option><option value="parquet">Parquet</option><option value="feather">Feather / Arrow IPC</option><option value="orc">ORC</option><option value="avro">Apache Avro</option><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option><option value="sql">SQL INSERT/DDL</option><option value="msgpack">MessagePack</option><option value="jsonschema">JSON Schema</option>
+            </select></div>
+            <div class="form-group"><label for="dataConvertDialect">SQL dialect for SQL output</label><select id="dataConvertDialect" class="form-select"><option value="sqlite">SQLite</option><option value="postgres">PostgreSQL</option><option value="oracle">Oracle</option><option value="tsql">Microsoft SQL Server</option><option value="mysql">MySQL</option><option value="snowflake">Snowflake</option><option value="bigquery">BigQuery</option><option value="duckdb">DuckDB</option></select></div>
+            <div class="form-group"><label for="dataConvertTable">Table name</label><input id="dataConvertTable" class="form-input" value="data" placeholder="data"></div>
+          </div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="dataConvertRun">Convert Data</button><button type="button" class="btn btn-secondary" id="dataProfileRun">Profile Dataset</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. SQL Dialect Translator</h2>
+        <div class="sub">Translate SQL between major dialects. SQLGlot supports 30+ dialects; this studio exposes the most useful enterprise/cloud targets and keeps the source/target explicit.</div>
+        <div class="options-grid">
+          <div class="form-group"><label for="sqlSourceDialect">Source</label><select id="sqlSourceDialect" class="form-select"></select></div>
+          <div class="form-group"><label for="sqlTargetDialect">Target</label><select id="sqlTargetDialect" class="form-select"></select></div>
+        </div>
+        <div class="dropzone" id="sqlTranslateDrop"><h3>Choose a .sql file</h3><p>Oracle SQL ↔ T-SQL ↔ PostgreSQL ↔ MySQL ↔ Snowflake ↔ BigQuery ↔ Databricks ↔ DuckDB and more</p><input type="file" id="sqlTranslateInput" class="file-input" accept=".sql,.ddl,.dml,.txt"></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="sqlTranslateRun">Translate SQL</button></div>
+      </div>
+
+      <div class="card">
+        <h2>3. Schema & Migration Script Generator</h2>
+        <div class="sub">Infer a practical relational schema from a dataset and generate CREATE TABLE DDL for the target dialect. Use this as a migration starting point, not as a guarantee of source-database metadata fidelity.</div>
+        <div class="options-grid">
+          <div class="form-group"><label for="schemaDialect">Target dialect</label><select id="schemaDialect" class="form-select"></select></div>
+          <div class="form-group"><label for="schemaTable">Table name</label><input id="schemaTable" class="form-input" value="data"></div>
+        </div>
+        <div class="dropzone" id="schemaDrop"><h3>Choose source data</h3><p>Generate target SQL DDL from CSV, JSON, Excel, Parquet, XML, YAML and other Data Studio inputs</p><input type="file" id="schemaInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.arrow,.orc,.avro,.sqlite,.db,.duckdb"></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="schemaRun">Generate Schema SQL</button></div>
+      </div>
+
+      <div class="card">
+        <h2>4. NoSQL & Document Bridge</h2>
+        <div class="sub">Bridge common export representations without pretending different database models are identical. MongoDB BSON/Extended JSON and DynamoDB JSON preserve document-oriented semantics better than flattening everything to CSV.</div>
+        <div class="options-grid">
+          <div class="form-group"><label for="nosqlSource">Source representation</label><select id="nosqlSource" class="form-select"><option value="json">JSON / Mongo Extended JSON</option><option value="jsonl">JSONL / NDJSON</option><option value="bson">MongoDB BSON</option><option value="dynamodb-json">DynamoDB JSON / AttributeValue</option></select></div>
+          <div class="form-group"><label for="nosqlTarget">Target</label><select id="nosqlTarget" class="form-select"><option value="json">JSON</option><option value="jsonl">JSONL / NDJSON</option><option value="bson">MongoDB BSON</option><option value="dynamodb-json">DynamoDB JSON</option><option value="csv">CSV (flattened)</option><option value="sql">SQL (flattened)</option><option value="cql">Cassandra CQL schema</option><option value="cypher">Neo4j Cypher creates</option></select></div>
+        </div>
+        <div class="dropzone" id="nosqlDrop"><h3>Choose a document export</h3><p>JSON, NDJSON, BSON or DynamoDB JSON • all processing stays local</p><input type="file" id="nosqlInput" class="file-input" accept=".json,.jsonl,.ndjson,.bson"></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="nosqlRun">Convert NoSQL Export</button></div>
+        <div class="form-hint">Live database connections are deliberately not enabled in this public/offline workflow. Use exported data or generated migration scripts. Direct Oracle, SQL Server, PostgreSQL, MongoDB, Cassandra, Redis, Neo4j and cloud-database connectivity can be added later as explicit connectors.</div>
+      </div>
+
+      <div class="card">
+        <h2>5. Data Engineering Utilities</h2>
+        <div class="sub">The same studio is designed as a bridge between storage representations: relational rows, document records, columnar files, interchange formats and generated database scripts.</div>
+        <div class="omni-data-grid">
+          <div class="omni-data-pill"><b>Columnar / analytics</b><span>Parquet • ORC • Feather • Arrow IPC • Avro • DuckDB</span></div>
+          <div class="omni-data-pill"><b>Interchange</b><span>CSV • TSV • JSON • JSONL • YAML • XML • HTML • Markdown</span></div>
+          <div class="omni-data-pill"><b>Database scripts</b><span>DDL • INSERT • schema inference • SQL dialect translation • CQL • Cypher</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. LOCAL NATIVE ENGINE -->
     <div class="module-panel" id="tabLocal">
       <div class="card">
-        <h2>9. Local Native Engine</h2>
+        <h2>10. Local Native Engine</h2>
         <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div><div style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #f0d9a3;color:#6d5520;"><b>Browser/mobile note:</b> GitHub Pages can process browser-capable files, but it cannot launch desktop programs. FFmpeg, LibreOffice, Calibre, qpdf, Poppler and other native jobs require the Local Engine running on a Windows/macOS/Linux computer. A phone browser cannot start that desktop engine by itself.</div>
         <div id="omniLocalStatus" style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#f6f7fb;border:1px solid #dce3ef;font-weight:700;color:#647089;">Checking local engine…</div>
         <div class="dropzone" id="omniLocalDropzone">
@@ -4190,6 +4266,57 @@
   </script>
 
 
+<script id="omni-data-studio">
+(function(){
+'use strict';
+const BASE='http://127.0.0.1:8765';
+const $=id=>document.getElementById(id);
+let token='',dataFile=null,sqlFile=null,schemaFile=null,nosqlFile=null;
+async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();token=h.token||'';return h}
+async function upload(file){const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!r.ok)throw new Error((await r.text()).slice(0,500));return r.json()}
+async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
+async function download(id){const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!r.ok)throw new Error('Output download failed');const blob=await r.blob();return blob}
+function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+function wirePicker(inputId,dropId,setter){
+ const input=$(inputId),drop=$(dropId);if(!input||!drop)return;
+ const pick=f=>{if(!f)return;setter(f);drop.style.display='none';const controls=input.closest('.card').querySelector('.controls-panel');if(controls)controls.style.display='flex'};
+ input.addEventListener('change',e=>pick(e.target.files[0]));drop.addEventListener('click',e=>{if(e.target!==input)input.click()});
+ drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
+ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');pick(e.dataTransfer.files[0])});
+}
+wirePicker('dataConvertInput','dataConvertDrop',f=>{dataFile=f;$('dataConvertName').textContent=f.name;$('dataConvertMeta').textContent=(f.size/1048576).toFixed(2)+' MB'});
+wirePicker('sqlTranslateInput','sqlTranslateDrop',f=>{sqlFile=f});
+wirePicker('schemaInput','schemaDrop',f=>{schemaFile=f});
+wirePicker('nosqlInput','nosqlDrop',f=>{nosqlFile=f});
+function fillDialects(){
+ const h=$('sqlSourceDialect');const t=$('sqlTargetDialect');const s=$('schemaDialect');if(!h||!t||!s)return;
+ const names=[['oracle','Oracle'],['tsql','Microsoft SQL Server (T-SQL)'],['postgres','PostgreSQL'],['mysql','MySQL'],['sqlite','SQLite'],['duckdb','DuckDB'],['snowflake','Snowflake'],['bigquery','BigQuery'],['databricks','Databricks'],['redshift','Redshift'],['spark','Spark SQL'],['trino','Trino'],['presto','Presto'],['clickhouse','ClickHouse'],['hive','Hive'],['teradata','Teradata'],['athena','Athena'],['doris','Doris'],['drill','Drill'],['druid','Druid'],['materialize','Materialize'],['singlestore','SingleStore'],['starrocks','StarRocks'],['tableau','Tableau']];
+ [h,t,s].forEach(sel=>{sel.innerHTML='';names.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o)})});h.value='oracle';t.value='tsql';s.value='postgres';
+}
+fillDialects();
+async function runData(){
+ if(!dataFile)return alert('Choose a data file first.');
+ try{await health();const up=await upload(dataFile);const target=$('dataConvertTarget').value;const j=await process({op:'data_convert',input:up.file_id,format:target,dialect:$('dataConvertDialect').value,table:$('dataConvertTable').value});save(await download(j.file_id),j.name)}catch(e){alert('Data Converter: '+e.message)}
+}
+async function runProfile(){
+ if(!dataFile)return alert('Choose a data file first.');
+ try{await health();const up=await upload(dataFile);const j=await process({op:'data_profile',input:up.file_id});save(await download(j.file_id),j.name)}catch(e){alert('Data Profile: '+e.message)}
+}
+async function runSql(){
+ if(!sqlFile)return alert('Choose a SQL file first.');
+ try{await health();const up=await upload(sqlFile);const j=await process({op:'sql_transpile',input:up.file_id,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name)}catch(e){alert('SQL Translator: '+e.message)}
+}
+async function runSchema(){
+ if(!schemaFile)return alert('Choose source data first.');
+ try{await health();const up=await upload(schemaFile);const j=await process({op:'schema_generate',input:up.file_id,source_format:schemaFile.name.split('.').pop(),dialect:$('schemaDialect').value,table:$('schemaTable').value});save(await download(j.file_id),j.name)}catch(e){alert('Schema Generator: '+e.message)}
+}
+async function runNosql(){
+ if(!nosqlFile)return alert('Choose a document export first.');
+ try{await health();const up=await upload(nosqlFile);const j=await process({op:'nosql_convert',input:up.file_id,source:$('nosqlSource').value,target:$('nosqlTarget').value});save(await download(j.file_id),j.name)}catch(e){alert('NoSQL Bridge: '+e.message)}
+}
+$('dataConvertRun')?.addEventListener('click',runData);$('dataProfileRun')?.addEventListener('click',runProfile);$('sqlTranslateRun')?.addEventListener('click',runSql);$('schemaRun')?.addEventListener('click',runSchema);$('nosqlRun')?.addEventListener('click',runNosql);
+})();
+</script>
 <script id="omni-native-format-bridges">
 (function(){
 'use strict';
