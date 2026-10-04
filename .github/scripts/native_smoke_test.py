@@ -203,6 +203,15 @@ try:
     process({"op":"nosql_convert","input":docs_up["file_id"],"source":"json","target":"csv"},"ci-test-token")
     print("21. NoSQL JSON/JSONL/DynamoDB/CSV bridge: OK")
 
+    # CI coverage: privacy scanning should detect common sensitive-data patterns and emit a stable report.
+    sensitive=ROOT/"sensitive.txt"; sensitive.write_text("Contact: test@example.com\nPhone: +91 98765 43210\n",encoding="utf-8")
+    sensitive_up=upload(sensitive,"ci-test-token")
+    out=process({"op":"privacy_scan","input":sensitive_up["file_id"]},"ci-test-token")
+    download(out["file_id"],ROOT/"privacy.json","ci-test-token")
+    privacy_text=(ROOT/"privacy.json").read_text(encoding="utf-8")
+    assert "sha256" in privacy_text and "email" in privacy_text.lower()
+    print("22. Privacy scan report/hash contract: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
