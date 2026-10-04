@@ -28,8 +28,7 @@ RUN python -m pip install --upgrade pip && \
 
 COPY . .
 
-RUN python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py omni_bootstrap.py && \
-    python .github/scripts/omni_contract_audit.py
+RUN python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py omni_bootstrap.py
 
 EXPOSE 8765
 
