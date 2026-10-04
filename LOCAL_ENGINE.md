@@ -13,6 +13,23 @@ Double-click:
 
 `setup_and_start.bat`
 
+The Windows setup now installs **Poppler** automatically. Poppler supplies `pdftoppm` and `pdftotext`, which the Local Engine uses for PDF rendering, PDF text extraction and the native PDF → PPTX visual-replica path. The current Windows package is available through WinGet as `oschwartz10612.Poppler`.
+
+Manual Windows install if needed:
+
+```powershell
+winget install --id oschwartz10612.Poppler --exact --silent --accept-package-agreements --accept-source-agreements
+```
+
+Then restart the terminal and run `start_omni.bat`. You can verify it with:
+
+```powershell
+pdftoppm -v
+pdftotext -v
+```
+
+The public GitHub Pages version does **not** need Poppler for PDF → PPTX: that conversion is generated directly in the browser. The Local Engine remains the native fallback for larger jobs and other conversions that require installed desktop renderers.
+
 or run:
 
 `powershell -ExecutionPolicy Bypass -File install_windows.ps1`
