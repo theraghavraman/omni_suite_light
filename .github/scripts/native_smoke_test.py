@@ -42,35 +42,35 @@ try:
             with request.urlopen(request.Request("http://127.0.0.1:8765/api/health",headers={"Origin":"http://127.0.0.1:8765"}),timeout=2) as r: health=json.loads(r.read()); break
         except Exception: time.sleep(.25)
     assert health and health.get("ok") and health.get("token")=="ci-test-token"
-    print("7. Local Engine health: OK")
+    print("1. Local Engine health: OK")
     caps=health.get("capabilities",{})
     required={"media_video":["mp4","mpeg","mkv","gif"],"media_audio":["mp3","flac","opus","wma"],"image":["svg","gif","tiff","heic"],"office":["docx","docm","xlsx","xlsm","pptx","pptm","odp"],"ebook":["epub","mobi","azw3","cbz","cbr","djvu"]}
     missing=[f"{k}:{v}" for k,vals in required.items() for v in vals if v not in caps.get(k,[])]
     assert not missing, "Missing native capabilities: "+", ".join(missing)
-    print("8. Native format capability inventory: OK")
+    print("2. Native format capability inventory: OK")
 
     magick=which("magick","convert")
     image=ROOT/"sample.png"
     run([magick,"-size","500x120","xc:white","-gravity","center","-pointsize","32","-fill","black","-annotate","0","Omni CI",str(image)])
-    up=upload(image,"ci-test-token"); print("1. Image upload: OK")
+    up=upload(image,"ci-test-token"); print("3. Image upload: OK")
 
     out=process({"op":"image","input":up["file_id"],"format":"png","width":200},"ci-test-token")
-    download(out["file_id"],ROOT/"resized.png","ci-test-token"); print("2. Image resize: OK")
+    download(out["file_id"],ROOT/"resized.png","ci-test-token"); print("4. Image resize: OK")
 
     out=process({"op":"image","input":up["file_id"],"format":"pdf"},"ci-test-token")
-    download(out["file_id"],ROOT/"image.pdf","ci-test-token"); print("3. Image -> PDF: OK")
+    download(out["file_id"],ROOT/"image.pdf","ci-test-token"); print("5. Image -> PDF: OK")
     pdf=upload(ROOT/"image.pdf","ci-test-token")
 
     out=process({"op":"pdf_render","input":pdf["file_id"],"dpi":72},"ci-test-token")
-    download(out["file_id"],ROOT/"render.zip","ci-test-token"); print("4. PDF -> image: OK")
+    download(out["file_id"],ROOT/"render.zip","ci-test-token"); print("6. PDF -> image: OK")
 
     out=process({"op":"ocr","input":up["file_id"],"lang":"eng"},"ci-test-token")
-    download(out["file_id"],ROOT/"ocr.txt","ci-test-token"); print("5. OCR: OK")
+    download(out["file_id"],ROOT/"ocr.txt","ci-test-token"); print("7. OCR: OK")
 
     out=process({"op":"zip","inputs":[up["file_id"],pdf["file_id"]]},"ci-test-token")
     download(out["file_id"],ROOT/"archive.zip","ci-test-token")
     with zipfile.ZipFile(ROOT/"archive.zip") as z: assert z.namelist()
-    print("6. ZIP compression/extraction: OK")
+    print("8. ZIP compression/extraction: OK")
 
     run([which("ffmpeg"),"-y","-f","lavfi","-i","anullsrc=r=8000:cl=mono","-t","0.2",str(ROOT/"tone.wav")])
     media=upload(ROOT/"tone.wav","ci-test-token")
