@@ -1574,6 +1574,8 @@
             <button type="button" class="btn btn-success" id="officePptPdfBtn">PPT → PDF</button>
             <button type="button" class="btn btn-secondary" id="officePdfPptBtn">PDF → PPTX</button>
             <button type="button" class="btn btn-secondary" id="officeCsvXlsxBtn">CSV → XLSX</button>
+            <button type="button" class="btn btn-secondary" id="officeSheetXlsxBtn">Excel/ODS → XLSX</button>
+            <button type="button" class="btn btn-secondary" id="officeDeckPptxBtn">PPT/ODP → PPTX</button>
           </div>
           <div class="form-hint">PPT/PPTX/ODP conversions are handled by LibreOffice. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
         </div>
@@ -4425,7 +4427,7 @@ function runOptions(clear=true){
 }
 function runOfficeChecks(){
  const panel=$('tabWord');if(!panel){add('Office Studio','Office Studio panel','FAIL','Panel missing');return}
- const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn'];
+ const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn','officeSheetXlsxBtn','officeDeckPptxBtn'];
  ids.forEach(id=>{const el=$(id);add('Office Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
  const targets=panel.querySelectorAll('#officeConvertTarget option');
  add('Office Studio','Office target formats','PASS',targets.length+' supported target formats');
@@ -4679,6 +4681,8 @@ run.onclick=()=>convert();
 $('officePptPdfBtn').onclick=()=>{target.value='pdf';convert('pdf')};
 $('officePdfPptBtn').onclick=()=>{target.value='pptx';convert('pptx')};
 $('officeCsvXlsxBtn').onclick=()=>{target.value='xlsx';convert('xlsx')};
+$('officeSheetXlsxBtn').onclick=()=>{target.value='xlsx';convert('xlsx')};
+$('officeDeckPptxBtn').onclick=()=>{target.value='pptx';convert('pptx')};
 })();
 </script>
 </body>
