@@ -1741,7 +1741,7 @@
             <div class="actions-bar">
               <button type="button" class="btn btn-primary" id="officePresentationRun">Convert Presentation</button>
             </div>
-            <div class="form-hint">PDF input is rendered to a PPTX visual replica first; when another presentation target is selected, OmniConverter chains the conversion locally through PPTX.</div>
+            <div class="form-hint">Browser-first: PDF → PPTX is rendered entirely in the browser when supported. Local Engine is used only when the browser cannot safely preserve the presentation format.</div>
           </div>
         </div>
 
@@ -1781,7 +1781,7 @@
             <div class="actions-bar">
               <button type="button" class="btn btn-primary" id="officeSpreadsheetRun">Convert Spreadsheet</button>
             </div>
-            <div class="form-hint">Workbook/template fidelity depends on the LibreOffice filter. XLSB export is offered when the installed LibreOffice build supports it.</div>
+            <div class="form-hint">Browser-first: common Excel/Calc and delimited conversions run in the browser. Local Engine is used only for formats/features the browser cannot safely preserve.</div>
           </div>
         </div>
       </div>
@@ -4424,10 +4424,12 @@ function fillDialects(){
 fillDialects();
 async function runData(){
  if(!dataFile)return alert('Choose a data file first.');
+ try{if(await window.OMNI_BROWSER_FIRST.dataConvert(dataFile,$('dataConvertTarget').value,$('dataConvertDialect').value,$('dataConvertTable').value))return}catch(e){console.warn('Browser Data Studio failed; using Local Engine fallback.',e)}
  try{await health();const up=await upload(dataFile);const target=$('dataConvertTarget').value;const j=await process({op:'data_convert',input:up.file_id,format:target,dialect:$('dataConvertDialect').value,table:$('dataConvertTable').value});save(await download(j.file_id),j.name)}catch(e){alert('Data Converter: '+e.message)}
 }
 async function runProfile(){
  if(!dataFile)return alert('Choose a data file first.');
+ try{if(await window.OMNI_BROWSER_FIRST.profile(dataFile))return}catch(e){console.warn('Browser profile failed; using Local Engine fallback.',e)}
  try{await health();const up=await upload(dataFile);const j=await process({op:'data_profile',input:up.file_id});save(await download(j.file_id),j.name)}catch(e){alert('Data Profile: '+e.message)}
 }
 async function runSql(){
@@ -4437,6 +4439,10 @@ async function runSql(){
   if($('sqlTranslateText')?.value.trim()){const f=new File([$('sqlTranslateText').value],'pasted.sql',{type:'application/sql'});const up=await upload(f);fid=up.file_id;}
   else if(sqlFile){const up=await upload(sqlFile);fid=up.file_id;}
   else return alert('Choose a SQL file or paste SQL first.');
+  const sqlText=$('sqlTranslateText')?.value.trim() || (sqlFile?await sqlFile.text():'');
+  if(!sqlText)return alert('Choose a SQL file or paste SQL first.');
+  if(await window.OMNI_BROWSER_FIRST.sql(sqlText,$('sqlSourceDialect').value,$('sqlTargetDialect').value))return;
+  const up=await upload(new File([sqlText],sqlFile?.name||'pasted.sql',{type:'application/sql'}));fid=up.file_id;
   const j=await process({op:'sql_transpile',input:fid,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name);
  }catch(e){alert('SQL Translator: '+e.message)}
 }
@@ -5084,6 +5090,7 @@ async function convertDedicated(fileObj,targetId,label){
   const fmt=$(targetId).value;
   if(fmt===ext){alert('The selected file is already '+fmt.toUpperCase()+'.');return}
   try{
+    try{if(await window.OMNI_BROWSER_FIRST.office(fileObj,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
     await health(ext==='pdf' && fmt!=='pdf'?'pdf_to_ppt':'office_convert');
     const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:fileObj});
