@@ -436,6 +436,20 @@ def process_job(payload):
         omni_data_engine.write_data(df,out,target,payload.get("table","data"),payload.get("dialect","sqlite"))
         return file_result(out,out.name)
 
+    if op == "blob_convert":
+        inp=get_file(payload["input"])
+        source=str(payload.get("source","binary")); target=str(payload.get("target","base64"))
+        ext_out={"binary":"bin","base64":"b64","hex":"hex","sql":"sql"}.get(target,target)
+        out=output_path(inp.stem+"_blob",ext_out)
+        omni_data_engine.blob_convert(inp,out,source,target)
+        return file_result(out,out.name)
+
+    if op == "text_lines":
+        inp=get_file(payload["input"]); target=str(payload.get("target","jsonl"))
+        out=output_path(inp.stem+"_lines",target)
+        out.write_text(omni_data_engine.text_lines(inp,target),encoding="utf-8")
+        return file_result(out,out.name)
+
     if op == "data_profile":
         inp=get_file(payload["input"])
         report=omni_data_engine.profile(inp,omni_data_engine.ext(inp,payload.get("source_format")))
