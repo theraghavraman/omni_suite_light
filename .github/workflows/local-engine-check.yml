@@ -38,7 +38,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif eccodes tesseract pandoc p7zip sevenzip
+          brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif ghostscript eccodes tesseract pandoc p7zip sevenzip
           brew install --cask libreoffice calibre
       - name: Verify native executables
         shell: bash
