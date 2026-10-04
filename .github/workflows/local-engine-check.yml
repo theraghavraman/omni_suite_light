@@ -37,7 +37,17 @@ jobs:
           tesseract --version
           soffice --version
           ebook-convert --version
+      - name: Refresh PATH after native package install (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          $user = [Environment]::GetEnvironmentVariable("Path", "User")
+          "PATH=$machine;$user;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+
       - name: Run native 11-item smoke test
+        env:
+          OMNI_TEST_ORIGIN: http://127.0.0.1:8765
         run: python .github/scripts/native_smoke_test.py
       - name: Validate setup files
         shell: bash
