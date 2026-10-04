@@ -78,10 +78,12 @@ async function refreshRepo(){
   if(!tree.ok)throw new Error("GitHub repository tree unavailable");
   const j=await tree.json();
   const files=(j.tree||[]).filter(x=>x.type==="blob"&&/\.(html?|css|js|mjs|json|md|txt|py|sql|yaml|yml|csv|xml|svg)$/i.test(x.path)&&!/(node_modules|vendor\/.*\.min\.|dist\/.*\.min\.)/i.test(x.path)).slice(0,220);
-  const nextMap=Object.fromEntries(files.map(x=>[x.path,x.sha]));
+  const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha]));
   const oldMap=previous?.files||{};
-  const removed=Object.keys(oldMap).filter(p=>!nextMap[p]);
+  const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);
   await deleteSources(removed.map(p=>"Repository: "+p));
+  const nextMap={...oldMap};
+  removed.forEach(p=>delete nextMap[p]);
   let changed=0,failed=0,totalNewChunks=0;
   for(const x of files){
    if(oldMap[x.path]===x.sha)continue;
@@ -91,10 +93,11 @@ async function refreshRepo(){
     if(!rr.ok){failed++;continue}
     const t=await rr.text();if(t.length>180000){failed++;continue}
     totalNewChunks+=await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha});
+    nextMap[x.path]=x.sha;
     changed++;
    }catch(e){failed++}
   }
-  await metaSet(REPO_KEY,{commitSha,commitDate,files:nextMap,filesCount:files.length,changedAt:new Date().toISOString(),failed});
+  await metaSet(REPO_KEY,{commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
   chunks=await getAll();updateStats();
   status.textContent=`Repository indexed locally · ${files.length} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
