@@ -5615,6 +5615,8 @@ async function runBrowserTests(){
     ['Runtime','File/Blob/URL APIs',()=>{if(!window.File||!window.Blob||!window.URL||!URL.createObjectURL)throw new Error('Required File APIs missing');return 'File, Blob and object URLs available';}],
     ['Runtime','Canvas image pipeline',async()=>{const b=await canvasBlob('OMNI');const u=URL.createObjectURL(b);const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('Generated PNG could not be decoded'));img.src=u;});URL.revokeObjectURL(u);return b.size+' bytes PNG';}],
     ['Runtime','UI tab wiring',()=>{const btns=[...document.querySelectorAll('.nav-btn[data-tab]')];const bad=btns.filter(b=>!document.getElementById(b.dataset.tab));if(bad.length)throw new Error(bad.length+' tab targets missing');return btns.length+' navigation tabs linked';}],
+    ['Runtime','BI Interchange action wiring',()=>{const ids=['vizAnalyzeBtn','vizGenerateBtn','vizDownloadBtn','vizResetBtn'];const missing=ids.filter(id=>!document.getElementById(id));if(missing.length)throw new Error('Missing BI controls: '+missing.join(', '));if(!window.OMNI_BI_INTERCHANGE)throw new Error('BI action layer not loaded');return 'BI action layer ready';}],
+    ['Runtime','Code Studio action wiring',()=>{const ids=['codeConvertBtn','codePseudoBtn','codeDownloadBtn'];const missing=ids.filter(id=>!document.getElementById(id));if(missing.length)throw new Error('Missing Code controls: '+missing.join(', '));if(!window.OMNI_CODE_STUDIO)throw new Error('Code action layer not loaded');return 'Code action layer ready';}],
     ['Runtime','Universal Data Studio engine',()=>{if(!window.OMNI_UNIVERSAL_DATA||typeof window.OMNI_UNIVERSAL_DATA.exportAs!=='function')throw new Error('Universal Data Studio engine missing');return 'Universal Data & Signal engine ready';}],
     ['Runtime','Scientific Local Engine bridge',()=>{const p=document.getElementById('tabUniversalData');if(!p)throw new Error('Universal Data panel missing');if(!document.getElementById('udsFormat'))throw new Error('Universal output controls missing');return 'Scientific local conversion controls present';}],
     ['Runtime','Upload-zone wiring',()=>{const z=[...document.querySelectorAll('.dropzone')];const bad=z.filter(x=>!x.querySelector('input[type=file]'));if(bad.length)throw new Error(bad.length+' upload zones missing file inputs');return z.length+' upload zones wired';}],
@@ -5876,6 +5878,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 </script>
 
 <script src="./universal_data_studio.js"></script>
+<script src="./bi_code_studio.js"></script>
 
 <script id="omni-unicode-local-bridge">
 (function(){
