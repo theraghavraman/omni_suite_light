@@ -6275,11 +6275,13 @@ function setText(id,value){const el=$(id);if(el)el.textContent=value;}
 async function health(){
   const r=await fetch(BASE+'/api/health',{cache:'no-store'});
   if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
-  const h=await r.json(); token=h.token||''; return h;
+  const h=await r.json();
+  if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch OmniConverter using the current repository launcher.');
+  token=h.token||''; return h;
 }
 async function ensureLocal(){
   try{return await health();}
-  catch(e){throw new Error('Local Engine is not running. Start OmniConverter Local Engine first at http://127.0.0.1:8765/.');}
+  catch(e){throw new Error(e.message||'Local Engine is not available. Relaunch the current OmniConverter Local Engine.');}
 }
 async function upload(file){
   const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
