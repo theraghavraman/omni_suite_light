@@ -5287,7 +5287,7 @@ window.OMNI_BROWSER_FIRST={dataConvert:data,profile,sql:sqlWeb,office,nosql,sche
 const BASE='http://127.0.0.1:8765';
 const $=id=>document.getElementById(id);
 let token='',dataFile=null,sqlFile=null,schemaFile=null,nosqlFile=null;
-async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();token=h.token||'';return h}
+async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token=h.token||'';return h}
 async function upload(file){const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!r.ok)throw new Error((await r.text()).slice(0,500));return r.json()}
 async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
 async function download(id){const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!r.ok)throw new Error('Output download failed');const blob=await r.blob();return blob}
@@ -5380,7 +5380,7 @@ reset?.addEventListener('click',()=>{file=null;input.value='';drop.style.display
 button.addEventListener('click',async()=>{
 if(!file){alert('Choose a file first.');return;}button.disabled=true;
 try{
-const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();token=h.token||'';
+const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token=h.token||'';
 const tool=card.op==='media'?'ffmpeg':card.op==='image'?'magick':card.op==='ebook_convert'?'ebook-convert':card.op==='archive'?(target.value==='7z'?'7z':null):null;if(tool&&!(h.tools&&h.tools[tool]&&h.tools[tool].installed))throw new Error(tool+' is not installed on the Local Engine.');
 const up=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error((await up.text()).slice(0,400));const uj=await up.json();
 const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:card.op,input:uj.file_id,format:target.value})});const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Native conversion failed');
@@ -5532,7 +5532,7 @@ document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.q
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
 function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
 const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
-async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
+async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(Number(j.engine_api_version||0)<4){p.className='omni-local-pill warn';p.textContent='⚠ Local Engine outdated • Relaunch current Omni launcher';return;}omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
 })();
 </script>
@@ -6095,7 +6095,9 @@ async function omniLocalText(format){
   if(!text.trim()) throw new Error("Enter some text first.");
   const h=await fetch(localBase+"/api/health",{cache:"no-store"});
   if(!h.ok) throw new Error("Local Engine is not running.");
-  const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+  const health=await h.json();
+  if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
+  const token=health.token||window.OMNI_TOKEN;
   const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"text_document",title:title,text:text,format:format})});
   const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||"Local document conversion failed.");
   const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{"X-Omni-Token":token}});
@@ -6109,7 +6111,8 @@ async function omniLocalPdfDocx(){
   const input=document.getElementById("p2wInput"); if(!input||!input.files[0]) throw new Error("Choose a PDF first.");
   const file=input.files[0];
   const h=await fetch(localBase+"/api/health",{cache:"no-store"}); if(!h.ok) throw new Error("Local Engine is not running.");
-  const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+  const health=await h.json(); if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
+  const token=health.token||window.OMNI_TOKEN;
   const up=await fetch(localBase+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
   const uj=await up.json(); if(!up.ok) throw new Error(uj.error||"PDF upload failed.");
   const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"pdf_to_docx",input:uj.file_id})});
@@ -6157,7 +6160,8 @@ if(docx) docx.addEventListener("click",async e=>{
       const base="http://127.0.0.1:8765";
       const h=await fetch(base+"/api/health",{cache:"no-store"});
       if(!h.ok) throw new Error("Local Engine is not running.");
-      const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+      const health=await h.json(); if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
+      const token=health.token||window.OMNI_TOKEN;
       const zip=window.JSZip?new JSZip():null;
       for(const file of files){
         const up=await fetch(base+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
