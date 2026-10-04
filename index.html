@@ -217,6 +217,7 @@
     .omni-test-time{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b95a8}
     .omni-test-log{display:none;margin-top:12px;padding:12px;border-radius:11px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto}
     .omni-data-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.omni-data-pill{padding:13px;border:1px solid #dfe6f1;border-radius:13px;background:linear-gradient(145deg,#fff,#f7f9ff)}.omni-data-pill b{display:block;color:#2f3652;margin-bottom:4px}.omni-data-pill span{display:block;color:#707c91;font-size:.78rem;line-height:1.45}@media(max-width:760px){.omni-data-grid{grid-template-columns:1fr}}
+    .omni-office-conversion-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}.omni-office-area{border-top:4px solid #635bff}.omni-office-area.spreadsheet{border-top-color:#0f9f76}@media(max-width:900px){.omni-office-conversion-grid{grid-template-columns:1fr}}
     .omni-all-lab{margin:0 0 20px;padding:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f7f9ff);box-shadow:0 14px 34px rgba(53,70,105,.08)}
     .omni-all-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.omni-all-head h2{color:#26304b;font-size:1.2rem;margin-bottom:5px}.omni-all-head p{color:#6c7890;font-size:.85rem;line-height:1.5}
     .omni-all-actions{display:flex;gap:8px;flex-wrap:wrap}.omni-all-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0}.omni-all-stat{background:#fff;border:1px solid #dfe6f1;border-radius:11px;padding:10px}.omni-all-stat b{display:block;font-size:1.2rem;color:#26304b}.omni-all-stat span{font-size:.7rem;color:#758198}
@@ -1698,6 +1699,88 @@
           <div class="form-hint">LibreOffice handles the broad Office/ODF family. Macro-enabled files can be converted, but VBA/macros and application-specific features are not guaranteed to survive. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
         </div>
       </div>
+
+      <div class="omni-office-conversion-grid">
+        <div class="card omni-office-area" id="officePresentationConverter">
+          <h2>5. Presentation Conversion Area</h2>
+          <div class="sub">Dedicated PowerPoint / Impress conversion workspace. Convert presentation families between legacy, modern, slideshow, template and OpenDocument formats, plus PDF → presentation conversion.</div>
+          <div class="dropzone" id="officePresentationDrop">
+            <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5M12 19v2M9 21h6"/></svg>
+            <h3>Choose a presentation file</h3>
+            <p>PPT, PPTX, PPTM, PPS, PPSX, POT, POTX, POTM, ODP, OTP, FODP or PDF</p>
+            <input type="file" id="officePresentationInput" class="file-input" accept=".ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.pdf">
+          </div>
+          <div class="controls-panel" id="officePresentationControls" style="display:none;">
+            <div class="file-summary">
+              <div><div class="file-name" id="officePresentationName">No file selected</div><div class="file-meta" id="officePresentationMeta"></div></div>
+              <button type="button" class="btn-reset" id="officePresentationReset">Reset</button>
+            </div>
+            <div class="options-grid">
+              <div class="form-group">
+                <label for="officePresentationTarget">Convert presentation to</label>
+                <select id="officePresentationTarget" class="form-select">
+                  <option value="pdf">PDF</option>
+                  <option value="ppt">PPT — legacy PowerPoint</option>
+                  <option value="pptx" selected>PPTX — PowerPoint</option>
+                  <option value="pptm">PPTM — macro-enabled PowerPoint</option>
+                  <option value="pps">PPS — legacy slideshow</option>
+                  <option value="ppsx">PPSX — PowerPoint slideshow</option>
+                  <option value="pot">POT — legacy template</option>
+                  <option value="potx">POTX — PowerPoint template</option>
+                  <option value="potm">POTM — macro-enabled template</option>
+                  <option value="odp">ODP — LibreOffice Impress</option>
+                  <option value="otp">OTP — Impress template</option>
+                  <option value="fodp">FODP — flat XML Impress</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions-bar">
+              <button type="button" class="btn btn-primary" id="officePresentationRun">Convert Presentation</button>
+            </div>
+            <div class="form-hint">PDF input is rendered to a PPTX visual replica first; when another presentation target is selected, OmniConverter chains the conversion locally through PPTX.</div>
+          </div>
+        </div>
+
+        <div class="card omni-office-area spreadsheet" id="officeSpreadsheetConverter">
+          <h2>6. Spreadsheet Conversion Area</h2>
+          <div class="sub">Dedicated Excel / Calc conversion workspace for workbook, template and tabular-data formats. Use it when you want spreadsheet conversions without the presentation/document options.</div>
+          <div class="dropzone" id="officeSpreadsheetDrop">
+            <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16M14 14h3M14 17h3"/></svg>
+            <h3>Choose a spreadsheet file</h3>
+            <p>XLS, XLSX, XLSM, XLSB, XLT, XLTX, XLTM, ODS, OTS, FODS, CSV or TSV</p>
+            <input type="file" id="officeSpreadsheetInput" class="file-input" accept=".xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv">
+          </div>
+          <div class="controls-panel" id="officeSpreadsheetControls" style="display:none;">
+            <div class="file-summary">
+              <div><div class="file-name" id="officeSpreadsheetName">No file selected</div><div class="file-meta" id="officeSpreadsheetMeta"></div></div>
+              <button type="button" class="btn-reset" id="officeSpreadsheetReset">Reset</button>
+            </div>
+            <div class="options-grid">
+              <div class="form-group">
+                <label for="officeSpreadsheetTarget">Convert spreadsheet to</label>
+                <select id="officeSpreadsheetTarget" class="form-select">
+                  <option value="xls">XLS — legacy Excel</option>
+                  <option value="xlsx" selected>XLSX — Excel</option>
+                  <option value="xlsm">XLSM — macro-enabled Excel</option>
+                  <option value="xlsb">XLSB — Excel binary (LibreOffice-dependent)</option>
+                  <option value="xlt">XLT — legacy Excel template</option>
+                  <option value="xltx">XLTX — Excel template</option>
+                  <option value="xltm">XLTM — macro-enabled template</option>
+                  <option value="ods">ODS — LibreOffice Calc</option>
+                  <option value="ots">OTS — Calc template</option>
+                  <option value="fods">FODS — flat XML Calc</option>
+                  <option value="csv">CSV — comma-separated data</option>
+                  <option value="tsv">TSV — tab-separated data</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions-bar">
+              <button type="button" class="btn btn-primary" id="officeSpreadsheetRun">Convert Spreadsheet</button>
+            </div>
+            <div class="form-hint">Workbook/template fidelity depends on the LibreOffice filter. XLSB export is offered when the installed LibreOffice build supports it.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 3. EPUB STUDIO -->
@@ -2296,7 +2379,7 @@
       <div class="omni-all-lab">
         <div class="omni-all-head">
           <div><h2>🔬 All Options Functional Test</h2><p>This is a separate exhaustive test screen. It inventories every studio action, control, upload zone and select option, then checks that the UI wiring and implementation references exist. It does not alter your files.</p></div>
-          <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button></div>
+          <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button><select id="omniAllFilter" class="form-select" style="width:auto;min-width:150px;"><option value="all">Show all results</option><option value="failed">Show failed only</option></select></div>
         </div>
         <div class="omni-all-summary"><div class="omni-all-stat"><b id="allPass">0</b><span>PASS</span></div><div class="omni-all-stat"><b id="allFail">0</b><span>FAIL</span></div><div class="omni-all-stat"><b id="allSkip">0</b><span>SKIPPED</span></div><div class="omni-all-stat"><b id="allTotal">0</b><span>CHECKS</span></div><div class="omni-all-stat"><b id="allControls">0</b><span>CONTROLS</span></div></div>
         <div id="omniAllGroups" class="omni-all-groups"></div>
@@ -4339,6 +4422,7 @@ async function runNosql(){
  if(!nosqlFile)return alert('Choose a document export first.');
  try{await health();const up=await upload(nosqlFile);const j=await process({op:'nosql_convert',input:up.file_id,source:$('nosqlSource').value,target:$('nosqlTarget').value});save(await download(j.file_id),j.name)}catch(e){alert('NoSQL Bridge: '+e.message)}
 }
+$('dataConvertReset')?.addEventListener('click',()=>{dataFile=null;const input=$('dataConvertInput');if(input)input.value='';const drop=$('dataConvertDrop');if(drop)drop.style.display='block';const card=input?.closest('.card');const controls=card?.querySelector('.controls-panel');if(controls)controls.style.display='none';$('dataConvertName').textContent='No file selected';$('dataConvertMeta').textContent='';});
 $('dataConvertRun')?.addEventListener('click',runData);$('dataProfileRun')?.addEventListener('click',runProfile);$('sqlTranslateRun')?.addEventListener('click',runSql);$('schemaRun')?.addEventListener('click',runSchema);$('nosqlRun')?.addEventListener('click',runNosql);
 })();
 </script>
@@ -4639,13 +4723,14 @@ updateMode();
 (function(){
 'use strict';
 const $=id=>document.getElementById(id), groups=$('omniAllGroups'), state=[];
+let resultFilter='all';
 const studioMap={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine'};
 function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function add(studio,name,status,detail){state.push({studio,name,status,detail});}
 function render(){
   groups.innerHTML='';
   Object.keys(studioMap).forEach(id=>{
-    const rows=state.filter(x=>x.studio===studioMap[id]); if(!rows.length)return;
+    const rows=state.filter(x=>x.studio===studioMap[id] && (resultFilter==='all' || x.status==='FAIL')); if(!rows.length)return;
     const g=document.createElement('section');g.className='omni-all-group';g.innerHTML='<h3>'+esc(studioMap[id])+'</h3><div class="omni-all-list"></div>';
     const list=g.querySelector('.omni-all-list');rows.forEach(r=>{const el=document.createElement('div');el.className='omni-all-row';el.innerHTML='<span class="omni-all-badge '+r.status.toLowerCase()+'">'+esc(r.status)+'</span><div><div class="omni-all-name">'+esc(r.name)+'</div><div class="omni-all-detail">'+esc(r.detail)+'</div></div>';list.appendChild(el);});groups.appendChild(g);
   });
@@ -4679,11 +4764,13 @@ function runOptions(clear=true){
 }
 function runOfficeChecks(){
  const panel=$('tabWord');if(!panel){add('Office Studio','Office Studio panel','FAIL','Panel missing');return}
- const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn','officeSheetXlsxBtn','officeDeckPptxBtn'];
+ const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn','officeSheetXlsxBtn','officeDeckPptxBtn','officePresentationInput','officePresentationTarget','officePresentationRun','officePresentationReset','officeSpreadsheetInput','officeSpreadsheetTarget','officeSpreadsheetRun','officeSpreadsheetReset'];
  ids.forEach(id=>{const el=$(id);add('Office Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
  const targets=panel.querySelectorAll('#officeConvertTarget option');
  add('Office Studio','Office target formats','PASS',targets.length+' supported target formats');
- ['pdf','docx','docm','dotx','xlsx','xlsm','xlsb','ods','csv','pptx','pptm','ppsx','potx','odp','otp'].forEach(fmt=>add('Office Studio','Target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
+ ['pdf','docx','docm','dotx','xlsx','xlsm','xlsb','ods','csv','pptx','pptm','ppsx','potx','odp','otp'].forEach(fmt=>add('Office Studio','Universal target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
+ const presentationTargets=['pdf','ppt','pptx','pptm','pps','ppsx','pot','potx','potm','odp','otp','fodp'];const pt=$('officePresentationTarget');presentationTargets.forEach(fmt=>add('Office Studio','Presentation target '+fmt,pt&&[...pt.options].some(o=>o.value===fmt)?'PASS':'FAIL',pt&&[...pt.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
+ const spreadsheetTargets=['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'];const st=$('officeSpreadsheetTarget');spreadsheetTargets.forEach(fmt=>add('Office Studio','Spreadsheet target '+fmt,st&&[...st.options].some(o=>o.value===fmt)?'PASS':'FAIL',st&&[...st.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
 }
 function runAll(){
  reset();runStructure(false);runOptions(false);runOfficeChecks();
@@ -4694,6 +4781,7 @@ function runAll(){
 $('omniRunAllOptions')?.addEventListener('click',runAll);
 $('omniRunStructure')?.addEventListener('click',runStructure);
 $('omniRunOptions')?.addEventListener('click',runOptions);
+$('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
 })();
 </script>
 <script id="omni-test-lab">
@@ -4963,7 +5051,57 @@ $('officePdfPptBtn').onclick=()=>{target.value='pptx';convert('pptx')};
 $('officeCsvXlsxBtn').onclick=()=>{target.value='xlsx';convert('xlsx')};
 $('officeSheetXlsxBtn').onclick=()=>{target.value='xlsx';convert('xlsx')};
 $('officeDeckPptxBtn').onclick=()=>{target.value='pptx';convert('pptx')};
+
+async function convertDedicated(fileObj,targetId,label){
+  if(!fileObj){alert('Choose a file first.');return}
+  const ext=(fileObj.name.split('.').pop()||'').toLowerCase();
+  const fmt=$(targetId).value;
+  if(fmt===ext){alert('The selected file is already '+fmt.toUpperCase()+'.');return}
+  try{
+    const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
+    const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:fileObj});
+    if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
+    const up=await ur.json();
+    let currentId=up.file_id;
+    let out;
+    if(ext==='pdf' && fmt!=='pdf'){
+      const first=await health('pdf_to_ppt');
+      token=first.token||token;
+      let pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'pdf_to_ppt',input:currentId,dpi:120})});
+      out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'PDF → PPTX conversion failed');
+      currentId=out.file_id;
+      if(fmt!=='pptx'){
+        await health('office_convert');
+        const pr2=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
+        out=await pr2.json();if(!pr2.ok||!out.ok)throw new Error(out.error||'Presentation conversion failed');
+      }
+    }else{
+      await health('office_convert');
+      const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
+      out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||label+' conversion failed');
+    }
+    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+    if(!dl.ok)throw new Error('Output download failed');
+    const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){alert(label+': '+e.message)}
+}
+function bindDedicated(prefix,label){
+  let f=null;
+  const input=$(prefix+'Input'),drop=$(prefix+'Drop'),controls=$(prefix+'Controls'),targetEl=$(prefix+'Target');
+  if(!input||!drop||!controls||!targetEl)return;
+  const setFile=fileObj=>{if(!fileObj)return;f=fileObj;drop.style.display='none';controls.style.display='flex';$(prefix+'Name').textContent=fileObj.name;$(prefix+'Meta').textContent=(fileObj.size/1048576).toFixed(2)+' MB';};
+  input.addEventListener('change',e=>setFile(e.target.files[0]));
+  drop.addEventListener('click',e=>{if(e.target!==input)input.click()});
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');setFile(e.dataTransfer.files[0])});
+  $(prefix+'Reset').onclick=()=>{f=null;input.value='';drop.style.display='block';controls.style.display='none';$(prefix+'Name').textContent='No file selected';$(prefix+'Meta').textContent='';};
+  $(prefix+'Run').onclick=()=>convertDedicated(f,prefix+'Target',label);
+}
+bindDedicated('officePresentation','Presentation Studio');
+bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 })();
+
 </script>
 </body>
 </html>
