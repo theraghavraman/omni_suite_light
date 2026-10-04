@@ -71,6 +71,28 @@ def tool_path(name):
     p = shutil.which(name)
     if p:
         return p
+
+    # Windows winget/ZIP installs can land Poppler outside the PATH inherited
+    # by a Python process that was launched before installation.
+    if platform.system().lower() == "windows" and name in {"pdftoppm", "pdftotext"}:
+        candidates = [
+            Path(os.environ.get("PROGRAMFILES", r"C:\\Program Files")) / "poppler" / "Library" / "bin" / f"{name}.exe",
+            Path(os.environ.get("PROGRAMFILES", r"C:\\Program Files")) / "poppler" / "bin" / f"{name}.exe",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "poppler" / "Library" / "bin" / f"{name}.exe",
+            Path(r"C:\\msys64\\mingw64\\bin") / f"{name}.exe",
+            Path(r"C:\\ProgramData\\chocolatey\\bin") / f"{name}.exe",
+        ]
+        local_app = Path(os.environ.get("LOCALAPPDATA", ""))
+        if local_app.exists():
+            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\Library\\bin\\"+f"{name}.exe"))
+            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\bin\\"+f"{name}.exe"))
+        for candidate in candidates:
+            try:
+                if candidate and candidate.is_file():
+                    return str(candidate)
+            except OSError:
+                pass
+
     if name == "magick":
         return shutil.which("convert")
     if name == "soffice":
@@ -131,7 +153,7 @@ def run(cmd, timeout=7200):
 def require_tool(name):
     p = tool_path(name)
     if not p:
-        raise RuntimeError(f"{name} is not installed. Run the platform installer in the OmniConverter repository.")
+        raise RuntimeError(f"{name} is not installed. Run setup_and_start.bat on Windows or install_system_tools.command on macOS/Linux.")
     return p
 
 def output_path(stem, ext):
