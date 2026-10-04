@@ -486,9 +486,9 @@ def process_job(payload):
         return result
 
     if op == "pdf_to_text":
-        pdftotext = shutil.which("pdftotext")
+        pdftotext = tool_path("pdftotext")
         if not pdftotext:
-            raise RuntimeError("Poppler pdftotext is not installed.")
+            raise RuntimeError("Poppler pdftotext is not installed. Run the platform installer.")
         inp = get_file(payload["input"])
         out = output_path(inp.stem + "_text", "txt")
         run([pdftotext, "-layout", str(inp), str(out)], timeout=3600)
