@@ -46,7 +46,7 @@ jobs:
           ffmpeg -version
           qpdf --version
           pdftoppm -v
-          pdftotext -v
+          command -v pdftotext
           (magick -version || convert -version)
           tesseract --version
           soffice --version
