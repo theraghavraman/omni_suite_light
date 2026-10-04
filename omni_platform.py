@@ -27,7 +27,7 @@ NATIVE_TOOLS = {
     "convert":("convert","ImageMagick"), "tesseract":("tesseract","Tesseract"),
     "libreoffice":("libreoffice","LibreOffice"), "soffice":("soffice","LibreOffice"),
     "ebook-convert":("ebook-convert","Calibre"), "pandoc":("pandoc","Pandoc"),
-    "ffprobe":("ffprobe","FFmpeg"), "7z":("7z","7-Zip"), "7zz":("7zz","7-Zip"),
+    "ffprobe":("ffprobe","FFmpeg"), "rsvg-convert":("rsvg-convert","librsvg"), "7z":("7z","7-Zip"), "7zz":("7zz","7-Zip"),
     "zip":("zip","Info-ZIP"), "unzip":("unzip","Info-ZIP"), "gzip":("gzip","gzip"), "bzip2":("bzip2","bzip2"), "xz":("xz","xz"),
     "tar":("tar","tar"), "gs":("gs","Ghostscript"), "sqlite3":("sqlite3","SQLite"), "psql":("psql","PostgreSQL client"),
     "mysql":("mysql","MySQL client"), "isql":("isql","unixODBC"),
