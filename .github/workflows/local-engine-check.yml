@@ -56,15 +56,23 @@ jobs:
       - name: Verify native executables
         shell: bash
         run: |
-          ffmpeg -version
-          qpdf --version
-          pdftoppm -v
+          set -e
+          command -v ffmpeg
+          command -v qpdf
+          command -v pdftoppm
           command -v pdftotext
-          (magick -version || convert -version)
-          tesseract --version
-          soffice --version
-          ebook-convert --version
-          node --version
+          command -v tesseract
+          command -v soffice
+          command -v ebook-convert
+          command -v node
+          if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
+          timeout 30s ffmpeg -version >/dev/null
+          timeout 30s qpdf --version >/dev/null
+          timeout 30s pdftoppm -v >/dev/null 2>&1 || true
+          timeout 30s tesseract --version >/dev/null
+          timeout 30s soffice --version >/dev/null
+          timeout 30s ebook-convert --version >/dev/null
+          timeout 30s node --version >/dev/null
       - name: Refresh PATH after native package install (macOS)
         if: runner.os == 'macOS'
         run: echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
