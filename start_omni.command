@@ -20,6 +20,12 @@ else
   exit 1
 fi
 
+if [ -x ".venv/bin/python" ]; then
+  PYTHON=".venv/bin/python"
+  echo "[OK] Using OmniConverter virtual environment."
+else
+  echo "[WARN] .venv not found; using system Python."
+fi
 echo "[OK] Python: $PYTHON"
 echo "[OK] Starting Local Engine on http://127.0.0.1:8765/"
 echo
