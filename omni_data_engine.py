@@ -161,7 +161,7 @@ def _df_from_records(obj):
 
 def read_data(path,fmt=None,table=None):
     pd=_mod("pandas"); fmt=ext(path,fmt)
-    if fmt in {"csv","tsv","txt"}: return pd.read_csv(path,sep="\\t" if fmt=="tsv" else ",")
+    if fmt in {"csv","tsv","txt"}: return pd.read_csv(path,sep="\t" if fmt=="tsv" else ",")
     if fmt in {"json","jsonl"}:
         if fmt=="jsonl": return pd.read_json(path,lines=True)
         with open(path,"r",encoding="utf-8-sig") as fh: return _df_from_records(json.load(fh))
@@ -251,16 +251,16 @@ def _type(dtype):
     return "TEXT"
 
 def dataframe_sql(df,table,dialect="sqlite"):
-    cols=",\\n  ".join(f"{_ident(c,dialect)} {_type(df[c].dtype)}" for c in df.columns)
+    cols=",\n  ".join(f"{_ident(c,dialect)} {_type(df[c].dtype)}" for c in df.columns)
     names=", ".join(_ident(c,dialect) for c in df.columns)
-    lines=[f"CREATE TABLE {_ident(table,dialect)} (\\n  {cols}\\n);"]
+    lines=[f"CREATE TABLE {_ident(table,dialect)} (\n  {cols}\n);"]
     for row in df.itertuples(index=False,name=None): lines.append(f"INSERT INTO {_ident(table,dialect)} ({names}) VALUES ({', '.join(_literal(v) for v in row)});")
-    return "\\n".join(lines)+"\\n"
+    return "\n".join(lines)+"\n"
 
 def write_data(df,out,fmt,table="data",dialect="sqlite"):
     fmt=ext(out,fmt)
     if fmt=="csv": df.to_csv(out,index=False)
-    elif fmt=="tsv": df.to_csv(out,index=False,sep="\\t")
+    elif fmt=="tsv": df.to_csv(out,index=False,sep="\t")
     elif fmt=="json": df.to_json(out,orient="records",indent=2,date_format="iso")
     elif fmt=="jsonl": df.to_json(out,orient="records",lines=True,date_format="iso")
     elif fmt in {"yaml","yml"}:
@@ -360,7 +360,7 @@ def profile(path,fmt=None,table=None):
     return {"rows":int(len(df)),"columns":int(len(df.columns)),"columns_detail":cols}
 
 def transpile_sql(text,source,target):
-    sqlglot=_mod("sqlglot"); return "\\n\\n".join(sqlglot.transpile(text,read=source,write=target,pretty=True))
+    sqlglot=_mod("sqlglot"); return "\n\n".join(sqlglot.transpile(text,read=source,write=target,pretty=True))
 
 def schema(path,fmt,dialect,table): return dataframe_sql(read_data(path,fmt,table),table,dialect)
 
@@ -403,15 +403,15 @@ def nosql_convert(inp,out,source,target):
         with open(out,"wb") as fh:
             for rec in records: fh.write(bson.BSON.encode(rec))
     elif target in {"json","mongojson"}: Path(out).write_text(json.dumps(records,indent=2,default=str),encoding="utf-8")
-    elif target in {"jsonl","ndjson"}: Path(out).write_text("\\n".join(json.dumps(x,default=str) for x in records)+"\\n",encoding="utf-8")
+    elif target in {"jsonl","ndjson"}: Path(out).write_text("\n".join(json.dumps(x,default=str) for x in records)+"\n",encoding="utf-8")
     elif target=="dynamodb-json": Path(out).write_text(json.dumps([_ddb_wrap(x) for x in records],indent=2,default=str),encoding="utf-8")
     elif target=="csv": _df_from_records(records).to_csv(out,index=False)
     elif target=="sql": Path(out).write_text(dataframe_sql(_df_from_records(records),"documents","sqlite"),encoding="utf-8")
     elif target=="cql":
-        df=_df_from_records(records); cols=", ".join(f'"{str(c).replace(chr(34),chr(34)*2)}" {"bigint" if "int" in str(df[c].dtype).lower() else "double" if "float" in str(df[c].dtype).lower() else "text"}' for c in df.columns); Path(out).write_text(f'CREATE TABLE "documents" ({cols});\\n',encoding="utf-8")
+        df=_df_from_records(records); cols=", ".join(f'"{str(c).replace(chr(34),chr(34)*2)}" {"bigint" if "int" in str(df[c].dtype).lower() else "double" if "float" in str(df[c].dtype).lower() else "text"}' for c in df.columns); Path(out).write_text(f'CREATE TABLE "documents" ({cols});\n',encoding="utf-8")
     elif target=="cypher":
         lines=[]
         for row in _df_from_records(records).to_dict(orient="records"):
             props=", ".join(str(k)+": "+_literal(v) for k,v in row.items()); lines.append("CREATE (n:Document {"+props+"});")
-        Path(out).write_text("\\n".join(lines)+"\\n",encoding="utf-8")
+        Path(out).write_text("\n".join(lines)+"\n",encoding="utf-8")
     else: raise RuntimeError("Unsupported NoSQL target")
