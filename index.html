@@ -4389,8 +4389,96 @@ function sql(rows,d,table){const id=s=>{s=String(s).replace(/[^A-Za-z0-9_$]/g,'_
 async function data(f,target,dialect,table){const r=await read(f);let b,n;if(target==='csv'||target==='tsv'){if(!window.XLSX)return false;b=new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(r),{FS:target==='tsv'?'\t':','})]);n='omni_browser.'+target}else if(target==='json'){b=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});n='omni_browser.json'}else if(target==='jsonl'){b=new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'});n='omni_browser.jsonl'}else if(target==='yaml'){if(!window.jsyaml)return false;b=new Blob([window.jsyaml.dump(r,{noRefs:true})],{type:'text/yaml'});n='omni_browser.yaml'}else if(target==='xml'){b=new Blob([xml(r)],{type:'application/xml'});n='omni_browser.xml'}else if(target==='html'){if(!window.XLSX)return false;b=new Blob([XLSX.utils.sheet_to_html(XLSX.utils.json_to_sheet(r))],{type:'text/html'});n='omni_browser.html'}else if(target==='md'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],ln=x=>'| '+k.map(y=>String(x[y]??'').replace(/\|/g,'\\|')).join(' | ')+' |';b=new Blob([ln(Object.fromEntries(k.map(x=>[x,x])))+'\n| '+k.map(()=> '---').join(' | ')+' |\n'+r.map(ln).join('\n')+'\n'],{type:'text/markdown'});n='omni_browser.md'}else if(target==='sql'){b=new Blob([sql(r,dialect,table)],{type:'application/sql'});n='omni_browser.sql'}else if(target==='jsonschema'){const k=[...new Set(r.flatMap(x=>Object.keys(x)))],p={};k.forEach(x=>{const v=r.map(y=>y[x]).filter(y=>y!==null&&y!==undefined),t=v.length&&v.every(y=>typeof y==='number')?'number':v.length&&v.every(y=>typeof y==='boolean')?'boolean':'string';p[x]={type:t}});b=new Blob([JSON.stringify({$schema:'https://json-schema.org/draft/2020-12/schema',type:'array',items:{type:'object',properties:p}},null,2)],{type:'application/schema+json'});n='omni_browser.schema.json'}else if(['xlsx','xlsm','xlsb','xls','ods','fods'].includes(target)){if(!window.XLSX)return false;const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(r),'Data');const out=XLSX.write(w,{bookType:target==='xls'?'biff8':target,type:'array',compression:true});b=new Blob([out]);n='omni_browser.'+target}else return false;dl(b,n);return true}
 async function profile(f){const r=await read(f),k=[...new Set(r.flatMap(x=>Object.keys(x)))],p={rows:r.length,columns:k.length,columns_detail:k.map(x=>{const v=r.map(y=>y[x]),n=v.filter(y=>y!==null&&y!==undefined&&y!=='');return{name:x,type:n.length&&[...new Set(n.map(y=>typeof y))].length===1?typeof n[0]:'mixed',nulls:v.length-n.length,unique:new Set(n.map(JSON.stringify)).size}})};dl(new Blob([JSON.stringify(p,null,2)],{type:'application/json'}),'omni_browser_profile.json');return true}
 async function sqlWeb(s,source,target){const m={oracle:[[/\bNVL\s*\(/gi,'COALESCE('],[/\bSYSDATE\b/gi,'CURRENT_TIMESTAMP'],[/\bVARCHAR2\b/gi,'VARCHAR'],[/\bNUMBER\b/gi,'DECIMAL']],tsql:[[/\bGETDATE\s*\(\s*\)/gi,'CURRENT_TIMESTAMP'],[/\bISNULL\s*\(/gi,'COALESCE('],[/\bNVARCHAR\b/gi,'VARCHAR']],mysql:[[/\bIFNULL\s*\(/gi,'COALESCE(']]},rs=m[source]||[];if(source!==target&&!rs.length)return false;let o=s;rs.forEach(([a,b])=>o=o.replace(a,b));dl(new Blob([o],{type:'application/sql'}),'omni_browser_sql.'+target+'.sql');return true}
-async function pdfPpt(f){if(!window.pdfjsLib||!window.PptxGenJS)return false;const p=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;if(p.numPages>80)throw Error('Browser PDF → PPTX is capped at 80 pages; Local Engine handles very large PDFs.');const x=new PptxGenJS();x.layout='LAYOUT_WIDE';for(let i=1;i<=p.numPages;i++){const page=await p.getPage(i),v=page.getViewport({scale:1.35}),c=document.createElement('canvas');c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await page.render({canvasContext:c.getContext('2d'),viewport:v}).promise;x.addSlide().addImage({data:c.toDataURL('image/jpeg',.9),x:0,y:0,w:13.333,h:7.5})}const b=await x.write({outputType:'blob'});dl(b,f.name.replace(/\.pdf$/i,'')+'.pptx');return true}
-async function office(f,target){const e=ext(f.name);if(e==='pdf'&&target==='pptx')return pdfPpt(f);if(['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(e)&&['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(target))return data(f,target,'sqlite','Sheet1');if(['pptx','ppsx','potx'].includes(e)&&['pptx','ppsx','potx'].includes(target)&&e!==target){if(!window.JSZip)return false;const z=await JSZip.loadAsync(await f.arrayBuffer()),ct=z.file('[Content_Types].xml');if(!ct)return false;let s=await ct.async('text');const m={pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',ppsx:'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',potx:'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'};s=s.split(m[e]).join(m[target]);z.file('[Content_Types].xml',s);dl(await z.generateAsync({type:'blob',compression:true}),f.name.replace(/\.[^.]+$/,'')+'.'+target);return true}return false}
+async function pdfPpt(f, options={}) {
+  if(!window.pdfjsLib) throw new Error('PDF.js is not loaded. Refresh the page or check the browser asset/CDN connection.');
+  if(!window.JSZip) throw new Error('JSZip is not loaded. Refresh the page or check the browser asset/CDN connection.');
+  const downloadOutput = options.download !== false;
+  const dpi = Math.max(72, Math.min(180, Number(options.dpi) || 110));
+  const pdf = await pdfjsLib.getDocument({
+    data: new Uint8Array(await f.arrayBuffer()),
+    useWorkerFetch: false,
+    isEvalSupported: true
+  }).promise;
+  if(pdf.numPages > 80) throw new Error('Browser PDF → PPTX is capped at 80 pages to protect browser memory. Use the Local Engine for larger PDFs.');
+
+  const zip = new JSZip();
+  const slideW = 12192000; // 13.333in / 16:9
+  const slideH = 6858000;  // 7.5in / 16:9
+  const now = new Date().toISOString();
+
+  const escXml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+  const imageFiles = [];
+
+  const contentTypes = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>',
+    '<Default Extension="jpg" ContentType="image/jpeg"/>',
+    '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>',
+    '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>',
+    '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>',
+    '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>',
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>',
+    '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'
+  ];
+  for(let i=1;i<=pdf.numPages;i++) contentTypes.push('<Override PartName="/ppt/slides/slide'+i+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>');
+  contentTypes.push('</Types>');
+
+  zip.file('[Content_Types].xml', contentTypes.join(''));
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdOffice" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rIdApp" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>');
+  zip.file('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Omni Suite PDF Presentation</dc:title><dc:creator>Omni Suite</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">'+escXml(now)+'</dcterms:created></cp:coreProperties>');
+  zip.file('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Omni Suite</Application><AppVersion>1.0</AppVersion><PresentationFormat>Omni Suite PDF visual replica</PresentationFormat></Properties>');
+
+  const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>';
+  zip.file('ppt/_rels/presentation.xml.rels', '');
+  const presRels=['<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">','<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>'];
+  for(let i=1;i<=pdf.numPages;i++) presRels.push('<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+i+'.xml"/>');
+  presRels.push('</Relationships>');
+  zip.file('ppt/_rels/presentation.xml.rels', presRels.join(''));
+
+  zip.file('ppt/slideMasters/slideMaster1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld name="Omni Master"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles></p:sldMaster>');
+  zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>');
+  zip.file('ppt/slideLayouts/slideLayout1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>');
+  zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>');
+  zip.file('ppt/theme/theme1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Omni Suite"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Aptos Display"/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst/><a:lnStyleLst/><a:effectStyleLst/><a:bgFillStyleLst/><a:effectStyleLst/></a:fmtScheme></a:themeElements></a:theme>');
+
+  const slideIds=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const viewport=page.getViewport({scale:dpi/72});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);
+    canvas.height=Math.ceil(viewport.height);
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:ctx,viewport}).promise;
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Browser could not encode PDF page '+i)),'image/jpeg',0.90));
+    const ab=await blob.arrayBuffer();
+    const bytes=new Uint8Array(ab);
+    imageFiles.push('ppt/media/image'+i+'.jpg');
+    zip.file('ppt/media/image'+i+'.jpg',bytes);
+
+    const sw=canvas.width, sh=canvas.height;
+    const scale=Math.min(slideW/sw,slideH/sh);
+    const cx=Math.round(sw*scale), cy=Math.round(sh*scale), x=Math.round((slideW-cx)/2), y=Math.round((slideH-cy)/2);
+    zip.file('ppt/slides/_rels/slide'+i+'.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/relationships/image" Target="../media/image'+i+'.jpg"/></Relationships>');
+    zip.file('ppt/slides/slide'+i+'.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld name="PDF page '+i+'"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="PDF page '+i+'"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>');
+    slideIds.push('<p:sldId id="'+(255+i)+'" r:id="rId'+(i+1)+'"/>');
+    canvas.width=1;canvas.height=1;
+    if(page.cleanup)page.cleanup();
+    await new Promise(requestAnimationFrame);
+  }
+
+  zip.file('ppt/presentation.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>'+slideIds.join('')+'</p:sldIdLst><p:sldSz cx="'+slideW+'" cy="'+slideH+'" type="screen16x9"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/><p:embeddedFontLst/></p:presentation>');
+  const output=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',compression:'STORE'});
+  if(downloadOutput){
+    dl(output,f.name.replace(/\.pdf$/i,'')+'.pptx');
+  }
+  return output;
+}
+async function office(f,target,options={}){const e=ext(f.name);if(e==='pdf'&&target==='pptx')return pdfPpt(f,options);if(['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(e)&&['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(target))return data(f,target,'sqlite','Sheet1');if(['pptx','ppsx','potx'].includes(e)&&['pptx','ppsx','potx'].includes(target)&&e!==target){if(!window.JSZip)return false;const z=await JSZip.loadAsync(await f.arrayBuffer()),ct=z.file('[Content_Types].xml');if(!ct)return false;let s=await ct.async('text');const m={pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',ppsx:'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',potx:'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'};s=s.split(m[e]).join(m[target]);z.file('[Content_Types].xml',s);dl(await z.generateAsync({type:'blob',compression:true}),f.name.replace(/\.[^.]+$/,'')+'.'+target);return true}return false}
 function ddb(v){if(Array.isArray(v))return v.map(ddb);if(v&&typeof v==='object'){if('S' in v)return v.S;if('N' in v)return Number(v.N);if('BOOL' in v)return !!v.BOOL;if('NULL' in v)return null;if('B' in v)return v.B;if('SS' in v)return v.SS;if('NS' in v)return v.NS.map(Number);if('BS' in v)return v.BS;if('L' in v)return v.L.map(ddb);if('M' in v)return Object.fromEntries(Object.entries(v.M).map(([k,x])=>[k,ddb(x)]));return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,ddb(x)]))}return v}
 function mongo(v){if(Array.isArray(v))return v.map(mongo);if(v&&typeof v==='object'){if('$oid' in v)return v.$oid;if('$date' in v)return typeof v.$date==='object'?(v.$date.$numberLong||v.$date):v.$date;if('$numberInt' in v)return Number(v.$numberInt);if('$numberLong' in v)return Number(v.$numberLong);if('$numberDouble' in v)return Number(v.$numberDouble);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,mongo(x)]))}return v}
 async function nosql(f,source,target){if(!['json','jsonl','dynamodb-json'].includes(source))return false;const t=await f.text();let v=source==='jsonl'?t.split(/\r?\n/).filter(Boolean).map(JSON.parse):JSON.parse(t);v=source==='dynamodb-json'?ddb(v):mongo(v);const r=rows(v);if(target==='json'){dl(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}),'omni_browser_nosql.json');return true}if(target==='jsonl'){dl(new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'}),'omni_browser_nosql.jsonl');return true}if(target==='csv'||target==='sql')return data(new File([JSON.stringify(v)],'browser.json',{type:'application/json'}),target,'sqlite','nosql_data');if(target==='cql'||target==='cypher'){const fr=r.map(x=>flat(x)),keys=[...new Set(fr.flatMap(x=>Object.keys(x)))];let out;if(target==='cql')out='CREATE TABLE nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')+' text').join(', ')+');\n\n'+fr.map(x=>'INSERT INTO nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')).join(', ')+') VALUES ('+keys.map(k=>"'"+String(x[k]??'').replace(/'/g,"''")+"'").join(', ')+');').join('\n');else out=fr.map(x=>'CREATE (n:NoSQLData '+JSON.stringify(x)+')').join('\n');dl(new Blob([out],{type:'text/plain'}),'omni_browser_nosql.'+target+'.txt');return true}return false}
@@ -4887,6 +4975,7 @@ async function runBrowserTests(){
     ['Runtime','PDF.js library',()=>{if(!window.pdfjsLib)throw new Error('PDF.js missing');return 'PDF.js 3.11.174 loaded';}],
     ['Runtime','PDF.js worker configuration',()=>{if(!window.pdfjsLib||!pdfjsLib.GlobalWorkerOptions.workerSrc)throw new Error('PDF workerSrc missing');return pdfjsLib.GlobalWorkerOptions.workerSrc;}],
     ['Runtime','JSZip library',()=>{if(!window.JSZip)throw new Error('JSZip missing');return 'JSZip loaded';}],
+    ['Runtime','PPTX browser engine',()=>{if(!window.OMNI_BROWSER_FIRST||typeof window.OMNI_BROWSER_FIRST.office!=='function')throw new Error('Browser Office engine is not registered');return 'Native browser PPTX package builder ready (no Poppler required)';}],
     ['Runtime','pdf-lib library',()=>{if(!window.PDFLib)throw new Error('pdf-lib missing');return 'pdf-lib loaded';}],
     ['Runtime','Tesseract.js library',()=>{if(!window.Tesseract)throw new Error('Tesseract.js missing');return 'Tesseract.js loaded';}],
     ['Offline','Local browser asset bundle',async()=>{if(location.hostname!=='127.0.0.1'&&location.hostname!=='localhost')return 'Public Pages mode uses CDN assets; use the Local Engine launcher for offline assets';const paths=['./vendor/pdfjs/pdf.min.js','./vendor/pdfjs/pdf.worker.min.js','./vendor/jszip/jszip.min.js','./vendor/pdf-lib/pdf-lib.min.js','./vendor/tesseract/tesseract.min.js','./vendor/tesseract/worker.min.js','./vendor/tesseract/core/tesseract-core.wasm.js','./vendor/tesseract/lang/eng.traineddata.gz'];const missing=[];for(const p of paths){try{const rr=await fetch(p,{cache:'no-store',method:'HEAD'});if(!rr.ok)missing.push(p);}catch(_){missing.push(p);}}if(missing.length)throw new Error('Missing local assets: '+missing.join(', '));return paths.length+' local browser assets reachable';}],
@@ -4900,6 +4989,14 @@ async function runBrowserTests(){
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
   for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
+  await test('browser','PDF → PPTX browser conversion',async()=>{
+    const pdf=await makePdfBlob();
+    const out=await window.OMNI_BROWSER_FIRST.office(new File([pdf],'omni-browser-test.pdf',{type:'application/pdf'}),'pptx',{download:false});
+    if(!out||!out.size)throw new Error('Browser PDF → PPTX returned an empty file');
+    const bytes=new Uint8Array(await out.arrayBuffer());
+    if(bytes[0]!==0x50||bytes[1]!==0x4b)throw new Error('Browser output is not a PPTX ZIP package');
+    return 'PPTX generated in browser • '+out.size+' bytes';
+  });
   await test('browser','PDF create → PDF.js read → text extraction',async()=>{
     const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),loaded=await pdfjsLib.getDocument({data:bytes}).promise;
     const page=await loaded.getPage(1),tc=await page.getTextContent();const text=tc.items.map(x=>x.str).join(' ');
