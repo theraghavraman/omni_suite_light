@@ -474,6 +474,17 @@ def process_job(payload):
         run([ebook, str(inp), str(out)], timeout=7200)
         return file_result(out, out.name)
 
+    if op == "pdf_to_docx":
+        require_tool("pdftotext")
+        inp=get_file(payload["input"])
+        work=ROOT/new_id("pdfdocx"); work.mkdir()
+        txt=work/"extracted.txt"
+        run([tool_path("pdftotext"),"-layout",str(inp),str(txt)],timeout=3600)
+        text=txt.read_text(encoding="utf-8",errors="replace")
+        result=process_job({"op":"text_document","title":inp.stem,"text":text,"format":"docx"})
+        shutil.rmtree(work,ignore_errors=True)
+        return result
+
     if op == "pdf_to_text":
         pdftotext = shutil.which("pdftotext")
         if not pdftotext:
