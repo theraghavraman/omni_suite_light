@@ -51,7 +51,6 @@ PYTHON_IMPORTS = {
     "imageio": "imageio",
     "pydub": "pydub",
     "moviepy": "moviepy",
-    "easyocr": "easyocr",
     "duckdb_engine": "duckdb_engine",
     "snowflake_sqlalchemy": "snowflake.sqlalchemy",
     "google_cloud_bigquery": "google.cloud.bigquery",
