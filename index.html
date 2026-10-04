@@ -1726,6 +1726,25 @@ body{overflow-x:hidden}
     .omni-capability-legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #dfe6f1;border-radius:999px;background:rgba(255,255,255,.82);color:#637087;font-size:.70rem;font-weight:750}
     .omni-capability-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
     .omni-capability-legend .b i{background:#10a37f}.omni-capability-legend .h i{background:#e7a900}.omni-capability-legend .l i{background:#4d7ff0}.omni-capability-legend .v i{background:#8b5cf6}
+
+    /* OMNI NAV WHITE-CAPSULE FIX */
+    .nav-btn .studio-icon,
+    .nav-btn .studio-label,
+    .nav-btn small{
+      background-image:none!important;
+    }
+    .nav-btn .studio-label{background-color:transparent!important;box-shadow:none!important;border:0!important;}
+    .nav-btn.active .studio-icon{
+      background:transparent!important;
+      background-color:transparent!important;
+      background-image:none!important;
+      box-shadow:none!important;
+      border:0!important;
+      color:#fff!important;
+    }
+    .nav-btn.active .studio-label{background:transparent!important;color:#fff!important;box-shadow:none!important;border:0!important;}
+    .nav-btn:focus,.nav-btn:focus-visible{outline:none!important;}
+    .nav-btn:focus-visible{box-shadow:0 0 0 3px rgba(99,91,255,.22),0 12px 24px rgba(84,74,191,.11)!important;}
 </style>
 </head>
 <body>
