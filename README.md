@@ -178,6 +178,8 @@ The Data Studio is the new data-engineering layer. It uses pandas/PyArrow/DuckDB
 
 **Semi-structured:** JSON, JSONL/NDJSON, YAML, XML, HTML tables, MessagePack and JSON Schema generation.
 
+**Unstructured / binary:** line-oriented TXT/LOG/Markdown can be structured into JSONL/JSON/CSV, while arbitrary binary BLOBs can be converted between raw bytes, Base64, hex and generic SQL hexadecimal literals.
+
 **SQL:** DDL/INSERT generation plus SQL dialect translation for Oracle, Microsoft SQL Server/T-SQL, PostgreSQL, MySQL, SQLite, DuckDB, Snowflake, BigQuery, Databricks, Redshift, Spark SQL, Trino, Presto, ClickHouse, Hive, Teradata, Athena and additional SQLGlot dialects. SQLGlot officially supports 30+ dialects with different support levels. citeturn0search1turn0search7
 
 **NoSQL/document bridges:** MongoDB BSON/Extended JSON ↔ JSON/JSONL/CSV/SQL, DynamoDB AttributeValue JSON ↔ normal JSON, and generated CQL/Cypher from flattened document datasets. MongoDB documents that Extended JSON is useful when BSON type fidelity matters; Neo4j and Cassandra both provide CSV-oriented import workflows. citeturn0search6turn3search0turn1search2
