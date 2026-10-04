@@ -4768,27 +4768,57 @@ body{overflow-x:hidden}
       audioDropzone.style.display = 'none';
       audioControls.style.display = 'flex';
       audioFileName.textContent = file.name;
-      audioPlayer.src = URL.createObjectURL(file);
+      audioPlayer.pause();
+      audioPlayer.removeAttribute('src');
+      audioPlayer.load();
+
+      // Always attempt native browser playback first. Do not hide the player just
+      // because Web Audio decoding fails: browsers can play formats that
+      // AudioContext.decodeAudioData cannot decode reliably.
+      const originalUrl = URL.createObjectURL(file);
+      audioPlayer.src = originalUrl;
+      audioPlayer.playbackRate = parseFloat(audioSpeedSelect.value) || 1;
+      audioPlayer.load();
 
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const ab = await file.arrayBuffer();
-        audioBuffer = await ctx.decodeAudioData(ab);
+        audioBuffer = await ctx.decodeAudioData(ab.slice(0));
         if (ctx.close) ctx.close();
-      } catch (err) {
+        const dur = audioBuffer.duration;
+        audioFileMeta.textContent = `Duration: ${formatTime(dur)} • ${audioBuffer.sampleRate} Hz • Browser decoded`;
+        audioStartSec.value = 0;
+        audioEndSec.value = dur.toFixed(1);
+        audioEndSec.max = dur.toFixed(1);
+      } catch (decodeErr) {
         audioBuffer = null;
-        audioDropzone.style.display = 'block';
-        audioControls.style.display = 'none';
-        audioInput.value = '';
-        alert('This audio format could not be decoded by the browser: ' + (err.message || err));
-        return;
+        audioFileMeta.textContent = 'Browser preview attempted • full processing may require Local Engine';
+        audioPlayer.addEventListener('error', async function onAudioError() {
+          audioPlayer.removeEventListener('error', onAudioError);
+          try {
+            audioFileMeta.textContent = 'Browser codec unavailable • creating WAV preview with Local Engine…';
+            const up = await upload(file);
+            const result = await process({op:'media', input:up.file_id, format:'wav'});
+            const blob = await download(result.file_id);
+            const wav = new Blob([blob], {type:'audio/wav'});
+            audioPlayer.src = URL.createObjectURL(wav);
+            audioPlayer.load();
+            const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+            audioBuffer = await ctx2.decodeAudioData(await wav.arrayBuffer());
+            if (ctx2.close) ctx2.close();
+            const dur = audioBuffer.duration;
+            audioFileMeta.textContent = `Duration: ${formatTime(dur)} • ${audioBuffer.sampleRate} Hz • Local Engine WAV preview`;
+            audioStartSec.value = 0;
+            audioEndSec.value = dur.toFixed(1);
+            audioEndSec.max = dur.toFixed(1);
+          } catch (fallbackErr) {
+            audioFileMeta.textContent = 'Cannot preview this format in this browser. Use Local Audio Format Bridge below.';
+            console.warn('Omni audio preview fallback failed', decodeErr, fallbackErr);
+          }
+        }, {once:true});
+        // Give the media element a chance to report its own native playback support.
+        audioPlayer.load();
       }
-      const dur = audioBuffer.duration;
-
-      audioFileMeta.textContent = `Duration: ${formatTime(dur)} • ${audioBuffer.sampleRate} Hz`;
-      audioStartSec.value = 0;
-      audioEndSec.value = dur.toFixed(1);
-      audioEndSec.max = dur.toFixed(1);
     }
 
     audioResetBtn.addEventListener('click', () => {
@@ -4906,12 +4936,36 @@ body{overflow-x:hidden}
     setupDragDrop(videoDropzone, (files) => { if (files[0]) loadVideoFile(files[0]); });
     videoInput.addEventListener('change', (e) => { if (e.target.files[0]) loadVideoFile(e.target.files[0]); });
 
-    function loadVideoFile(file) {
+    async function loadVideoFile(file) {
       currentVideoFile = file;
       videoDropzone.style.display = 'none';
       videoControls.style.display = 'flex';
       videoFileName.textContent = file.name;
-      videoPlayer.src = URL.createObjectURL(file);
+      videoPlayer.pause();
+      videoPlayer.removeAttribute('src');
+      videoPlayer.load();
+
+      const originalUrl = URL.createObjectURL(file);
+      videoPlayer.src = originalUrl;
+      videoPlayer.load();
+
+      const handleVideoError = async () => {
+        videoPlayer.removeEventListener('error', handleVideoError);
+        try {
+          videoFileMeta.textContent = 'Browser codec unavailable • creating MP4 preview with Local Engine…';
+          const up = await upload(file);
+          const result = await process({op:'media', input:up.file_id, format:'mp4'});
+          const blob = await download(result.file_id);
+          const mp4 = new Blob([blob], {type:'video/mp4'});
+          videoPlayer.src = URL.createObjectURL(mp4);
+          videoPlayer.load();
+          videoFileMeta.textContent = 'Local Engine MP4 preview ready';
+        } catch (fallbackErr) {
+          videoFileMeta.textContent = 'Cannot preview this codec in this browser. Use Local Video / Animation Format Bridge below.';
+          console.warn('Omni video preview fallback failed', fallbackErr);
+        }
+      };
+      videoPlayer.addEventListener('error', handleVideoError, {once:true});
 
       videoPlayer.onloadedmetadata = () => {
         const dur = videoPlayer.duration;
