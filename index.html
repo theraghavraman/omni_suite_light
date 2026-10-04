@@ -1913,7 +1913,7 @@ body{overflow-x:hidden}
                 <option value="pdf_split">PDF — Split into pages ZIP</option>
                 <option value="pdf_compress">PDF — Compress / optimize</option>
                 <option value="pdf_render">PDF — Render pages to PNG ZIP</option>
-                <option value="pdf_to_text">PDF — Extract text</option>
+                <option value="pdf_to_text">PDF — Extract text</option><option value="pdf_to_docx">PDF — Extract to editable DOCX</option><option value="text_document">Text/Markdown — Unicode DOCX/PDF</option><option value="scientific_profile">Scientific — Inspect scientific data</option><option value="scientific_convert">Scientific — Convert with Local Engine</option>
                 <option value="office_convert">Office — Convert document</option>
                 <option value="ebook_convert">EPUB/ebook — Convert</option>
                 <option value="media">Media — Convert / transcode</option>
@@ -1975,7 +1975,7 @@ body{overflow-x:hidden}
     <!-- 1. PDF SUITE -->
     <div class="module-panel active" id="tabPdf">
       <div class="card">
-        <h2>1. PDF to Images (JPG, PNG, HEIC, WebP)</h2>
+        <h2>1. PDF to Images (JPG, PNG, WebP, AVIF)</h2>
         <div class="sub">Render PDF pages into crisp images with customizable resolution and page filtering.</div>
         <div class="dropzone" id="pdf2imgDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -2370,8 +2370,8 @@ body{overflow-x:hidden}
     <!-- 4. IMAGE TOOLS -->
     <div class="module-panel" id="tabImages">
       <div class="card">
-        <h2>1. Batch Image Format Converter (JPG ↔ PNG ↔ WebP ↔ HEIC)</h2>
-        <div class="sub">Convert, compress, and resize multiple images simultaneously.</div>
+        <h2>1. Batch Image Format Converter (JPG ↔ PNG ↔ WebP ↔ AVIF)</h2>
+        <div class="sub">Convert, compress, and resize multiple images simultaneously. HEIC/HEIF output is available through the Local Engine; browsers cannot reliably encode HEIC.</div>
         <div class="dropzone" id="imgDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
           <h3>Upload Images to Convert</h3>
@@ -2963,7 +2963,7 @@ body{overflow-x:hidden}
           <div class="form-group"><label>Output</label><select id="udsFormat" class="form-select">
             <option value="json">JSON</option><option value="csv">CSV</option><option value="geojson">GeoJSON</option>
             <option value="png">PNG image</option><option value="svg">SVG map/vector</option><option value="wav">WAV sonification</option>
-            <option value="webm">WebM video</option><option value="html">Interactive HTML report</option><option value="txt">Plain text</option>
+            <option value="webm">WebM video</option><option value="netcdf">NetCDF (Local Engine)</option><option value="hdf5">HDF5 (Local Engine)</option><option value="fits">FITS (Local Engine)</option><option value="html">Interactive HTML report</option><option value="txt">Plain text</option>
           </select></div>
           <div class="form-group"><label>Video duration</label><input id="udsVideoDuration" class="form-input" type="number" min="2" max="20" value="8" /></div>
         </div>
