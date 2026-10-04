@@ -46,7 +46,13 @@ jobs:
         run: |
           $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
           $user = [Environment]::GetEnvironmentVariable("Path", "User")
-          "PATH=$machine;$user;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+          $extra = @(
+            "C:\Program Files\LibreOffice\program",
+            "C:\Program Files\Calibre2",
+            "C:\Program Files\Tesseract-OCR"
+          ) | Where-Object { Test-Path $_ }
+          "PATH=$machine;$user;$($extra -join ';');$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+          $extra | ForEach-Object { Add-Content -Path $env:GITHUB_PATH -Value $_ }
       - name: Verify native executables
         shell: bash
         run: |
