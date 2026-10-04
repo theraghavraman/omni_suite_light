@@ -41,7 +41,13 @@ function normalize(obj){
  if(Array.isArray(obj)) rows=obj;
  else if(obj&&Array.isArray(obj.data)) rows=obj.data;
  else if(obj&&Array.isArray(obj.results)) rows=obj.results;
- else if(obj&&Array.isArray(obj.routes)){\n   const route=obj.routes[0];\n   if(route&&route.geometry&&route.geometry.type==='LineString'&&Array.isArray(route.geometry.coordinates)){\n     rows=route.geometry.coordinates.map((p,i)=>({lon:Number(p[0]),lat:Number(p[1]),_route_index:i,_route_distance:route.distance,_route_duration:route.duration}));\n   }\n }\n else if(obj&&Array.isArray(obj.features)) return obj.features.map((f,i)=>({id:i,...(f.properties||{}),...((f.geometry&&f.geometry.type==='Point')?{lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}:{geometry:f.geometry})}));
+ else if(obj&&Array.isArray(obj.routes)){
+   const route=obj.routes[0];
+   if(route&&route.geometry&&route.geometry.type==='LineString'&&Array.isArray(route.geometry.coordinates)){
+     rows=route.geometry.coordinates.map((p,i)=>({lon:Number(p[0]),lat:Number(p[1]),_route_index:i,_route_distance:route.distance,_route_duration:route.duration}));
+   }
+ }
+ else if(obj&&Array.isArray(obj.features)) return obj.features.map((f,i)=>({id:i,...(f.properties||{}),...((f.geometry&&f.geometry.type==='Point')?{lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}:{geometry:f.geometry})}));
  else if(obj&&obj.hourly&&Array.isArray(obj.hourly.time)){ const h=obj.hourly,n=h.time.length; rows=Array.from({length:n},(_,i)=>Object.fromEntries(Object.entries(h).map(([k,v])=>[k,Array.isArray(v)?v[i]:v]))); }
  else if(obj&&obj.daily&&Array.isArray(obj.daily.time)){ const d=obj.daily,n=d.time.length; rows=Array.from({length:n},(_,i)=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,Array.isArray(v)?v[i]:v]))); }
  else if(obj&&obj.current&&typeof obj.current==='object') rows=[{...obj.current,_latitude:obj.latitude,_longitude:obj.longitude,_timezone:obj.timezone}];
