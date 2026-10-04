@@ -2793,6 +2793,39 @@ body{overflow-x:hidden}
       </div>
     </div>
 
+    <div class="module-panel" id="tabVizInterchange">
+      <div class="card"><h2>📊 BI & Visualization Interchange Studio</h2><div class="sub">Browser-first semantic interchange for Tableau, Power BI, Cognos and compatible definitions. Build an OMNI-VIZ model, reconstruct SQL, generate Excel-function templates and inspect conversion fidelity.</div>
+        <div class="viz-cap-grid"><div><b>Browser</b><span>TWB / TWBX / XML / JSON / TMDL / PBIR</span></div><div><b>Best effort</b><span>Fields, calculations, filters, charts and layout metadata</span></div><div><b>Local/native</b><span>Binary PBIX and proprietary platform features</span></div></div>
+      </div>
+      <div class="card"><h2>1. Load BI definitions</h2><div class="sub">PBIP/PBIR/TMDL are preferred for Power BI. PBIX is proprietary binary content and will be flagged when browser parsing cannot safely recover its semantics.</div>
+        <div class="dropzone" id="vizInterchangeDrop"><div class="dropzone-icon">📊</div><h3>Choose BI / visualization files</h3><p>.twb • .twbx • .pbip • .pbir • .tmdl • .pbix • Cognos XML • JSON</p><input type="file" id="vizInterchangeInput" class="file-input" multiple accept=".twb,.twbx,.pbip,.pbir,.tmdl,.pbix,.xml,.json,.txt"></div>
+        <div class="viz-file-list" id="vizInterchangeFiles"></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="vizAnalyzeBtn">Analyze & Build OMNI-VIZ</button><button type="button" class="btn btn-secondary" id="vizResetBtn">Reset</button></div>
+      </div>
+      <div class="card"><h2>2. Generate portable outputs</h2><div class="sub">SQL is a semantic query reconstruction. Excel output is a formula/template reconstruction. The audit reports unmapped or uncertain features instead of silently dropping them.</div>
+        <div class="options-grid"><div class="form-group"><label for="vizOutputMode">Output</label><select id="vizOutputMode" class="form-select"><option value="omni">OMNI-VIZ JSON</option><option value="sql">SQL query</option><option value="excel">Excel functions</option><option value="xlsx">Excel workbook</option><option value="audit">Conversion audit</option></select></div>
+        <div class="form-group"><label for="vizSqlDialect">SQL dialect</label><select id="vizSqlDialect" class="form-select"><option>ANSI SQL</option><option>Oracle</option><option>PostgreSQL</option><option>SQL Server</option><option>MySQL</option><option>Snowflake</option><option>BigQuery</option><option>DuckDB</option></select></div>
+        <div class="form-group"><label for="vizExcelTable">Excel source table</label><input id="vizExcelTable" class="form-input" value="Data"></div></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="vizGenerateBtn">Generate Output</button><button type="button" class="btn btn-secondary" id="vizDownloadBtn" disabled>Download Current Output</button></div>
+        <div class="viz-audit-grid" id="vizAuditGrid"></div><pre class="viz-output" id="vizOutput">Load a file and run Analyze & Build OMNI-VIZ.</pre>
+      </div>
+      <div class="card"><h2>3. Portability boundary</h2><div class="sub">Portable semantics are separated from platform-specific behavior.</div><div class="viz-rules"><span>✓ Fields & measures</span><span>✓ Dimensions</span><span>✓ Calculations where recoverable</span><span>✓ Filters where recoverable</span><span>✓ Chart metadata</span><span>△ Proprietary visuals</span><span>△ Platform expressions</span><span>△ Binary extracts</span></div></div>
+    </div>
+
+    <div class="module-panel" id="tabCodeStudio">
+      <div class="card"><div class="code-kicker">OMNI-CODE BRIDGE</div><h2>💻 Programming Language Translation Studio</h2><div class="sub">Translate common source languages where straightforward syntax and intent can be inferred in-browser. The dedicated Pseudo Code target turns program logic into readable algorithmic steps.</div><div class="code-warning">Browser translation is heuristic, not a compiler. Framework APIs, reflection, macros, concurrency and language-specific libraries can require review.</div></div>
+      <div class="card"><h2>1. Source code</h2>
+        <div class="options-grid"><div class="form-group"><label for="codeSourceLanguage">Source</label><select id="codeSourceLanguage" class="form-select"><option value="auto">Auto detect</option><option>Python</option><option>JavaScript</option><option>TypeScript</option><option>Java</option><option>C#</option><option>C++</option><option>C</option><option>Go</option><option>Rust</option><option>Kotlin</option><option>Swift</option><option>PHP</option><option>Ruby</option><option>Bash</option><option>SQL</option></select></div>
+        <div class="form-group"><label for="codeTargetLanguage">Target</label><select id="codeTargetLanguage" class="form-select"><option value="Pseudo Code">Pseudo Code</option><option>Python</option><option>JavaScript</option><option>TypeScript</option><option>Java</option><option>C#</option><option>C++</option><option>C</option><option>Go</option><option>Rust</option><option>Kotlin</option><option>Swift</option><option>PHP</option><option>Ruby</option><option>Bash</option><option>SQL</option></select></div>
+        <div class="form-group"><label for="codeFileName">Filename</label><input id="codeFileName" class="form-input" placeholder="example.py"></div></div>
+        <div class="dropzone" id="codeDrop"><h3>Choose source-code file</h3><p>Or paste code below • processing remains in the browser</p><input type="file" id="codeInput" class="file-input" accept=".py,.js,.ts,.java,.cs,.cpp,.cc,.cxx,.c,.go,.rs,.kt,.kts,.swift,.php,.rb,.sh,.bash,.sql,.html,.htm,.css,.txt"></div>
+        <textarea id="codeSource" class="form-textarea code-editor" spellcheck="false" placeholder="Paste source code here..."></textarea>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="codeConvertBtn">Translate in Browser</button><button type="button" class="btn btn-secondary" id="codePseudoBtn">Generate Pseudo Code</button><button type="button" class="btn btn-secondary" id="codeDownloadBtn" disabled>Download Result</button></div>
+      </div>
+      <div class="card"><h2>2. Translation result</h2><div class="code-meta" id="codeMeta">No source analyzed yet.</div><pre class="code-output" id="codeOutput">Your translated code or pseudo code will appear here.</pre></div>
+      <div class="card"><h2>3. Translation confidence</h2><div class="sub">The browser can handle many straightforward constructs, but cannot guarantee semantic equivalence across every language ecosystem.</div><div class="code-audit" id="codeAudit"></div></div>
+    </div>
+
     <div class="module-panel" id="tabAllTests">
       <div class="omni-all-lab">
         <div class="omni-all-head">
