@@ -3421,69 +3421,6 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 
           const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div>
 
-<script id="omni-workspace-v9">
-(function(){
-'use strict';
-const meta={
- tabPdf:['PDF Suite','Convert, merge, split, compress and inspect PDF documents in one focused workspace.'],
- tabWord:['Office Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],
- tabEpub:['EPUB Studio','Build, inspect and transform EPUB books and their internal assets.'],
- tabImages:['Image Tools','Convert, resize, optimize and transform images with browser-first processing.'],
- tabOcr:['Image to Text','Extract searchable text from images and scans with local browser OCR.'],
- tabAudio:['Audio Studio','Inspect, convert and process audio assets with a focused media workflow.'],
- tabVideo:['Video Studio','Prepare, inspect and convert video with browser tools and local fallback when required.'],
- tabCompress:['Compressor','Reduce file size across supported document, image and archive formats.'],
- tabData:['Data Studio','Work with CSV, JSON, XML, YAML and tabular data transformations.'],
- tabLocal:['Local Engine','Connect the browser workspace to the optional local execution engine.'],
- tabVizInterchange:['BI Interchange','Move analytical data between visualization and BI-friendly formats.'],
- tabCodeStudio:['Code Studio','Run and inspect supported code directly in the browser or through Local Engine.'],
- tabUniversalData:['Universal Data','Convert structured, semi-structured and unstructured data through one workspace.'],
- tabDatabaseStudio:['Database Studio','Explore SQL, database files and browser-native database operations.'],
- tabDataClean:['Data Clean','Profile, normalize, validate and clean data before downstream conversion.'],
- tabBatchLab:['Batch Lab','Run repeatable multi-file conversion workflows and review their manifests.'],
- tabLocalDoctor:['System Doctor','Inspect local runtime readiness, dependencies and fallback capability.'],
- tabDiagnostics:['Diagnostics','Inspect browser capabilities, engines and workspace health.'],
- tabAllTests:['All Tests','Run the integrated test suite and isolate failed checks quickly.']
-};
-function setupPanel(p){
- if(!p||p.dataset.v9Ready)return;
- const m=meta[p.id]||['Studio','Focused conversion workspace.'];
- const cards=[...p.querySelectorAll(':scope > .card')];
- const head=document.createElement('section');
- head.className='studio-workspace-head';
- head.innerHTML='<div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> ACTIVE STUDIO</div><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">'+cards.length+' TOOLS</span><span class="studio-meta-chip">BROWSER-FIRST</span><span class="studio-meta-chip">LOCAL FALLBACK</span></div>';
- p.insertBefore(head,p.firstElementChild);
- p.dataset.v9Ready='1';
-}
-function enter(id,button){
- document.body.classList.add('studio-mode');
- document.body.dataset.activeStudio=id;
- document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b===button));
-}
-function init(){
- const panels=[...document.querySelectorAll('.module-panel')];
- panels.forEach(setupPanel);
- const buttons=[...document.querySelectorAll('.nav-bar .nav-btn')];
- buttons.forEach(b=>b.addEventListener('click',()=>enter(b.dataset.tab,b),true));
- const brand=document.querySelector('.omni-brand-button');
- brand?.addEventListener('click',()=>{
-   document.body.classList.remove('studio-mode');
-   document.body.removeAttribute('data-active-studio');
-   document.querySelector('.hero-header')?.scrollIntoView({behavior:'smooth',block:'start'});
- });
- const active=buttons.find(b=>b.classList.contains('active'))||buttons[0];
- if(active)enter(active.dataset.tab,active);
- document.addEventListener('keydown',e=>{
-   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
-     e.preventDefault();
-     const q=document.querySelector('.nav-bar .nav-btn.active');
-     (q||buttons[0])?.focus();
-   }
- });
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-})();
-</script>
 </body></html>`;
 
           zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
@@ -5429,5 +5366,68 @@ $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 })();
 </script>
 <script id="omni-navigation-v7">(function(){'use strict';const names={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'All Tests'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=String(n+1).padStart(2,'0')+'  '+(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,46):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
+<script id="omni-workspace-v9">
+(function(){
+'use strict';
+const meta={
+ tabPdf:['PDF Suite','Convert, merge, split, compress and inspect PDF documents in one focused workspace.'],
+ tabWord:['Office Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],
+ tabEpub:['EPUB Studio','Build, inspect and transform EPUB books and their internal assets.'],
+ tabImages:['Image Tools','Convert, resize, optimize and transform images with browser-first processing.'],
+ tabOcr:['Image to Text','Extract searchable text from images and scans with local browser OCR.'],
+ tabAudio:['Audio Studio','Inspect, convert and process audio assets with a focused media workflow.'],
+ tabVideo:['Video Studio','Prepare, inspect and convert video with browser tools and local fallback when required.'],
+ tabCompress:['Compressor','Reduce file size across supported document, image and archive formats.'],
+ tabData:['Data Studio','Work with CSV, JSON, XML, YAML and tabular data transformations.'],
+ tabLocal:['Local Engine','Connect the browser workspace to the optional local execution engine.'],
+ tabVizInterchange:['BI Interchange','Move analytical data between visualization and BI-friendly formats.'],
+ tabCodeStudio:['Code Studio','Run and inspect supported code directly in the browser or through Local Engine.'],
+ tabUniversalData:['Universal Data','Convert structured, semi-structured and unstructured data through one workspace.'],
+ tabDatabaseStudio:['Database Studio','Explore SQL, database files and browser-native database operations.'],
+ tabDataClean:['Data Clean','Profile, normalize, validate and clean data before downstream conversion.'],
+ tabBatchLab:['Batch Lab','Run repeatable multi-file conversion workflows and review their manifests.'],
+ tabLocalDoctor:['System Doctor','Inspect local runtime readiness, dependencies and fallback capability.'],
+ tabDiagnostics:['Diagnostics','Inspect browser capabilities, engines and workspace health.'],
+ tabAllTests:['All Tests','Run the integrated test suite and isolate failed checks quickly.']
+};
+function setupPanel(p){
+ if(!p||p.dataset.v9Ready)return;
+ const m=meta[p.id]||['Studio','Focused conversion workspace.'];
+ const cards=[...p.querySelectorAll(':scope > .card')];
+ const head=document.createElement('section');
+ head.className='studio-workspace-head';
+ head.innerHTML='<div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> ACTIVE STUDIO</div><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">'+cards.length+' TOOLS</span><span class="studio-meta-chip">BROWSER-FIRST</span><span class="studio-meta-chip">LOCAL FALLBACK</span></div>';
+ p.insertBefore(head,p.firstElementChild);
+ p.dataset.v9Ready='1';
+}
+function enter(id,button){
+ document.body.classList.add('studio-mode');
+ document.body.dataset.activeStudio=id;
+ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b===button));
+}
+function init(){
+ const panels=[...document.querySelectorAll('.module-panel')];
+ panels.forEach(setupPanel);
+ const buttons=[...document.querySelectorAll('.nav-bar .nav-btn')];
+ buttons.forEach(b=>b.addEventListener('click',()=>enter(b.dataset.tab,b),true));
+ const brand=document.querySelector('.omni-brand-button');
+ brand?.addEventListener('click',()=>{
+   document.body.classList.remove('studio-mode');
+   document.body.removeAttribute('data-active-studio');
+   document.querySelector('.hero-header')?.scrollIntoView({behavior:'smooth',block:'start'});
+ });
+ const active=buttons.find(b=>b.classList.contains('active'))||buttons[0];
+ if(active)enter(active.dataset.tab,active);
+ document.addEventListener('keydown',e=>{
+   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+     e.preventDefault();
+     const q=document.querySelector('.nav-bar .nav-btn.active');
+     (q||buttons[0])?.focus();
+   }
+ });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
 </body>
 </html>
