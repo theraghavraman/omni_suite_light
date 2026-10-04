@@ -1,0 +1,37 @@
+name: Publish Omni Universal Data Studio npm Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver version to publish, for example 1.0.1"
+        required: true
+        default: 1.0.1
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+
+      - name: Set release version
+        run: npm pkg set version="${{ inputs.version }}"
+
+      - name: Validate package
+        run: npm pack --dry-run
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
