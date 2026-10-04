@@ -1575,6 +1575,27 @@ body{overflow-x:hidden}
   z-index:2!important;
 }
 /* ACTIVE STUDIO POLISH — high-contrast icon, white label, no bottom indicator */
+/* ACTIVE STUDIO — remove inherited white span layers from icon AND label */
+.nav-btn.active span{
+  background:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.nav-btn.active .studio-icon{
+  color:#111827!important;
+  background:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.nav-btn.active .studio-label{
+  color:#fff!important;
+  background:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
 /* ACTIVE STUDIO ICON — remove the white capsule; keep icon dark and clear */
 .nav-btn.active .studio-icon{
   color:#111827!important;
