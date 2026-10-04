@@ -13,6 +13,7 @@ else
   exit 1
 fi
 
+if [ -x ".venv/bin/python" ]; then PYTHON=".venv/bin/python"; fi
 echo "Starting OmniConverter Local Engine..."
 "$PYTHON" -u omni_local_server.py
 RC=$?
