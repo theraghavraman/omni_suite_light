@@ -255,6 +255,13 @@ try:
     assert "customers" in json.dumps(out) and "orders" in json.dumps(out)
     print("29. Database table discovery: OK")
 
+    # CI coverage: batch conversion should return a manifest with per-file success state.
+    out=process({"op":"batch_convert","inputs":[data_up["file_id"],yaml_up["file_id"]],"job_op":"data_convert","format":"json"},"ci-test-token")
+    download(out["file_id"],ROOT/"batch.json","ci-test-token")
+    batch=json.loads((ROOT/"batch.json").read_text(encoding="utf-8"))
+    assert batch["total"]==2 and batch["success"]==2 and batch["failed"]==0
+    print("30. Batch conversion manifest: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
