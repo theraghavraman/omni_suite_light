@@ -4394,7 +4394,8 @@ async function office(f,target){const e=ext(f.name);if(e==='pdf'&&target==='pptx
 function ddb(v){if(Array.isArray(v))return v.map(ddb);if(v&&typeof v==='object'){if('S' in v)return v.S;if('N' in v)return Number(v.N);if('BOOL' in v)return !!v.BOOL;if('NULL' in v)return null;if('B' in v)return v.B;if('SS' in v)return v.SS;if('NS' in v)return v.NS.map(Number);if('BS' in v)return v.BS;if('L' in v)return v.L.map(ddb);if('M' in v)return Object.fromEntries(Object.entries(v.M).map(([k,x])=>[k,ddb(x)]));return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,ddb(x)]))}return v}
 function mongo(v){if(Array.isArray(v))return v.map(mongo);if(v&&typeof v==='object'){if('$oid' in v)return v.$oid;if('$date' in v)return typeof v.$date==='object'?(v.$date.$numberLong||v.$date):v.$date;if('$numberInt' in v)return Number(v.$numberInt);if('$numberLong' in v)return Number(v.$numberLong);if('$numberDouble' in v)return Number(v.$numberDouble);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,mongo(x)]))}return v}
 async function nosql(f,source,target){if(!['json','jsonl','dynamodb-json'].includes(source))return false;const t=await f.text();let v=source==='jsonl'?t.split(/\r?\n/).filter(Boolean).map(JSON.parse):JSON.parse(t);v=source==='dynamodb-json'?ddb(v):mongo(v);const r=rows(v);if(target==='json'){dl(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}),'omni_browser_nosql.json');return true}if(target==='jsonl'){dl(new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'}),'omni_browser_nosql.jsonl');return true}if(target==='csv'||target==='sql')return data(new File([JSON.stringify(v)],'browser.json',{type:'application/json'}),target,'sqlite','nosql_data');if(target==='cql'||target==='cypher'){const fr=r.map(x=>flat(x)),keys=[...new Set(fr.flatMap(x=>Object.keys(x)))];let out;if(target==='cql')out='CREATE TABLE nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')+' text').join(', ')+');\n\n'+fr.map(x=>'INSERT INTO nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')).join(', ')+') VALUES ('+keys.map(k=>"'"+String(x[k]??'').replace(/'/g,"''")+"'").join(', ')+');').join('\n');else out=fr.map(x=>'CREATE (n:NoSQLData '+JSON.stringify(x)+')').join('\n');dl(new Blob([out],{type:'text/plain'}),'omni_browser_nosql.'+target+'.txt');return true}return false}
-window.OMNI_BROWSER_FIRST={dataConvert:data,profile,sql:sqlWeb,office,nosql};
+async function schemaWeb(f,dialect,table){const r=await read(f);const keys=[...new Set(r.flatMap(x=>Object.keys(x)))],id=s=>dialect==='mysql'?'\`'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'\`':dialect==='tsql'?'['+s.replace(/[^A-Za-z0-9_$]/g,'_')+']':'"'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'"';const ddl='CREATE TABLE '+id(table||'data_table')+' ('+keys.map(k=>id(k)+' TEXT').join(', ')+');\n';dl(new Blob([ddl],{type:'application/sql'}),'omni_browser_schema.sql');return true}
+window.OMNI_BROWSER_FIRST={dataConvert:data,profile,sql:sqlWeb,office,nosql,schema:schemaWeb};
 })();
 </script>
 <script id="omni-data-studio">
@@ -4437,20 +4438,20 @@ async function runProfile(){
 }
 async function runSql(){
  try{
-  await health();
-  let fid;
-  if($('sqlTranslateText')?.value.trim()){const f=new File([$('sqlTranslateText').value],'pasted.sql',{type:'application/sql'});const up=await upload(f);fid=up.file_id;}
-  else if(sqlFile){const up=await upload(sqlFile);fid=up.file_id;}
-  else return alert('Choose a SQL file or paste SQL first.');
   const sqlText=$('sqlTranslateText')?.value.trim() || (sqlFile?await sqlFile.text():'');
   if(!sqlText)return alert('Choose a SQL file or paste SQL first.');
   if(await window.OMNI_BROWSER_FIRST.sql(sqlText,$('sqlSourceDialect').value,$('sqlTargetDialect').value))return;
-  const up=await upload(new File([sqlText],sqlFile?.name||'pasted.sql',{type:'application/sql'}));fid=up.file_id;
-  const j=await process({op:'sql_transpile',input:fid,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name);
+  await health();
+  const up=await upload(new File([sqlText],sqlFile?.name||'pasted.sql',{type:'application/sql'}));
+  const j=await process({op:'sql_transpile',input:up.file_id,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name);
  }catch(e){alert('SQL Translator: '+e.message)}
 }
 async function runSchema(){
  if(!schemaFile)return alert('Choose source data first.');
+ try{
+  const r=await window.OMNI_BROWSER_FIRST.schema(schemaFile,$('schemaDialect').value,$('schemaTable').value);
+  if(r)return;
+ }catch(e){console.warn('Browser schema generation failed; using Local Engine fallback.',e)}
  try{await health();const up=await upload(schemaFile);const j=await process({op:'schema_generate',input:up.file_id,source_format:schemaFile.name.split('.').pop(),dialect:$('schemaDialect').value,table:$('schemaTable').value});save(await download(j.file_id),j.name)}catch(e){alert('Schema Generator: '+e.message)}
 }
 async function runNosql(){
