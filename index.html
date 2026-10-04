@@ -4392,7 +4392,7 @@ function hasImplementationReference(id,source){
   "'"+id+"'.onclick"
  ];
  if(direct.some(x=>source.includes(x)))return true;
- const mentions=(source.match(new RegExp('\\b'+String(id).replace(/[.*+?^${}()|[\\]\\]/g,'\\\\$&')+'\\b','g'))||[]).length;
+ const mentions=(source.match(new RegExp('\\b'+String(id).replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\String(id).replace(/[.*+?^${}()|[\\]\\]/g,'\\\\$&')')+'\\b','g'))||[]).length;
  return mentions>=2;
 }
 function runStructure(clear=true){
