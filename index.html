@@ -2369,25 +2369,7 @@ function render(){
   $('allPass').textContent=state.filter(x=>x.status==='PASS').length;$('allFail').textContent=state.filter(x=>x.status==='FAIL').length;$('allSkip').textContent=state.filter(x=>x.status==='SKIPPED').length;$('allTotal').textContent=state.length;$('allControls').textContent=document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests) button,.module-panel:not(#tabDiagnostics):not(#tabAllTests) input,.module-panel:not(#tabDiagnostics):not(#tabAllTests) select,.module-panel:not(#tabDiagnostics):not(#tabAllTests) textarea').length;
 }
 function reset(){state.length=0;}
-function sourceText(){return [...document.scripts].map(x=>x.textContent||'').join('\n');}
-function hasImplementationReference(id,source){
- if(!id)return false;
- const direct=[
-  'getElementById("'+id+'")',
-  "getElementById('"+id+"')",
-  '$("'+id+'")',
-  "$('"+id+"')",
-  '"'+id+'".addEventListener',
-  "'"+id+"'.addEventListener",
-  '"'+id+'".onclick',
-  "'"+id+"'.onclick"
- ];
- if(direct.some(x=>source.includes(x)))return true;
- const escapedId=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- const mentions=(source.match(new RegExp('\\\\b'+escapedId+'\\\\b','g'))||[]).length;
- return mentions>=2;
-}
-function runStructure(clear=true){
+async function sourceText(){\n const parts=[...document.scripts].map(x=>x.textContent||'');\n const localScripts=[...document.scripts].filter(x=>x.src&&new URL(x.src,document.baseURI).origin===location.origin);\n for(const script of localScripts){\n   try{parts.push(await fetch(script.src,{cache:'no-store'}).then(r=>r.ok?r.text():''));}catch(_){}\n }\n return parts.join('\\n');\n}\nfunction hasImplementationReference(id,source,element){\n if(!id)return false;\n if(element && (typeof element.onclick==='function' || element.dataset.action || element.getAttribute('data-action')))return true;\n const direct=[\n  'getElementById("'+id+'")',\n  "getElementById('"+id+"')",\n  '$("'+id+'")',\n  "$('"+id+"')",\n  '"'+id+'".addEventListener',\n  "'"+id+"'.addEventListener",\n  '"'+id+'".onclick',\n  "'"+id+"'.onclick"\n ];\n if(direct.some(x=>source.includes(x)))return true;\n const escapedId=String(id).replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');\n const mentions=(source.match(new RegExp('\\\\b'+escapedId+'\\\\b','g'))||[]).length;\n return mentions>=2;\n}\nasync function runStructure(clear=true){\n if(clear) reset();const source=await sourceText();
  if(clear) reset();const source=sourceText();
  Object.entries(studioMap).forEach(([id,studio])=>{
    const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]');
@@ -2397,7 +2379,7 @@ function runStructure(clear=true){
    panel.querySelectorAll('select').forEach(el=>{add(studio,'Control: '+(el.id||'unnamed'),'PASS',el.options.length+' choices');[...el.options].forEach(o=>add(studio,'Option: '+(el.id||'select')+' → '+o.textContent.trim(),'PASS','Option is present'));});
    panel.querySelectorAll('textarea,input:not([type="file"]),button').forEach(el=>{
      const id=el.id||el.getAttribute('aria-label')||el.textContent.trim().replace(/\s+/g,' ').slice(0,50)||el.tagName;
-     if(el.matches('button')){const referenced=hasImplementationReference(el.id,source);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
+     if(el.matches('button')){const referenced=hasImplementationReference(el.id,source,el);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
      else add(studio,'Control: '+id,'PASS','DOM control present');
    });
  });
@@ -2421,14 +2403,14 @@ function runOfficeChecks(){
  const presentationTargets=['pdf','ppt','pptx','pptm','pps','ppsx','pot','potx','potm','odp','otp','fodp'];const pt=$('officePresentationTarget');presentationTargets.forEach(fmt=>add('Office Studio','Presentation target '+fmt,pt&&[...pt.options].some(o=>o.value===fmt)?'PASS':'FAIL',pt&&[...pt.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
  const spreadsheetTargets=['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'];const st=$('officeSpreadsheetTarget');spreadsheetTargets.forEach(fmt=>add('Office Studio','Spreadsheet target '+fmt,st&&[...st.options].some(o=>o.value===fmt)?'PASS':'FAIL',st&&[...st.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
 }
-function runAll(){
- reset();runStructure(false);runOptions(false);runOfficeChecks();
+async function runAll(){
+ reset();await runStructure(false);runOptions(false);runOfficeChecks();
  const actionRows=state.filter(x=>x.name.startsWith('Action:'));
  actionRows.forEach(r=>{if(r.status==='FAIL')return;});
  render();
 }
-$('omniRunAllOptions')?.addEventListener('click',runAll);
-$('omniRunStructure')?.addEventListener('click',runStructure);
+$('omniRunAllOptions')?.addEventListener('click',()=>{runAll().catch(e=>{reset();add('All Tests','Test runner','FAIL',e.message||String(e));render();});});
+$('omniRunStructure')?.addEventListener('click',()=>{runStructure().catch(e=>{reset();add('All Tests','Structure test','FAIL',e.message||String(e));render();});});
 $('omniRunOptions')?.addEventListener('click',runOptions);
 $('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
 })();
