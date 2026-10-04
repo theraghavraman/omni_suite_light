@@ -159,7 +159,7 @@ The browser layer intentionally stays conservative because browsers cannot encod
 
 **Audio:** MP3, WAV, M4A, AAC, FLAC, OGG/OGA, Opus, WMA, AMR, AIFF/AIF/AIFC, AC-3/E-AC-3, AU, CAF, W64, WavPack, TTA, APE and Matroska Audio.
 
-**Images / graphics:** JPG/JPEG/JFIF, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM/PPM/PGM/PBM/PAM, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, plus delegate-dependent formats. ImageMagick documents 100+ major formats; exact read/write support depends on the installed delegates.
+**Images / graphics:** JPG/JPEG/JFIF, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM/PPM/PGM/PBM/PAM, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, plus delegate-dependent formats. HEIC/HEIF output is a Local Engine/ImageMagick path; it is not silently substituted with JPG. ImageMagick documents 100+ major formats; exact read/write support depends on the installed delegates.
 
 **Office / spreadsheets / presentations:** DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM/XLSB/XLT/XLTX/XLTM, ODS/OTS/FODS, CSV/TSV; PPT/PPTX/PPTM/PPS/PPSX/POT/POTX/POTM, ODP/OTP/FODP. LibreOffice exposes these through conversion filters, although some formats/features are import-only or have fidelity limitations.
 
@@ -167,7 +167,7 @@ The browser layer intentionally stays conservative because browsers cannot encod
 
 **Archives / compression:** ZIP, TAR, GZIP, BZIP2, XZ and 7z are available through the native archive bridge; ZIP/GZIP/DEFLATE/Brotli also remain available in the browser studio. Native 7z requires the local 7-Zip executable. Python provides the standard-library TAR/GZIP/BZIP2/XZ paths.
 
-**PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX is a visual replica: one rendered PDF page per slide, not editable-object reconstruction.
+**PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX can be generated in the browser as a visual page replica, or by the Local Engine with Poppler. Each PDF page becomes a slide image; this is not editable-object reconstruction.
 
 **Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`.
 
