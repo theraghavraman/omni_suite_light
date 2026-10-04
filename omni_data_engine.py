@@ -6,6 +6,122 @@ import json, sqlite3
 from pathlib import Path
 
 DATA_FORMATS = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md","xlsx","xls","xlsb","ods","parquet","feather","arrow","ipc","orc","avro","sqlite","db","duckdb","sql","hdf5","h5","dta","sas","sav","msgpack","mpk"}
+SCIENTIFIC_FORMATS = {"fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"}
+
+def scientific_ext(path, override=None):
+    f=str(override or Path(path).suffix).lower().lstrip(".")
+    return {"fit":"fits","nc":"netcdf","h5":"hdf5","grib2":"grib","grb":"grib","grb2":"grib"}.get(f,f)
+
+def _json_value(v):
+    import numpy as np
+    if isinstance(v, np.generic): return v.item()
+    if isinstance(v, (list, tuple)): return [_json_value(x) for x in v]
+    if isinstance(v, dict): return {str(k): _json_value(x) for k,x in v.items()}
+    try:
+        if hasattr(v, "isoformat"): return v.isoformat()
+    except Exception: pass
+    return v
+
+def _scientific_records(path, fmt):
+    import numpy as np
+    fmt=scientific_ext(path,fmt); variables=[]; attrs={}
+    if fmt in {"netcdf","grib"}:
+        xr=_mod("xarray");
+        try:
+            ds=xr.open_dataset(path, engine="cfgrib" if fmt=="grib" else None, backend_kwargs={"indexpath":""} if fmt=="grib" else None)
+        except TypeError:
+            ds=xr.open_dataset(path, engine="cfgrib" if fmt=="grib" else None)
+        try:
+            attrs={str(k):_json_value(v) for k,v in ds.attrs.items()}
+            for name,da in ds.variables.items():
+                arr=np.asarray(da.values)
+                variables.append({"name":str(name),"dims":[str(x) for x in da.dims],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{str(k):_json_value(v) for k,v in da.attrs.items()},"data":arr})
+        finally: ds.close()
+    elif fmt=="hdf5":
+        h5=_mod("h5py");
+        with h5.File(path,"r") as f:
+            attrs={str(k):_json_value(v) for k,v in f.attrs.items()}
+            def visit(name,obj):
+                if isinstance(obj,h5.Dataset):
+                    arr=obj[()];
+                    if getattr(arr,"dtype",None) is not None and arr.dtype.kind not in "biufcSU": arr=np.asarray(arr,dtype=str)
+                    variables.append({"name":name,"dims":[f"dim_{i}" for i in range(getattr(arr,"ndim",0))],"shape":list(getattr(arr,"shape",())),"dtype":str(getattr(arr,"dtype","unknown")),"attrs":{str(k):_json_value(v) for k,v in obj.attrs.items()},"data":np.asarray(arr)})
+            f.visititems(visit)
+    elif fmt=="fits":
+        fits=_mod("astropy.io.fits","astropy");
+        with fits.open(path,memmap=True) as hdul:
+            for i,hdu in enumerate(hdul):
+                if hdu.data is None: continue
+                data=hdu.data
+                if hasattr(data,"columns") and getattr(data,"names",None):
+                    for col in data.names:
+                        arr=np.asarray(data[col]);variables.append({"name":f"HDU{i}.{col}","dims":[f"row"],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
+                else:
+                    arr=np.asarray(data);variables.append({"name":f"HDU{i}","dims":[f"dim_{j}" for j in range(arr.ndim)],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
+            attrs={"HDU_count":len(hdul)}
+    elif fmt=="cdf":
+        cdf=_mod("cdflib","cdflib"); c=cdf.CDF(str(path)); info=c.cdf_info(); attrs={str(k):_json_value(v) for k,v in info.items() if k not in {"zVariables","rVariables"}}
+        names=list(info.get("zVariables",[]))+list(info.get("rVariables",[]))
+        for name in names:
+            arr=np.asarray(c.varget(name));variables.append({"name":str(name),"dims":[f"dim_{i}" for i in range(arr.ndim)],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
+        c.close()
+    else: raise RuntimeError("Unsupported scientific format: "+fmt)
+    return attrs,variables
+
+def scientific_profile(path, fmt=None):
+    attrs,variables=_scientific_records(path,fmt)
+    return {"format":scientific_ext(path,fmt),"attributes":attrs,"variables":[{k:v for k,v in x.items() if k!="data"} for x in variables]}
+
+def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
+    import numpy as np, pandas as pd
+    target=str(target).lower().lstrip("."); attrs,variables=_scientific_records(path,fmt)
+    if target in {"json","jsonschema"}:
+        payload={"format":scientific_ext(path,fmt),"attributes":attrs,"variables":[]}
+        for v in variables:
+            flat=np.asarray(v["data"]).reshape(-1)
+            payload["variables"].append({k:x for k,x in v.items() if k!="data"}|{"values":[_json_value(x) for x in flat[:max_rows]]})
+        Path(out).write_text(json.dumps(payload,indent=2,ensure_ascii=False,default=str),encoding="utf-8"); return
+    if target=="csv":
+        rows=[]
+        for v in variables:
+            arr=np.asarray(v["data"]).reshape(-1)
+            for idx,val in enumerate(arr[:max_rows]): rows.append({"variable":v["name"],"flat_index":idx,"value":_json_value(val)})
+        pd.DataFrame(rows).to_csv(out,index=False); return
+    if target=="png":
+        from PIL import Image
+        chosen=next((v for v in variables if getattr(v["data"],"ndim",0)>=2),None)
+        if chosen is None: raise RuntimeError("PNG output requires at least one 2-D scientific array.")
+        arr=np.asarray(chosen["data"],dtype=float)
+        while arr.ndim>2: arr=arr[0]
+        finite=np.isfinite(arr); 
+        if not finite.any(): raise RuntimeError("Scientific array contains no finite values.")
+        lo,hi=np.nanpercentile(arr[finite],[2,98]); scaled=np.clip((arr-lo)/(hi-lo if hi!=lo else 1),0,1); img=(scaled*255).astype("uint8"); Image.fromarray(img).save(out)
+        return
+    if target in {"netcdf","nc"}:
+        xr=_mod("xarray"); data={};
+        for v in variables:
+            arr=np.asarray(v["data"]); dims=tuple(v["dims"]); 
+            if arr.ndim==0: data[v["name"].replace("/","_")]=xr.DataArray(arr)
+            else: data[v["name"].replace("/","_")]=(dims,arr)
+        xr.Dataset(data,attrs=attrs).to_netcdf(out); return
+    if target in {"hdf5","h5"}:
+        h5=_mod("h5py");
+        with h5.File(out,"w") as f:
+            for k,v in attrs.items():
+                try: f.attrs[k]=v
+                except Exception: pass
+            for v in variables:
+                name=v["name"].strip("/").replace("/","_") or "data"; f.create_dataset(name,data=np.asarray(v["data"]))
+        return
+    if target=="fits":
+        fits=_mod("astropy.io.fits","astropy"); hdus=[fits.PrimaryHDU()]
+        for v in variables:
+            arr=np.asarray(v["data"])
+            if arr.ndim>=2: hdus.append(fits.ImageHDU(data=arr,name=v["name"][:68]))
+            elif arr.ndim==1: hdus.append(fits.BinTableHDU.from_columns([fits.Column(name="value",array=arr,format="D")],name=v["name"][:68]))
+        fits.HDUList(hdus).writeto(out,overwrite=True); return
+    raise RuntimeError("Scientific target must be JSON, CSV, PNG, NetCDF, HDF5 or FITS.")
+
 SQL_DIALECTS = ["oracle","tsql","postgres","mysql","sqlite","duckdb","snowflake","bigquery","databricks","redshift","spark","trino","presto","clickhouse","hive","teradata","athena","doris","drill","druid","materialize","singlestore","starrocks","tableau"]
 
 def _mod(name, package=None):
