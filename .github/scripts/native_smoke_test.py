@@ -298,6 +298,13 @@ try:
     assert profile and ("columns" in profile or "column_profiles" in profile)
     print("36. Data profile schema contract: OK")
 
+    # CI coverage: structured JSON output should remain UTF-8 and machine-readable.
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"json"},"ci-test-token")
+    download(out["file_id"],ROOT/"final.json","ci-test-token")
+    final_rows=json.loads((ROOT/"final.json").read_text(encoding="utf-8"))
+    assert isinstance(final_rows,list) and final_rows[0]["Name"]=="Alice"
+    print("37. JSON structured-output contract: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
