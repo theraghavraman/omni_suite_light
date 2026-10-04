@@ -33,3 +33,10 @@ assert "requirements-extended.txt" in (ROOT/"install_windows.ps1").read_text(enc
 assert "requirements-extended.txt" in (ROOT/"install_system_tools.command").read_text(encoding="utf-8"), "Unix installer does not install extended stack"
 print("Omni contract audit: PASS")
 print(f"Panels checked: {len(required_panels)} | Local operations checked: {len(required_ops)} | Data targets checked: {len(targets)}")
+
+assert 'data-tab="tabDiagnostics"' in index, "Diagnostics panel has no navigation tile"
+batch_match=re.search(r'<select[^>]*id="batchTarget"[^>]*>(.*?)</select>',index,re.S)
+assert batch_match and re.findall(r'<option[^>]*value="([^"]+)"',batch_match.group(1)), "Batch target options must have explicit values"
+ocr_match=re.search(r'<select[^>]*id="ocrLanguage"[^>]*>(.*?)</select>',index,re.S)
+ocr_values=re.findall(r'<option[^>]*value="([^"]+)"',ocr_match.group(1)) if ocr_match else []
+assert len(ocr_values)==len(set(ocr_values)), "OCR language options contain duplicate values"
