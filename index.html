@@ -4806,7 +4806,7 @@ async function runLocalTests(){
   let h;
   try{h=await localHealth();state.local=h;}catch(e){
     skip('local','Local Engine connection','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');
-    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Ebook Studio: native format bridge','Image Tools: native format bridge','Audio Studio: native format bridge','Video Studio: native format bridge','Data Studio: data conversion/profile','Data Studio: SQL dialect translation','Data Studio: NoSQL bridge','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
+    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Ebook Studio: native format bridge','Image Tools: native format bridge','Audio Studio: native format bridge','Video Studio: native format bridge','Data Studio: data conversion/profile','Data Studio: SQL dialect translation','Data Studio: NoSQL bridge','Data Studio: Text/Log bridge','Data Studio: BLOB bridge','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
     return;
   }
   await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
@@ -4871,6 +4871,11 @@ async function runLocalTests(){
     if(h.data?.modules?.sqlglot) await test('local','Data Studio: Oracle SQL → T-SQL',async()=>{const o=await process({op:'sql_transpile',input:sqlId,source:'oracle',target:'tsql'});const b=await download(o.file_id);const text=await b.text();if(!/SELECT/i.test(text))throw new Error('No translated SQL');return text.slice(0,180);}); else skip('local','Data Studio: Oracle SQL → T-SQL','sqlglot unavailable');
     const docs=new Blob([JSON.stringify([{id:1,name:'Omni'},{id:2,name:'Suite'}])],{type:'application/json'});const docId=await upload(docs,'docs.json');
     await test('local','Data Studio: JSON → DynamoDB JSON',async()=>{const o=await process({op:'nosql_convert',input:docId,source:'json',target:'dynamodb-json'});const b=await download(o.file_id);if(!/\"N\"|\"S\"/.test(await b.text()))throw new Error('Invalid DynamoDB JSON');return o.name;});
+    const logBlob=new Blob(['INFO start\\nWARN something\\nERROR failed'],{type:'text/plain'});const logId=await upload(logBlob,'omni.log');
+    await test('local','Data Studio: Text/Log → JSONL',async()=>{const o=await process({op:'text_lines',input:logId,target:'jsonl'});const b=await download(o.file_id);if((await b.text()).split('\\n').length<3)throw new Error('Unexpected line output');return o.name;});
+    const rawBlob=new Blob([new Uint8Array([0,1,2,255,42])],{type:'application/octet-stream'});const blobId=await upload(rawBlob,'sample.bin');
+    await test('local','Data Studio: BLOB → Base64/Hex',async()=>{const b64=await process({op:'blob_convert',input:blobId,source:'binary',target:'base64'});const hex=await process({op:'blob_convert',input:blobId,source:'binary',target:'hex'});const bb=await download(b64.file_id),hh=await download(hex.file_id);if(!bb.size||!hh.size)throw new Error('Empty BLOB conversion');return b64.name+' • '+hex.name;});
+
   }else{skip('local','Data Studio: data conversion/profile','pandas unavailable');skip('local','Data Studio: SQL dialect translation','pandas/sqlglot unavailable');skip('local','Data Studio: NoSQL bridge','pandas unavailable');}
 
 }
