@@ -42,7 +42,9 @@ try:
             with request.urlopen(request.Request("http://127.0.0.1:8765/api/health",headers={"Origin":"http://127.0.0.1:8765"}),timeout=2) as r: health=json.loads(r.read()); break
         except Exception: time.sleep(.25)
     assert health and health.get("ok") and health.get("token")=="ci-test-token"
-    print("1. Local Engine health: OK")
+    assert int(health.get("engine_api_version") or 0) >= 4, "Local Engine API v4+ is required; stale engine detected"
+    assert health.get("engine_build"), "Local Engine build identifier is required"
+    print("1. Local Engine health/API contract: OK")
     caps=health.get("capabilities",{})
     required={"media_video":["mp4","mpeg","mkv","gif"],"media_audio":["mp3","flac","opus","wma"],"image":["svg","gif","tiff","heic"],"office":["docx","docm","xlsx","xlsm","pptx","pptm","odp"],"ebook":["epub","mobi","azw3","cbz","cbr","djvu"]}
     missing=[f"{k}:{v}" for k,vals in required.items() for v in vals if v not in caps.get(k,[])]
