@@ -40,3 +40,9 @@ assert batch_match and re.findall(r'<option[^>]*value="([^"]+)"',batch_match.gro
 ocr_match=re.search(r'<select[^>]*id="ocrLanguage"[^>]*>(.*?)</select>',index,re.S)
 ocr_values=re.findall(r'<option[^>]*value="([^"]+)"',ocr_match.group(1)) if ocr_match else []
 assert len(ocr_values)==len(set(ocr_values)), "OCR language options contain duplicate values"
+
+assert (ROOT/"requirements-local.txt").is_file(), "Complete local dependency profile is missing"
+assert (ROOT/"verify_local_environment.py").is_file(), "Strict local environment verifier is missing"
+for launcher in ["Omni.bat","Omni.command","start_omni.bat","start_omni.command","setup_and_start.bat","setup_and_start.command"]:
+    assert (ROOT/launcher).is_file() and (ROOT/launcher).stat().st_size>0, f"Missing launcher: {launcher}"
+
