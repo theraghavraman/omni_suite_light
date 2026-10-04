@@ -2153,6 +2153,15 @@
           <div class="items-list" id="decompressList"></div>
         </div>
       </div>
+      <div class="card" id="archiveNativeBridge">
+        <h2>📦 Native Archive Bridge</h2>
+        <div class="sub">Local Engine compression for TAR, GZIP, BZIP2, XZ and 7z, in addition to the browser ZIP/GZIP/DEFLATE/Brotli tools.</div>
+        <div class="dropzone" id="archiveNativeDropzone"><h3>Choose a file to package</h3><p>Runs locally with Python standard-library compressors; 7z uses the installed 7-Zip executable.</p><input type="file" id="archiveNativeInput" class="file-input"></div>
+        <div class="controls-panel" id="archiveNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="archiveNativeName">No file selected</div><div class="file-meta" id="archiveNativeMeta"></div></div><button type="button" class="btn-reset" id="archiveNativeReset">Reset</button></div>
+          <div class="options-grid"><div class="form-group"><label for="archiveNativeTarget">Target archive</label><select id="archiveNativeTarget" class="form-select"><option value="zip">ZIP</option><option value="tar">TAR</option><option value="gz">GZIP</option><option value="bz2">BZIP2</option><option value="xz">XZ</option><option value="7z">7z</option></select></div></div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="archiveNativeRun">Compress Locally</button></div>
+        </div>
+      </div>
     </div>
 
     <div class="module-panel" id="tabDiagnostics">
@@ -4189,7 +4198,8 @@ const cards=[
 {input:'ebookNativeInput',drop:'ebookNativeDropzone',controls:'ebookNativeControls',name:'ebookNativeName',meta:'ebookNativeMeta',target:'ebookNativeTarget',button:'ebookNativeRun',reset:'ebookNativeReset',op:'ebook_convert',label:'Ebook Studio'},
 {input:'imageNativeInput',drop:'imageNativeDropzone',controls:'imageNativeControls',name:'imageNativeName',meta:'imageNativeMeta',target:'imageNativeTarget',button:'imageNativeRun',reset:'imageNativeReset',op:'image',label:'Image Tools'},
 {input:'audioNativeInput',drop:'audioNativeDropzone',controls:'audioNativeControls',name:'audioNativeName',meta:'audioNativeMeta',target:'audioNativeTarget',button:'audioNativeRun',reset:'audioNativeReset',op:'media',label:'Audio Studio'},
-{input:'videoNativeInput',drop:'videoNativeDropzone',controls:'videoNativeControls',name:'videoNativeName',meta:'videoNativeMeta',target:'videoNativeTarget',button:'videoNativeRun',reset:'videoNativeReset',op:'media',label:'Video Studio'}
+{input:'videoNativeInput',drop:'videoNativeDropzone',controls:'videoNativeControls',name:'videoNativeName',meta:'videoNativeMeta',target:'videoNativeTarget',button:'videoNativeRun',reset:'videoNativeReset',op:'media',label:'Video Studio'},
+{input:'archiveNativeInput',drop:'archiveNativeDropzone',controls:'archiveNativeControls',name:'archiveNativeName',meta:'archiveNativeMeta',target:'archiveNativeTarget',button:'archiveNativeRun',reset:'archiveNativeReset',op:'archive',label:'Compressor Studio'}
 ];
 const $=id=>document.getElementById(id);
 function wire(card){
@@ -4202,7 +4212,7 @@ button.addEventListener('click',async()=>{
 if(!file){alert('Choose a file first.');return;}button.disabled=true;
 try{
 const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();token=h.token||'';
-const tool=card.op==='media'?'ffmpeg':card.op==='image'?'magick':'ebook-convert';if(!(h.tools&&h.tools[tool]&&h.tools[tool].installed))throw new Error(tool+' is not installed on the Local Engine.');
+const tool=card.op==='media'?'ffmpeg':card.op==='image'?'magick':card.op==='ebook_convert'?'ebook-convert':card.op==='archive'?(target.value==='7z'?'7z':null):null;if(tool&&!(h.tools&&h.tools[tool]&&h.tools[tool].installed))throw new Error(tool+' is not installed on the Local Engine.');
 const up=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error((await up.text()).slice(0,400));const uj=await up.json();
 const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:card.op,input:uj.file_id,format:target.value})});const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Native conversion failed');
 const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!dl.ok)throw new Error('Output download failed');const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+target.value);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -4654,7 +4664,7 @@ async function runLocalTests(){
     return;
   }
   await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
-  await test('local','Native format capability inventory',async()=>{const cap=h.capabilities||{};const required={media_video:['mp4','mpeg','mkv','webm','gif'],media_audio:['mp3','wav','flac','opus','wma'],image:['png','gif','svg','tiff','heic','jxl'],office:['docx','docm','xlsx','xlsm','pptx','pptm','odp'],ebook:['epub','mobi','azw3','cbz','cbr','djvu']};const missing=[];Object.entries(required).forEach(([k,vals])=>vals.forEach(v=>{if(!(cap[k]||[]).includes(v))missing.push(k+':'+v)}));if(missing.length)throw new Error('Capability inventory missing '+missing.join(', '));return Object.entries(cap).map(([k,v])=>k+'='+v.length).join(' • ');});
+  await test('local','Native format capability inventory',async()=>{const cap=h.capabilities||{};const required={media_video:['mp4','mpeg','mkv','webm','gif'],media_audio:['mp3','wav','flac','opus','wma'],image:['png','gif','svg','tiff','heic','jxl'],office:['docx','docm','xlsx','xlsm','pptx','pptm','odp'],ebook:['epub','mobi','azw3','cbz','cbr','djvu'],archive:['zip','tar','gz','bz2','xz','7z']};const missing=[];Object.entries(required).forEach(([k,vals])=>vals.forEach(v=>{if(!(cap[k]||[]).includes(v))missing.push(k+':'+v)}));if(missing.length)throw new Error('Capability inventory missing '+missing.join(', '));return Object.entries(cap).map(([k,v])=>k+'='+v.length).join(' • ');});
   const tool=(name)=>h.tools&&h.tools[name]&&h.tools[name].installed;
   for(const [name,label] of [['ffmpeg','FFmpeg'],['qpdf','qpdf'],['pdftoppm','Poppler pdftoppm'],['pdftotext','Poppler pdftotext'],['tesseract','Tesseract OCR'],['soffice','LibreOffice'],['ebook-convert','Calibre'],['magick','ImageMagick']]){
     if(tool(name)) await test('local',label+' executable detected',async()=>h.tools[name].path||'installed');
