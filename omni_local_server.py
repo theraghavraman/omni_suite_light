@@ -259,13 +259,13 @@ def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
 def process_job(payload):
     op = payload.get("op")
     if op == "health":
-        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions()}
+        return {"ok": True, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip"]}}
 
     if op == "media":
         require_tool("ffmpeg")
         inp = get_file(payload["input"])
         fmt = str(payload.get("format", "mp4")).lower().lstrip(".")
-        allowed = {"mp4","mkv","webm","mov","avi","mp3","wav","m4a","aac","flac","ogg","opus","gif"}
+        allowed = {"mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka","gif","apng"}
         if fmt not in allowed:
             raise ValueError("Unsupported media output format")
         out = output_path(inp.stem, fmt)
@@ -342,7 +342,7 @@ def process_job(payload):
             raise RuntimeError("ImageMagick is not installed. Run the platform installer.")
         inp = get_file(payload["input"])
         fmt = str(payload.get("format", "jpg")).lower().lstrip(".")
-        allowed = {"jpg","jpeg","png","webp","avif","tiff","bmp","gif","pdf"}
+        allowed = {"jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"}
         if fmt not in allowed:
             raise ValueError("Unsupported image output format")
         out = output_path(inp.stem, "jpg" if fmt == "jpeg" else fmt)
@@ -387,7 +387,7 @@ def process_job(payload):
             raise RuntimeError("LibreOffice is not installed. Run the platform installer.")
         inp = get_file(payload["input"])
         fmt = str(payload.get("format", "pdf")).lower().lstrip(".")
-        allowed = {"pdf","docx","doc","odt","ods","odp","rtf","txt","html","xls","xlsx","csv","ppt","pptx"}
+        allowed = {"pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"}
         if fmt not in allowed:
             raise ValueError("Unsupported Office output format")
         work = ROOT / new_id("office")
@@ -408,7 +408,7 @@ def process_job(payload):
             raise RuntimeError("Calibre ebook-convert is not installed. Run the platform installer.")
         inp = get_file(payload["input"])
         fmt = str(payload.get("format", "pdf")).lower().lstrip(".")
-        allowed = {"pdf","epub","mobi","azw3","txt","docx","htmlz"}
+        allowed = {"azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip"}
         if fmt not in allowed:
             raise ValueError("Unsupported ebook output format")
         out = output_path(inp.stem, fmt)
