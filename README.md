@@ -27,7 +27,7 @@ Desktop users can also drag files onto upload areas. Browser file inputs and dra
 
 ## 2. Typography
 
-The interface uses **Outfit**, a freely licensed typeface distributed under the **SIL Open Font License 1.1**. The public page loads the web font from Google Fonts when network access is available and falls back to system sans-serif fonts when it is not. The conversion functionality does not depend on the font.
+The interface uses a system-safe sans-serif font stack. No external web-font request is required by the application, so typography does not create an offline network dependency.
 
 ## 3. Browser mode vs Local Engine
 
