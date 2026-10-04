@@ -29,8 +29,12 @@ missing=[t for t in targets if t not in write_section]
 assert not missing, "Advertised Data Studio targets without writer references: "+", ".join(missing)
 
 assert "pandoc" in server.lower(), "Pandoc is not represented in Local Engine native tools"
-assert "requirements-extended.txt" in (ROOT/"install_windows.ps1").read_text(encoding="utf-8"), "Windows installer does not install extended stack"
-assert "requirements-extended.txt" in (ROOT/"install_system_tools.command").read_text(encoding="utf-8"), "Unix installer does not install extended stack"
+for installer in ["install_windows.ps1","install_system_tools.command"]:
+    text=(ROOT/installer).read_text(encoding="utf-8")
+    assert "requirements-local.txt" in text, f"{installer} does not install the complete Local Engine profile"
+local_requirements=(ROOT/"requirements-local.txt").read_text(encoding="utf-8")
+assert "-r requirements-data.txt" in local_requirements, "Complete local profile does not include Data Studio dependencies"
+assert "-r requirements-extended.txt" in local_requirements, "Complete local profile does not include extended dependencies"
 print("Omni contract audit: PASS")
 print(f"Panels checked: {len(required_panels)} | Local operations checked: {len(required_ops)} | Data targets checked: {len(targets)}")
 
