@@ -420,10 +420,53 @@ span.studio-svg{font-size:19px;line-height:24px;font-weight:800;text-align:cente
 }
 
 body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
+
+/* --- functional studio/tool command palette --- */
+.omni-command{cursor:pointer;user-select:none}
+.omni-command:focus-visible{outline:3px solid rgba(108,92,255,.35);outline-offset:2px}
+.omni-command.is-open{border-color:#9d92ff;box-shadow:0 12px 28px -12px rgba(108,92,255,.65)}
+.omni-command-backdrop{position:fixed;inset:0;z-index:999;background:rgba(28,27,58,.34);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:clamp(72px,12vh,130px) 18px 30px;opacity:0;pointer-events:none;transition:opacity .18s ease}
+.omni-command-backdrop.open{opacity:1;pointer-events:auto}
+.omni-command-panel{width:min(720px,100%);max-height:min(680px,78vh);overflow:hidden;border:1px solid rgba(255,255,255,.9);border-radius:24px;background:rgba(255,255,255,.97);box-shadow:0 34px 90px -30px rgba(28,27,58,.55),0 8px 28px rgba(88,70,200,.18);transform:translateY(-12px) scale(.98);transition:transform .22s var(--spring)}
+.omni-command-backdrop.open .omni-command-panel{transform:translateY(0) scale(1)}
+.omni-command-search{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #ecebfa;background:linear-gradient(135deg,#fbfaff,#f5fbff)}
+.omni-command-search-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#fff;color:var(--violet);border:1px solid var(--line);font-size:18px}
+#omniCommandInput{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font-size:1rem;font-weight:700}
+#omniCommandInput::placeholder{color:#9a9db7;font-weight:600}
+.omni-command-search kbd{font:700 .66rem ui-monospace,Menlo,monospace;padding:4px 7px;border-radius:7px;background:#fff;border:1px solid var(--line);color:var(--ink2)}
+.omni-command-results{padding:8px;max-height:560px;overflow:auto}
+.omni-command-section{padding:7px 9px 5px;color:#8589a7;font-size:.64rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.omni-command-result{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:11px;padding:10px;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--ink);text-align:left;cursor:pointer}
+.omni-command-result:hover,.omni-command-result.active{background:#f5f2ff;border-color:#ded9ff}
+.omni-command-result.active{box-shadow:inset 3px 0 0 var(--violet)}
+.omni-command-result-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#eeeaff;color:var(--violet);font-weight:900}
+.omni-command-result.tool .omni-command-result-icon{background:#e9fbf7;color:#0a9872}
+.omni-command-result-copy{min-width:0}
+.omni-command-result-copy strong{display:block;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omni-command-result-copy span{display:block;margin-top:2px;color:var(--mute);font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omni-command-result-meta{color:#8a8dab;font-size:.64rem;font-weight:800;white-space:nowrap}
+.omni-command-empty{padding:34px 18px;text-align:center;color:var(--mute);font-size:.82rem}
+.omni-command-empty strong{display:block;color:var(--ink);margin-bottom:5px;font-size:.92rem}
+.omni-command-footer{display:flex;gap:14px;align-items:center;padding:9px 15px;border-top:1px solid #ecebfa;background:#faf9ff;color:#8a8dab;font-size:.64rem}
+.omni-command-footer span{display:inline-flex;align-items:center;gap:5px}.omni-command-footer kbd{padding:2px 5px;border:1px solid #dcd9ef;border-radius:5px;background:#fff;font:700 .6rem ui-monospace,Menlo,monospace;color:#626681}
+@media(max-width:920px){.omni-command{display:flex;max-width:none}.omni-top-actions{display:none}}
+@media(max-width:640px){.omni-appbar{gap:9px;padding:9px 12px}.omni-command{padding:6px 9px}.omni-command-copy span,.omni-command kbd{display:none}.omni-command-copy b{font-size:.72rem}.omni-command-backdrop{padding:64px 10px 16px}.omni-command-panel{border-radius:19px}}
 </style>
 </head>
 <body>
 <div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-brand-mark">O</span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
+  
+<div class="omni-command-backdrop" id="omniCommandBackdrop" aria-hidden="true">
+  <div class="omni-command-panel" role="dialog" aria-modal="true" aria-labelledby="omniCommandTitle">
+    <div class="omni-command-search">
+      <span class="omni-command-search-icon">⌕</span>
+      <input id="omniCommandInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search studios and tools…" aria-label="Search studios and tools">
+      <kbd>ESC</kbd>
+    </div>
+    <div class="omni-command-results" id="omniCommandResults"></div>
+    <div class="omni-command-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Open</span><span><kbd>Esc</kbd> Close</span></div>
+  </div>
+</div>
   <div class="omni-motion-bg" aria-hidden="true"><div class="omni-grid"></div><div class="omni-orbit"></div></div>
 
   <div class="container">
@@ -3186,6 +3229,84 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 
           const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div>
 
+
+<script id="omni-command-palette-v1">
+(function(){
+'use strict';
+function initCommandPalette(){
+  const trigger=document.querySelector('.omni-command');
+  const backdrop=document.getElementById('omniCommandBackdrop');
+  const input=document.getElementById('omniCommandInput');
+  const results=document.getElementById('omniCommandResults');
+  if(!trigger||!backdrop||!input||!results||trigger.dataset.commandReady)return;
+  trigger.dataset.commandReady='1';
+  trigger.setAttribute('role','button');
+  trigger.setAttribute('tabindex','0');
+  trigger.setAttribute('aria-haspopup','dialog');
+  const items=[];
+  document.querySelectorAll('.nav-bar .nav-btn').forEach(btn=>{
+    const panel=document.getElementById(btn.dataset.tab);
+    if(!panel)return;
+    const label=(btn.querySelector('.studio-label')?.textContent||btn.textContent||'Studio').replace(/\\s+/g,' ').trim();
+    const desc=(panel.querySelector('.studio-workspace-desc')?.textContent||'Conversion workspace').replace(/\\s+/g,' ').trim();
+    items.push({type:'studio',label,desc,button:btn,panel,search:(label+' '+desc+' '+panel.id).toLowerCase()});
+    panel.querySelectorAll(':scope > .card').forEach(card=>{
+      const heading=card.querySelector(':scope > h2,:scope > h3,h2,h3');
+      const tool=(heading?.textContent||'Tool').replace(/\\s+/g,' ').trim();
+      const detail=(card.textContent||'').replace(/\\s+/g,' ').trim();
+      items.push({type:'tool',label:tool,desc:detail.slice(0,180),button:btn,panel,card,search:(tool+' '+detail+' '+label).toLowerCase()});
+    });
+  });
+  let matches=[],active=-1;
+  function open(){
+    backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');trigger.classList.add('is-open');
+    input.value='';active=-1;render();setTimeout(()=>input.focus(),20);
+  }
+  function close(){backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');trigger.classList.remove('is-open');trigger.focus();}
+  function render(){
+    const q=input.value.trim().toLowerCase();
+    matches=items.filter(x=>!q||x.search.includes(q)).slice(0,40);
+    active=matches.length?Math.min(Math.max(active,0),matches.length-1):-1;
+    if(!matches.length){results.innerHTML='<div class="omni-command-empty"><strong>No studio or tool found</strong>Try a format, operation, or studio name — e.g. PDF, Excel, OCR, SQL, Image, Video.</div>';return;}
+    let html='',last='';
+    matches.forEach((item,i)=>{
+      if(item.type!==last){html+='<div class="omni-command-section">'+(item.type==='studio'?'Studios':'Tools')+'</div>';last=item.type;}
+      html+='<button type="button" class="omni-command-result '+item.type+(i===active?' active':'')+'" data-index="'+i+'">'
+        +'<span class="omni-command-result-icon">'+(item.type==='studio'?'✦':'↳')+'</span>'
+        +'<span class="omni-command-result-copy"><strong>'+escapeHtml(item.label)+'</strong><span>'+escapeHtml(item.desc)+'</span></span>'
+        +'<span class="omni-command-result-meta">'+(item.type==='studio'?'STUDIO':'TOOL')+'</span></button>';
+    });
+    results.innerHTML=html;
+    results.querySelectorAll('.omni-command-result').forEach(b=>b.addEventListener('click',()=>activate(+b.dataset.index)));
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function activate(i){
+    const item=matches[i];if(!item)return;
+    close();
+    item.button.click();
+    if(item.type==='tool'&&item.card)setTimeout(()=>item.card.scrollIntoView({behavior:'smooth',block:'start'}),80);
+    else setTimeout(()=>item.panel.scrollIntoView({behavior:'smooth',block:'start'}),40);
+  }
+  input.addEventListener('input',()=>{active=0;render();});
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();close();return;}
+    if(e.key==='ArrowDown'){e.preventDefault();if(matches.length){active=(active+1)%matches.length;render();}}
+    if(e.key==='ArrowUp'){e.preventDefault();if(matches.length){active=(active-1+matches.length)%matches.length;render();}}
+    if(e.key==='Enter'){e.preventDefault();if(active>=0)activate(active);}
+  });
+  backdrop.addEventListener('mousedown',e=>{if(e.target===backdrop)close();});
+  trigger.addEventListener('click',e=>{e.preventDefault();open();});
+  trigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      e.preventDefault();e.stopImmediatePropagation();
+      backdrop.classList.contains('open')?close():open();
+    }
+  },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCommandPalette,{once:true});else initCommandPalette();
+})();
+</script>
 </body></html>`;
 
           zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
