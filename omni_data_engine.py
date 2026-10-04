@@ -161,6 +161,41 @@ def write_data(df,out,fmt,table="data",dialect="sqlite"):
         Path(out).write_text(json.dumps({"$schema":"https://json-schema.org/draft/2020-12/schema","type":"array","items":{"type":"object","properties":props}},indent=2),encoding="utf-8")
     else: raise RuntimeError(f"Unsupported Data Studio output format: {fmt}")
 
+def blob_convert(inp,out,source,target):
+    source=source.lower(); target=target.lower()
+    if source=="binary":
+        raw=Path(inp).read_bytes()
+    elif source=="base64":
+        import base64
+        raw=base64.b64decode(Path(inp).read_text(encoding="utf-8").strip(),validate=True)
+    elif source=="hex":
+        raw=bytes.fromhex(Path(inp).read_text(encoding="utf-8").strip())
+    else:
+        raise RuntimeError("BLOB source must be binary, base64 or hex")
+    if target=="binary":
+        Path(out).write_bytes(raw)
+    elif target=="base64":
+        import base64
+        Path(out).write_text(base64.b64encode(raw).decode("ascii"),encoding="utf-8")
+    elif target=="hex":
+        Path(out).write_text(raw.hex(),encoding="utf-8")
+    elif target=="sql":
+        Path(out).write_text("X'"+raw.hex().upper()+"'\n",encoding="utf-8")
+    else:
+        raise RuntimeError("BLOB target must be binary, base64, hex or sql")
+
+def text_lines(path,target):
+    lines=Path(path).read_text(encoding="utf-8-sig",errors="replace").splitlines()
+    records=[{"line_number":i+1,"text":line} for i,line in enumerate(lines)]
+    if target=="json":
+        return json.dumps(records,indent=2,ensure_ascii=False)
+    if target in {"jsonl","ndjson"}:
+        return "\n".join(json.dumps(x,ensure_ascii=False) for x in records)+"\n"
+    if target=="csv":
+        import csv, io
+        buf=io.StringIO(); w=csv.DictWriter(buf,fieldnames=["line_number","text"]); w.writeheader(); w.writerows(records); return buf.getvalue()
+    raise RuntimeError("Text/Log target must be JSON, JSONL or CSV")
+
 def profile(path,fmt=None):
     df=read_data(path,fmt); cols=[]
     for c in df.columns:
