@@ -191,3 +191,17 @@ The repository does not redistribute FFmpeg, qpdf, Poppler, ImageMagick, Tessera
 ## GitHub Pages
 
 The public Pages version continues to use the browser/CDN path and does not require the local engine. For maximum offline capability, use the local launcher after running setup.
+
+## Complete one-command dependency provisioning
+
+For the complete local stack, run only the top-level launcher:
+
+- Windows: `Omni.bat`
+- macOS/Linux: `Omni.command`
+
+The launcher checks `.venv` and the strict environment verifier. If anything is missing, it automatically runs the platform installer.
+
+The installer provisions the repository's complete Python profile from `requirements-local.txt`, all supported native conversion utilities, OCR language packs, scientific libraries and pinned browser/OCR offline assets. It then runs `verify_local_environment.py` and refuses to mark setup complete until the required environment passes.
+
+`setup_and_start.bat` / `setup_and_start.command` remain available as explicit first-run installers. `start_omni.bat` / `start_omni.command` are also self-provisioning now, so users do not have to remember which launcher is the setup launcher.
+
