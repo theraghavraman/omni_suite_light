@@ -274,6 +274,11 @@ try:
     assert (ROOT/"spreadsheet.xlsx").read_bytes()[:2]==b"PK"
     print("32. CSV -> XLSX package validation: OK")
 
+    # CI coverage: FFmpeg should produce a browser-friendly WebM audio artifact.
+    out=process({"op":"media","input":media["file_id"],"format":"webm"},"ci-test-token")
+    assert out.get("file_id")
+    print("33. Audio -> WebM conversion: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
