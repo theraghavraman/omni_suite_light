@@ -8,8 +8,10 @@ if [ "$OS" = "Darwin" ]; then
   brew update
   brew install ffmpeg qpdf poppler imagemagick tesseract python calibre
   brew install --cask libreoffice
-  python3 -m pip install -r requirements-data.txt || echo "[WARN] Data Studio Python packages could not be installed."
-  python3 prepare_offline.py
+  python3 -m venv .venv
+  .venv/bin/python -m pip install --upgrade pip
+  .venv/bin/python -m pip install -r requirements-data.txt || echo "[WARN] Some Data/Scientific Python packages could not be installed; the Local Engine will report missing modules."
+  .venv/bin/python prepare_offline.py
   exit 0
 fi
 if [ "$OS" = "Linux" ]; then
@@ -18,7 +20,10 @@ if [ "$OS" = "Linux" ]; then
   elif have pacman; then sudo pacman -Sy --needed --noconfirm ffmpeg qpdf poppler imagemagick tesseract python libreoffice calibre
   elif have zypper; then sudo zypper install -y ffmpeg qpdf poppler-tools ImageMagick tesseract python3 libreoffice calibre
   else echo "No supported Linux package manager detected."; exit 1; fi
-  python3 prepare_offline.py
+  python3 -m venv .venv
+  .venv/bin/python -m pip install --upgrade pip
+  .venv/bin/python -m pip install -r requirements-data.txt || echo "[WARN] Some Data/Scientific Python packages could not be installed; the Local Engine will report missing modules."
+  .venv/bin/python prepare_offline.py
   exit 0
 fi
 echo "Unsupported OS: $OS"; exit 1
