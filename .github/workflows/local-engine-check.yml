@@ -15,6 +15,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set up supported Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-local.txt
       - name: Validate Python bridge syntax
         run: python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
       - name: Validate Universal Data JavaScript syntax
@@ -57,8 +63,12 @@ jobs:
         if: runner.os == 'macOS'
         run: echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
 
-      - name: Install Data Studio Python stack
-        run: python -m pip install -r requirements-data.txt
+      - name: Install COMPLETE Local Engine Python stack
+        run: python -m pip install -r requirements-local.txt
+      - name: Prepare offline browser assets
+        run: python prepare_offline.py
+      - name: Run strict Local Engine environment verification
+        run: python verify_local_environment.py
       - name: Run suite-wide contract audit
         run: python .github/scripts/omni_contract_audit.py
       - name: Run expanded native format smoke test
