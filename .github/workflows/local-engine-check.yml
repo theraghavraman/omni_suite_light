@@ -79,9 +79,9 @@ jobs:
           done
           if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
           python - <<'PY'
-import subprocess
-for cmd in (["ffmpeg", "-version"], ["qpdf", "--version"]):
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, check=True)
-PY
+          import subprocess
+          for cmd in (["ffmpeg", "-version"], ["qpdf", "--version"]):
+              subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, check=True)
+          PY
 
 
