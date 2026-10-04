@@ -62,6 +62,7 @@ TOOLS = {
     "pdftotext": ["pdftotext", "-v"],
     "magick": ["magick", "-version"],
     "convert": ["convert", "-version"],
+    "rsvg-convert": ["rsvg-convert", "--version"],
     "tesseract": ["tesseract", "--version"],
     "soffice": ["soffice", "--version"],
     "libreoffice": ["libreoffice", "--version"],
@@ -434,6 +435,28 @@ def process_job(payload):
         if fmt not in allowed:
             raise ValueError("Unsupported image output format")
         out = output_path(inp.stem, "jpg" if fmt == "jpeg" else fmt)
+
+        # SVG -> PNG gets an explicit librsvg path. This avoids relying on
+        # ImageMagick's optional SVG delegate configuration.
+        if inp.suffix.lower() == ".svg" and fmt == "png":
+            rsvg = tool_path("rsvg-convert")
+            if rsvg:
+                rsvg_cmd = [rsvg]
+                if payload.get("width"):
+                    rsvg_cmd += ["--width", str(max(1, int(payload["width"])))]
+                if payload.get("height"):
+                    rsvg_cmd += ["--height", str(max(1, int(payload["height"])))]
+                if payload.get("density"):
+                    dpi = max(1, int(payload["density"]))
+                    rsvg_cmd += ["--dpi-x", str(dpi), "--dpi-y", str(dpi)]
+                rsvg_cmd += ["--output", str(out), str(inp)]
+                try:
+                    run(rsvg_cmd)
+                    return file_result(out, out.name)
+                except RuntimeError:
+                    out.unlink(missing_ok=True)
+                    # ImageMagick remains the compatibility fallback.
+
         cmd = [magick, str(inp)]
         if payload.get("width") or payload.get("height"):
             w = str(int(payload["width"])) if payload.get("width") else ""
