@@ -1234,7 +1234,7 @@
         <h1>OmniConverter <span>Studio</span></h1>
         <p>One visual workspace for documents, images, OCR, audio, video and conversion workflows — rendered locally in your browser.</p>
         <div class="hero-metrics">
-          <div class="metric-pill"><strong>07</strong><span>Studios</span></div>
+          <div class="metric-pill"><strong>09</strong><span>Studios</span></div>
           <div class="metric-pill"><strong>100%</strong><span>Client-Side</span></div>
           <div class="metric-pill"><strong>0</strong><span>Uploads</span></div>
         </div>
@@ -1337,12 +1337,13 @@
             <div class="form-group">
               <label for="omniLocalFormat">Output format</label>
               <select id="omniLocalFormat" class="form-select">
-                <option value="pdf">PDF</option><option value="docx">DOCX</option><option value="doc">DOC</option><option value="odt">ODT</option>
-                <option value="epub">EPUB</option><option value="mobi">MOBI</option><option value="azw3">AZW3</option><option value="txt">TXT</option>
-                <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option>
-                <option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option>
-                <option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option>
-                <option value="avif">AVIF</option><option value="tiff">TIFF</option>
+                <option value="pdf">PDF</option><option value="docx">DOCX</option><option value="doc">DOC</option><option value="docm">DOCM</option><option value="dot">DOT</option><option value="dotx">DOTX</option><option value="dotm">DOTM</option><option value="odt">ODT</option><option value="ott">OTT</option><option value="fodt">FODT</option>
+                <option value="epub">EPUB</option><option value="mobi">MOBI</option><option value="azw">AZW</option><option value="azw3">AZW3</option><option value="azw4">AZW4</option><option value="fb2">FB2</option><option value="cbz">CBZ</option><option value="cbr">CBR</option><option value="cb7">CB7</option><option value="djvu">DJVU</option><option value="lrf">LRF</option><option value="lit">LIT</option><option value="pdb">PDB</option><option value="rtf">RTF</option><option value="txt">TXT</option>
+                <option value="xls">XLS</option><option value="xlsx">XLSX</option><option value="xlsm">XLSM</option><option value="xlsb">XLSB</option><option value="xlt">XLT</option><option value="xltx">XLTX</option><option value="xltm">XLTM</option><option value="ods">ODS</option><option value="ots">OTS</option><option value="fods">FODS</option><option value="csv">CSV</option><option value="tsv">TSV</option>
+                <option value="ppt">PPT</option><option value="pptx">PPTX</option><option value="pptm">PPTM</option><option value="pps">PPS</option><option value="ppsx">PPSX</option><option value="pot">POT</option><option value="potx">POTX</option><option value="potm">POTM</option><option value="odp">ODP</option><option value="otp">OTP</option><option value="fodp">FODP</option>
+                <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option><option value="mov">MOV</option><option value="avi">AVI</option><option value="flv">FLV</option><option value="mpeg">MPEG</option><option value="mpg">MPG</option><option value="m4v">M4V</option><option value="3gp">3GP</option><option value="3g2">3G2</option><option value="ts">TS</option><option value="m2ts">M2TS</option><option value="mts">MTS</option><option value="vob">VOB</option><option value="wmv">WMV</option><option value="asf">ASF</option><option value="ogv">OGV</option><option value="mxf">MXF</option><option value="nut">NUT</option><option value="ivf">IVF</option><option value="gif">GIF</option><option value="apng">APNG</option>
+                <option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option><option value="aac">AAC</option><option value="flac">FLAC</option><option value="ogg">OGG</option><option value="oga">OGA</option><option value="opus">Opus</option><option value="wma">WMA</option><option value="amr">AMR</option><option value="aiff">AIFF</option><option value="aif">AIF</option><option value="ac3">AC-3</option><option value="eac3">E-AC-3</option><option value="au">AU</option><option value="caf">CAF</option><option value="w64">W64</option><option value="wv">WavPack</option><option value="tta">TTA</option><option value="ape">APE</option><option value="mka">MKA</option>
+                <option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option><option value="avif">AVIF</option><option value="gif">GIF</option><option value="tiff">TIFF</option><option value="bmp">BMP</option><option value="svg">SVG</option><option value="ico">ICO</option><option value="heic">HEIC</option><option value="heif">HEIF</option><option value="jxl">JXL</option><option value="jp2">JP2</option><option value="j2k">J2K</option><option value="tga">TGA</option><option value="dds">DDS</option><option value="exr">EXR</option><option value="hdr">HDR</option><option value="pdf">PDF</option>
               </select>
             </div>
             <div class="form-group">
@@ -1543,8 +1544,8 @@
         <div class="dropzone" id="officeConvertDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 4h9l3 3v13H6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M14 4v4h4"/></svg>
           <h3>Choose an Office, Spreadsheet or Presentation file</h3>
-          <p>DOC/DOCX, XLS/XLSX/ODS/CSV, PPT/PPTX/ODP and PDF</p>
-          <input type="file" id="officeConvertInput" class="file-input" accept=".doc,.docx,.odt,.rtf,.txt,.html,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp,.pdf">
+          <p>Word, Excel, PowerPoint, LibreOffice, templates/slideshows, CSV/TSV and PDF families</p>
+          <input type="file" id="officeConvertInput" class="file-input" accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.html,.htm,.epub,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.sylk,.dif,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.sxi,.key,.pdf">
         </div>
         <div class="controls-panel" id="officeConvertControls" style="display:none;">
           <div class="file-summary">
@@ -1558,14 +1559,36 @@
                 <option value="pdf">PDF — documents, spreadsheets &amp; presentations</option>
                 <option value="docx">DOCX — Word / Writer</option>
                 <option value="doc">DOC — legacy Word</option>
+                <option value="docm">DOCM — macro-enabled Word</option>
+                <option value="dot">DOT — legacy Word template</option>
+                <option value="dotx">DOTX — Word template</option>
+                <option value="dotm">DOTM — macro-enabled template</option>
                 <option value="odt">ODT — LibreOffice Writer</option>
+                <option value="ott">OTT — Writer template</option>
+                <option value="fodt">FODT — flat XML Writer</option>
                 <option value="xls">XLS — legacy Excel</option>
                 <option value="xlsx">XLSX — Excel</option>
+                <option value="xlsm">XLSM — macro-enabled Excel</option>
+                <option value="xlsb">XLSB — Excel binary</option>
+                <option value="xlt">XLT — legacy Excel template</option>
+                <option value="xltx">XLTX — Excel template</option>
+                <option value="xltm">XLTM — macro-enabled template</option>
                 <option value="ods">ODS — LibreOffice Calc</option>
+                <option value="ots">OTS — Calc template</option>
+                <option value="fods">FODS — flat XML Calc</option>
                 <option value="csv">CSV — spreadsheet data</option>
+                <option value="tsv">TSV — tab-separated data</option>
                 <option value="ppt">PPT — legacy PowerPoint</option>
                 <option value="pptx">PPTX — PowerPoint</option>
+                <option value="pptm">PPTM — macro-enabled PowerPoint</option>
+                <option value="pps">PPS — legacy slideshow</option>
+                <option value="ppsx">PPSX — PowerPoint slideshow</option>
+                <option value="pot">POT — legacy PowerPoint template</option>
+                <option value="potx">POTX — PowerPoint template</option>
+                <option value="potm">POTM — macro-enabled template</option>
                 <option value="odp">ODP — LibreOffice Impress</option>
+                <option value="otp">OTP — Impress template</option>
+                <option value="fodp">FODP — flat XML Impress</option>
               </select>
             </div>
           </div>
@@ -1577,7 +1600,7 @@
             <button type="button" class="btn btn-secondary" id="officeSheetXlsxBtn">Excel/ODS → XLSX</button>
             <button type="button" class="btn btn-secondary" id="officeDeckPptxBtn">PPT/ODP → PPTX</button>
           </div>
-          <div class="form-hint">PPT/PPTX/ODP conversions are handled by LibreOffice. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
+          <div class="form-hint">LibreOffice handles the broad Office/ODF family. Macro-enabled files can be converted, but VBA/macros and application-specific features are not guaranteed to survive. PDF → PPTX creates one slide per PDF page as a high-resolution visual replica.</div>
         </div>
       </div>
     </div>
@@ -1662,6 +1685,15 @@
           </div>
         </div>
       </div>
+      <div class="card" id="ebookNativeBridge">
+        <h2>3. Native Ebook Format Bridge</h2>
+        <div class="sub">Use the Local Engine + Calibre for a much wider ebook family: AZW/AZW3/AZW4, MOBI, EPUB, PDF, CBZ/CBR/CB7, DJVU, FB2, LRF, LIT, PDB, RTF, TXT and more.</div>
+        <div class="dropzone" id="ebookNativeDropzone"><h3>Choose an ebook file</h3><p>Calibre-backed native conversion • large books stay on your computer</p><input type="file" id="ebookNativeInput" class="file-input" accept=".azw,.azw3,.azw4,.cbz,.cbr,.cb7,.cbc,.chm,.djvu,.docx,.epub,.fb2,.fbz,.html,.htmlz,.kepub,.lit,.lrf,.mobi,.odt,.pdf,.prc,.pdb,.pml,.rb,.rtf,.snb,.tcr,.txt,.txz,.zip"></div>
+        <div class="controls-panel" id="ebookNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="ebookNativeName">No file selected</div><div class="file-meta" id="ebookNativeMeta"></div></div><button type="button" class="btn-reset" id="ebookNativeReset">Reset</button></div>
+          <div class="options-grid"><div class="form-group"><label for="ebookNativeTarget">Target format</label><select id="ebookNativeTarget" class="form-select"><option value="epub">EPUB</option><option value="azw3">AZW3</option><option value="mobi">MOBI</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="fb2">FB2</option><option value="htmlz">HTMLZ</option><option value="html">HTML</option><option value="txt">TXT</option><option value="rtf">RTF</option><option value="lrf">LRF</option><option value="pdb">PDB</option><option value="pmlz">PMLZ</option><option value="rb">RB</option><option value="snb">SNB</option><option value="tcr">TCR</option><option value="txz">TXZ</option><option value="zip">ZIP/OEB</option></select></div></div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="ebookNativeRun">Convert Ebook</button></div>
+        </div>
+      </div>
     </div>
 
     <!-- 4. IMAGE TOOLS -->
@@ -1672,7 +1704,7 @@
         <div class="dropzone" id="imgDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
           <h3>Upload Images to Convert</h3>
-          <p>JPG to PNG, PNG to JPG, HEIC, WebP</p>
+          <p>JPG, PNG, WebP, AVIF, GIF, TIFF, BMP, SVG, HEIC/HEIF and more via Local Engine</p>
           <input type="file" id="imgInput" class="file-input" accept="image/*" multiple>
         </div>
 
@@ -1823,6 +1855,16 @@
           </div>
         </div>
       </div>
+      <div class="card" id="imageNativeBridge">
+        <h2>4. Native Image Format Bridge</h2>
+        <div class="sub">Local ImageMagick bridge for formats browsers cannot reliably encode: GIF, TIFF, BMP, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, PSD, EPS, EXR, HDR, TGA, PNM and more.</div>
+        <div class="dropzone" id="imageNativeDropzone"><h3>Choose an image / vector file</h3><p>SVG, GIF, TIFF, BMP, HEIC/HEIF, AVIF, JXL, PSD and 100+ ImageMagick formats</p><input type="file" id="imageNativeInput" class="file-input" accept="image/*,.svg,.heic,.heif,.jxl,.jp2,.j2k,.psd,.eps,.exr,.hdr,.tga,.dds,.miff,.mvg,.ora,.fits,.flif,.bpg"></div>
+        <div class="controls-panel" id="imageNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="imageNativeName">No file selected</div><div class="file-meta" id="imageNativeMeta"></div></div><button type="button" class="btn-reset" id="imageNativeReset">Reset</button></div>
+          <div class="options-grid"><div class="form-group"><label for="imageNativeTarget">Target format</label><select id="imageNativeTarget" class="form-select"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option><option value="avif">AVIF</option><option value="gif">GIF</option><option value="tiff">TIFF</option><option value="bmp">BMP</option><option value="svg">SVG</option><option value="ico">ICO</option><option value="heic">HEIC</option><option value="jxl">JPEG XL</option><option value="jp2">JPEG 2000</option><option value="tga">TGA</option><option value="dds">DDS</option><option value="exr">EXR</option><option value="hdr">HDR</option><option value="pdf">PDF</option></select></div></div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="imageNativeRun">Convert Image</button></div>
+          <div class="form-hint">SVG output from a raster source is not guaranteed to become true editable vector artwork; use it for compatible ImageMagick SVG output, not as a vectorization guarantee.</div>
+        </div>
+      </div>
     </div>
 
     <!-- 5. OCR: IMAGE TO TEXT -->
@@ -1898,7 +1940,7 @@
         <div class="dropzone" id="audioDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12 0c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
           <h3>Upload Any Audio File</h3>
-          <p>MP3, WAV, AAC, M4A, OGG, FLAC, WebM</p>
+          <p>MP3, WAV, AAC, M4A, OGG, FLAC, Opus, WMA, AIFF, AMR and more via Local Engine</p>
           <input type="file" id="audioInput" class="file-input" accept="audio/*">
         </div>
 
@@ -1944,6 +1986,15 @@
           </div>
         </div>
       </div>
+      <div class="card" id="audioNativeBridge">
+        <h2>2. Local Audio Format Bridge</h2>
+        <div class="sub">FFmpeg-backed conversion for formats beyond browser decoding, including MP3, WAV, M4A, AAC, FLAC, OGG/OGA, Opus, WMA, AMR, AIFF, AC-3, E-AC-3, AU, CAF, W64, WavPack and more.</div>
+        <div class="dropzone" id="audioNativeDropzone"><h3>Choose an audio file for native conversion</h3><p>Runs entirely on the Local Engine • no cloud upload</p><input type="file" id="audioNativeInput" class="file-input" accept="audio/*,.wma,.amr,.aiff,.aif,.aifc,.ac3,.eac3,.au,.caf,.w64,.wv,.tta,.ape,.mka"></div>
+        <div class="controls-panel" id="audioNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="audioNativeName">No file selected</div><div class="file-meta" id="audioNativeMeta"></div></div><button type="button" class="btn-reset" id="audioNativeReset">Reset</button></div>
+          <div class="options-grid"><div class="form-group"><label for="audioNativeTarget">Target format</label><select id="audioNativeTarget" class="form-select"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option><option value="aac">AAC</option><option value="flac">FLAC</option><option value="ogg">OGG</option><option value="oga">OGA</option><option value="opus">Opus</option><option value="wma">WMA</option><option value="amr">AMR</option><option value="aiff">AIFF</option><option value="ac3">AC-3</option><option value="eac3">E-AC-3</option><option value="au">AU</option><option value="caf">CAF</option><option value="w64">W64</option><option value="wv">WavPack</option><option value="mka">Matroska Audio</option></select></div></div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="audioNativeRun">Convert Audio</button></div>
+        </div>
+      </div>
     </div>
 
     <!-- 7. VIDEO STUDIO -->
@@ -1954,7 +2005,7 @@
         <div class="dropzone" id="videoDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
           <h3>Upload Video File</h3>
-          <p>MP4, WebM, MOV, MKV</p>
+          <p>MP4, MPEG-4, MKV, WebM, MOV, AVI, FLV, MPEG/MPG, TS/M2TS, 3GP and more via Local Engine</p>
           <input type="file" id="videoInput" class="file-input" accept="video/*">
         </div>
 
@@ -2014,8 +2065,16 @@
           </div>
         </div>
       </div>
+      <div class="card" id="videoNativeBridge">
+        <h2>2. Local Video / Animation Format Bridge</h2>
+        <div class="sub">FFmpeg-backed native transcoding for MP4/MPEG-4, MKV, WebM, MOV, AVI, FLV, MPEG/MPG, M4V, 3GP/3G2, TS/M2TS/MTS, VOB, WMV, ASF, OGV, MXF, NUT, IVF, GIF and APNG.</div>
+        <div class="dropzone" id="videoNativeDropzone"><h3>Choose a video / animation file</h3><p>Runs entirely on the Local Engine • browser playback is not required</p><input type="file" id="videoNativeInput" class="file-input" accept="video/*,.mkv,.avi,.flv,.mpeg,.mpg,.m4v,.3gp,.3g2,.ts,.m2ts,.mts,.vob,.wmv,.asf,.ogv,.nut,.mxf,.ivf,.gif,.apng"></div>
+        <div class="controls-panel" id="videoNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="videoNativeName">No file selected</div><div class="file-meta" id="videoNativeMeta"></div></div><button type="button" class="btn-reset" id="videoNativeReset">Reset</button></div>
+          <div class="options-grid"><div class="form-group"><label for="videoNativeTarget">Target format</label><select id="videoNativeTarget" class="form-select"><option value="mp4">MP4 / MPEG-4</option><option value="mkv">MKV</option><option value="webm">WebM</option><option value="mov">MOV</option><option value="avi">AVI</option><option value="flv">FLV</option><option value="mpeg">MPEG</option><option value="mpg">MPG</option><option value="m4v">M4V</option><option value="3gp">3GP</option><option value="3g2">3G2</option><option value="ts">MPEG-TS</option><option value="m2ts">M2TS</option><option value="mts">MTS</option><option value="vob">VOB</option><option value="wmv">WMV</option><option value="asf">ASF</option><option value="ogv">OGV</option><option value="mxf">MXF</option><option value="nut">NUT</option><option value="ivf">IVF</option><option value="gif">GIF animation</option><option value="apng">APNG</option></select></div></div>
+          <div class="actions-bar"><button type="button" class="btn btn-primary" id="videoNativeRun">Convert Video</button></div>
+        </div>
+      </div>
     </div>
-
 
     <!-- 8. FILE COMPRESSION -->
     <div class="module-panel" id="tabCompress">
@@ -4122,6 +4181,37 @@
   </script>
 
 
+<script id="omni-native-format-bridges">
+(function(){
+'use strict';
+const BASE='http://127.0.0.1:8765';
+const cards=[
+{input:'ebookNativeInput',drop:'ebookNativeDropzone',controls:'ebookNativeControls',name:'ebookNativeName',meta:'ebookNativeMeta',target:'ebookNativeTarget',button:'ebookNativeRun',reset:'ebookNativeReset',op:'ebook_convert',label:'Ebook Studio'},
+{input:'imageNativeInput',drop:'imageNativeDropzone',controls:'imageNativeControls',name:'imageNativeName',meta:'imageNativeMeta',target:'imageNativeTarget',button:'imageNativeRun',reset:'imageNativeReset',op:'image',label:'Image Tools'},
+{input:'audioNativeInput',drop:'audioNativeDropzone',controls:'audioNativeControls',name:'audioNativeName',meta:'audioNativeMeta',target:'audioNativeTarget',button:'audioNativeRun',reset:'audioNativeReset',op:'media',label:'Audio Studio'},
+{input:'videoNativeInput',drop:'videoNativeDropzone',controls:'videoNativeControls',name:'videoNativeName',meta:'videoNativeMeta',target:'videoNativeTarget',button:'videoNativeRun',reset:'videoNativeReset',op:'media',label:'Video Studio'}
+];
+const $=id=>document.getElementById(id);
+function wire(card){
+const input=$(card.input),drop=$(card.drop),controls=$(card.controls),target=$(card.target),button=$(card.button),reset=$(card.reset);if(!input||!drop||!controls||!target||!button)return;
+let file=null,token='';
+const setFile=f=>{if(!f)return;file=f;drop.style.display='none';controls.style.display='flex';$(card.name).textContent=f.name;$(card.meta).textContent=(f.size/1024/1024).toFixed(2)+' MB';};
+input.addEventListener('change',e=>setFile(e.target.files[0]));drop.addEventListener('click',e=>{if(e.target!==input)input.click()});drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');setFile(e.dataTransfer.files[0])});
+reset?.addEventListener('click',()=>{file=null;input.value='';drop.style.display='flex';controls.style.display='none'});
+button.addEventListener('click',async()=>{
+if(!file){alert('Choose a file first.');return;}button.disabled=true;
+try{
+const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();token=h.token||'';
+const tool=card.op==='media'?'ffmpeg':card.op==='image'?'magick':'ebook-convert';if(!(h.tools&&h.tools[tool]&&h.tools[tool].installed))throw new Error(tool+' is not installed on the Local Engine.');
+const up=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error((await up.text()).slice(0,400));const uj=await up.json();
+const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:card.op,input:uj.file_id,format:target.value})});const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Native conversion failed');
+const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!dl.ok)throw new Error('Output download failed');const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+target.value);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}catch(e){alert(card.label+': '+e.message)}finally{button.disabled=false;}
+});
+}
+cards.forEach(wire);
+})();
+</script>
 <script id="omni-local-engine">
 (function(){
   const BASE = "http://127.0.0.1:8765";
@@ -4431,7 +4521,7 @@ function runOfficeChecks(){
  ids.forEach(id=>{const el=$(id);add('Office Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
  const targets=panel.querySelectorAll('#officeConvertTarget option');
  add('Office Studio','Office target formats','PASS',targets.length+' supported target formats');
- ['pdf','pptx','xlsx','xls','ods','csv','ppt','odp'].forEach(fmt=>add('Office Studio','Target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
+ ['pdf','docx','docm','dotx','xlsx','xlsm','xlsb','ods','csv','pptx','pptm','ppsx','potx','odp','otp'].forEach(fmt=>add('Office Studio','Target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
 }
 function runAll(){
  reset();runStructure(false);runOptions(false);runOfficeChecks();
@@ -4560,10 +4650,11 @@ async function runLocalTests(){
   let h;
   try{h=await localHealth();state.local=h;}catch(e){
     skip('local','Local Engine connection','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');
-    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
+    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Ebook Studio: native format bridge','Image Tools: native format bridge','Audio Studio: native format bridge','Video Studio: native format bridge','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
     return;
   }
   await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
+  await test('local','Native format capability inventory',async()=>{const cap=h.capabilities||{};const required={media_video:['mp4','mpeg','mkv','webm','gif'],media_audio:['mp3','wav','flac','opus','wma'],image:['png','gif','svg','tiff','heic','jxl'],office:['docx','docm','xlsx','xlsm','pptx','pptm','odp'],ebook:['epub','mobi','azw3','cbz','cbr','djvu']};const missing=[];Object.entries(required).forEach(([k,vals])=>vals.forEach(v=>{if(!(cap[k]||[]).includes(v))missing.push(k+':'+v)}));if(missing.length)throw new Error('Capability inventory missing '+missing.join(', '));return Object.entries(cap).map(([k,v])=>k+'='+v.length).join(' • ');});
   const tool=(name)=>h.tools&&h.tools[name]&&h.tools[name].installed;
   for(const [name,label] of [['ffmpeg','FFmpeg'],['qpdf','qpdf'],['pdftoppm','Poppler pdftoppm'],['pdftotext','Poppler pdftotext'],['tesseract','Tesseract OCR'],['soffice','LibreOffice'],['ebook-convert','Calibre'],['magick','ImageMagick']]){
     if(tool(name)) await test('local',label+' executable detected',async()=>h.tools[name].path||'installed');
