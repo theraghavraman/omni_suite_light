@@ -5058,6 +5058,7 @@ async function convertDedicated(fileObj,targetId,label){
   const fmt=$(targetId).value;
   if(fmt===ext){alert('The selected file is already '+fmt.toUpperCase()+'.');return}
   try{
+    await health(ext==='pdf' && fmt!=='pdf'?'pdf_to_ppt':'office_convert');
     const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:fileObj});
     if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
