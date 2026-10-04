@@ -68,11 +68,16 @@ if (-not $python) {
 }
 
 Write-Host "[OK] Python: $python"
-Write-Host "[SETUP] Installing OmniConverter Data Studio Python packages..."
-& $python -m pip install -r "$PSScriptRoot\requirements-data.txt"
-if ($LASTEXITCODE -ne 0) { Write-Warning "Data Studio packages could not be installed; native media/document features will still work." }
+Write-Host "[SETUP] Creating isolated OmniConverter Python environment..."
+$venv = Join-Path $PSScriptRoot ".venv"
+if (-not (Test-Path (Join-Path $venv "Scripts\python.exe"))) { & $python -m venv $venv }
+$venvPython = Join-Path $venv "Scripts\python.exe"
+Write-Host "[SETUP] Installing OmniConverter Data Studio and scientific Python packages..."
+& $venvPython -m pip install --upgrade pip
+& $venvPython -m pip install -r "$PSScriptRoot\requirements-data.txt"
+if ($LASTEXITCODE -ne 0) { Write-Warning "Some Python data/scientific packages could not be installed; the Local Engine will report exactly which modules are unavailable." }
 Write-Host "[SETUP] Downloading pinned browser assets for offline mode..."
-& $python prepare_offline.py
+& $venvPython prepare_offline.py
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] prepare_offline.py failed with exit code $LASTEXITCODE."
