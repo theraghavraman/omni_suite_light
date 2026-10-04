@@ -2369,8 +2369,35 @@ function render(){
   $('allPass').textContent=state.filter(x=>x.status==='PASS').length;$('allFail').textContent=state.filter(x=>x.status==='FAIL').length;$('allSkip').textContent=state.filter(x=>x.status==='SKIPPED').length;$('allTotal').textContent=state.length;$('allControls').textContent=document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests) button,.module-panel:not(#tabDiagnostics):not(#tabAllTests) input,.module-panel:not(#tabDiagnostics):not(#tabAllTests) select,.module-panel:not(#tabDiagnostics):not(#tabAllTests) textarea').length;
 }
 function reset(){state.length=0;}
-async function sourceText(){\n const parts=[...document.scripts].map(x=>x.textContent||'');\n const localScripts=[...document.scripts].filter(x=>x.src&&new URL(x.src,document.baseURI).origin===location.origin);\n for(const script of localScripts){\n   try{parts.push(await fetch(script.src,{cache:'no-store'}).then(r=>r.ok?r.text():''));}catch(_){}\n }\n return parts.join('\\n');\n}\nfunction hasImplementationReference(id,source,element){\n if(!id)return false;\n if(element && (typeof element.onclick==='function' || element.dataset.action || element.getAttribute('data-action')))return true;\n const direct=[\n  'getElementById("'+id+'")',\n  "getElementById('"+id+"')",\n  '$("'+id+'")',\n  "$('"+id+"')",\n  '"'+id+'".addEventListener',\n  "'"+id+"'.addEventListener",\n  '"'+id+'".onclick',\n  "'"+id+"'.onclick"\n ];\n if(direct.some(x=>source.includes(x)))return true;\n const escapedId=String(id).replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');\n const mentions=(source.match(new RegExp('\\\\b'+escapedId+'\\\\b','g'))||[]).length;\n return mentions>=2;\n}\nasync function runStructure(clear=true){\n if(clear) reset();const source=await sourceText();
- if(clear) reset();const source=sourceText();
+async function sourceText(){
+ const parts=[...document.scripts].map(x=>x.textContent||'');
+ const localScripts=[...document.scripts].filter(x=>x.src&&new URL(x.src,document.baseURI).origin===location.origin);
+ for(const script of localScripts){
+   try{parts.push(await fetch(script.src,{cache:'no-store'}).then(r=>r.ok?r.text():''));}catch(_){}
+ }
+ return parts.join('\n');
+}
+function hasImplementationReference(id,source,element){
+ if(!id)return false;
+ if(element && (typeof element.onclick==='function' || element.dataset.action || element.getAttribute('data-action')))return true;
+ const direct=[
+  'getElementById("'+id+'")',
+  "getElementById('"+id+"')",
+  '$("'+id+'")',
+  "$('"+id+"')",
+  '"'+id+'".addEventListener',
+  "'"+id+"'.addEventListener",
+  '"'+id+'".onclick',
+  "'"+id+"'.onclick"
+ ];
+ if(direct.some(x=>source.includes(x)))return true;
+ const escapedId=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const mentions=(source.match(new RegExp('\\b'+escapedId+'\\b','g'))||[]).length;
+ return mentions>=2;
+}
+async function runStructure(clear=true){
+ if(clear) reset();
+ const source=await sourceText();
  Object.entries(studioMap).forEach(([id,studio])=>{
    const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]');
    if(!panel||!nav){add(studio,'Studio panel + navigation','FAIL',(!panel?'Panel missing. ':'')+(!nav?'Navigation missing.':''));return;}
