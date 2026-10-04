@@ -85,7 +85,8 @@ The Local Engine panel exposes native operations for:
 - audio/video conversion and trimming
 - image conversion/resizing
 - OCR
-- ZIP/GZIP/BZIP2/XZ/TAR/7z archive operations\n- ZIP/GZIP
+- ZIP/GZIP/BZIP2/XZ/TAR/7z archive operations
+- ZIP/GZIP
 
 The browser features remain available for lightweight jobs.
 
