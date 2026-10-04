@@ -447,6 +447,24 @@ def process_job(payload):
         run([pdftotext, "-layout", str(inp), str(out)], timeout=3600)
         return file_result(out, out.name, "text/plain")
 
+    if op == "scientific_profile":
+        inp=get_file(payload["input"])
+        report=omni_data_engine.scientific_profile(inp,payload.get("source_format"))
+        out=output_path(inp.stem+"_scientific_profile","json")
+        out.write_text(json.dumps(report,indent=2,ensure_ascii=False,default=str),encoding="utf-8")
+        return file_result(out,out.name,"application/json")
+
+    if op == "scientific_convert":
+        inp=get_file(payload["input"])
+        target=str(payload.get("format","json")).lower().lstrip(".")
+        allowed={"json","csv","png","netcdf","nc","hdf5","h5","fits"}
+        if target not in allowed:
+            raise ValueError("Scientific output must be JSON, CSV, PNG, NetCDF, HDF5 or FITS")
+        ext=target
+        out=output_path(inp.stem+"_scientific",ext)
+        omni_data_engine.scientific_convert(inp,out,target,payload.get("source_format"),int(payload.get("max_rows",2000000)))
+        return file_result(out,out.name)
+
     if op == "data_convert":
         inp=get_file(payload["input"])
         source=omni_data_engine.ext(inp,payload.get("source_format"))
