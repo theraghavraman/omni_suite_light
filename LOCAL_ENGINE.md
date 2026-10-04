@@ -41,13 +41,13 @@ The setup phase needs Internet access once because it downloads the browser libr
 
 The installer attempts to provide:
 
-- FFmpeg — audio/video conversion, extraction, trimming and transcoding.
+- FFmpeg — broad audio/video conversion, extraction, trimming and transcoding (MP4/MPEG-4, MKV, WebM, MOV, AVI, FLV, MPEG/MPG, TS/M2TS, 3GP, MP3, FLAC, Opus, WMA, AIFF and more).
 - qpdf — PDF merging, splitting and optimization.
 - Poppler — PDF rendering and text extraction.
-- ImageMagick — image conversion, resizing, density and quality.
+- ImageMagick — broad image/graphics conversion, resizing, density and quality (SVG, GIF, TIFF, BMP, HEIC/HEIF, AVIF, JPEG XL, JPEG-2000, PSD, EXR, HDR and 100+ format families depending on delegates).
 - Tesseract — native OCR.
-- LibreOffice — Word/Excel/PowerPoint/OpenDocument conversions.
-- Calibre — EPUB/ebook conversion.
+- LibreOffice — Word/Excel/PowerPoint/OpenDocument conversions, including legacy, current, template and macro-enabled families where the installed filter supports them.
+- Calibre — EPUB/ebook conversion across AZW/AZW3/AZW4, MOBI, CBZ/CBR/CB7, DJVU, FB2, LRF, LIT, PDB, PDF, DOCX, RTF, TXT and other documented formats.
 - Python standard library — local HTTP server, ZIP/GZIP and file streaming.
 
 ## Browser assets
@@ -88,6 +88,25 @@ The Local Engine panel exposes native operations for:
 - ZIP/GZIP
 
 The browser features remain available for lightweight jobs.
+
+## Native format coverage
+
+The Local Engine exposes a capability inventory at /api/health. The UI uses this to document and test the broad format families without pretending every machine has identical codec/delegate support.
+
+### Media
+- Video/animation: MP4/MPEG-4, MKV, WebM, MOV, AVI, FLV, MPEG/MPG, M4V, 3GP/3G2, TS/M2TS/MTS, VOB, WMV, ASF, OGV, MXF, NUT, IVF, GIF and APNG.
+- Audio: MP3, WAV, M4A, AAC, FLAC, OGG/OGA, Opus, WMA, AMR, AIFF/AIF/AIFC, AC-3/E-AC-3, AU, CAF, W64, WavPack, TTA, APE and MKA.
+
+### Images
+JPG/JPEG, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JXL, JP2/J2K/J2C, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM family, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, subject to installed ImageMagick delegates.
+
+### Office
+DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM/XLSB/XLT/XLTX/XLTM, ODS/OTS/FODS, CSV/TSV; PPT/PPTX/PPTM/PPS/PPSX/POT/POTX/POTM, ODP/OTP/FODP.
+
+### Ebooks
+AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ.
+
+Format acceptance is intentionally broader than browser codec support. A particular conversion can still fail when the local executable was built without an encoder/decoder or delegate. FFmpeg exposes its enabled formats/codecs with ffmpeg -formats and ffmpeg -codecs.
 
 ## Security
 
