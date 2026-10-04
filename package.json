@@ -1,0 +1,31 @@
+{
+  "name": "@theraghavraman/omni-universal-data-studio",
+  "version": "1.0.0",
+  "description": "Browser-side Universal Data Studio engine from OmniConverter Studio",
+  "license": "MIT",
+  "author": "Raghav Raman",
+  "files": [
+    "universal_data_studio.js",
+    "README.npm.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "data",
+    "csv",
+    "json",
+    "geojson",
+    "gpx",
+    "kml",
+    "visualization",
+    "browser",
+    "omniconverter"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theraghavraman/omni_suite_light.git"
+  },
+  "homepage": "https://theraghavraman.github.io/omni_suite_light/"
+}
