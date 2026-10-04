@@ -1,0 +1,42 @@
+name: Repair malformed EPUB template
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+          marker = "<" + "script id=" + chr(34) + "omni-platform-ui" + chr(34) + ">"
+          start = s.find(marker, 280000)
+          end = s.find("</script>", start)
+          if start < 0 or end < 0:
+              raise SystemExit("Malformed block not found")
+          p.write_text(s[:start] + s[end + 9:], encoding="utf-8")
+          print("Removed malformed embedded platform script.")
+          PY
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path("index.html").read_text(encoding="utf-8")
+          marker = "<" + "script id=" + chr(34) + "omni-platform-ui" + chr(34) + ">"
+          assert marker not in s
+          assert "const chapterHtml =" in s
+          print("Repair verification passed.")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix EPUB template script contamination"
+          git push
