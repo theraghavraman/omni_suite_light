@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 OmniConverter Local Engine
-- No third-party Python packages required.
+- Core HTTP server uses only the Python standard library.
+- Data/Scientific Studio operations use the optional requirements-data.txt stack.
 - Binds to 127.0.0.1 only.
 - Browser UI talks to this process over localhost.
 - Heavy media/PDF/image/OCR work is delegated to native tools when installed.
