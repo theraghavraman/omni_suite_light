@@ -227,7 +227,10 @@ try:
     out=process({"op":"text_lines","input":lines_up["file_id"],"target":"jsonl"},"ci-test-token")
     download(out["file_id"],ROOT/"lines.jsonl","ci-test-token")
     jsonl=(ROOT/"lines.jsonl").read_text(encoding="utf-8").strip().splitlines()
-    assert len(jsonl)==2 and json.loads(jsonl[0])["name"]=="Alice"
+    assert len(jsonl)==2
+    first_line=json.loads(jsonl[0])
+    assert first_line["line_number"]==1
+    assert json.loads(first_line["text"])["name"]=="Alice"
     print("24. Text-lines JSONL bridge: OK")
 
     # CI coverage: qpdf page splitting should return a non-empty ZIP of individual pages.
@@ -302,7 +305,7 @@ try:
     out=process({"op":"data_convert","input":data_up["file_id"],"format":"json"},"ci-test-token")
     download(out["file_id"],ROOT/"final.json","ci-test-token")
     final_rows=json.loads((ROOT/"final.json").read_text(encoding="utf-8"))
-    assert isinstance(final_rows,list) and final_rows[0]["Name"]=="Alice"
+    assert isinstance(final_rows,list) and final_rows[0]["name"]=="Alice"
     print("37. JSON structured-output contract: OK")
 
     # CI coverage: privacy reports should remain deterministic enough to expose a content hash.
