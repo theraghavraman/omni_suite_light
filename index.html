@@ -4455,17 +4455,33 @@ function render(){
 }
 function reset(){state.length=0;}
 function sourceText(){return [...document.scripts].map(x=>x.textContent||'').join('\n');}
+function regexEscape(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function hasImplementationReference(id,source){
+ if(!id)return false;
+ const e=regexEscape(id);
+ const patterns=[
+  new RegExp('getElementById\\\\(\\\\s*["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\)','m'),
+  new RegExp('(?:querySelector|querySelectorAll)\\\\(\\\\s*["\\\\\\\'][^"\\\\\\\']*#'+e+'[^"\\\\\\\']*["\\\\\\\']\\\\s*\\\\)','m'),
+  new RegExp('\\\\$\\\\(\\\\s*["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\)','m'),
+  new RegExp('\\\\b(?:id|button|input|target|run|reset|element)\\\\s*:\\\\s*["\\\\\\\']'+e+'["\\\\\\\']','m'),
+  new RegExp('["\\\\\\\']'+e+'["\\\\\\\']\\\\s*\\\\.\\\\s*(?:onclick|addEventListener)','m'),
+  new RegExp('\\\\b'+e+'\\\\b[\\\\s\\\\S]{0,220}(?:addEventListener|onclick|dispatchEvent|click\\\\s*\\\\()','m')
+ ];
+ if(patterns.some(p=>p.test(source)))return true;
+ const mentions=(source.match(new RegExp('\\\\b'+e+'\\\\b','g'))||[]).length;
+ return mentions>=2;
+}
 function runStructure(clear=true){
  if(clear) reset();const source=sourceText();
  Object.entries(studioMap).forEach(([id,studio])=>{
-   const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]');
+   const panel=$(id),nav=document.querySelector('.nav-btn[data-tab="'+id+'"]);
    if(!panel||!nav){add(studio,'Studio panel + navigation','FAIL',(!panel?'Panel missing. ':'')+(!nav?'Navigation missing.':''));return;}
    add(studio,'Studio panel + navigation','PASS','Panel and navigation target exist');
    panel.querySelectorAll('input[type="file"]').forEach(el=>add(studio,'Upload: '+(el.id||'unnamed'),'PASS','File input is present and reachable'));
    panel.querySelectorAll('select').forEach(el=>{add(studio,'Control: '+(el.id||'unnamed'),'PASS',el.options.length+' choices');[...el.options].forEach(o=>add(studio,'Option: '+(el.id||'select')+' → '+o.textContent.trim(),'PASS','Option is present'));});
    panel.querySelectorAll('textarea,input:not([type="file"]),button').forEach(el=>{
      const id=el.id||el.getAttribute('aria-label')||el.textContent.trim().replace(/\s+/g,' ').slice(0,50)||el.tagName;
-     if(el.matches('button')){const referenced=el.id&&new RegExp('(?:getElementById\\(["\\\']'+el.id+'["\\\']\\)|querySelector\\([^)]*'+el.id+'|\\b'+el.id+'\\b)').test(source);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
+     if(el.matches('button')){const referenced=hasImplementationReference(el.id,source);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
      else add(studio,'Control: '+id,'PASS','DOM control present');
    });
  });
