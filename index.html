@@ -5931,5 +5931,48 @@ if(docx) docx.addEventListener("click",async e=>{
 },true);
 })();
 </script>
+
+<script id="omni-heic-local-bridge">
+(function(){
+  "use strict";
+  const btn=document.getElementById("imgRunBtn");
+  if(!btn) return;
+  btn.addEventListener("click",async function(e){
+    const target=(document.getElementById("imgTargetFmt")||{}).value;
+    if(target!=="heic" && target!=="heif") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const input=document.getElementById("imgInput");
+    const files=[...(window.imgFiles||[])] .length ? [...window.imgFiles] : [...(input&&input.files||[])];
+    if(!files.length){alert("Choose one or more images first.");return;}
+    btn.disabled=true;
+    try{
+      const base="http://127.0.0.1:8765";
+      const h=await fetch(base+"/api/health",{cache:"no-store"});
+      if(!h.ok) throw new Error("Local Engine is not running.");
+      const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+      const zip=window.JSZip?new JSZip():null;
+      for(const file of files){
+        const up=await fetch(base+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
+        const uj=await up.json(); if(!up.ok) throw new Error(uj.error||"Image upload failed.");
+        const pr=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"image",input:uj.file_id,format:target,quality:parseInt((document.getElementById("imgQualitySelect")||{}).value||95)})});
+        const out=await pr.json(); if(!pr.ok||!out.ok) throw new Error(out.error||"HEIC conversion failed.");
+        const dl=await fetch(base+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"X-Omni-Token":token}});
+        if(!dl.ok) throw new Error("HEIC output download failed.");
+        const blob=await dl.blob();
+        if(zip) zip.file(out.name,blob); else {
+          const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=out.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);
+        }
+      }
+      if(zip&&files.length>1){
+        const b=await zip.generateAsync({type:"blob"});
+        const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="converted_"+target+"_images.zip";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);
+      }
+      window.omniNotify&&window.omniNotify("HEIC/HEIF conversion completed by the Local Engine.");
+    }catch(err){
+      alert("HEIC/HEIF output requires the Local Engine with ImageMagick/libheif.\n\n"+err.message);
+    }finally{btn.disabled=false;}
+  },true);
+})();
+</script>
 </body>
 </html>
