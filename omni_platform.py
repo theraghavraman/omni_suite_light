@@ -99,6 +99,9 @@ def clean_dataframe(df, actions):
 
 def database_query(url, query, params=None):
     from sqlalchemy import create_engine, text
+    normalized=re.sub(r"^\\s*--[^\\n]*\\n","",query or "").strip().lower()
+    if not re.match(r"^(select|with|show|describe|desc|explain|pragma)\\b",normalized):
+        raise ValueError("Database Studio is read-only: only SELECT/WITH/SHOW/DESCRIBE/EXPLAIN/PRAGMA queries are allowed.")
     engine=create_engine(url, pool_pre_ping=True)
     try:
         with engine.connect() as con:
