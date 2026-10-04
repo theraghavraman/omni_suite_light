@@ -81,13 +81,6 @@ NATIVE_GROUPS = {
     "Calibre": ("ebook-convert",),
     "Pandoc": ("pandoc",),
     "7-Zip": ("7zz", "7z"),
-    "SQLite": ("sqlite3",),
-    "Zip": ("zip",),
-    "Unzip": ("unzip",),
-    "Bzip2": ("bzip2",),
-    "XZ": ("xz",),
-    "Tar": ("tar",),
-    "Gzip": ("gzip",),
 }
 
 OFFLINE_ASSETS = (
