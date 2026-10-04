@@ -5868,5 +5868,43 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 </script>
 
 <script src="./universal_data_studio.js"></script>
+
+<script id="omni-unicode-local-bridge">
+(function(){
+"use strict";
+const localBase="http://127.0.0.1:8765";
+async function omniLocalText(format){
+  const text=(document.getElementById("t2dText")||{}).value||"";
+  const title=(document.getElementById("t2dTitle")||{}).value||"My Document";
+  if(!text.trim()) throw new Error("Enter some text first.");
+  const h=await fetch(localBase+"/api/health",{cache:"no-store"});
+  if(!h.ok) throw new Error("Local Engine is not running.");
+  const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"text_document",title:title,text:text,format:format})});
+  const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||"Local document conversion failed.");
+  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{"X-Omni-Token":token}});
+  if(!d.ok) throw new Error("Local download failed.");
+  const blob=await d.blob(), u=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=u; a.download=j.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function needsUnicode(s){return /[^\x00-\xFF]/.test(s||"");}
+const pdf=document.getElementById("t2dPdfBtn"), docx=document.getElementById("t2dDocxBtn");
+if(pdf) pdf.addEventListener("click",async e=>{
+  const text=(document.getElementById("t2dText")||{}).value||"";
+  if(!needsUnicode(text)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  try{await omniLocalText("pdf"); window.omniNotify&&window.omniNotify("Unicode-safe PDF created locally.");}
+  catch(err){alert("Hindi/Unicode PDF needs the Local Engine. Start Omni locally and try again.\n\n"+err.message);}
+},true);
+if(docx) docx.addEventListener("click",async e=>{
+  const text=(document.getElementById("t2dText")||{}).value||"";
+  if(!needsUnicode(text)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  try{await omniLocalText("docx"); window.omniNotify&&window.omniNotify("Unicode-safe DOCX created locally.");}
+  catch(err){alert("Hindi/Unicode DOCX needs the Local Engine. Start Omni locally and try again.\n\n"+err.message);}
+},true);
+})();
+</script>
 </body>
 </html>
