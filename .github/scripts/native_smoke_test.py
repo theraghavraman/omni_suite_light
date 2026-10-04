@@ -21,7 +21,14 @@ def run(cmd):
 
 def post(url, body, headers):
     req = request.Request(url, data=body, headers=headers, method="POST")
-    with request.urlopen(req, timeout=60) as r: return json.loads(r.read())
+    try:
+        with request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as exc:
+        if hasattr(exc, "read"):
+            detail = exc.read().decode("utf-8", "replace")
+            raise RuntimeError(f"Local Engine request failed: {getattr(exc, 'code', '?')} {detail}") from exc
+        raise
 
 def process(payload, token):
     return post("http://127.0.0.1:8765/api/process", json.dumps(payload).encode(), {"Content-Type":"application/json","Origin":ORIGIN,"X-Omni-Token":token})
