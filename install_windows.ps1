@@ -49,10 +49,10 @@ if (Has "py") {
 
 if (-not $python) {
     $candidates = @(
-        "$env:LOCALAPPDATAProgramsPythonPython313python.exe",
-        "$env:LOCALAPPDATAProgramsPythonPython312python.exe",
-        "$env:ProgramFilesPython313python.exe",
-        "$env:ProgramFilesPython312python.exe"
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:ProgramFiles\Python313\python.exe",
+        "$env:ProgramFiles\Python312\python.exe"
     )
     foreach ($candidate in $candidates) {
         if (Test-Path $candidate) {
@@ -76,6 +76,7 @@ $venvPython = Join-Path $venv "Scripts\python.exe"
 Write-Host "[SETUP] Installing OmniConverter Data Studio and scientific Python packages..."
 & $venvPython -m pip install --upgrade pip
 & $venvPython -m pip install -r "$PSScriptRoot\requirements-data.txt"
+if ($LASTEXITCODE -ne 0) { Write-Warning "Some core Data Studio packages could not be installed; the Local Engine will report missing modules." }
 & $venvPython -m pip install -r "$PSScriptRoot\requirements-extended.txt"
 if ($LASTEXITCODE -ne 0) { Write-Warning "Some Python data/scientific packages could not be installed; the Local Engine will report exactly which modules are unavailable." }
 Write-Host "[SETUP] Downloading pinned browser assets for offline mode..."
