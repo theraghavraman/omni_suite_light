@@ -136,6 +136,126 @@ def require_tool(name):
 def output_path(stem, ext):
     return ROOT / f"{safe_name(stem)}_{new_id('o')[:10]}.{ext.lstrip('.')}"
 
+def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
+    """Create a PPTX visual replica: one slide per PDF page, rendered as a PNG."""
+    require_tool("pdftoppm")
+    work = ROOT / new_id("pdfppt")
+    work.mkdir()
+    prefix = work / "page"
+    try:
+        run(["pdftoppm", "-r", str(max(72, min(240, dpi))), "-png", str(inp), str(prefix)], timeout=3600)
+        pages = sorted(work.glob("page-*.png"))
+        if not pages:
+            raise RuntimeError("PDF rendering produced no pages")
+
+        import struct
+
+        def png_size(path):
+            with open(path, "rb") as fh:
+                sig = fh.read(24)
+            if sig[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+                raise RuntimeError("Invalid PNG generated from PDF")
+            return struct.unpack(">II", sig[16:24])
+
+        def esc_xml(s):
+            return (str(s).replace("&", "&amp;").replace("<", "&lt;")
+                    .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;"))
+
+        content_types = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+            '<Default Extension="xml" ContentType="application/xml"/>',
+            '<Default Extension="png" ContentType="image/png"/>',
+            '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>',
+            '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>',
+            '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>',
+            '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>']
+        for i in range(1, len(pages) + 1):
+            content_types.append(f'<Override PartName="/ppt/slides/slide{i}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>')
+        content_types.append('</Types>')
+        content_types = ''.join(content_types)
+
+        root_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+</Relationships>'''
+
+        pres_rels = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">',
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>']
+        for i in range(1, len(pages) + 1):
+            pres_rels.append(f'<Relationship Id="rId{i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{i}.xml"/>')
+        pres_rels.append('</Relationships>')
+        pres_rels = ''.join(pres_rels)
+
+        slide_master_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>'''
+
+        slide_layout_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
+</Relationships>'''
+
+        theme = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="OmniConverter">
+<a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2><a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2><a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4><a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme>
+<a:fontScheme name="Office"><a:majorFont><a:latin typeface="Aptos Display"/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst/><a:lnStyleLst/><a:effectStyleLst/><a:bgFillStyleLst/></a:fmtScheme></a:themeElements></a:theme>'''
+
+        master = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+<p:cSld name="Omni Master"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles></p:sldMaster>'''
+
+        layout = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:sldLayoutIdLst/></p:sldLayout>'''
+
+        pres = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+            '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" saveSubsetFonts="1">',
+            '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>']
+        for i in range(1, len(pages) + 1):
+            pres.append(f'<p:sldId id="{255+i}" r:id="rId{i+1}"/>')
+        pres.append('</p:sldIdLst><p:sldSz cx="9144000" cy="6858000" type="screen4x3"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle/><p:embeddedFontLst/></p:presentation>')
+        pres = ''.join(pres)
+
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("[Content_Types].xml", content_types)
+            z.writestr("_rels/.rels", root_rels)
+            z.writestr("ppt/presentation.xml", pres)
+            z.writestr("ppt/_rels/presentation.xml.rels", pres_rels)
+            z.writestr("ppt/slideMasters/slideMaster1.xml", master)
+            z.writestr("ppt/slideMasters/_rels/slideMaster1.xml.rels", slide_master_rels)
+            z.writestr("ppt/slideLayouts/slideLayout1.xml", layout)
+            z.writestr("ppt/slideLayouts/_rels/slideLayout1.xml.rels", slide_layout_rels)
+            z.writestr("ppt/theme/theme1.xml", theme)
+
+            for i, page in enumerate(pages, 1):
+                w, h = png_size(page)
+                slide_rels = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image{i}.png"/>
+</Relationships>'''
+                # Fit page inside a 4:3 slide while preserving aspect ratio.
+                slide_w, slide_h = 9144000, 6858000
+                scale = min(slide_w / w, slide_h / h)
+                cx, cy = int(w * scale), int(h * scale)
+                x, y = (slide_w - cx) // 2, (slide_h - cy) // 2
+                slide = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+<p:cSld name="Page {i}"><p:spTree>
+<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
+<p:pic><p:nvPicPr><p:cNvPr id="2" name="PDF page {i}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>
+<p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>
+<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+</p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>'''
+                z.writestr(f"ppt/slides/slide{i}.xml", slide)
+                z.writestr(f"ppt/slides/_rels/slide{i}.xml.rels", slide_rels)
+                z.write(page, f"ppt/media/image{i}.png")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
 def process_job(payload):
     op = payload.get("op")
     if op == "health":
@@ -255,13 +375,19 @@ def process_job(payload):
         shutil.move(str(txt), str(out))
         return file_result(out, out.name, "text/plain")
 
+    if op == "pdf_to_ppt":
+        inp = get_file(payload["input"])
+        out = output_path(inp.stem + "_presentation", "pptx")
+        build_pdf_pptx(inp, out, int(payload.get("dpi", 120)))
+        return file_result(out, out.name)
+
     if op == "office_convert":
         office = tool_path("soffice") or tool_path("libreoffice")
         if not office:
             raise RuntimeError("LibreOffice is not installed. Run the platform installer.")
         inp = get_file(payload["input"])
         fmt = str(payload.get("format", "pdf")).lower().lstrip(".")
-        allowed = {"pdf","docx","doc","odt","ods","odp","rtf","txt","html"}
+        allowed = {"pdf","docx","doc","odt","ods","odp","rtf","txt","html","xls","xlsx","csv","ppt","pptx"}
         if fmt not in allowed:
             raise ValueError("Unsupported Office output format")
         work = ROOT / new_id("office")
