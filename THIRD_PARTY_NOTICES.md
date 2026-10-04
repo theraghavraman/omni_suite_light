@@ -28,6 +28,18 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 | Tesseract | Apache License 2.0 | Native OCR |
 | LibreOffice | MPL 2.0 | Word/Excel/PowerPoint/OpenDocument and related office-family conversion |
 | Calibre | GPL | Broad ebook conversion including EPUB, MOBI, AZW, comics, DJVU and document inputs |
+| pandas | BSD 3-Clause | DataFrame-based structured/semi-structured data I/O and normalization |
+| PyArrow | Apache License 2.0 | Arrow/Feather/Parquet/ORC data interchange |
+| DuckDB | MIT | Local analytical SQL engine and database-file interchange |
+| PyYAML | MIT | YAML parsing and serialization |
+| SQLGlot | MIT | SQL parsing, formatting and dialect transpilation |
+| openpyxl | MIT | XLSX workbook I/O |
+| xlrd | BSD 3-Clause | Legacy XLS reading |
+| pyxlsb | BSD 3-Clause | XLSB reading |
+| odfpy | Apache License 2.0 | OpenDocument spreadsheet I/O |
+| fastavro | MIT | Apache Avro serialization |
+| pymongo | Apache License 2.0 | MongoDB BSON representation support |
+| msgpack | Apache License 2.0 | MessagePack serialization |
 
 These native programs are not bundled by this repository. If a future release bundles any native executable, revisit the applicable distribution obligations for that specific build.
 
