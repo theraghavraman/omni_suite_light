@@ -154,8 +154,8 @@ function pseudoCode(text){
     if(/^\}|^\]|^end\b/i.test(l)){indent=Math.max(0,indent-1);continue;}
     if(/^\/\/|^#|^\/\*/.test(l)){emit('COMMENT: '+l.replace(/^\/\/|^#|^\/\*/,'').trim());continue;}
     let m;
-    if((m=l.match(/(?:if\s*\((.*?)\)|if\s+(.+?)(?:\s*:)$/i))){emit('IF '+(m[1]||m[2])+' THEN');indent++;continue;}
-    if((m=l.match(/else\s*if\s*\((.*?)\)|elif\s+(.+?)(?:\s*:)$/i))){indent=Math.max(0,indent-1);emit('ELSE IF '+(m[1]||m[2])+' THEN');indent++;continue;}
+    if((m=l.match(/^if\s*\((.*?)\)\s*\{?$|^if\s+(.+?)\s*:?$/i))){emit('IF '+(m[1]||m[2])+' THEN');indent++;continue;}
+    if((m=l.match(/^else\s*if\s*\((.*?)\)\s*\{?$|^elif\s+(.+?)\s*:?$/i))){indent=Math.max(0,indent-1);emit('ELSE IF '+(m[1]||m[2])+' THEN');indent++;continue;}
     if(/^else\b/i.test(l)){indent=Math.max(0,indent-1);emit('ELSE');indent++;continue;}
     if((m=l.match(/(?:for\s*\((?:[^;]+;)?([^;]+);|for\s+(\w+)\s+in\s+)(.+?)(?:\)|:)?$/i))){emit('FOR EACH '+(m[2]||m[1]||'item')+' IN '+(m[3]||'collection'));indent++;continue;}
     if(/^while\s*\((.*?)\)|^while\s+(.+?):/i.test(l)){m=l.match(/^while\s*\((.*?)\)|^while\s+(.+?):/i);emit('WHILE '+(m[1]||m[2])+' DO');indent++;continue;}
