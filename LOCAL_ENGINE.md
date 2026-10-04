@@ -48,7 +48,8 @@ The installer attempts to provide:
 - Tesseract — native OCR.
 - LibreOffice — Word/Excel/PowerPoint/OpenDocument conversions, including legacy, current, template and macro-enabled families where the installed filter supports them.
 - Calibre — EPUB/ebook conversion across AZW/AZW3/AZW4, MOBI, CBZ/CBR/CB7, DJVU, FB2, LRF, LIT, PDB, PDF, DOCX, RTF, TXT and other documented formats.
-- Python standard library — local HTTP server, ZIP/GZIP and file streaming.
+- Python standard library — local HTTP server, archive operations and file streaming.
+- Data Studio Python stack — pandas, PyArrow, DuckDB, PyYAML, SQLGlot, Excel/ODS readers, fastavro, BSON and MessagePack adapters.
 
 ## Browser assets
 
@@ -108,6 +109,18 @@ DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM
 AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ.
 
 Format acceptance is intentionally broader than browser codec support. A particular conversion can still fail when the local executable was built without an encoder/decoder or delegate. FFmpeg exposes its enabled formats/codecs with ffmpeg -formats and ffmpeg -codecs.
+
+## Data Studio
+
+The Data Studio adds local conversion paths for structured and semi-structured data: CSV/TSV, JSON/JSONL, YAML, XML, Excel/XLSB, ODS, Parquet, ORC, Feather/Arrow IPC, Avro, SQLite, DuckDB, SQL scripts and MessagePack. It also provides SQL dialect translation, schema inference, dataset profiling, MongoDB BSON/Extended JSON conversion and DynamoDB JSON bridging.
+
+SQL translation is powered by SQLGlot when installed; SQLGlot supports 30+ dialects with different support levels. citeturn0search1turn0search7 Arrow/PyArrow provides the columnar interchange layer for Parquet, Feather/IPC, CSV, JSON and ORC. citeturn1search6turn1search9
+
+The setup script installs the optional packages in `requirements-data.txt`. If they are absent, the Local Engine still starts and reports missing Data Studio modules at `/api/health` instead of crashing.
+
+### Database-model boundary
+
+The studio can generate SQL, CQL and Cypher bridge scripts and convert exported MongoDB/DynamoDB representations. It intentionally does not claim lossless conversion between fundamentally different data models such as relational rows, MongoDB documents, Redis structures and Neo4j graphs. Neo4j's own import documentation uses CSV as a common bridge for relational-to-graph migration, while MongoDB's export documentation distinguishes JSON/CSV from BSON type-preserving exports. citeturn3search6turn0search6
 
 ## Security
 
