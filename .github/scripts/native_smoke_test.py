@@ -60,7 +60,7 @@ try:
 
     magick=which("magick","convert")
     image=ROOT/"sample.png"
-    run([magick,"-size","500x120","xc:white","-gravity","center","-pointsize","32","-fill","black","-annotate","0","Omni CI",str(image)])
+    run([magick,"-size","500x120","xc:white",str(image)])
     up=upload(image,"ci-test-token"); print("3. Image upload: OK")
 
     out=process({"op":"image","input":up["file_id"],"format":"png","width":200},"ci-test-token")
