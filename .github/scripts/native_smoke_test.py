@@ -71,36 +71,39 @@ try:
     download(out["file_id"],ROOT/"archive.zip","ci-test-token")
     with zipfile.ZipFile(ROOT/"archive.zip") as z: assert z.namelist()
     print("8. ZIP compression/extraction: OK")
+    for fmt in ("tar","gz","bz2","xz"):
+        process({"op":"archive","input":up["file_id"],"format":fmt},"ci-test-token")
+    print("9. Native TAR/GZIP/BZIP2/XZ compression: OK")
 
     run([which("ffmpeg"),"-y","-f","lavfi","-i","anullsrc=r=8000:cl=mono","-t","0.2",str(ROOT/"tone.wav")])
     media=upload(ROOT/"tone.wav","ci-test-token")
     process({"op":"media","input":media["file_id"],"format":"mp3"},"ci-test-token")
     process({"op":"media","input":media["file_id"],"format":"flac"},"ci-test-token")
-    print("9. FFmpeg audio conversion (MP3/FLAC): OK")
+    print("10. FFmpeg audio conversion (MP3/FLAC): OK")
 
     svg=ROOT/"sample.svg"; svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120"><rect width="320" height="120" fill="white"/><text x="20" y="75" font-size="42">Omni SVG</text></svg>',encoding="utf-8")
     svgup=upload(svg,"sample.svg")
     out=process({"op":"image","input":svgup["file_id"],"format":"png"},"ci-test-token")
-    download(out["file_id"],ROOT/"svg.png","ci-test-token"); print("10. SVG -> PNG: OK")
-    process({"op":"image","input":up["file_id"],"format":"gif"},"ci-test-token"); print("11. PNG -> GIF: OK")
+    download(out["file_id"],ROOT/"svg.png","ci-test-token"); print("11. SVG -> PNG: OK")
+    process({"op":"image","input":up["file_id"],"format":"gif"},"ci-test-token"); print("12. PNG -> GIF: OK")
 
     run([which("ffmpeg"),"-y","-f","lavfi","-i","color=c=blue:s=320x180:r=10","-t","0.3","-pix_fmt","yuv420p",str(ROOT/"sample.mp4")])
     video=upload(ROOT/"sample.mp4","ci-test-token")
     process({"op":"media","input":video["file_id"],"format":"mkv"},"ci-test-token")
-    process({"op":"media","input":video["file_id"],"format":"gif"},"ci-test-token"); print("12. MPEG-4 -> MKV/GIF: OK")
+    process({"op":"media","input":video["file_id"],"format":"gif"},"ci-test-token"); print("13. MPEG-4 -> MKV/GIF: OK")
 
-    process({"op":"pdf_compress","input":pdf["file_id"]},"ci-test-token"); print("13. qpdf PDF operation: OK")
+    process({"op":"pdf_compress","input":pdf["file_id"]},"ci-test-token"); print("14. qpdf PDF operation: OK")
 
     txt=ROOT/"sample.txt"; txt.write_text("OmniConverter CI",encoding="utf-8")
     txtup=upload(txt,"ci-test-token")
     process({"op":"office_convert","input":txtup["file_id"],"format":"pdf"},"ci-test-token")
     csv=ROOT/"sample.csv"; csv.write_text("Name,Value\\nOmni,42\\n",encoding="utf-8"); csvup=upload(csv,"ci-test-token")
     process({"op":"office_convert","input":csvup["file_id"],"format":"xlsx"},"ci-test-token")
-    process({"op":"office_convert","input":csvup["file_id"],"format":"ods"},"ci-test-token"); print("14. LibreOffice document/spreadsheet conversion: OK")
+    process({"op":"office_convert","input":csvup["file_id"],"format":"ods"},"ci-test-token"); print("15. LibreOffice document/spreadsheet conversion: OK")
 
     html=ROOT/"sample.html"; html.write_text("<html><body><h1>OmniConverter CI</h1></body></html>",encoding="utf-8")
     htmlup=upload(html,"ci-test-token")
-    process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("15. Calibre ebook conversion: OK")
+    process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("16. Calibre ebook conversion: OK")
 
     print("Expanded native format smoke test: PASS")
 finally:
