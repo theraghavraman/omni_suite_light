@@ -151,14 +151,29 @@ After the one-time online preparation, the local browser application is designed
 
 Native utilities are intentionally not redistributed in this repository. The installers obtain them through the operating system/package manager, and those programs retain their own licenses.
 
-### Office Studio formats
-Office Studio uses the Local Engine for native Office-family conversion. It supports common cross-format workflows among:
-- **Presentations:** PPT, PPTX, ODP → PDF, PPT, PPTX, ODP
-- **Spreadsheets:** XLS, XLSX, ODS, CSV → XLS, XLSX, ODS, CSV
-- **Documents:** DOC, DOCX, ODT, RTF, TXT, HTML → supported Office/document targets
-- **PDF → PPTX:** rendered as a visual presentation with one slide per PDF page, preserving page appearance rather than attempting unreliable editable-object reconstruction.
+### Format coverage — native Local Engine
+The browser layer intentionally stays conservative because browsers cannot encode every desktop format. The Local Engine expands coverage through FFmpeg, ImageMagick, LibreOffice, Poppler/qpdf and Calibre.
 
-LibreOffice performs Office-family conversions. PDF → PPTX uses Poppler rendering plus a generated PPTX package. Exact feature preservation can vary by source application/version; this is intended for practical interoperability rather than a guarantee of perfect round-trip fidelity.
+**Video / animation:** MP4/MPEG-4, MKV, WebM, MOV, AVI, FLV, MPEG/MPG, M4V, 3GP/3G2, TS/M2TS/MTS, VOB, WMV, ASF, OGV, MXF, NUT, IVF, GIF and APNG.
+
+**Audio:** MP3, WAV, M4A, AAC, FLAC, OGG/OGA, Opus, WMA, AMR, AIFF/AIF/AIFC, AC-3/E-AC-3, AU, CAF, W64, WavPack, TTA, APE and Matroska Audio.
+
+**Images / graphics:** JPG/JPEG/JFIF, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM/PPM/PGM/PBM/PAM, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, plus delegate-dependent formats. ImageMagick documents 100+ major formats; exact read/write support depends on the installed delegates. citeturn0search0turn5search0
+
+**Office / spreadsheets / presentations:** DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM/XLSB/XLT/XLTX/XLTM, ODS/OTS/FODS, CSV/TSV; PPT/PPTX/PPTM/PPS/PPSX/POT/POTX/POTM, ODP/OTP/FODP. LibreOffice exposes these through conversion filters, although some formats/features are import-only or have fidelity limitations. citeturn4search3turn4search11
+
+**Ebooks:** AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ. Calibre documents a broad input/output conversion matrix; not every output is appropriate for every source. citeturn1search24
+
+**PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX is a visual replica: one rendered PDF page per slide, not editable-object reconstruction.
+
+**Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`. citeturn3search1turn3search2
+
+### Office Studio formats
+Office Studio uses the Local Engine for native Office-family conversion. It now includes legacy, current, macro-enabled, template and OpenDocument families. VBA/macros and application-specific features are not guaranteed to survive conversion; LibreOffice documents fidelity limitations for complex Microsoft Office files. citeturn4search10
+- **Presentations:** PPT, PPTX, PPTM, PPS, PPSX, POT, POTX, POTM, ODP, OTP, FODP
+- **Spreadsheets:** XLS, XLSX, XLSM, XLSB, XLT, XLTX, XLTM, ODS, OTS, FODS, CSV, TSV
+- **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
+- **PDF → PPTX:** rendered as one slide per PDF page using Poppler.
 
 ## 8. Diagnostics and full option testing
 
@@ -294,7 +309,7 @@ This is expected until the local Python engine is running. GitHub Pages is a bro
 
 ## 15. Development / validation
 
-The repository includes GitHub Actions checks for Python syntax, required setup files, local-engine UI hooks and native smoke tests on Windows and Ubuntu. The native matrix exercises the representative 11-item validation list in CI; it does not replace testing every Linux distribution or macOS release.
+The repository includes GitHub Actions checks for Python syntax, required setup files and native smoke tests on Windows, macOS and Ubuntu. The native matrix now exercises representative SVG/GIF image, audio, MPEG-4/MKV video, Office and ebook paths; it does not replace testing every OS release or every optional codec/delegate.
 
 For real machine validation, test at least:
 1. Image upload.
@@ -303,11 +318,11 @@ For real machine validation, test at least:
 4. PDF → image.
 5. OCR.
 6. ZIP compression/extraction.
-7. Local Engine health.
-8. FFmpeg media conversion.
+7. Local Engine health and native format capability inventory.
+8. FFmpeg media conversion, including representative audio/video containers.
 9. qpdf PDF operation.
-10. LibreOffice conversion.
-11. Calibre ebook conversion.
+10. LibreOffice conversion across representative Word/Excel/PowerPoint families.
+11. Calibre ebook conversion across representative EPUB/MOBI/comic/document families.
 
 ## Design principle
 OmniConverter should remain useful before the user installs anything.
