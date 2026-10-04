@@ -4,6 +4,8 @@ from pathlib import Path
 import json, os, shutil, subprocess, tempfile, time, zipfile
 from urllib import request
 
+ORIGIN = os.environ.get("OMNI_TEST_ORIGIN", "http://127.0.0.1:8765")
+
 ROOT = Path(tempfile.mkdtemp(prefix="omni-ci-"))
 server = None
 
@@ -22,13 +24,13 @@ def post(url, body, headers):
     with request.urlopen(req, timeout=60) as r: return json.loads(r.read())
 
 def process(payload, token):
-    return post("http://127.0.0.1:8765/api/process", json.dumps(payload).encode(), {"Content-Type":"application/json","X-Omni-Token":token})
+    return post("http://127.0.0.1:8765/api/process", json.dumps(payload).encode(), {"Content-Type":"application/json","Origin":ORIGIN,"X-Omni-Token":token})
 
 def upload(path, token):
-    return post("http://127.0.0.1:8765/api/upload", path.read_bytes(), {"Content-Type":"application/octet-stream","X-Filename":path.name,"X-Omni-Token":token})
+    return post("http://127.0.0.1:8765/api/upload", path.read_bytes(), {"Content-Type":"application/octet-stream","Origin":ORIGIN,"X-Filename":path.name,"X-Omni-Token":token})
 
 def download(fid, path, token):
-    req=request.Request("http://127.0.0.1:8765/api/download/"+fid, headers={"Origin":"http://127.0.0.1:8765","X-Omni-Token":token})
+    req=request.Request("http://127.0.0.1:8765/api/download/"+fid, headers={"Origin":ORIGIN,"X-Omni-Token":token})
     with request.urlopen(req, timeout=60) as r: path.write_bytes(r.read())
 
 try:
