@@ -80,24 +80,49 @@ $env:Path = "$machine;$user;$env:Path"
 
 $pythonCandidates = @(
     "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
-    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
     "$env:ProgramFiles\Python313\python.exe",
-    "$env:ProgramFiles\Python312\python.exe"
+    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+    "$env:ProgramFiles\Python312\python.exe",
+    "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+    "$env:ProgramFiles\Python311\python.exe"
 )
 $python = $null
-if (Has "py") { $python = (Get-Command py).Source }
-elseif (Has "python") { $python = (Get-Command python).Source }
-else {
-    foreach ($candidate in $pythonCandidates) {
-        if (Test-Path $candidate) { $python = $candidate; break }
+
+# Never let the Python launcher silently select an unsupported newer runtime.
+# Prefer the explicitly installed 3.13 interpreter, then 3.12/3.11.
+if (Has "py") {
+    foreach ($minor in @("3.13","3.12","3.11")) {
+        & py -$minor -c "import sys; raise SystemExit(0 if sys.version_info[:2] in [(3,13),(3,12),(3,11)] else 1)" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $python = (Get-Command py).Source
+            $pythonArgs = @("-$minor")
+            break
+        }
     }
 }
-if (-not $python) { throw "Python 3.11+ was not found after installation." }
+if (-not $python) {
+    foreach ($candidate in $pythonCandidates) {
+        if (Test-Path $candidate) {
+            $python = $candidate
+            $pythonArgs = @()
+            break
+        }
+    }
+}
+if (-not $python -and (Has "python")) {
+    $python = (Get-Command python).Source
+    $pythonArgs = @()
+}
+if (-not $python) { throw "Supported Python 3.11, 3.12 or 3.13 was not found after installation." }
 
-Write-Host "[PYTHON] $python"
+Write-Host "[PYTHON] $python $($pythonArgs -join ' ')"
+$pythonVersion = & $python @pythonArgs -c "import sys; print('.'.join(map(str,sys.version_info[:3])))"
+if ($LASTEXITCODE -ne 0 -or $pythonVersion -notmatch '^3\.(11|12|13)\.') {
+    throw "Unsupported Python runtime selected: $pythonVersion. OmniConverter Local Engine requires Python 3.11-3.13."
+}
 $venv = Join-Path $PSScriptRoot ".venv"
 $venvPython = Join-Path $venv "Scripts\python.exe"
-if (-not (Test-Path $venvPython)) { & $python -m venv $venv }
+if (-not (Test-Path $venvPython)) { & $python @pythonArgs -m venv $venv }
 if (-not (Test-Path $venvPython)) { throw "Failed to create .venv." }
 
 & $venvPython -m pip install --upgrade pip
