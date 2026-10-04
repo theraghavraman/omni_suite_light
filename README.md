@@ -6,9 +6,28 @@ OmniConverter Studio is a browser-first document, image, OCR, audio, video, arch
 
 It has two execution modes:
 1. Browser mode — the public GitHub Pages site. Files are processed locally by JavaScript/WASM inside the browser.
-2. Local Engine mode — the same interface served from your computer, with a Python loopback server that can call installed native tools such as FFmpeg, qpdf, Poppler, LibreOffice, Calibre, ImageMagick and Tesseract.
+2. Local Engine mode — the same interface served from your computer, with a Python loopback server that can call installed native tools such as FFmpeg, qpdf, Poppler, LibreOffice, Calibre, ImageMagick, Tesseract and Pandoc.
 
 > GitHub Pages can run browser JavaScript, but it cannot execute programs installed on your PC. When a conversion needs a native program, use the Local Engine instructions below.
+
+
+## 0.5 Platform layer
+
+The suite now includes a **Local Engine Doctor**, dynamic capability routing, **Batch Lab** with isolated failures/retry, **Database Studio**, **Data Cleaning & Privacy Studio**, and a static CI contract audit. The Doctor reports Python packages and native executables separately so the UI can distinguish a real local capability from an unavailable dependency.
+
+The extended Local Engine stack is declared in `requirements-extended.txt` and adds optional database drivers (PostgreSQL/MySQL/Oracle/ODBC), Polars, SciPy, SymPy, FastParquet, SQLAlchemy, archive/media helpers and image tooling. `easyocr` is intentionally not installed automatically because its ML runtime is substantially larger; it can be added separately when desired.
+
+### Batch processing
+
+Batch Lab uploads multiple files once, executes the selected operation, records per-file success/failure, preserves successful outputs, and supports retrying only failed inputs. A JSON manifest can be downloaded for automation/auditing.
+
+### Database Studio
+
+Database Studio is deliberately **read-only**: it permits SELECT/WITH/SHOW/DESCRIBE/EXPLAIN/PRAGMA-style inspection and blocks mutating SQL. SQLite works without an external driver; PostgreSQL, MySQL, Oracle and ODBC drivers are optional Local Engine dependencies.
+
+### Data Cleaning & Privacy
+
+Cleaning supports duplicate removal, whitespace trimming, normalized column names, empty-row removal, numeric null filling and column ordering. Privacy scanning is heuristic and reports likely email, phone, IP, URL, PAN-like, Aadhaar-like and payment-card-like patterns plus a SHA-256 fingerprint. It is an aid for review, not a compliance certification.
 
 ## 1. Quick start — online browser version
 
@@ -85,7 +104,7 @@ Then open:
     http://127.0.0.1:8765/
 
 ### Windows native components
-The installer attempts to obtain Python, FFmpeg, qpdf, Poppler, ImageMagick, Tesseract OCR, LibreOffice and Calibre.
+The installer attempts to obtain Python, FFmpeg, qpdf, Poppler, ImageMagick, Tesseract OCR, LibreOffice, Calibre and Pandoc, then installs both the core Data/Scientific stack and the optional extended Python stack.
 
 If Windows Package Manager is unavailable, install missing utilities manually and restart the local server.
 
