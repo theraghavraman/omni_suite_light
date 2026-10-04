@@ -411,11 +411,238 @@ header p{color:#53627a!important}
 @media(prefers-reduced-motion:reduce){
   .nav-btn,.card,.module-panel.active{animation:none!important;transition:none!important}
 }
+</style><style id="omni-design-system-v4">
+/* Omni Suite v4 — calm, high-density light product UI.
+   Visual/layout layer only. Runtime engines and existing event wiring remain untouched. */
+:root{
+  --v4-bg:#f3f1ec;--v4-surface:#fffdfa;--v4-surface-2:#f8f6f1;
+  --v4-ink:#17191d;--v4-muted:#687078;--v4-line:#d9d6cf;--v4-line-soft:#e8e5de;
+  --v4-accent:#4f46e5;--v4-shadow:0 10px 30px rgba(29,31,34,.055);
+}
+html{background:var(--v4-bg)!important;scroll-behavior:smooth}
+body{
+  font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  color:var(--v4-ink)!important;background:
+    radial-gradient(900px 520px at 8% -10%,rgba(79,70,229,.055),transparent 66%),
+    linear-gradient(180deg,#f7f5f0 0%,#f1efea 100%)!important;
+  letter-spacing:-.005em;
+}
+body::before{
+  opacity:.16!important;background-image:
+    linear-gradient(rgba(33,36,40,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(33,36,40,.055) 1px,transparent 1px)!important;
+  background-size:48px 48px!important;mask-image:linear-gradient(to bottom,black 0%,transparent 62%)!important;
+}
+.container{padding:14px clamp(12px,1.6vw,26px) 52px!important}
+
+/* ---------- compact global application bar ---------- */
+.omni-appbar{
+  height:48px;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  width:100%;box-sizing:border-box;margin:0 0 12px;padding:0 12px 0 10px;
+  border-bottom:1px solid #d8d5ce;color:#555d63;animation:v4BarIn .45s ease both;
+}
+.omni-appbar-brand{display:flex;align-items:center;gap:9px;min-width:210px}
+.omni-brand-mark{
+  width:27px;height:27px;border-radius:8px;display:grid;place-items:center;
+  background:#17191d;color:#fff;font:800 13px/1 Inter,sans-serif;box-shadow:0 3px 8px rgba(23,25,29,.16);
+}
+.omni-appbar-brand b{display:block;font-size:11px;letter-spacing:.12em;color:#202327}
+.omni-appbar-brand small{display:block;margin-top:1px;font-size:8px;letter-spacing:.12em;color:#92979b}
+.omni-appbar-center{font-size:10px;letter-spacing:.12em;font-weight:750;color:#777d82}
+.omni-appbar-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#17a673;box-shadow:0 0 0 4px rgba(23,166,115,.09);vertical-align:1px;margin-right:5px}
+.omni-appbar-meta{display:flex;align-items:center;gap:8px;font-size:8px;font-weight:800;letter-spacing:.12em;color:#8a8f92}
+.omni-appbar-meta i{width:3px;height:3px;background:#b9b6af;border-radius:50%}
+
+/* ---------- landing hero: editorial, not glossy ---------- */
+.hero-header{
+  min-height:min(710px,calc(100vh - 84px))!important;
+  padding:clamp(30px,4.5vw,62px)!important;
+  gap:clamp(28px,4vw,64px)!important;margin-bottom:16px!important;
+  border:1px solid #d8d5ce!important;border-radius:24px!important;
+  background:#fffdfa!important;
+  box-shadow:0 18px 48px rgba(30,32,35,.075),inset 0 1px 0 #fff!important;
+}
+.hero-header::before{background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.75) 50%,transparent 68%)!important;animation:v4Sweep 12s ease-in-out infinite!important}
+.eyebrow{
+  color:#59534b!important;background:#f1eee8!important;border-color:#ded9d0!important;
+  box-shadow:none!important;border-radius:7px!important;padding:7px 10px!important;letter-spacing:.11em!important;font-size:.68rem!important;
+}
+.eyebrow-dot{background:#4f46e5!important;box-shadow:0 0 0 4px rgba(79,70,229,.08)!important}
+header h1{
+  font-family:Georgia,"Times New Roman",serif!important;font-weight:600!important;
+  font-size:clamp(3.1rem,6.6vw,6.8rem)!important;line-height:.91!important;
+  letter-spacing:-.065em!important;margin:20px 0 18px!important;
+  background:linear-gradient(100deg,#1c2024 0%,#385da9 34%,#4d8b87 58%,#bd694e 84%)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;
+  animation:v4Title 12s ease-in-out infinite!important;
+}
+header h1 span::after{height:7px!important;bottom:-9px!important;filter:none!important;background:#4f46e5!important;opacity:.22!important}
+header p{font-size:clamp(.98rem,1.2vw,1.12rem)!important;line-height:1.7!important;color:#555d63!important;max-width:680px!important}
+.metric-pill{
+  border-radius:10px!important;background:#f8f6f1!important;border:1px solid #dfdcd5!important;
+  box-shadow:none!important;padding:10px 13px!important;
+}
+.metric-pill:hover{transform:translateY(-2px)!important;box-shadow:0 8px 18px rgba(30,32,35,.07)!important}
+.metric-pill strong{font-size:1rem!important;color:#1e2327!important}.metric-pill span{font-size:.72rem!important;color:#777f84!important}
+.badge-privacy{border-radius:9px!important;background:#eef7f2!important;border-color:#cde6d9!important;box-shadow:none!important;color:#14704f!important}
+
+/* hero render: a technical instrument, not a decorative glass orb */
+.hero-render{
+  min-height:390px!important;border-radius:18px!important;background:#f3f1eb!important;
+  border:1px solid #d5d1c8!important;box-shadow:0 20px 44px rgba(30,32,35,.09)!important;
+}
+.hero-render::before{background:linear-gradient(135deg,rgba(79,70,229,.07),transparent 42%,rgba(19,142,127,.06))!important}
+.render-grid{opacity:.10!important}.render-window{border-radius:12px!important;box-shadow:0 16px 34px rgba(30,32,35,.10)!important;background:#fffdfa!important;border-color:#d7d4cc!important}
+.float-chip{border-radius:8px!important;background:#fffdfa!important;border-color:#d7d4cc!important;box-shadow:0 9px 20px rgba(30,32,35,.08)!important}
+
+/* ---------- onboarding strip ---------- */
+.omni-guide{
+  margin-bottom:14px!important;padding:10px 12px!important;border-radius:14px!important;
+  background:#fffdfa!important;border:1px solid #dcd9d2!important;box-shadow:var(--v4-shadow)!important;
+  backdrop-filter:none!important;
+}
+.omni-guide-grid{grid-template-columns:1.35fr 1fr 1fr!important;gap:0!important}
+.omni-guide-item{
+  padding:9px 14px!important;border:0!important;border-right:1px solid #e4e1da!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+.omni-guide-item:last-child{border-right:0}
+.omni-guide-item strong{font-size:.78rem!important;color:#25292d!important}.omni-guide-item span{font-size:.72rem!important;line-height:1.45!important;color:#747b80!important}
+.omni-help{margin-top:8px!important;padding:7px 9px!important;border-radius:8px!important;background:#f4f2ed!important;border-color:#e2dfd8!important;color:#73797d!important;font-size:.68rem!important}
+
+/* ---------- navigation rail: neutral, compact, unmistakable ---------- */
+.nav-bar{
+  width:236px!important;top:14px!important;max-height:calc(100vh - 28px)!important;
+  padding:9px 7px!important;margin-right:16px!important;border-radius:15px!important;
+  border:1px solid #d6d3cc!important;background:#eeece7!important;
+  box-shadow:0 12px 30px rgba(31,33,36,.075)!important;backdrop-filter:none!important;
+}
+.nav-bar::before{
+  content:"STUDIOS";display:block;padding:6px 10px 8px;color:#96938d;
+  font-size:9px;font-weight:850;letter-spacing:.16em;border-bottom:1px solid #ddd9d1;margin-bottom:4px;
+}
+.nav-btn{
+  height:44px!important;min-height:44px!important;grid-template-columns:29px minmax(0,1fr)!important;
+  gap:9px!important;padding:6px 8px!important;border-radius:9px!important;color:#687077!important;
+  border:1px solid transparent!important;
+}
+.nav-btn::after{display:none!important}
+.nav-btn::before{
+  inset:8px auto 8px 0!important;width:2px!important;border-radius:0 3px 3px 0!important;
+  background:var(--nav-accent)!important;transform:scaleY(.1)!important;
+}
+.nav-btn:hover{transform:none!important;background:#e6e3dd!important;border-color:#dad7d0!important;color:#252a2e!important}
+.nav-btn:hover::before{transform:scaleY(.55)!important;opacity:.65!important}
+.nav-btn.active{
+  background:#fffdfa!important;border-color:#d4d0c8!important;color:#161a1d!important;
+  box-shadow:0 4px 12px rgba(31,33,36,.07)!important;
+}
+.nav-btn.active::before{transform:scaleY(1)!important;opacity:1!important}
+.studio-icon{
+  width:29px!important;height:29px!important;border-radius:8px!important;background:transparent!important;
+  border:1px solid #d7d4cd!important;box-shadow:none!important;
+}
+.nav-btn.active .studio-icon{background:color-mix(in srgb,var(--nav-accent) 8%,#fffdfa)!important;border-color:color-mix(in srgb,var(--nav-accent) 30%,#d7d4cd)!important}
+.studio-label{font-size:.73rem!important;font-weight:720!important}
+.nav-btn:nth-child(11),.nav-btn:nth-child(15),.nav-btn:nth-child(17){margin-top:8px!important;border-top:1px solid #dad6cf!important;border-radius:0 0 9px 9px!important;padding-top:10px!important;height:52px!important}
+.nav-btn:nth-child(11)::after,.nav-btn:nth-child(15)::after,.nav-btn:nth-child(17)::after{display:none!important}
+
+/* ---------- content workspace: tighter, flatter, more legible ---------- */
+.module-panel{margin-left:252px!important;width:auto!important}
+.module-panel.active{animation:v4WorkspaceIn .28s cubic-bezier(.22,.75,.25,1) both!important}
+.card{
+  margin-bottom:12px!important;padding:20px!important;border-radius:14px!important;
+  border:1px solid #d9d6cf!important;background:#fffdfa!important;box-shadow:0 7px 22px rgba(31,33,36,.045)!important;
+  overflow:hidden!important;
+}
+.card::before{
+  width:3px!important;height:100%!important;left:0!important;top:0!important;opacity:1!important;
+  background:var(--c,#4f46e5)!important;
+}
+.card:hover{transform:translateY(-1px)!important;box-shadow:0 12px 28px rgba(31,33,36,.075)!important;border-color:#d0ccc4!important}
+.card h2,.omni-test-head h2,.omni-all-head h2{font-family:Inter,ui-sans-serif,sans-serif!important;color:#1b2024!important;font-size:clamp(1.05rem,1.3vw,1.28rem)!important;line-height:1.25!important}
+.card .sub{font-size:.84rem!important;line-height:1.5!important;color:#687177!important}
+
+/* Upload zones are tools, not giant decorative boxes. */
+.dropzone{
+  min-height:136px!important;padding:22px 18px!important;border-radius:12px!important;
+  background:#f6f4ef!important;border:1px dashed #c9c5bd!important;
+}
+.dropzone:hover,.dropzone.dragover{transform:translateY(-2px)!important;background:#fffdfa!important;box-shadow:0 8px 20px rgba(31,33,36,.065)!important}
+.dropzone h3{font-size:1rem!important;color:#242a2e!important}.dropzone p{font-size:.76rem!important;color:#747b80!important}
+
+/* Controls: crisp, compact, consistent. */
+.form-group label{font-size:.68rem!important;font-weight:750!important;letter-spacing:.035em!important;text-transform:uppercase;color:#60686d!important}
+.form-select,.form-input,.form-textarea{
+  min-height:38px!important;border-radius:9px!important;border:1px solid #d0ccc4!important;
+  background:#fffdfa!important;color:#1e2428!important;box-shadow:none!important;
+}
+.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:#8c84ea!important;box-shadow:0 0 0 3px rgba(79,70,229,.08)!important;transform:none!important}
+.form-hint{font-size:.72rem!important;color:#7c8387!important}
+.btn{min-height:38px!important;padding:8px 13px!important;border-radius:9px!important;font-size:.78rem!important}
+.btn:hover:not(:disabled){transform:translateY(-1px)!important;box-shadow:0 8px 16px rgba(31,33,36,.09)!important}
+.btn-primary{background:#4f46e5!important;border-color:#4f46e5!important}.btn-success{background:#14815e!important;border-color:#14815e!important}
+.btn-secondary,.btn-reset{background:#fffdfa!important;color:#333a3f!important;border-color:#d0ccc4!important}
+
+/* Tables, tests, sandboxes and diagnostic areas share the same workbench language. */
+.omni-test-lab,.omni-all-lab,.omni-sandbox{
+  border-radius:14px!important;background:#fffdfa!important;border-color:#d9d6cf!important;
+  box-shadow:0 8px 24px rgba(31,33,36,.05)!important;
+}
+.omni-test-stat,.omni-all-stat{background:#f5f3ee!important;border-color:#dedbd4!important}
+.omni-test-row,.omni-all-row{background:#fffdfa!important;border-color:#e0ddd6!important}
+.omni-test-row:hover,.omni-all-row:hover{background:#f7f5f0!important;transform:translateX(2px)!important}
+.omni-sandbox{padding:14px!important}.omni-sandbox-editor,.omni-sandbox-output,.omni-diagnostics,pre,textarea{background:#f5f3ee!important;color:#252b30!important;border-color:#d5d1c9!important}
+.page-card{background:#fffdfa!important;border-color:#d9d6cf!important;box-shadow:0 8px 22px rgba(31,33,36,.05)!important}
+
+/* Reduce decorative color noise: accents are signals, not surfaces. */
+.progress-bar-bg{background:#e1ded7!important}.progress-bar-fill{background:#4f46e5!important;animation:none!important}
+.item-row{background:#f8f6f1!important;border-color:#dedbd4!important;border-radius:10px!important}
+.item-row:hover{transform:translateX(2px)!important;box-shadow:none!important}
+
+/* ---------- responsive ---------- */
+@media(max-width:1050px){
+  .nav-bar{width:208px!important;margin-right:12px!important}.module-panel{margin-left:220px!important}
+  .nav-btn{grid-template-columns:28px minmax(0,1fr)!important}.studio-label{font-size:.69rem!important}
+  .omni-appbar-center{display:none}.omni-appbar-meta{font-size:7px}
+}
+@media(max-width:720px){
+  .container{padding:8px 9px 38px!important}.omni-appbar{height:42px;margin-bottom:8px}.omni-appbar-brand{min-width:auto}.omni-appbar-center,.omni-appbar-meta{display:none}
+  .hero-header{min-height:calc(100vh - 58px)!important;grid-template-columns:1fr!important;padding:26px 20px!important;border-radius:18px!important}
+  .hero-render{min-height:300px!important}
+  .omni-guide-grid{grid-template-columns:1fr!important}.omni-guide-item{border-right:0!important;border-bottom:1px solid #e4e1da!important}.omni-guide-item:last-child{border-bottom:0}
+  .nav-bar{
+    float:none!important;position:sticky!important;top:4px!important;width:100%!important;max-height:none!important;height:auto!important;
+    overflow-x:auto!important;overflow-y:hidden!important;display:flex!important;flex-direction:row!important;
+    margin:0 0 12px!important;padding:6px!important;border-radius:12px!important;
+  }
+  .nav-bar::before{display:none!important}
+  .nav-btn,.nav-btn:nth-child(11),.nav-btn:nth-child(15),.nav-btn:nth-child(17){
+    width:108px!important;min-width:108px!important;height:56px!important;min-height:56px!important;
+    margin-top:0!important;border-top:0!important;border-radius:9px!important;display:flex!important;
+    flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:4px!important;
+  }
+  .nav-btn::before{inset:auto 14px 0!important;width:auto!important;height:2px!important;transform:scaleX(.15)!important}
+  .nav-btn.active::before{transform:scaleX(1)!important}.studio-icon{width:27px!important;height:27px!important}.studio-label{font-size:.61rem!important}
+  .module-panel{margin-left:0!important;width:100%!important}.card{padding:16px!important;border-radius:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+@keyframes v4BarIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes v4Sweep{0%,70%{transform:translateX(-115%)}100%{transform:translateX(115%)}}
+@keyframes v4Title{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes v4WorkspaceIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 </style></head>
 <body>
   <div class="omni-motion-bg" aria-hidden="true"><div class="omni-grid"></div><div class="omni-orbit"></div></div>
 
-  <div class="container">
+  <div class="container"><div class="omni-appbar" aria-label="Omni Suite application bar">
+  <div class="omni-appbar-brand"><span class="omni-brand-mark">O</span><span><b>OMNI SUITE</b><small>CONVERTER WORKSPACE</small></span></div>
+  <div class="omni-appbar-center"><span class="omni-appbar-dot"></span> BROWSER-FIRST WORKSPACE</div>
+  <div class="omni-appbar-meta"><span>PRIVATE</span><i></i><span>CLIENT-SIDE</span><i></i><span>LOCAL FALLBACK</span></div>
+</div>
+
     <header class="hero-header">
       <div class="hero-copy">
         <div class="eyebrow"><span class="eyebrow-dot"></span> Offline-Capable &bull; Private &bull; Client-Side</div>
