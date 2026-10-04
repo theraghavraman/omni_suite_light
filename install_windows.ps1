@@ -16,7 +16,8 @@ if (Has "winget") {
         "UB-Mannheim.TesseractOCR",
         "TheDocumentFoundation.LibreOffice",
         "calibre.calibre",
-        "Python.Python.3.13"
+        "Python.Python.3.13",
+        "Pandoc.Pandoc"
     )
 
     foreach ($id in $packages) {
@@ -29,7 +30,7 @@ if (Has "winget") {
     }
 } elseif (Has "choco") {
     Write-Host "[SETUP] Using Chocolatey..."
-    choco install ffmpeg qpdf poppler imagemagick tesseract python -y
+    choco install ffmpeg qpdf poppler imagemagick tesseract python pandoc libreoffice calibre -y
 } else {
     Write-Host "[ERROR] Neither winget nor Chocolatey was found."
     Write-Host "Install Python 3.11+ and a supported package manager, then rerun this script."
@@ -75,6 +76,7 @@ $venvPython = Join-Path $venv "Scripts\python.exe"
 Write-Host "[SETUP] Installing OmniConverter Data Studio and scientific Python packages..."
 & $venvPython -m pip install --upgrade pip
 & $venvPython -m pip install -r "$PSScriptRoot\requirements-data.txt"
+& $venvPython -m pip install -r "$PSScriptRoot\requirements-extended.txt"
 if ($LASTEXITCODE -ne 0) { Write-Warning "Some Python data/scientific packages could not be installed; the Local Engine will report exactly which modules are unavailable." }
 Write-Host "[SETUP] Downloading pinned browser assets for offline mode..."
 & $venvPython prepare_offline.py
