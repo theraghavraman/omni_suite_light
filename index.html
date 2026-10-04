@@ -3230,83 +3230,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
           const chapterHtml = `<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Page ${i}</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head><body><div class="page-container"><img src="images/page_${i}.jpg" class="page-image" alt="Page ${i}"/>${pageText}</div>
 
 
-<script id="omni-command-palette-v1">
-(function(){
-'use strict';
-function initCommandPalette(){
-  const trigger=document.querySelector('.omni-command');
-  const backdrop=document.getElementById('omniCommandBackdrop');
-  const input=document.getElementById('omniCommandInput');
-  const results=document.getElementById('omniCommandResults');
-  if(!trigger||!backdrop||!input||!results||trigger.dataset.commandReady)return;
-  trigger.dataset.commandReady='1';
-  trigger.setAttribute('role','button');
-  trigger.setAttribute('tabindex','0');
-  trigger.setAttribute('aria-haspopup','dialog');
-  const items=[];
-  document.querySelectorAll('.nav-bar .nav-btn').forEach(btn=>{
-    const panel=document.getElementById(btn.dataset.tab);
-    if(!panel)return;
-    const label=(btn.querySelector('.studio-label')?.textContent||btn.textContent||'Studio').replace(/\\s+/g,' ').trim();
-    const desc=(panel.querySelector('.studio-workspace-desc')?.textContent||'Conversion workspace').replace(/\\s+/g,' ').trim();
-    items.push({type:'studio',label,desc,button:btn,panel,search:(label+' '+desc+' '+panel.id).toLowerCase()});
-    panel.querySelectorAll(':scope > .card').forEach(card=>{
-      const heading=card.querySelector(':scope > h2,:scope > h3,h2,h3');
-      const tool=(heading?.textContent||'Tool').replace(/\\s+/g,' ').trim();
-      const detail=(card.textContent||'').replace(/\\s+/g,' ').trim();
-      items.push({type:'tool',label:tool,desc:detail.slice(0,180),button:btn,panel,card,search:(tool+' '+detail+' '+label).toLowerCase()});
-    });
-  });
-  let matches=[],active=-1;
-  function open(){
-    backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');trigger.classList.add('is-open');
-    input.value='';active=-1;render();setTimeout(()=>input.focus(),20);
-  }
-  function close(){backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');trigger.classList.remove('is-open');trigger.focus();}
-  function render(){
-    const q=input.value.trim().toLowerCase();
-    matches=items.filter(x=>!q||x.search.includes(q)).slice(0,40);
-    active=matches.length?Math.min(Math.max(active,0),matches.length-1):-1;
-    if(!matches.length){results.innerHTML='<div class="omni-command-empty"><strong>No studio or tool found</strong>Try a format, operation, or studio name — e.g. PDF, Excel, OCR, SQL, Image, Video.</div>';return;}
-    let html='',last='';
-    matches.forEach((item,i)=>{
-      if(item.type!==last){html+='<div class="omni-command-section">'+(item.type==='studio'?'Studios':'Tools')+'</div>';last=item.type;}
-      html+='<button type="button" class="omni-command-result '+item.type+(i===active?' active':'')+'" data-index="'+i+'">'
-        +'<span class="omni-command-result-icon">'+(item.type==='studio'?'✦':'↳')+'</span>'
-        +'<span class="omni-command-result-copy"><strong>'+escapeHtml(item.label)+'</strong><span>'+escapeHtml(item.desc)+'</span></span>'
-        +'<span class="omni-command-result-meta">'+(item.type==='studio'?'STUDIO':'TOOL')+'</span></button>';
-    });
-    results.innerHTML=html;
-    results.querySelectorAll('.omni-command-result').forEach(b=>b.addEventListener('click',()=>activate(+b.dataset.index)));
-  }
-  function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function activate(i){
-    const item=matches[i];if(!item)return;
-    close();
-    item.button.click();
-    if(item.type==='tool'&&item.card)setTimeout(()=>item.card.scrollIntoView({behavior:'smooth',block:'start'}),80);
-    else setTimeout(()=>item.panel.scrollIntoView({behavior:'smooth',block:'start'}),40);
-  }
-  input.addEventListener('input',()=>{active=0;render();});
-  input.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){e.preventDefault();close();return;}
-    if(e.key==='ArrowDown'){e.preventDefault();if(matches.length){active=(active+1)%matches.length;render();}}
-    if(e.key==='ArrowUp'){e.preventDefault();if(matches.length){active=(active-1+matches.length)%matches.length;render();}}
-    if(e.key==='Enter'){e.preventDefault();if(active>=0)activate(active);}
-  });
-  backdrop.addEventListener('mousedown',e=>{if(e.target===backdrop)close();});
-  trigger.addEventListener('click',e=>{e.preventDefault();open();});
-  trigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
-  document.addEventListener('keydown',e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
-      e.preventDefault();e.stopImmediatePropagation();
-      backdrop.classList.contains('open')?close():open();
-    }
-  },true);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCommandPalette,{once:true});else initCommandPalette();
-})();
-</script>
+
 </body></html>`;
 
           zip.file(`OEBPS/page_${i}.xhtml`, chapterHtml);
@@ -5329,6 +5253,84 @@ function init(){
  });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+
+  <script id="omni-command-palette-v1">
+(function(){
+'use strict';
+function initCommandPalette(){
+  const trigger=document.querySelector('.omni-command');
+  const backdrop=document.getElementById('omniCommandBackdrop');
+  const input=document.getElementById('omniCommandInput');
+  const results=document.getElementById('omniCommandResults');
+  if(!trigger||!backdrop||!input||!results||trigger.dataset.commandReady)return;
+  trigger.dataset.commandReady='1';
+  trigger.setAttribute('role','button');
+  trigger.setAttribute('tabindex','0');
+  trigger.setAttribute('aria-haspopup','dialog');
+  const items=[];
+  document.querySelectorAll('.nav-bar .nav-btn').forEach(btn=>{
+    const panel=document.getElementById(btn.dataset.tab);
+    if(!panel)return;
+    const label=(btn.querySelector('.studio-label')?.textContent||btn.textContent||'Studio').replace(/\\s+/g,' ').trim();
+    const desc=(panel.querySelector('.studio-workspace-desc')?.textContent||'Conversion workspace').replace(/\\s+/g,' ').trim();
+    items.push({type:'studio',label,desc,button:btn,panel,search:(label+' '+desc+' '+panel.id).toLowerCase()});
+    panel.querySelectorAll(':scope > .card').forEach(card=>{
+      const heading=card.querySelector(':scope > h2,:scope > h3,h2,h3');
+      const tool=(heading?.textContent||'Tool').replace(/\\s+/g,' ').trim();
+      const detail=(card.textContent||'').replace(/\\s+/g,' ').trim();
+      items.push({type:'tool',label:tool,desc:detail.slice(0,180),button:btn,panel,card,search:(tool+' '+detail+' '+label).toLowerCase()});
+    });
+  });
+  let matches=[],active=-1;
+  function open(){
+    backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');trigger.classList.add('is-open');
+    input.value='';active=-1;render();setTimeout(()=>input.focus(),20);
+  }
+  function close(){backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');trigger.classList.remove('is-open');trigger.focus();}
+  function render(){
+    const q=input.value.trim().toLowerCase();
+    matches=items.filter(x=>!q||x.search.includes(q)).slice(0,40);
+    active=matches.length?Math.min(Math.max(active,0),matches.length-1):-1;
+    if(!matches.length){results.innerHTML='<div class="omni-command-empty"><strong>No studio or tool found</strong>Try a format, operation, or studio name — e.g. PDF, Excel, OCR, SQL, Image, Video.</div>';return;}
+    let html='',last='';
+    matches.forEach((item,i)=>{
+      if(item.type!==last){html+='<div class="omni-command-section">'+(item.type==='studio'?'Studios':'Tools')+'</div>';last=item.type;}
+      html+='<button type="button" class="omni-command-result '+item.type+(i===active?' active':'')+'" data-index="'+i+'">'
+        +'<span class="omni-command-result-icon">'+(item.type==='studio'?'✦':'↳')+'</span>'
+        +'<span class="omni-command-result-copy"><strong>'+escapeHtml(item.label)+'</strong><span>'+escapeHtml(item.desc)+'</span></span>'
+        +'<span class="omni-command-result-meta">'+(item.type==='studio'?'STUDIO':'TOOL')+'</span></button>';
+    });
+    results.innerHTML=html;
+    results.querySelectorAll('.omni-command-result').forEach(b=>b.addEventListener('click',()=>activate(+b.dataset.index)));
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function activate(i){
+    const item=matches[i];if(!item)return;
+    close();
+    item.button.click();
+    if(item.type==='tool'&&item.card)setTimeout(()=>item.card.scrollIntoView({behavior:'smooth',block:'start'}),80);
+    else setTimeout(()=>item.panel.scrollIntoView({behavior:'smooth',block:'start'}),40);
+  }
+  input.addEventListener('input',()=>{active=0;render();});
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();close();return;}
+    if(e.key==='ArrowDown'){e.preventDefault();if(matches.length){active=(active+1)%matches.length;render();}}
+    if(e.key==='ArrowUp'){e.preventDefault();if(matches.length){active=(active-1+matches.length)%matches.length;render();}}
+    if(e.key==='Enter'){e.preventDefault();if(active>=0)activate(active);}
+  });
+  backdrop.addEventListener('mousedown',e=>{if(e.target===backdrop)close();});
+  trigger.addEventListener('click',e=>{e.preventDefault();open();});
+  trigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      e.preventDefault();e.stopImmediatePropagation();
+      backdrop.classList.contains('open')?close():open();
+    }
+  },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCommandPalette,{once:true});else initCommandPalette();
 })();
 </script>
 </body>
