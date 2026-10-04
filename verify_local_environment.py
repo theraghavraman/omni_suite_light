@@ -111,9 +111,16 @@ def pip_check() -> tuple[bool, str]:
     p = subprocess.run([sys.executable, "-m", "pip", "check"], capture_output=True, text=True)
     return p.returncode == 0, (p.stdout + p.stderr).strip()
 
+def check_python_runtime() -> tuple[bool, str]:
+    major, minor = sys.version_info[:2]
+    supported = (major == 3 and 11 <= minor <= 13)
+    return supported, f"{major}.{minor}"
+
 def main() -> int:
     print("=== OmniConverter Local Environment Verification ===")
     print(f"Python: {sys.executable}")
+    runtime_ok, runtime_version = check_python_runtime()
+    print(f"Python runtime: {runtime_version} ({\"PASS\" if runtime_ok else \"UNSUPPORTED\"})")
     py = check_python()
     native = check_native()
     assets = check_offline_assets()
@@ -137,7 +144,7 @@ def main() -> int:
     if pip_msg:
         print("pip check details:", pip_msg)
 
-    if missing_py or missing_native or missing_assets or not pip_ok:
+    if (not runtime_ok) or missing_py or missing_native or missing_assets or not pip_ok:
         print("RESULT: FAIL")
         return 1
 
