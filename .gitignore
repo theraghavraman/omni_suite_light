@@ -1,0 +1,12 @@
+# Local runtime state
+.venv/
+vendor/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Scientific/GRIB indexes and local outputs
+*.idx
+omni_converter_engine/
