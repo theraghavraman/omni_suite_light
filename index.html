@@ -1341,7 +1341,7 @@
           <div class="form-group"><label for="sqlSourceDialect">Source</label><select id="sqlSourceDialect" class="form-select"></select></div>
           <div class="form-group"><label for="sqlTargetDialect">Target</label><select id="sqlTargetDialect" class="form-select"></select></div>
         </div>
-        <div class="dropzone" id="sqlTranslateDrop"><h3>Choose a .sql file</h3><p>Oracle SQL ↔ T-SQL ↔ PostgreSQL ↔ MySQL ↔ Snowflake ↔ BigQuery ↔ Databricks ↔ DuckDB and more</p><input type="file" id="sqlTranslateInput" class="file-input" accept=".sql,.ddl,.dml,.txt"></div>
+        <div class="dropzone" id="sqlTranslateDrop"><h3>Choose a .sql file</h3><p>Oracle SQL ↔ T-SQL ↔ PostgreSQL ↔ MySQL ↔ Snowflake ↔ BigQuery ↔ Databricks ↔ DuckDB and more</p><input type="file" id="sqlTranslateInput" class="file-input" accept=".sql,.ddl,.dml,.txt"></div><div class="form-group" style="margin-top:12px;"><label for="sqlTranslateText">Or paste SQL directly</label><textarea id="sqlTranslateText" class="form-textarea" placeholder="SELECT NVL(amount, 0) FROM sales;"></textarea></div>
         <div class="actions-bar"><button type="button" class="btn btn-primary" id="sqlTranslateRun">Translate SQL</button></div>
       </div>
 
@@ -4322,8 +4322,14 @@ async function runProfile(){
  try{await health();const up=await upload(dataFile);const j=await process({op:'data_profile',input:up.file_id});save(await download(j.file_id),j.name)}catch(e){alert('Data Profile: '+e.message)}
 }
 async function runSql(){
- if(!sqlFile)return alert('Choose a SQL file first.');
- try{await health();const up=await upload(sqlFile);const j=await process({op:'sql_transpile',input:up.file_id,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name)}catch(e){alert('SQL Translator: '+e.message)}
+ try{
+  await health();
+  let fid;
+  if($('sqlTranslateText')?.value.trim()){const f=new File([$('sqlTranslateText').value],'pasted.sql',{type:'application/sql'});const up=await upload(f);fid=up.file_id;}
+  else if(sqlFile){const up=await upload(sqlFile);fid=up.file_id;}
+  else return alert('Choose a SQL file or paste SQL first.');
+  const j=await process({op:'sql_transpile',input:fid,source:$('sqlSourceDialect').value,target:$('sqlTargetDialect').value});save(await download(j.file_id),j.name);
+ }catch(e){alert('SQL Translator: '+e.message)}
 }
 async function runSchema(){
  if(!schemaFile)return alert('Choose source data first.');
