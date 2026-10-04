@@ -1713,6 +1713,19 @@ body{overflow-x:hidden}
 .nav-bar{grid-template-columns:repeat(15,minmax(0,1fr))!important}
 .nav-btn:nth-child(14){--c:#06b6d4;--c2:#8b5cf6;--cs:rgba(6,182,212,.14)}
 @media(max-width:1020px){.nav-bar{grid-template-columns:none!important}}
+
+    /* OMNI CAPABILITY SIDENOTES */
+    .omni-capability-note{display:inline-flex;align-items:center;gap:7px;margin:7px 0 10px;padding:5px 9px;border:1px solid #d9e1ee;border-radius:999px;background:linear-gradient(135deg,#fff,#f7f9fd);font-size:.70rem;font-weight:800;line-height:1.2;color:#526078;vertical-align:middle;box-shadow:0 4px 12px rgba(43,59,90,.05)}
+    .omni-capability-note .omni-cap-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 7px}
+    .omni-capability-note.browser{color:#087a5b;background:#ecfbf5;border-color:#b9ead9}.omni-capability-note.browser .omni-cap-dot{background:#10a37f}
+    .omni-capability-note.hybrid{color:#735200;background:#fff8e6;border-color:#efd99c}.omni-capability-note.hybrid .omni-cap-dot{background:#e7a900}
+    .omni-capability-note.local{color:#3159a7;background:#eef4ff;border-color:#cbd9f5}.omni-capability-note.local .omni-cap-dot{background:#4d7ff0}
+    .omni-capability-note.validation{color:#6847a5;background:#f5efff;border-color:#ddcafa}.omni-capability-note.validation .omni-cap-dot{background:#8b5cf6}
+    .omni-capability-note small{font-size:.66rem;font-weight:700;opacity:.82}
+    .omni-capability-legend{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:9px auto 18px;max-width:980px}
+    .omni-capability-legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #dfe6f1;border-radius:999px;background:rgba(255,255,255,.82);color:#637087;font-size:.70rem;font-weight:750}
+    .omni-capability-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
+    .omni-capability-legend .b i{background:#10a37f}.omni-capability-legend .h i{background:#e7a900}.omni-capability-legend .l i{background:#4d7ff0}.omni-capability-legend .v i{background:#8b5cf6}
 </style>
 </head>
 <body>
@@ -6015,6 +6028,87 @@ if(docx) docx.addEventListener("click",async e=>{
     }finally{btn.disabled=false;}
   },true);
 })();
+</script>
+<script>
+    /* OMNI CAPABILITY SIDENOTES SCRIPT */
+    (() => {
+      const capabilityMap = [
+        [/^1\. Universal Data Converter/i, ['hybrid','Browser + Local fallback','Common text/tabular formats run in-browser; advanced/scientific/database formats escalate locally.']],
+        [/^2\. SQL Dialect Translator/i, ['hybrid','Browser + Local fallback','Browser handles lightweight translation; Local Engine provides full SQLGlot-backed translation.']],
+        [/^3\. Schema & Migration Script Generator/i, ['hybrid','Browser + Local fallback','Basic schemas can be generated in-browser; richer database-aware generation uses Local Engine.']],
+        [/^4\. NoSQL & Document Bridge/i, ['hybrid','Browser + Local fallback','JSON-like document conversions can stay in-browser; database-specific bridges use Local Engine.']],
+        [/^5\. Unstructured Text & Log Bridge/i, ['browser','Browser','Runs directly in the browser for text, logs, Markdown and HTML.']],
+        [/^6\. BLOB \/ Binary Data Bridge/i, ['browser','Browser','Binary/Base64/hex transformations are client-side and do not require the Local Engine.']],
+        [/^5\. Data Engineering Utilities/i, ['local','Local required','Advanced profiling, schema inspection and data-engineering operations use the Local Engine.']],
+        [/^10\. Local Native Engine/i, ['local','Local required','This function is explicitly the native Python/tooling layer.']],
+        [/^1\. PDF to Images/i, ['browser','Browser','PDF rendering and image export run client-side with the bundled PDF engine.']],
+        [/^2\. Merge & Split PDFs/i, ['browser','Browser','PDF merge/split is performed in-browser.']],
+        [/^1\. DOCX to PDF \/ TXT/i, ['local','Local required','High-fidelity Office rendering depends on LibreOffice/native conversion.']],
+        [/^2\. PDF to Word/i, ['local','Local required','Reliable PDF-to-DOCX reconstruction uses the Local Engine and native text extraction.']],
+        [/^3\. Text \/ Markdown to DOCX & PDF/i, ['hybrid','Browser + Local fallback','Simple document generation can run in-browser; native Office/PDF paths can escalate locally.']],
+        [/^4\. Office Format Converter/i, ['local','Local required','Broad Office interchange relies on LibreOffice and is therefore a Local Engine operation.']],
+        [/^5\. Presentation Conversion Area/i, ['hybrid','Browser + Local fallback','Browser supports selected presentation/visual paths; complex Office conversion uses Local Engine.']],
+        [/^6\. Spreadsheet Conversion Area/i, ['hybrid','Browser + Local fallback','Common spreadsheet conversions are browser-first; advanced formats/engines use Local Engine.']],
+        [/^1\. EPUB to PDF/i, ['local','Local required','Full EPUB rendering/conversion relies on the native ebook toolchain.']],
+        [/^2\. PDF to EPUB 3/i, ['local','Local required','Structured EPUB generation from PDFs uses the Local Engine.']],
+        [/^3\. Native Ebook Format Bridge/i, ['local','Local required','Calibre-backed native ebook conversion requires the Local Engine.']],
+        [/^1\. Batch Image Format Converter/i, ['browser','Browser','Common raster image conversion is handled client-side.']],
+        [/^3\. Image Resize, DPI\/PPI/i, ['browser','Browser','Image resizing and client-side export run directly in the browser.']],
+        [/^2\. Images to PDF/i, ['browser','Browser','Images are assembled into PDF client-side.']],
+        [/^4\. Native Image Format Bridge/i, ['local','Local required','Native/vector/specialized image formats require native conversion tooling.']],
+        [/^🔎 Image to Text Extraction/i, ['browser','Browser','OCR runs client-side with the bundled Tesseract engine.']],
+        [/^🎵 Universal Audio Studio/i, ['hybrid','Browser + Local fallback','Common browser-decodable audio can run client-side; broad codec/export support uses Local Engine.']],
+        [/^2\. Local Audio Format Bridge/i, ['local','Local required','Native audio codec conversion is delegated to the Local Engine.']],
+        [/^🎬 Universal Video Studio/i, ['hybrid','Browser + Local fallback','Browser media APIs cover selected workflows; unsupported codecs/heavy processing escalate locally.']],
+        [/^2\. Local Video \/ Animation Format Bridge/i, ['local','Local required','Broad video/animation codec conversion requires native tooling.']],
+        [/^🗜️ File Compression & Decompression Studio/i, ['hybrid','Browser + Local fallback','ZIP-style browser compression is available; native archive formats escalate locally.']],
+        [/^📦 Decompress \/ Extract/i, ['hybrid','Browser + Local fallback','Common ZIP/GZIP/DEFLATE extraction can be browser-side; other archives use Local Engine.']],
+        [/^📦 Native Archive Bridge/i, ['local','Local required','7z/TAR and native archive operations use the Local Engine.']],
+        [/^🧪 Diagnostics & Test Lab/i, ['validation','Browser + Local validation','Tests are split between browser capabilities and native Local Engine capabilities.']],
+        [/^1\. Load BI definitions/i, ['hybrid','Browser + Local fallback','Portable text/XML/JSON definitions can be inspected in-browser; richer BI packages use Local Engine.']],
+        [/^2\. Generate portable outputs/i, ['hybrid','Browser + Local fallback','Portable representations can be generated browser-first; complex package reconstruction uses Local Engine.']],
+        [/^3\. Portability boundary/i, ['hybrid','Browser + Local fallback','This explicitly identifies which BI features cannot be faithfully represented in-browser.']],
+        [/^1\. Source code/i, ['browser','Browser','Source files are read client-side for the translation workflow.']],
+        [/^2\. Translation result/i, ['browser','Browser','The current syntax translation engine is client-side.']],
+        [/^3\. Translation confidence/i, ['browser','Browser','Confidence scoring is calculated client-side from translation heuristics.']],
+        [/^1\. Bring Data In/i, ['hybrid','Browser + Local fallback','Browser-first for supported data; unsupported/scientific/native formats escalate locally.']],
+        [/^2\. Inspect & Visualize/i, ['hybrid','Browser + Local fallback','Lightweight inspection is browser-side; advanced profiling/native formats use Local Engine.']],
+        [/^3\. Convert Into Another Representation/i, ['hybrid','Browser + Local fallback','Uses browser-first routing and escalates to Local Engine when the format/operation requires it.']],
+        [/^4\. Encoded \/ Cryptic \/ Binary Bridge/i, ['browser','Browser','Encoding and basic binary representation changes run client-side.']],
+        [/^4\. Conversion Boundary & Local Escalation/i, ['hybrid','Browser + Local fallback','This function explains and exposes the exact point where browser processing hands off to Local Engine.']],
+        [/^🔬 All Options Functional Test/i, ['validation','Browser + Local validation','The test harness checks both browser execution and Local Engine execution where applicable.']]
+      ];
+      const normalize = s => s.replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+      const getCap = title => {
+        const t=normalize(title);
+        for(const [re,val] of capabilityMap) if(re.test(t)) return val;
+        return null;
+      };
+      const inject = () => {
+        document.querySelectorAll('h2').forEach(h2 => {
+          if(h2.dataset.omniCapabilityDone || h2.closest('.omni-capability-legend')) return;
+          const cap=getCap(h2.textContent||'');
+          if(!cap) return;
+          const [kind,label,detail]=cap;
+          const note=document.createElement('div');
+          note.className='omni-capability-note '+kind;
+          note.title=detail;
+          note.innerHTML='<span class="omni-cap-dot" aria-hidden="true"></span><span>'+label+'</span><small>ⓘ</small>';
+          h2.insertAdjacentElement('afterend',note);
+          h2.dataset.omniCapabilityDone='1';
+        });
+        const header=document.querySelector('header');
+        if(header && !document.querySelector('.omni-capability-legend')){
+          const legend=document.createElement('div');
+          legend.className='omni-capability-legend';
+          legend.innerHTML='<span class="b"><i></i>Browser</span><span class="h"><i></i>Browser + Local fallback</span><span class="l"><i></i>Local required</span><span class="v"><i></i>Browser + Local validation</span>';
+          const anchor=header.querySelector('.badge-privacy')||header.lastElementChild;
+          if(anchor) anchor.insertAdjacentElement('afterend',legend); else header.appendChild(legend);
+        }
+      };
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject,{once:true}); else inject();
+      window.OMNI_CAPABILITY_NOTES={version:1,get:getCap,refresh:inject};
+    })();
 </script>
 </body>
 </html>
