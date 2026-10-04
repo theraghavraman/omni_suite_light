@@ -59,7 +59,9 @@ jobs:
 
       - name: Install Data Studio Python stack
         run: python -m pip install -r requirements-data.txt
-      - name: Run suite-wide contract audit\n        run: python .github/scripts/omni_contract_audit.py\n      - name: Run expanded native format smoke test
+      - name: Run suite-wide contract audit
+        run: python .github/scripts/omni_contract_audit.py
+      - name: Run expanded native format smoke test
         env:
           OMNI_TEST_ORIGIN: http://127.0.0.1:8765
         run: python .github/scripts/native_smoke_test.py
