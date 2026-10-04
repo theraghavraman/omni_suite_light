@@ -13,6 +13,7 @@ lxml>=5.3
 fastavro>=1.9
 pymongo>=4.8
 msgpack>=1.0
+pyreadstat>=1.2
 
 # Scientific / astronomy / earth-observation Local Engine
 numpy>=1.26
