@@ -1559,6 +1559,21 @@ body{overflow-x:hidden}
 }
 .dropzone>h3,.dropzone>p{position:relative!important;left:auto!important;right:auto!important}
 @media(max-width:560px){.dropzone{min-height:150px!important;padding:28px 14px!important}}
+/* ACTIVE STUDIO TILE — full-surface gradient, no white remainder */
+.nav-btn.active{
+  background:linear-gradient(135deg,var(--c),var(--c2))!important;
+  background-size:100% 100%!important;
+  color:#fff!important;
+  border-color:transparent!important;
+  overflow:hidden!important;
+}
+.nav-btn.active::before{
+  display:none!important;
+}
+.nav-btn.active>*{
+  position:relative!important;
+  z-index:2!important;
+}
 /* CARD HEADING INTRINSIC-WIDTH FIX — preserve container/dropzone width, allow headings to wrap correctly */
 .card h2{
   display:grid!important;
