@@ -28,7 +28,7 @@ def upload(path, token):
     return post("http://127.0.0.1:8765/api/upload", path.read_bytes(), {"Content-Type":"application/octet-stream","X-Filename":path.name,"X-Omni-Token":token})
 
 def download(fid, path, token):
-    req=request.Request("http://127.0.0.1:8765/api/download/"+fid, headers={"X-Omni-Token":token})
+    req=request.Request("http://127.0.0.1:8765/api/download/"+fid, headers={"Origin":"http://127.0.0.1:8765","X-Omni-Token":token})
     with request.urlopen(req, timeout=60) as r: path.write_bytes(r.read())
 
 try:
@@ -37,7 +37,7 @@ try:
     health=None
     for _ in range(40):
         try:
-            with request.urlopen("http://127.0.0.1:8765/api/health",timeout=2) as r: health=json.loads(r.read()); break
+            with request.urlopen(request.Request("http://127.0.0.1:8765/api/health",headers={"Origin":"http://127.0.0.1:8765"}),timeout=2) as r: health=json.loads(r.read()); break
         except Exception: time.sleep(.25)
     assert health and health.get("ok") and health.get("token")=="ci-test-token"
     print("7. Local Engine health: OK")
