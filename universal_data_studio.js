@@ -51,7 +51,7 @@ function numericFields(rows){if(!rows.length)return[];return [...new Set(rows.fl
 function parseGPX(text){const pts=[];const re=/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/gi;let m,i=0;while((m=re.exec(text))){const s=m[3];const tm=(s.match(/<time>([^<]+)/i)||[])[1];const ele=(s.match(/<ele>([^<]+)/i)||[])[1];pts.push({lat:+m[1],lon:+m[2],time:tm||'',elevation:ele?+ele:null,_index:i++});}return pts;}
 function parseKML(text){const pts=[];const re=/<Placemark[\s\S]*?<coordinates>([^<]+)<\/coordinates>[\s\S]*?<\/Placemark>/gi;let m,i=0;while((m=re.exec(text))){const parts=m[1].trim().split(/\s+/);parts.forEach(p=>{const a=p.split(',');if(a.length>=2)pts.push({lon:+a[0],lat:+a[1],elevation:a[2]?+a[2]:null,_index:i++});});}return pts;}
 function parseInput(name,text,buf){
- const k=guessKind(name,text);state.kind=k;
+ const k=guessKind(name,text);state.kind=k;state.audio=null;
  if(k==='table')state.records=parseCSV(text,ext(name)==='tsv'?'\t':',');
  else if(k==='records'){try{const j=ext(name)==='ndjson'||ext(name)==='jsonl'?text.split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x)):JSON.parse(text);state.records=normalize(j);}catch(e){state.records=[];throw new Error('JSON/NDJSON parse failed: '+e.message);}}
  else if(k==='geo'){if(ext(name)==='gpx')state.records=parseGPX(text);else if(ext(name)==='kml')state.records=parseKML(text);else state.records=normalize(JSON.parse(text));}
