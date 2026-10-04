@@ -11,6 +11,11 @@ platform=(ROOT/"omni_platform.py").read_text(encoding="utf-8")
 
 required_panels=["tabDatabaseStudio","tabDataClean","tabBatchLab","tabLocalDoctor"]
 required_ops=["doctor","capability","privacy_scan","data_clean","batch_convert","database_tables","database_query"]
+required_handlers=["cleanBtn","privacyBtn","batchRunBtn","batchRetryBtn","batchDownloadBtn","doctorBtn"]
+for handler in required_handlers:
+    assert handler in index, f"Missing client handler/control reference: {handler}"
+assert "job_op" in server and 'delegated_op=str(payload.get("job_op") or payload.get("operation") or "data_convert")' in server, "Batch operation dispatch contract is missing"
+
 for p in required_panels:
     assert f'id="{p}"' in index, f"Missing UI panel: {p}"
 for op in required_ops:
