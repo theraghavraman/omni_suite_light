@@ -1559,6 +1559,21 @@ body{overflow-x:hidden}
 }
 .dropzone>h3,.dropzone>p{position:relative!important;left:auto!important;right:auto!important}
 @media(max-width:560px){.dropzone{min-height:150px!important;padding:28px 14px!important}}
+/* CARD HEADING INTRINSIC-WIDTH FIX — preserve container/dropzone width, allow headings to wrap correctly */
+.card h2{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+.card h2::before{
+  min-width:0!important;
+  flex:none!important;
+}
 /* Keep the newer diagnostic/test/extended studio layouts intact. */
 .omni-test-lab,.omni-all-lab,.omni-data-grid,.omni-office-conversion-grid{position:relative;z-index:1}
 
