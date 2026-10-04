@@ -8,7 +8,12 @@ Native engines are installed separately by the platform installer.
 """
 from pathlib import Path
 from urllib.request import Request, urlopen
-import hashlib, os, sys, tempfile
+import hashlib, os, sys, tempfile, ssl
+
+try:
+    import certifi
+except ImportError:
+    certifi = None
 
 ROOT = Path(__file__).resolve().parent
 VENDOR = ROOT / "vendor"
@@ -55,7 +60,10 @@ def download(rel, url):
     os.close(fd)
     try:
         total = 0
-        with urlopen(req, timeout=120) as src, open(tmp, "wb") as out:
+        ssl_context = ssl.create_default_context(
+            cafile=certifi.where() if certifi else None
+        )
+        with urlopen(req, timeout=120, context=ssl_context) as src, open(tmp, "wb") as out:
             while True:
                 chunk = src.read(1024 * 1024)
                 if not chunk:
