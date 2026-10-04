@@ -1,94 +1,124 @@
 $ErrorActionPreference = "Stop"
 
-function Has($name) {
-    return [bool](Get-Command $name -ErrorAction SilentlyContinue)
+function Has($name) { return [bool](Get-Command $name -ErrorAction SilentlyContinue) }
+
+function Ensure-Admin {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Host "[SETUP] Re-launching installer with Administrator privileges..."
+        $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
+        Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        exit 0
+    }
 }
 
-Write-Host "=== OmniConverter native engine installer ==="
-Write-Host ""
+Ensure-Admin
+Set-Location $PSScriptRoot
+
+Write-Host "=== OmniConverter COMPLETE Windows Local Setup ==="
+Write-Host "[INFO] This installs the full Python + native + offline browser stack."
+
+if (-not (Has "winget")) {
+    if (-not (Has "choco")) {
+        Write-Host "[SETUP] winget is unavailable; bootstrapping Chocolatey..."
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        $env:Path = "$env:ALLUSERSPROFILE\chocolatey\bin;$env:Path"
+    }
+}
+
+$wingetPackages = @(
+    "Python.Python.3.13",
+    "Gyan.FFmpeg.Shared",
+    "QPDF.QPDF",
+    "oschwartz10612.Poppler",
+    "ImageMagick.ImageMagick",
+    "ArtifexSoftware.GhostScript",
+    "UB-Mannheim.TesseractOCR",
+    "TheDocumentFoundation.LibreOffice",
+    "calibre.calibre",
+    "Pandoc.Pandoc",
+    "7zip.7zip",
+    "stedolan.jq",
+    "MikeFarah.yq"
+)
+
+$chocoPackages = @(
+    "python",
+    "ffmpeg",
+    "qpdf",
+    "poppler",
+    "imagemagick",
+    "ghostscript",
+    "tesseract",
+    "libreoffice",
+    "calibre",
+    "pandoc",
+    "7zip",
+    "jq",
+    "yq"
+)
 
 if (Has "winget") {
-    $packages = @(
-        "Gyan.FFmpeg.Shared",
-        "QPDF.QPDF",
-        "oschwartz10612.Poppler",
-        "ImageMagick.ImageMagick",
-        "UB-Mannheim.TesseractOCR",
-        "TheDocumentFoundation.LibreOffice",
-        "calibre.calibre",
-        "Python.Python.3.13",
-        "Pandoc.Pandoc"
-    )
-
-    foreach ($id in $packages) {
-        Write-Host "[SETUP] Installing/checking $id ..."
-        try {
-            winget install --id $id --exact --accept-source-agreements --accept-package-agreements --silent
-        } catch {
-            Write-Warning "Could not install $id automatically. The Local Engine will still start; that feature may remain unavailable."
+    foreach ($id in $wingetPackages) {
+        Write-Host "[NATIVE] Checking/installing $id ..."
+        & winget install --id $id --exact --silent --accept-source-agreements --accept-package-agreements --disable-interactivity
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "winget could not install/check $id (exit $LASTEXITCODE). The final verifier will identify missing dependencies."
         }
     }
 } elseif (Has "choco") {
-    Write-Host "[SETUP] Using Chocolatey..."
-    choco install ffmpeg qpdf poppler imagemagick tesseract python pandoc libreoffice calibre -y
-} else {
-    Write-Host "[ERROR] Neither winget nor Chocolatey was found."
-    Write-Host "Install Python 3.11+ and a supported package manager, then rerun this script."
-    exit 1
+    Write-Host "[NATIVE] Installing through Chocolatey..."
+    choco install $chocoPackages -y --no-progress
 }
 
-Write-Host ""
-Write-Host "[SETUP] Locating Python..."
+$machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$user = [Environment]::GetEnvironmentVariable("Path", "User")
+$env:Path = "$machine;$user;$env:Path"
 
+$pythonCandidates = @(
+    "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+    "$env:ProgramFiles\Python313\python.exe",
+    "$env:ProgramFiles\Python312\python.exe"
+)
 $python = $null
-if (Has "py") {
-    $python = "py"
-} elseif (Has "python") {
-    $python = "python"
-}
-
-if (-not $python) {
-    $candidates = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:ProgramFiles\Python313\python.exe",
-        "$env:ProgramFiles\Python312\python.exe"
-    )
-    foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) {
-            $python = $candidate
-            break
-        }
+if (Has "py") { $python = (Get-Command py).Source }
+elseif (Has "python") { $python = (Get-Command python).Source }
+else {
+    foreach ($candidate in $pythonCandidates) {
+        if (Test-Path $candidate) { $python = $candidate; break }
     }
 }
+if (-not $python) { throw "Python 3.11+ was not found after installation." }
 
-if (-not $python) {
-    Write-Host "[ERROR] Python was not found after installation."
-    Write-Host "Restart Windows or open a new terminal, then run setup_and_start.bat again."
-    exit 1
-}
-
-Write-Host "[OK] Python: $python"
-Write-Host "[SETUP] Creating isolated OmniConverter Python environment..."
+Write-Host "[PYTHON] $python"
 $venv = Join-Path $PSScriptRoot ".venv"
-if (-not (Test-Path (Join-Path $venv "Scripts\python.exe"))) { & $python -m venv $venv }
 $venvPython = Join-Path $venv "Scripts\python.exe"
-Write-Host "[SETUP] Installing OmniConverter Data Studio and scientific Python packages..."
+if (-not (Test-Path $venvPython)) { & $python -m venv $venv }
+if (-not (Test-Path $venvPython)) { throw "Failed to create .venv." }
+
 & $venvPython -m pip install --upgrade pip
-& $venvPython -m pip install -r "$PSScriptRoot\requirements-data.txt"
-if ($LASTEXITCODE -ne 0) { Write-Warning "Some core Data Studio packages could not be installed; the Local Engine will report missing modules." }
-& $venvPython -m pip install -r "$PSScriptRoot\requirements-extended.txt"
-if ($LASTEXITCODE -ne 0) { Write-Warning "Some Python data/scientific packages could not be installed; the Local Engine will report exactly which modules are unavailable." }
-Write-Host "[SETUP] Downloading pinned browser assets for offline mode..."
-& $venvPython prepare_offline.py
+if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed." }
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] prepare_offline.py failed with exit code $LASTEXITCODE."
-    exit $LASTEXITCODE
-}
+Write-Host "[PYTHON] Installing COMPLETE Local Engine Python profile..."
+& $venvPython -m pip install -r "$PSScriptRoot\requirements-local.txt"
+if ($LASTEXITCODE -ne 0) { throw "requirements-local.txt installation failed." }
 
+Write-Host "[OFFLINE] Downloading pinned browser/OCR assets..."
+& $venvPython "$PSScriptRoot\prepare_offline.py"
+if ($LASTEXITCODE -ne 0) { throw "Offline browser asset preparation failed." }
+
+Write-Host "[VERIFY] Running strict local environment verification..."
+& $venvPython "$PSScriptRoot\verify_local_environment.py"
+if ($LASTEXITCODE -ne 0) { throw "Local dependency verification failed. Fix the items reported above before using the Local Engine." }
+
+New-Item -ItemType File -Force -Path "$PSScriptRoot\.omni_setup_complete" | Out-Null
 Write-Host ""
-Write-Host "[OK] Setup complete."
-Write-Host "[INFO] Poppler provides pdftoppm/pdftotext for PDF rendering and PDF → PPTX in the Local Engine."
-Write-Host "[INFO] If a new terminal is needed for PATH changes, close/reopen the terminal before running start_omni.bat."
-Write-Host "Run start_omni.bat to launch the Local Engine."
+Write-Host "=========================================="
+Write-Host " COMPLETE LOCAL SETUP: READY"
+Write-Host "=========================================="
+Write-Host "Run start_omni.bat or Omni.bat to launch."
