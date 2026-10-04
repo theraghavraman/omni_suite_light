@@ -41,8 +41,11 @@ function normalize(obj){
  else if(obj&&Array.isArray(obj.data)) rows=obj.data;
  else if(obj&&Array.isArray(obj.results)) rows=obj.results;
  else if(obj&&Array.isArray(obj.features)) return obj.features.map((f,i)=>({id:i,...(f.properties||{}),...((f.geometry&&f.geometry.type==='Point')?{lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}:{geometry:f.geometry})}));
+ else if(obj&&obj.hourly&&Array.isArray(obj.hourly.time)){ const h=obj.hourly,n=h.time.length; rows=Array.from({length:n},(_,i)=>Object.fromEntries(Object.entries(h).map(([k,v])=>[k,Array.isArray(v)?v[i]:v]))); }
+ else if(obj&&obj.daily&&Array.isArray(obj.daily.time)){ const d=obj.daily,n=d.time.length; rows=Array.from({length:n},(_,i)=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,Array.isArray(v)?v[i]:v]))); }
+ else if(obj&&obj.current&&typeof obj.current==='object') rows=[{...obj.current,_latitude:obj.latitude,_longitude:obj.longitude,_timezone:obj.timezone}];
  else if(obj&&typeof obj==='object') rows=[obj];
- return rows.map((r,i)=>{const o={...r,_index:i};const lat=Number(o.lat??o.latitude??o.y??o.LATITUDE??o.Latitude);const lon=Number(o.lon??o.lng??o.longitude??o.x??o.LONGITUDE??o.Longitude);if(Number.isFinite(lat)&&Number.isFinite(lon)){o.lat=lat;o.lon=lon;o._geo=true;}return o;});
+ return rows.map((r,i)=>{const o={...r,_index:i};const lat=Number(o.lat??o.latitude??o.y??o.LATITUDE??o.Latitude??o._latitude);const lon=Number(o.lon??o.lng??o.longitude??o.x??o.LONGITUDE??o.Longitude??o._longitude);if(Number.isFinite(lat)&&Number.isFinite(lon)){o.lat=lat;o.lon=lon;o._geo=true;}return o;});
 }
 function numericFields(rows){if(!rows.length)return[];return [...new Set(rows.flatMap(r=>Object.entries(r).filter(([k,v])=>k[0]!=='_'&&v!==''&&Number.isFinite(Number(v))).map(([k])=>k)))].slice(0,40);}
 function parseGPX(text){const pts=[];const re=/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/gi;let m,i=0;while((m=re.exec(text))){const s=m[3];const tm=(s.match(/<time>([^<]+)/i)||[])[1];const ele=(s.match(/<ele>([^<]+)/i)||[])[1];pts.push({lat:+m[1],lon:+m[2],time:tm||'',elevation:ele?+ele:null,_index:i++});}return pts;}
