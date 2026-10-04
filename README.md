@@ -1,6 +1,8 @@
 # OmniConverter Studio
 
-OmniConverter Studio is a browser-first, privacy-oriented document, image, OCR, audio, video and archive utility suite.
+**A private, offline-capable file toolkit that keeps processing on your device.**
+
+OmniConverter Studio is a browser-first document, image, OCR, audio, video and archive utility suite. The public layer works without installation for browser-capable jobs; the optional Local Engine adds native desktop processing for heavy and specialist formats.
 
 It has two execution modes:
 1. Browser mode — the public GitHub Pages site. Files are processed locally by JavaScript/WASM inside the browser.
