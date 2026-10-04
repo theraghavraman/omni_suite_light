@@ -1030,6 +1030,15 @@
     .nav-btn:nth-child(7){--studio-color:#e86d48;--studio-soft:rgba(232,109,72,.14)}
     .nav-btn:nth-child(8){--studio-color:#d58a25;--studio-soft:rgba(213,138,37,.15)}
     .nav-btn:nth-child(9){--studio-color:#42889e;--studio-soft:rgba(66,136,158,.14)}
+    .nav-btn:nth-child(10){--studio-color:#3b82f6;--studio-soft:rgba(59,130,246,.14)}
+    .nav-btn:nth-child(11){--studio-color:#14b8a6;--studio-soft:rgba(20,184,166,.14)}
+    .nav-btn:nth-child(12){--studio-color:#f97316;--studio-soft:rgba(249,115,22,.14)}
+    .nav-btn:nth-child(13){--studio-color:#06b6d4;--studio-soft:rgba(6,182,212,.14)}
+    .nav-btn:nth-child(14){--studio-color:#6366f1;--studio-soft:rgba(99,102,241,.14)}
+    .nav-btn:nth-child(15){--studio-color:#16a34a;--studio-soft:rgba(22,163,74,.14)}
+    .nav-btn:nth-child(16){--studio-color:#e11d48;--studio-soft:rgba(225,29,72,.14)}
+    .nav-btn:nth-child(17){--studio-color:#ca8a04;--studio-soft:rgba(202,138,4,.15)}
+    .nav-btn:nth-child(18){--studio-color:#7c3aed;--studio-soft:rgba(124,58,237,.14)}
 
     .nav-btn::before{
       content:"";
@@ -3084,7 +3093,7 @@ body{overflow-x:hidden}
 
 <div class="module-panel" id="tabDatabaseStudio"><div class="card"><div class="code-kicker">OMNI DATABASE STUDIO</div><h2>🗄️ Database Studio</h2><div class="sub">Connect locally to supported SQL databases, inspect tables, and run read-only queries. Connection strings stay in this Local Engine session.</div></div><div class="card"><div class="options-grid"><div class="form-group"><label>Connection URL</label><input id="dbUrl" class="form-input" placeholder="sqlite:///example.db or postgresql+psycopg://user:pass@host/db"></div><div class="form-group"><label>Query</label><input id="dbQuery" class="form-input" value="SELECT * FROM my_table LIMIT 100"></div></div><div class="actions-bar"><button class="btn btn-primary" id="dbTablesBtn" type="button">Inspect Tables</button><button class="btn btn-secondary" id="dbQueryBtn" type="button">Run Query</button></div><pre id="dbOutput" class="code-output">Database results will appear here.</pre></div></div>
 <div class="module-panel" id="tabDataClean"><div class="card"><div class="code-kicker">OMNI DATA QUALITY & PRIVACY</div><h2>🧹 Data Cleaning & Privacy Studio</h2><div class="sub">Clean tabular files locally and inspect likely sensitive patterns. Detection is heuristic and should be reviewed before production use.</div></div><div class="card"><div class="dropzone"><input type="file" id="cleanInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.orc,.avro,.sqlite,.db,.duckdb,.dta,.sas,.sav"><h3>Select data file</h3><p id="cleanName">No file selected</p></div><div class="options-grid"><label><input type="checkbox" class="clean-action" value="drop_duplicates"> Remove duplicates</label><label><input type="checkbox" class="clean-action" value="trim_strings"> Trim text</label><label><input type="checkbox" class="clean-action" value="lower_columns"> Normalize column names</label><label><input type="checkbox" class="clean-action" value="drop_empty_rows"> Drop empty rows</label><label><input type="checkbox" class="clean-action" value="fill_numeric_zero"> Fill numeric nulls with 0</label><label><input type="checkbox" class="clean-action" value="sort_columns"> Sort columns</label></div><div class="form-group"><label>Output format</label><select id="cleanTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option></select></div><div class="actions-bar"><button class="btn btn-primary" id="cleanBtn" type="button">Clean & Export</button><button class="btn btn-secondary" id="privacyBtn" type="button">Scan Privacy</button></div><pre id="cleanOutput" class="code-output">Cleaning/privacy results will appear here.</pre></div></div>
-<div class="module-panel" id="tabBatchLab"><div class="card"><div class="code-kicker">OMNI BATCH ENGINE</div><h2>⚡ Batch Lab</h2><div class="sub">Process many files with one operation. Failures are isolated so you can retry only failed files.</div></div><div class="card"><input type="file" id="batchInput" class="file-input" multiple><div id="batchList" class="sub">No files selected.</div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option>csv</option><option>json</option><option>jsonl</option><option>xlsx</option><option>parquet</option><option>md</option><option>yaml</option><option>xml</option><option>html</option><option>avro</option><option>sqlite</option><option>duckdb</option><option>sql</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
+<div class="module-panel" id="tabBatchLab"><div class="card"><div class="code-kicker">OMNI BATCH ENGINE</div><h2>⚡ Batch Lab</h2><div class="sub">Process many files with one operation. Failures are isolated so you can retry only failed files.</div></div><div class="card"><div class="dropzone" id="batchDrop"><input type="file" id="batchInput" class="file-input" multiple><div class="dropzone-icon" aria-hidden="true">⇶</div><h3>Choose files for batch processing</h3><p>Click to select multiple files or drag & drop them here.</p><div id="batchList" class="sub" style="margin-top:10px;margin-bottom:0;">No files selected.</div></div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option>csv</option><option>json</option><option>jsonl</option><option>xlsx</option><option>parquet</option><option>md</option><option>yaml</option><option>xml</option><option>html</option><option>avro</option><option>sqlite</option><option>duckdb</option><option>sql</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
 <div class="module-panel" id="tabLocalDoctor"><div class="card"><h2>🩺 Local Engine Doctor</h2><div class="sub">Live dependency audit for Python packages and native tools.</div><div class="actions-bar"><button class="btn btn-primary" id="doctorBtn" type="button">Run Full Doctor</button></div><pre id="doctorOutput" class="code-output">Run Doctor to inspect this machine.</pre></div></div>
 <div class="module-panel" id="tabAllTests">
       <div class="omni-all-lab">
@@ -6314,11 +6323,26 @@ $('privacyBtn')?.addEventListener('click',async()=>{
 
 /* Batch Lab */
 const batchInput=$('batchInput');
-if(batchInput)batchInput.addEventListener('change',()=>{
-  batchFiles=[...batchInput.files];
-  setText('batchList',batchFiles.length?batchFiles.map(f=>f.name).join(' • '):'No files selected.');
-  setText('batchCapability',batchFiles.length?'Ready: '+batchFiles.length+' file(s). Failures will be isolated.':'Capability: select files to evaluate the route.');
-});
+const batchDrop=$('batchDrop');
+function setBatchFiles(files){
+  batchFiles=[...files];
+  setText('batchList',batchFiles.length
+    ? batchFiles.length+' file(s): '+batchFiles.map(f=>f.name).join(' • ')
+    : 'No files selected.');
+  setText('batchCapability',batchFiles.length
+    ? 'Ready: '+batchFiles.length+' file(s). Failures will be isolated.'
+    : 'Capability: select files to evaluate the route.');
+}
+if(batchInput)batchInput.addEventListener('change',()=>setBatchFiles(batchInput.files||[]));
+if(batchDrop){
+  batchDrop.addEventListener('click',e=>{if(e.target!==batchInput)batchInput?.click();});
+  batchDrop.addEventListener('dragover',e=>{e.preventDefault();batchDrop.classList.add('dragover');});
+  batchDrop.addEventListener('dragleave',()=>batchDrop.classList.remove('dragover'));
+  batchDrop.addEventListener('drop',e=>{
+    e.preventDefault();batchDrop.classList.remove('dragover');
+    if(e.dataTransfer?.files?.length)setBatchFiles(e.dataTransfer.files);
+  });
+}
 async function runBatch(ids,op,format){
   const payload={op:'batch_convert',inputs:ids,job_op:op};
   if(format)payload.format=format;
@@ -6361,8 +6385,20 @@ $('doctorBtn')?.addEventListener('click',async()=>{
   try{
     show('doctorOutput','Checking Local Engine and installed dependencies…');
     const h=await ensureLocal();
-    const result=await processJob({op:'doctor'});
-    show('doctorOutput',{ok:true,engine:{reachable:true,url:BASE,python:h.python||null},doctor:result.doctor||result});
+    let diagnostic=h.doctor||null;
+    if(!diagnostic){
+      try{
+        const result=await processJob({op:'doctor'});
+        diagnostic=result.doctor||result;
+      }catch(e){
+        diagnostic={error:'Doctor operation unavailable: '+e.message};
+      }
+    }
+    show('doctorOutput',{
+      ok:true,
+      engine:{reachable:true,url:BASE,python:h.python||null},
+      doctor:diagnostic
+    });
   }catch(e){show('doctorOutput','ERROR: '+e.message);}
 });
 })();
