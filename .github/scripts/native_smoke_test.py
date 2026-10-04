@@ -279,6 +279,12 @@ try:
     assert out.get("file_id")
     print("33. Audio -> WebM conversion: OK")
 
+    # CI coverage: FFmpeg should produce a playable MP4 video artifact.
+    out=process({"op":"media","input":video["file_id"],"format":"mp4"},"ci-test-token")
+    download(out["file_id"],ROOT/"roundtrip.mp4","ci-test-token")
+    assert (ROOT/"roundtrip.mp4").stat().st_size > 0
+    print("34. Video -> MP4 conversion: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
