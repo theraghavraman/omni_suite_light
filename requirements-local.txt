@@ -1,0 +1,36 @@
+# OmniConverter — complete Local Engine Python environment
+#
+# This is the single Python dependency entry point used by the one-click local installers.
+# It intentionally includes the Data, Scientific, Database, Archive, Media and connector
+# layers used by the studios. Native binaries are installed separately by the OS installer.
+#
+-r requirements-data.txt
+-r requirements-extended.txt
+
+# SQLAlchemy database / analytics dialect bridges
+duckdb-engine>=0.15
+snowflake-sqlalchemy>=1.6
+google-cloud-bigquery>=3.30
+databricks-sql-connector>=3.7
+trino>=0.334
+clickhouse-sqlalchemy>=0.3
+sqlalchemy-redshift>=0.8
+
+# Database / document integrations exposed by the data layer
+cassandra-driver>=3.29
+redis>=5.2
+neo4j>=5.28
+boto3>=1.35
+
+# Common filesystem / object-store adapters
+fsspec>=2024.10
+s3fs>=2024.10
+gcsfs>=2024.10
+
+# Scientific / binary helpers used by broad format handling
+pyxlsb>=1.0
+charset-normalizer>=3.4
+
+# Optional OCR/vision runtime used when users explicitly exercise ML OCR locally.
+# Kept in the complete local profile so the installed environment is ready for it.
+easyocr>=1.7
