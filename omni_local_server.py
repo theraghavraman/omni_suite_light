@@ -404,6 +404,42 @@ def process_job(payload):
         build_pdf_pptx(inp, out, int(payload.get("dpi", 120)))
         return file_result(out, out.name)
 
+    if op == "text_document":
+        office = tool_path("soffice") or tool_path("libreoffice")
+        if not office:
+            raise RuntimeError("LibreOffice is required for Unicode-safe local DOCX/PDF generation.")
+        title=safe_name(str(payload.get("title","Omni Document")),"document")
+        text=str(payload.get("text",""))
+        target=str(payload.get("format","pdf")).lower().lstrip(".")
+        if target not in {"pdf","docx","odt","rtf","txt"}:
+            raise ValueError("Text document target must be PDF, DOCX, ODT, RTF or TXT")
+        work=ROOT/new_id("textdoc"); work.mkdir()
+        html=work/"document.html"
+        import html as _html
+        paragraphs=[]
+        for raw in text.replace("\r","").split("\n"):
+            if not raw.strip():
+                paragraphs.append("<p>&nbsp;</p>")
+            elif raw.startswith("### "):
+                paragraphs.append("<h3>"+_html.escape(raw[4:])+"</h3>")
+            elif raw.startswith("## "):
+                paragraphs.append("<h2>"+_html.escape(raw[3:])+"</h2>")
+            elif raw.startswith("# "):
+                paragraphs.append("<h1>"+_html.escape(raw[2:])+"</h1>")
+            else:
+                paragraphs.append("<p>"+_html.escape(raw)+"</p>")
+        html.write_text('<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:"Noto Sans","Noto Sans Devanagari","Segoe UI",sans-serif;margin:2cm;font-size:11pt}h1{font-size:20pt}h2{font-size:16pt}h3{font-size:13pt}p{line-height:1.45;margin:0 0 8pt}</style></head><body><h1>'+_html.escape(str(payload.get("title","Omni Document")))+"</h1>"+''.join(paragraphs)+"</body></html>",encoding="utf-8")
+        if target=="txt":
+            out=output_path(title,"txt"); out.write_text(text,encoding="utf-8")
+        else:
+            run([office,"--headless","--convert-to",target,"--outdir",str(work),str(html)],timeout=3600)
+            produced=[p for p in work.iterdir() if p.is_file() and p.name!="document.html"]
+            if not produced:
+                raise RuntimeError("LibreOffice did not produce the requested document.")
+            out=output_path(title,target); shutil.move(str(produced[0]),str(out))
+        shutil.rmtree(work,ignore_errors=True)
+        return file_result(out,out.name)
+
     if op == "office_convert":
         office = tool_path("soffice") or tool_path("libreoffice")
         if not office:
