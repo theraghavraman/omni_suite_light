@@ -78,7 +78,10 @@ jobs:
             command -v "$exe"
           done
           if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
-          timeout 30s ffmpeg -version >/dev/null
-          timeout 30s qpdf --version >/dev/null
+          python - <<'PY'
+import subprocess
+for cmd in (["ffmpeg", "-version"], ["qpdf", "--version"]):
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, check=True)
+PY
 
 
