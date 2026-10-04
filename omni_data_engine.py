@@ -5,7 +5,7 @@ from __future__ import annotations
 import json, sqlite3
 from pathlib import Path
 
-DATA_FORMATS = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md","xlsx","xls","xlsb","ods","parquet","feather","arrow","ipc","orc","avro","sqlite","db","duckdb","sql","dta","sas","sav","msgpack","mpk"}
+DATA_FORMATS = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md","xlsx","xls","xlsb","ods","parquet","feather","arrow","ipc","orc","avro","sqlite","db","duckdb","sql","hdf5","h5","dta","sas","sav","msgpack","mpk"}
 SQL_DIALECTS = ["oracle","tsql","postgres","mysql","sqlite","duckdb","snowflake","bigquery","databricks","redshift","spark","trino","presto","clickhouse","hive","teradata","athena","doris","drill","druid","materialize","singlestore","starrocks","tableau"]
 
 def _mod(name, package=None):
@@ -55,6 +55,7 @@ def read_data(path,fmt=None):
     if fmt=="xlsb": return pd.read_excel(path,engine="pyxlsb")
     if fmt=="ods": return pd.read_excel(path,engine="odf")
     if fmt=="parquet": return pd.read_parquet(path)
+    if fmt in {"hdf5","h5"}: return pd.read_hdf(path)
     if fmt in {"feather","arrow","ipc"}: return pd.read_feather(path)
     if fmt=="orc": return pd.read_orc(path)
     if fmt=="avro":
@@ -141,6 +142,7 @@ def write_data(df,out,fmt,table="data",dialect="sqlite"):
     elif fmt=="xlsx": df.to_excel(out,index=False,engine="openpyxl")
     elif fmt=="ods": df.to_excel(out,index=False,engine="odf")
     elif fmt=="parquet": df.to_parquet(out,index=False,engine="pyarrow")
+    elif fmt in {"hdf5","h5"}: df.to_hdf(out,key=table,mode="w",format="table")
     elif fmt in {"feather","arrow","ipc"}: df.reset_index(drop=True).to_feather(out)
     elif fmt=="orc": df.to_orc(out,index=False,engine="pyarrow")
     elif fmt=="avro":
