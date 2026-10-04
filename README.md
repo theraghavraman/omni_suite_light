@@ -151,6 +151,15 @@ After the one-time online preparation, the local browser application is designed
 
 Native utilities are intentionally not redistributed in this repository. The installers obtain them through the operating system/package manager, and those programs retain their own licenses.
 
+### Office Studio formats
+Office Studio uses the Local Engine for native Office-family conversion. It supports common cross-format workflows among:
+- **Presentations:** PPT, PPTX, ODP → PDF, PPT, PPTX, ODP
+- **Spreadsheets:** XLS, XLSX, ODS, CSV → XLS, XLSX, ODS, CSV
+- **Documents:** DOC, DOCX, ODT, RTF, TXT, HTML → supported Office/document targets
+- **PDF → PPTX:** rendered as a visual presentation with one slide per PDF page, preserving page appearance rather than attempting unreliable editable-object reconstruction.
+
+LibreOffice performs Office-family conversions. PDF → PPTX uses Poppler rendering plus a generated PPTX package. Exact feature preservation can vary by source application/version; this is intended for practical interoperability rather than a guarantee of perfect round-trip fidelity.
+
 ## 8. Diagnostics and full option testing
 
 The guide area includes **Run Browser Diagnostics** for a quick runtime check of the core browser libraries and capabilities.
@@ -159,7 +168,7 @@ The navigation also includes a separate **All Tests** screen. It inventories eve
 
 The All Tests screen covers:
 - PDF Suite
-- Word & Docs
+- Office Studio
 - EPUB Studio
 - Image Tools
 - Image to Text / OCR
