@@ -26,7 +26,11 @@ if not defined PYTHON (
 )
 
 echo Starting OmniConverter Local Engine...
-%PYTHON% -u omni_local_server.py
+if exist "%~dp0.venv\Scripts\python.exe" (
+  "%~dp0.venv\Scripts\python.exe" -u omni_local_server.py
+) else (
+  %PYTHON% -u omni_local_server.py
+)
 set "RC=%ERRORLEVEL%"
 if not "%RC%"=="0" (
   echo.
