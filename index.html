@@ -1702,6 +1702,18 @@ body{overflow-x:hidden}
 #tabAllTests .diagnostic-option:hover{
   transform:none!important;
 }
+
+/* UNIVERSAL DATA & SIGNAL STUDIO */
+.uds-hero{overflow:hidden;background:linear-gradient(135deg,rgba(15,23,42,.96),rgba(30,41,90,.94),rgba(6,78,99,.92));color:#fff;border-color:rgba(99,91,255,.45)}
+.uds-kicker{font-size:.72rem;font-weight:900;letter-spacing:.18em;color:#67e8f9;margin-bottom:6px}.uds-hero h2{color:#fff!important;font-size:1.45rem!important}.uds-hero .sub{color:#c8d7ec!important;max-width:900px}
+.uds-source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:15px}.uds-source{padding:12px;border:1px solid rgba(255,255,255,.13);border-radius:13px;background:rgba(255,255,255,.06)}.uds-source b{display:block;color:#fff;margin-bottom:4px}.uds-source span{display:block;color:#b6c6db;font-size:.77rem;line-height:1.45}.uds-note{margin-top:13px;padding:11px 12px;border-radius:11px;background:rgba(0,0,0,.18);color:#d5e2f2;font-size:.78rem;line-height:1.5}
+.uds-presets{display:grid;grid-template-columns:1fr 1.7fr auto;gap:9px;margin-bottom:13px}.uds-status{margin-top:10px;padding:9px 11px;border-radius:10px;background:#f4f6fa;color:#66748a;font-size:.78rem}.uds-status.ok{background:#ecfbf5;color:#087a5b}.uds-status.warn{background:#fff7e7;color:#8a5a00}.uds-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.uds-pill{padding:10px;border:1px solid #dfe6f1;border-radius:11px;background:#fff}.uds-pill b{display:block;color:#29334c}.uds-pill span{font-size:.72rem;color:#78839a}.uds-preview{min-height:90px;margin-bottom:13px;padding:10px;border:1px solid #dfe6f1;border-radius:12px;background:#fff}.uds-empty{padding:24px;text-align:center;color:#7b879b;font-size:.84rem}.uds-table-wrap{max-height:260px;overflow:auto}.uds-table-wrap table{width:100%;border-collapse:collapse;font-size:.74rem}.uds-table-wrap th,.uds-table-wrap td{padding:7px 8px;border-bottom:1px solid #e8edf4;text-align:left;white-space:nowrap}.uds-table-wrap th{position:sticky;top:0;background:#f5f7fb;color:#34405a}.uds-canvas-wrap{margin-top:14px;border:1px solid #dfe6f1;border-radius:13px;overflow:hidden;background:#f7f9ff}.uds-canvas-wrap canvas{display:block;width:100%;height:380px}.uds-conversion-map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.uds-conversion-map span{padding:10px;border:1px solid #e0e6ef;border-radius:10px;background:#f8faff;color:#59667e;font-size:.76rem;line-height:1.4}.uds-boundaries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.uds-boundaries>div{padding:13px;border:1px solid #dfe6f1;border-radius:12px;background:#fff}.uds-boundaries b{display:block;color:#303a54;margin-bottom:5px}.uds-boundaries span{display:block;color:#718096;font-size:.76rem;line-height:1.45}
+@media(max-width:900px){.uds-source-grid,.uds-boundaries{grid-template-columns:repeat(2,minmax(0,1fr))}.uds-presets{grid-template-columns:1fr 1fr}.uds-presets button{grid-column:1/-1}.uds-conversion-map{grid-template-columns:1fr}}
+@media(max-width:600px){.uds-source-grid,.uds-boundaries,.uds-meta,.uds-presets{grid-template-columns:1fr}.uds-canvas-wrap canvas{height:300px}}
+/* Keep all studio tiles geometrically stable with the new studio. */
+.nav-bar{grid-template-columns:repeat(15,minmax(0,1fr))!important}
+.nav-btn:nth-child(14){--c:#06b6d4;--c2:#8b5cf6;--cs:rgba(6,182,212,.14)}
+@media(max-width:1020px){.nav-bar{grid-template-columns:none!important}}
 </style>
 </head>
 <body>
@@ -1781,6 +1793,7 @@ body{overflow-x:hidden}
       <button type="button" class="nav-btn" data-tab="tabLocal"><span class="studio-icon studio-engine"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.4 3.8 8.8 6a7.2 7.2 0 0 0-1.8 1l-2.2-1.1-1.6 2.8 1.8 1.5a7 7 0 0 0 0 2.1l-1.8 1.5 1.6 2.8 2.2-1.1a7.2 7.2 0 0 0 1.8 1l.6 2.2h3.2l.6-2.2a7.2 7.2 0 0 0 1.8-1l2.2 1.1 1.6-2.8-1.8-1.5a7 7 0 0 0 0-2.1l1.8-1.5-1.6-2.8-2.2 1.1a7.2 7.2 0 0 0-1.8-1l-.6-2.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><circle cx="11" cy="11.2" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="studio-label">Local Engine</span></button>
       <button type="button" class="nav-btn" data-tab="tabVizInterchange"><span class="studio-icon"><span class="studio-svg">▦</span></span><span class="studio-label">BI Interchange</span><small>VIZ • BI</small></button>
       <button type="button" class="nav-btn" data-tab="tabCodeStudio"><span class="studio-icon"><span class="studio-svg">&lt;/&gt;</span></span><span class="studio-label">Code Studio</span><small>LANGUAGE</small></button>
+      <button type="button" class="nav-btn" data-tab="tabUniversalData"><span class="studio-icon"><span class="studio-svg">◈</span></span><span class="studio-label">Universal Data</span><small>DATA • SIGNAL</small></button>
       <button type="button" class="nav-btn" data-tab="tabAllTests"><span class="studio-icon studio-tests"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18.5 16.5 19.3 18l1.7.2-1.2 1.2.3 1.7-1.6-.9-1.6.9.3-1.7-1.2-1.2 1.7-.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="studio-label">All Tests</span><small>EVERY OPTION</small></button>
 
     </nav>
@@ -2888,7 +2901,94 @@ body{overflow-x:hidden}
       <div class="card"><h2>3. Translation confidence</h2><div class="sub">The browser can handle many straightforward constructs, but cannot guarantee semantic equivalence across every language ecosystem.</div><div class="code-audit" id="codeAudit"></div></div>
     </div>
 
-    <div class="module-panel" id="tabAllTests">
+        <!-- UNIVERSAL DATA & SIGNAL STUDIO -->
+    <div class="module-panel" id="tabUniversalData">
+      <div class="card uds-hero">
+        <div class="uds-kicker">OMNI UNIVERSAL DATA LAYER</div>
+        <h2>🌐 Universal Data & Signal Studio</h2>
+        <div class="sub">Bring in open geospatial, weather, telemetry, scientific, radio/audio, astronomy/space, sensor, encoded and generic numeric data — normalize it into a common browser representation, then turn it into maps, charts, images, audio, video and portable data formats.</div>
+        <div class="uds-source-grid">
+          <div class="uds-source"><b>🗺 Geospatial</b><span>OSRM routes, GeoJSON, GPX, KML, GPS traces, coordinates</span></div>
+          <div class="uds-source"><b>🌦 Weather & Earth</b><span>Forecasts, observations, stations, climate and environmental series</span></div>
+          <div class="uds-source"><b>📡 Signals & Radio</b><span>Audio files, signal samples, waveform data and public audio endpoints</span></div>
+          <div class="uds-source"><b>🚀 Space & Science</b><span>NASA sonification/audio, telemetry, FITS/NetCDF/HDF/CDF and numeric science data</span></div>
+          <div class="uds-source"><b>🔐 Encoded / Binary</b><span>Base64, hex, raw bytes, encoded payloads and binary inspection</span></div>
+          <div class="uds-source"><b>🧩 Anything Tabular</b><span>CSV, TSV, JSON, NDJSON, logs and numeric datasets</span></div>
+        </div>
+        <div class="uds-note">Browser-first: text/JSON/CSV/GeoJSON/audio and common visual exports run in the browser. Native scientific binaries such as FITS, NetCDF, HDF and CDF can be handed to the Local Engine when a native parser is required. Remote APIs/files must permit browser CORS; otherwise download the source and upload it here.</div>
+      </div>
+
+      <div class="card">
+        <h2>1. Bring Data In</h2>
+        <div class="sub">Upload a file, or fetch a public API/file directly. Presets are examples only — you can replace the URL with any CORS-enabled open source endpoint.</div>
+        <div class="uds-presets">
+          <select id="udsPreset" class="form-select">
+            <option value="">Open-source examples…</option>
+            <option value="https://router.project-osrm.org/route/v1/driving/77.5946,12.9716;77.6197,12.9352?overview=full&geometries=geojson&steps=true">OSRM route → GeoJSON</option>
+            <option value="https://api.open-meteo.com/v1/forecast?latitude=28.6139&longitude=77.2090&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation,wind_speed_10m">Open-Meteo weather JSON</option>
+          </select>
+          <input id="udsUrl" class="form-input" placeholder="https://public-api.example/data.json" />
+          <button type="button" class="btn btn-primary" id="udsFetch">🌐 Fetch Public Data</button>
+        </div>
+        <div class="dropzone uds-drop" id="udsDrop">
+          <input class="file-input" id="udsInput" type="file" accept=".csv,.tsv,.json,.geojson,.ndjson,.jsonl,.gpx,.kml,.txt,.log,.sql,.wav,.mp3,.ogg,.flac,.m4a,.aac,.webm,.bin,.dat,.raw,.hex,.base64,.fits,.fit,.nc,.h5,.hdf,.cdf,.grib,.grib2" />
+          <div class="dropzone-icon">◈</div>
+          <h3>Drop any supported data or signal file</h3>
+          <p>CSV • JSON • GeoJSON • GPX • KML • audio • binary • scientific datasets</p>
+        </div>
+        <div class="uds-status" id="udsStatus">Waiting for a source…</div>
+        <div class="uds-meta" id="udsMeta"></div>
+      </div>
+
+      <div class="card">
+        <h2>2. Inspect & Visualize</h2>
+        <div class="sub">The studio detects coordinates, numeric fields and common structures, then gives you a neutral view before conversion.</div>
+        <div id="udsPreview" class="uds-preview"><div class="uds-empty">Load data to inspect it here.</div></div>
+        <div class="options-grid">
+          <div class="form-group"><label>Visualization</label><select id="udsVizType" class="form-select"><option value="chart">Numeric chart</option><option value="map">Map / coordinates</option><option value="audio">Signal / waveform</option></select></div>
+          <div class="form-group"><label>Numeric / signal field</label><select id="udsField" class="form-select"><option>Auto</option></select></div>
+          <div class="form-group"><label>Sonification duration</label><input id="udsDuration" class="form-input" type="number" min="2" max="30" value="8" /></div>
+        </div>
+        <div class="actions-bar">
+          <button type="button" class="btn btn-primary" id="udsVisualize">📊 Render Visualization</button>
+          <button type="button" class="btn btn-success" id="udsSonify">🔊 Data → WAV</button>
+        </div>
+        <div class="uds-canvas-wrap"><canvas id="udsCanvas" width="1000" height="460"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>3. Convert Into Another Representation</h2>
+        <div class="sub">Choose the most useful representation rather than forcing every source into one file type.</div>
+        <div class="options-grid">
+          <div class="form-group"><label>Output</label><select id="udsFormat" class="form-select">
+            <option value="json">JSON</option><option value="csv">CSV</option><option value="geojson">GeoJSON</option>
+            <option value="png">PNG image</option><option value="svg">SVG map/vector</option><option value="wav">WAV sonification</option>
+            <option value="webm">WebM video</option><option value="html">Interactive HTML report</option><option value="txt">Plain text</option>
+          </select></div>
+          <div class="form-group"><label>Video duration</label><input id="udsVideoDuration" class="form-input" type="number" min="2" max="20" value="8" /></div>
+        </div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="udsExport">⬇ Export Selected Representation</button><button type="button" class="btn btn-secondary" id="udsReset">Reset Studio</button></div>
+        <div class="uds-conversion-map">
+          <span>OSRM / GPS → Map / SVG / PNG / GeoJSON / CSV / JSON / WebM</span>
+          <span>Weather → Chart / Heat-style image / CSV / JSON / WAV / WebM</span>
+          <span>Radio / Space audio → Audio preview / WAV-compatible processing / waveform image / report</span>
+          <span>Telemetry → Chart / CSV / JSON / GeoJSON / sonification / video</span>
+          <span>Encoded data → decoded text/binary inspection / Base64↔Hex via Data Studio / report</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>4. Conversion Boundary & Local Escalation</h2>
+        <div class="sub">Some formats carry information that a browser cannot safely decode without a specialist parser. Omni should not pretend otherwise.</div>
+        <div class="uds-boundaries">
+          <div><b>Browser-native</b><span>CSV, JSON, NDJSON, GeoJSON, GPX, KML, text, coordinates, many audio files, visualization, PNG/SVG, WAV and WebM.</span></div>
+          <div><b>Browser best-effort</b><span>Remote APIs, radio streams, unusual encodings and large datasets — dependent on CORS, memory and browser limits.</span></div>
+          <div><b>Local Engine</b><span>FITS, NetCDF, HDF5, CDF, GRIB, huge scientific arrays, proprietary/native formats and heavy media transformations.</span></div>
+        </div>
+      </div>
+    </div>
+
+<div class="module-panel" id="tabAllTests">
       <div class="omni-all-lab">
         <div class="omni-all-head">
           <div><h2>🔬 All Options Functional Test</h2><p>This is a separate exhaustive test screen. It inventories every studio action, control, upload zone and select option, then checks that the UI wiring and implementation references exist. It does not alter your files.</p></div>
@@ -5749,5 +5849,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 })();
 
 </script>
+
+<script src="./universal_data_studio.js"></script>
 </body>
 </html>
