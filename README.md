@@ -25,7 +25,11 @@ Open the published GitHub Pages site.
 
 Desktop users can also drag files onto upload areas. Browser file inputs and drag/drop are standard File API mechanisms.
 
-## 2. Browser mode vs Local Engine
+## 2. Typography
+
+The interface uses **Inter**, a freely licensed typeface distributed under the **SIL Open Font License 1.1**. The public page loads the web font from Google Fonts when network access is available and falls back to system sans-serif fonts when it is not. The conversion functionality does not depend on the font.
+
+## 3. Browser mode vs Local Engine
 
 | Capability | Browser / GitHub Pages | Local Engine |
 |---|---|---|
@@ -52,7 +56,7 @@ Desktop users can also drag files onto upload areas. Browser file inputs and dra
 Use Browser mode for ordinary images, OCR, text extraction and smaller jobs.
 Use Local Engine when the application says native/local processing required, when a file is very large, or when you need FFmpeg/qpdf/Poppler/LibreOffice/Calibre/ImageMagick.
 
-## 3. Windows — complete local setup
+## 4. Windows — complete local setup
 
 ### Option A — one-click setup
 From the repository folder, double-click:
@@ -84,7 +88,7 @@ The installer attempts to obtain Python, FFmpeg, qpdf, Poppler, ImageMagick, Tes
 
 If Windows Package Manager is unavailable, install missing utilities manually and restart the local server.
 
-## 4. macOS / Linux — complete local setup
+## 5. macOS / Linux — complete local setup
 
 Run:
 
@@ -100,7 +104,7 @@ Open http://127.0.0.1:8765/ if the browser does not open automatically.
 
 The installer recognizes common package managers such as Homebrew, apt, dnf, pacman and zypper. Exact package availability depends on the OS/distribution.
 
-## 5. What “Local Engine connected” means
+## 6. What “Local Engine connected” means
 
 The Local Engine listens only on 127.0.0.1:8765. Mutating/processing API requests require a per-launch `X-Omni-Token`, and browser origins are restricted to the local UI plus the published GitHub Pages origin by default. Custom trusted origins can be added with `OMNI_ALLOWED_ORIGINS`.
 
@@ -108,7 +112,7 @@ The browser UI checks http://127.0.0.1:8765/api/health and uses that response to
 
 If the engine is not running, the browser UI remains usable for browser-capable tools.
 
-## 6. When Local Engine is required
+## 7. When Local Engine is required
 
 ### Video
 Use Local Engine for MP4/MOV/MKV conversion, codec changes, reliable transcoding, large video files, precise FFmpeg trimming and audio/video extraction.
@@ -131,7 +135,7 @@ Use Local Engine for very large images, batch conversion, ImageMagick-supported 
 ### OCR
 Browser OCR is useful for normal images. Use Local Engine for very large inputs or when native Tesseract is required.
 
-## 7. Offline mode — what it actually means
+## 8. Offline mode — what it actually means
 
 The public GitHub Pages version normally references browser libraries from CDNs, so the first public visit is not a completely self-contained offline package.
 
@@ -147,7 +151,24 @@ After the one-time online preparation, the local browser application is designed
 
 Native utilities are intentionally not redistributed in this repository. The installers obtain them through the operating system/package manager, and those programs retain their own licenses.
 
-## 8. Browser upload troubleshooting
+## 8. Diagnostics and full option testing
+
+The guide area includes **Run Browser Diagnostics** for a quick runtime check of the core browser libraries and capabilities.
+
+The navigation also includes a separate **All Tests** screen. It inventories every studio, upload input, control, button and every selectable option. **Test Every Option** safely dispatches change events for each select option and keeps the structure and option results together. It does not pretend that clicking every conversion action with fabricated files proves the real conversion pipeline; native/heavy operations should be exercised with the Browser/Local Test Lab and real representative files.
+
+The All Tests screen covers:
+- PDF Suite
+- Word & Docs
+- EPUB Studio
+- Image Tools
+- Image to Text / OCR
+- Audio Studio
+- Video Studio
+- Compressor
+- Local Engine
+
+## 9. Browser upload troubleshooting
 
 If an upload area does nothing:
 1. Hard-refresh the page.
@@ -162,7 +183,7 @@ The application uses a direct user-gesture file-picker path with showPicker() wh
 
 If a library is missing, the browser may be blocked from loading a CDN resource. Use the local launcher and prepare_offline.py.
 
-## 9. Mobile use
+## 10. Mobile use
 
 For Android/iPhone:
 - Tap the upload area rather than trying to drag files.
@@ -173,7 +194,7 @@ For Android/iPhone:
 
 The browser receives a File object supplied by the user's selection; it does not receive the device's private filesystem path.
 
-## 10. Large-file guidance
+## 11. Large-file guidance
 
 Browser processing can become memory-intensive because large binaries may need to be decoded, rendered or held in browser memory.
 
@@ -181,13 +202,13 @@ Prefer Local Engine for very large PDFs, large image batches, long audio, long/h
 
 The Local Engine streams uploads/downloads and uses temporary processing files outside the website directory.
 
-## 11. Security model
+## 12. Security model
 
 The Local Engine binds to 127.0.0.1, exposes predefined operations rather than arbitrary shell commands, stores temporary files in the operating-system temporary directory and cleans stale temporary data.
 
 Do not change the server binding to 0.0.0.0 unless you understand the security consequences.
 
-## 12. Local Engine operations
+## 13. Local Engine operations
 
 The predefined local operations include:
 - media
@@ -205,7 +226,7 @@ The predefined local operations include:
 
 The UI is the primary interface; users should not need to construct API requests manually.
 
-## 13. Repository files
+## 14. Repository files
 
 | File | Purpose |
 |---|---|
@@ -221,7 +242,7 @@ The UI is the primary interface; users should not need to construct API requests
 | THIRD_PARTY_NOTICES.md | Third-party dependency/licensing notes |
 | .github/workflows/local-engine-check.yml | Static/Python validation workflow |
 
-## 14. Troubleshooting checklist
+## 15. Troubleshooting checklist
 
 ### Upload area does not open
 - Hard refresh.
