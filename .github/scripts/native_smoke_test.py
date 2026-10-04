@@ -291,6 +291,13 @@ try:
     assert (ROOT/"sample.tiff").stat().st_size > 0
     print("35. PNG -> TIFF image bridge: OK")
 
+    # CI coverage: Data Studio profiling should expose column-level statistics.
+    out=process({"op":"data_profile","input":data_up["file_id"]},"ci-test-token")
+    download(out["file_id"],ROOT/"profile2.json","ci-test-token")
+    profile=json.loads((ROOT/"profile2.json").read_text(encoding="utf-8"))
+    assert profile and ("columns" in profile or "column_profiles" in profile)
+    print("36. Data profile schema contract: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
