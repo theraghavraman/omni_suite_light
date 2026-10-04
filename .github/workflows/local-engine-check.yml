@@ -40,6 +40,13 @@ jobs:
           brew update
           brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif ghostscript eccodes tesseract pandoc p7zip sevenzip
           brew install --cask libreoffice calibre
+      - name: Refresh PATH after native package install (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          $user = [Environment]::GetEnvironmentVariable("Path", "User")
+          "PATH=$machine;$user;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Verify native executables
         shell: bash
         run: |
@@ -52,13 +59,6 @@ jobs:
           soffice --version
           ebook-convert --version
           node --version
-      - name: Refresh PATH after native package install (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
-          $user = [Environment]::GetEnvironmentVariable("Path", "User")
-          "PATH=$machine;$user;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Refresh PATH after native package install (macOS)
         if: runner.os == 'macOS'
         run: echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
