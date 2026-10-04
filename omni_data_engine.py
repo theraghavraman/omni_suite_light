@@ -136,7 +136,7 @@ def _mod(name, package=None):
     except Exception as exc: raise RuntimeError(f"Python package '{package or name}' is required for this Data Studio operation. Run the Local Engine data setup.") from exc
 
 def module_status():
-    names=["pandas","pyarrow","duckdb","yaml","sqlglot","openpyxl","xlrd","pyxlsb","odf","lxml","fastavro","bson","msgpack","pyreadstat","numpy","xarray","netCDF4","h5py","h5netcdf","astropy","cdflib","cfgrib","eccodes","PIL"]
+    names=["pandas","pyarrow","duckdb","yaml","sqlglot","openpyxl","xlrd","pyxlsb","odf","lxml","fastavro","bson","msgpack","pyreadstat","tabulate","numpy","xarray","netCDF4","h5py","h5netcdf","astropy","cdflib","cfgrib","eccodes","PIL"]
     out={}
     for name in names:
         try: __import__(name); out[name]=True
