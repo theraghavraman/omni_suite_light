@@ -585,7 +585,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
             <h2>1. Knowledge Base</h2>
             <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
             <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Nothing is uploaded to Omni Suite. The index stays in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
-            <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Refresh Repository Knowledge</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
+            <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Refresh Repository Knowledge</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div><div class="rag-repo-status" id="ragRepoStatus"><b>Repository knowledge</b><span>Checking local index…</span></div>
             <div class="rag-status" id="ragStatus">Initializing private RAG…</div>
           </div>
           <div class="card">
@@ -615,7 +615,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           </div>
           <div class="card">
             <h2>Repository Knowledge</h2>
-            <div class="sub">When you add <code>knowledge-base/manifest.json</code> to the repository, this studio can fetch those public source files, index them locally, and retrieve from them. The repository is source material — the vector index remains in the user's browser.</div>
+            <div class="sub">Omni Suite repository files are indexed into the browser-local vector store. Refresh checks the latest commit and only re-indexes changed files; deleted files are removed from the repository index. Your personal uploaded documents remain separate.</div>
           </div>
         </div>
       </div>
