@@ -116,6 +116,43 @@ try:
     out=process({"op":"data_convert","input":data_up["file_id"],"format":"xlsx"},"ci-test-token"); download(out["file_id"],ROOT/"data.xlsx","ci-test-token")
     print("17. Data Studio CSV -> JSON/Parquet/XLSX: OK")
 
+    # Round-trip integrity: CSV -> Parquet -> CSV must preserve normalized values.
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"parquet"},"ci-test-token")
+    download(out["file_id"],ROOT/"roundtrip.parquet","ci-test-token")
+    rt=upload(ROOT/"roundtrip.parquet","ci-test-token")
+    out=process({"op":"data_convert","input":rt["file_id"],"format":"csv"},"ci-test-token")
+    download(out["file_id"],ROOT/"roundtrip.csv","ci-test-token")
+    roundtrip_text=(ROOT/"roundtrip.csv").read_text(encoding="utf-8")
+    assert "Alice" in roundtrip_text and "20" in roundtrip_text
+
+    # Avro must preserve numeric/boolean types instead of coercing every field to string.
+    typed=ROOT/"typed.csv"; typed.write_text("id,amount,active\n1,10.5,true\n2,20.0,false\n",encoding="utf-8")
+    typed_up=upload(typed,"ci-test-token")
+    out=process({"op":"data_convert","input":typed_up["file_id"],"format":"avro"},"ci-test-token")
+    download(out["file_id"],ROOT/"typed.avro","ci-test-token")
+    import fastavro
+    with open(ROOT/"typed.avro","rb") as fh:
+        avro_rows=list(fastavro.reader(fh))
+    assert isinstance(avro_rows[0]["id"],int)
+    assert isinstance(avro_rows[0]["amount"],float)
+    assert isinstance(avro_rows[0]["active"],bool)
+
+    # Database conversion must allow an explicit table instead of silently taking the first table.
+    db=ROOT/"multi.sqlite"
+    import sqlite3
+    con=sqlite3.connect(db)
+    con.execute("create table customers(id integer,name text)")
+    con.execute("create table orders(id integer,total real)")
+    con.execute("insert into customers values(1,'Alice')")
+    con.execute("insert into orders values(7,99.5)")
+    con.commit(); con.close()
+    dbup=upload(db,"ci-test-token")
+    out=process({"op":"data_convert","input":dbup["file_id"],"format":"json","table":"orders"},"ci-test-token")
+    download(out["file_id"],ROOT/"orders.json","ci-test-token")
+    orders_text=(ROOT/"orders.json").read_text(encoding="utf-8")
+    assert "99.5" in orders_text and "Alice" not in orders_text
+    print("17b. Data Studio round-trip, Avro typing, and explicit DB table selection: OK")
+
     yaml_file=ROOT/"data.yaml"; yaml_file.write_text("records:\n  - id: 1\n    name: Alice\n  - id: 2\n    name: Bob\n",encoding="utf-8")
     yaml_up=upload(yaml_file,"ci-test-token")
     process({"op":"data_convert","input":yaml_up["file_id"],"format":"json"},"ci-test-token")
