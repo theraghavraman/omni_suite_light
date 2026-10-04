@@ -159,17 +159,17 @@ The browser layer intentionally stays conservative because browsers cannot encod
 
 **Audio:** MP3, WAV, M4A, AAC, FLAC, OGG/OGA, Opus, WMA, AMR, AIFF/AIF/AIFC, AC-3/E-AC-3, AU, CAF, W64, WavPack, TTA, APE and Matroska Audio.
 
-**Images / graphics:** JPG/JPEG/JFIF, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM/PPM/PGM/PBM/PAM, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, plus delegate-dependent formats. ImageMagick documents 100+ major formats; exact read/write support depends on the installed delegates. citeturn0search0turn5search0
+**Images / graphics:** JPG/JPEG/JFIF, PNG/APNG, WebP, AVIF, TIFF, BMP, GIF, SVG, ICO, HEIC/HEIF, JPEG XL, JPEG-2000, TGA, DDS, EXR, HDR, DPX, EPS/PS, PDF, PNM/PPM/PGM/PBM/PAM, PCX, MIFF/MVG, ORA, PSD, FITS, FLIF and BPG, plus delegate-dependent formats. ImageMagick documents 100+ major formats; exact read/write support depends on the installed delegates.
 
-**Office / spreadsheets / presentations:** DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM/XLSB/XLT/XLTX/XLTM, ODS/OTS/FODS, CSV/TSV; PPT/PPTX/PPTM/PPS/PPSX/POT/POTX/POTM, ODP/OTP/FODP. LibreOffice exposes these through conversion filters, although some formats/features are import-only or have fidelity limitations. citeturn4search3turn4search11
+**Office / spreadsheets / presentations:** DOC/DOCX/DOCM, DOT/DOTX/DOTM, ODT/OTT/FODT, RTF/TXT/Markdown/HTML; XLS/XLSX/XLSM/XLSB/XLT/XLTX/XLTM, ODS/OTS/FODS, CSV/TSV; PPT/PPTX/PPTM/PPS/PPSX/POT/POTX/POTM, ODP/OTP/FODP. LibreOffice exposes these through conversion filters, although some formats/features are import-only or have fidelity limitations.
 
-**Ebooks:** AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ. Calibre documents a broad input/output conversion matrix; not every output is appropriate for every source. citeturn1search24
+**Ebooks:** AZW/AZW3/AZW4, CBZ/CBR/CB7/CBC, CHM, DJVU, DOCX, EPUB, FB2/FBZ, HTML/HTMLZ, KEPUB, LIT, LRF, MOBI, ODT, PDF, PRC, PDB/PML, RB, RTF, SNB, TCR, TXT and TXZ. Calibre documents a broad input/output conversion matrix; not every output is appropriate for every source.
 
-**Archives / compression:** ZIP, TAR, GZIP, BZIP2, XZ and 7z are available through the native archive bridge; ZIP/GZIP/DEFLATE/Brotli also remain available in the browser studio. Native 7z requires the local 7-Zip executable. Python provides the standard-library TAR/GZIP/BZIP2/XZ paths. citeturn10search0turn10search1
+**Archives / compression:** ZIP, TAR, GZIP, BZIP2, XZ and 7z are available through the native archive bridge; ZIP/GZIP/DEFLATE/Brotli also remain available in the browser studio. Native 7z requires the local 7-Zip executable. Python provides the standard-library TAR/GZIP/BZIP2/XZ paths.
 
 **PDF:** PDF merge/split/compress/render/text extraction remain PDF-specific operations. PDF → PPTX is a visual replica: one rendered PDF page per slide, not editable-object reconstruction.
 
-**Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`. citeturn3search1turn3search2
+**Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`.
 
 ### Data Studio — structured, semi-structured and database data
 The Data Studio is the new data-engineering layer. It uses pandas/PyArrow/DuckDB and optional format-specific libraries locally; no dataset is uploaded to a cloud service by OmniConverter.
@@ -180,16 +180,16 @@ The Data Studio is the new data-engineering layer. It uses pandas/PyArrow/DuckDB
 
 **Unstructured / binary:** line-oriented TXT/LOG/Markdown can be structured into JSONL/JSON/CSV, while arbitrary binary BLOBs can be converted between raw bytes, Base64, hex and generic SQL hexadecimal literals.
 
-**SQL:** DDL/INSERT generation plus SQL dialect translation for Oracle, Microsoft SQL Server/T-SQL, PostgreSQL, MySQL, SQLite, DuckDB, Snowflake, BigQuery, Databricks, Redshift, Spark SQL, Trino, Presto, ClickHouse, Hive, Teradata, Athena and additional SQLGlot dialects. SQLGlot officially supports 30+ dialects with different support levels. citeturn0search1turn0search7
+**SQL:** DDL/INSERT generation plus SQL dialect translation for Oracle, Microsoft SQL Server/T-SQL, PostgreSQL, MySQL, SQLite, DuckDB, Snowflake, BigQuery, Databricks, Redshift, Spark SQL, Trino, Presto, ClickHouse, Hive, Teradata, Athena and additional SQLGlot dialects. SQLGlot officially supports 30+ dialects with different support levels.
 
-**NoSQL/document bridges:** MongoDB BSON/Extended JSON ↔ JSON/JSONL/CSV/SQL, DynamoDB AttributeValue JSON ↔ normal JSON, and generated CQL/Cypher from flattened document datasets. MongoDB documents that Extended JSON is useful when BSON type fidelity matters; Neo4j and Cassandra both provide CSV-oriented import workflows. citeturn0search6turn3search0turn1search2
+**NoSQL/document bridges:** MongoDB BSON/Extended JSON ↔ JSON/JSONL/CSV/SQL, DynamoDB AttributeValue JSON ↔ normal JSON, and generated CQL/Cypher from flattened document datasets. MongoDB documents that Extended JSON is useful when BSON type fidelity matters; Neo4j and Cassandra both provide CSV-oriented import workflows.
 
-**Columnar / analytics:** Parquet, ORC, Feather/Arrow IPC and Avro provide interchange paths for analytical systems. Arrow exposes a common table model and dataset APIs for Parquet, IPC/Feather, CSV, JSON and ORC. citeturn1search6turn1search9turn1search14
+**Columnar / analytics:** Parquet, ORC, Feather/Arrow IPC and Avro provide interchange paths for analytical systems. Arrow exposes a common table model and dataset APIs for Parquet, IPC/Feather, CSV, JSON and ORC.
 
 **Important:** Data-model conversion is not the same as database migration. A relational table, MongoDB document, Redis key/value structure and Neo4j graph have different semantics. Data Studio therefore generates bridge files/scripts rather than pretending that a lossless “everything-to-everything” conversion exists.
 
 ### Office Studio formats
-Office Studio uses the Local Engine for native Office-family conversion. It now includes legacy, current, macro-enabled, template and OpenDocument families. VBA/macros and application-specific features are not guaranteed to survive conversion; LibreOffice documents fidelity limitations for complex Microsoft Office files. citeturn4search10
+Office Studio uses the Local Engine for native Office-family conversion. It now includes legacy, current, macro-enabled, template and OpenDocument families. VBA/macros and application-specific features are not guaranteed to survive conversion; LibreOffice documents fidelity limitations for complex Microsoft Office files.
 - **Presentations:** PPT, PPTX, PPTM, PPS, PPSX, POT, POTX, POTM, ODP, OTP, FODP
 - **Spreadsheets:** XLS, XLSX, XLSM, XLSB, XLT, XLTX, XLTM, ODS, OTS, FODS, CSV, TSV
 - **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
