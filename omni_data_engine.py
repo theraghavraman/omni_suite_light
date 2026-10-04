@@ -132,8 +132,11 @@ def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
 SQL_DIALECTS = ["oracle","tsql","postgres","mysql","sqlite","duckdb","snowflake","bigquery","databricks","redshift","spark","trino","presto","clickhouse","hive","teradata","athena","doris","drill","druid","materialize","singlestore","starrocks","tableau"]
 
 def _mod(name, package=None):
-    try: return __import__(name)
-    except Exception as exc: raise RuntimeError(f"Python package '{package or name}' is required for this Data Studio operation. Run the Local Engine data setup.") from exc
+    try:
+        import importlib
+        return importlib.import_module(name)
+    except Exception as exc:
+        raise RuntimeError(f"Python package '{package or name}' is required for this Data Studio operation. Run the Local Engine data setup.") from exc
 
 def module_status():
     names=["pandas","pyarrow","duckdb","yaml","sqlglot","openpyxl","xlrd","pyxlsb","odf","lxml","fastavro","bson","msgpack","pyreadstat","tabulate","numpy","xarray","netCDF4","h5py","h5netcdf","astropy","cdflib","cfgrib","eccodes","PIL"]
