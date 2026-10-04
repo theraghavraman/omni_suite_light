@@ -43,6 +43,11 @@ try:
         except Exception: time.sleep(.25)
     assert health and health.get("ok") and health.get("token")=="ci-test-token"
     print("7. Local Engine health: OK")
+    caps=health.get("capabilities",{})
+    required={"media_video":["mp4","mpeg","mkv","gif"],"media_audio":["mp3","flac","opus","wma"],"image":["svg","gif","tiff","heic"],"office":["docx","docm","xlsx","xlsm","pptx","pptm","odp"],"ebook":["epub","mobi","azw3","cbz","cbr","djvu"]}
+    missing=[f"{k}:{v}" for k,vals in required.items() for v in vals if v not in caps.get(k,[])]
+    assert not missing, "Missing native capabilities: "+", ".join(missing)
+    print("8. Native format capability inventory: OK")
 
     magick=which("magick","convert")
     image=ROOT/"sample.png"
@@ -69,19 +74,36 @@ try:
 
     run([which("ffmpeg"),"-y","-f","lavfi","-i","anullsrc=r=8000:cl=mono","-t","0.2",str(ROOT/"tone.wav")])
     media=upload(ROOT/"tone.wav","ci-test-token")
-    process({"op":"media","input":media["file_id"],"format":"mp3"},"ci-test-token"); print("8. FFmpeg media conversion: OK")
+    process({"op":"media","input":media["file_id"],"format":"mp3"},"ci-test-token")
+    process({"op":"media","input":media["file_id"],"format":"flac"},"ci-test-token")
+    print("9. FFmpeg audio conversion (MP3/FLAC): OK")
 
-    process({"op":"pdf_compress","input":pdf["file_id"]},"ci-test-token"); print("9. qpdf PDF operation: OK")
+    svg=ROOT/"sample.svg"; svg.write_text("<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120"><rect width="320" height="120" fill="white"/><text x="20" y="75" font-size="42">Omni SVG</text></svg>",encoding="utf-8")
+    svgup=upload(svg,"sample.svg")
+    out=process({"op":"image","input":svgup["file_id"],"format":"png"},"ci-test-token")
+    download(out["file_id"],ROOT/"svg.png","ci-test-token"); print("10. SVG -> PNG: OK")
+    process({"op":"image","input":up["file_id"],"format":"gif"},"ci-test-token"); print("11. PNG -> GIF: OK")
+
+    run([which("ffmpeg"),"-y","-f","lavfi","-i","color=c=blue:s=320x180:r=10","-t","0.3","-pix_fmt","yuv420p",str(ROOT/"sample.mp4")])
+    video=upload(ROOT/"sample.mp4","ci-test-token")
+    process({"op":"media","input":video["file_id"],"format":"mkv"},"ci-test-token")
+    process({"op":"media","input":video["file_id"],"format":"gif"},"ci-test-token"); print("12. MPEG-4 -> MKV/GIF: OK")
+
+    process({"op":"pdf_compress","input":pdf["file_id"]},"ci-test-token"); print("13. qpdf PDF operation: OK")
 
     txt=ROOT/"sample.txt"; txt.write_text("OmniConverter CI",encoding="utf-8")
     txtup=upload(txt,"ci-test-token")
-    process({"op":"office_convert","input":txtup["file_id"],"format":"pdf"},"ci-test-token"); print("10. LibreOffice conversion: OK")
+    process({"op":"office_convert","input":txtup["file_id"],"format":"pdf"},"ci-test-token")
+    csv=ROOT/"sample.csv"; csv.write_text("Name,Value\\nOmni,42\\n",encoding="utf-8"); csvup=upload(csv,"ci-test-token")
+    process({"op":"office_convert","input":csvup["file_id"],"format":"xlsx"},"ci-test-token")
+    process({"op":"office_convert","input":csvup["file_id"],"format":"ods"},"ci-test-token"); print("14. LibreOffice document/spreadsheet conversion: OK")
 
     html=ROOT/"sample.html"; html.write_text("<html><body><h1>OmniConverter CI</h1></body></html>",encoding="utf-8")
     htmlup=upload(html,"ci-test-token")
-    process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("11. Calibre ebook conversion: OK")
+    process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("15. Calibre ebook conversion: OK")
+    epubup=upload(ROOT/"sample.epub","ci-test-token") if (ROOT/"sample.epub").exists() else None
 
-    print("Native 11-item smoke test: PASS")
+    print("Expanded native format smoke test: PASS")
 finally:
     if server:
         server.terminate()
