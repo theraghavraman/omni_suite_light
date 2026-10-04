@@ -410,6 +410,10 @@ def process_job(payload):
             raise RuntimeError("LibreOffice is required for Unicode-safe local DOCX/PDF generation.")
         title=safe_name(str(payload.get("title","Omni Document")),"document")
         text=str(payload.get("text",""))
+        if not text.strip() and payload.get("input"):
+            src=get_file(payload["input"])
+            text=src.read_text(encoding="utf-8-sig",errors="replace")
+            if not payload.get("title"): payload["title"]=src.stem
         target=str(payload.get("format","pdf")).lower().lstrip(".")
         if target not in {"pdf","docx","odt","rtf","txt"}:
             raise ValueError("Text document target must be PDF, DOCX, ODT, RTF or TXT")
