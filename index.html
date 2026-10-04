@@ -2099,15 +2099,15 @@ body{overflow-x:hidden}
             <div class="form-group" style="grid-column: 1 / -1;">
               <label for="p2wMode">Fidelity Mode</label>
               <select id="p2wMode" class="form-select">
-                <option value="hybrid" selected>🏆 Hybrid: Visual Layout Replica + Formatted Editable Text</option>
+                <option value="hybrid" selected>🏆 Local: Editable Text Extraction (recommended)</option>
                 <option value="visual">🖼️ Visual Replica Only (100% Exact Layout, Tables &amp; Graphics)</option>
-                <option value="reflow">📄 Enhanced Semantic Text (Headings, Bold, Clean Flow)</option>
+                <option value="reflow">📄 Browser semantic fallback</option>
               </select>
             </div>
           </div>
 
           <div class="actions-bar">
-            <button type="button" class="btn btn-primary" id="p2wRunBtn">Convert to .DOCX</button>
+            <button type="button" class="btn btn-primary" id="p2wRunBtn">Convert to Editable .DOCX</button>
           </div>
         </div>
       </div>
@@ -5890,7 +5890,24 @@ async function omniLocalText(format){
   setTimeout(()=>URL.revokeObjectURL(u),2000);
 }
 function needsUnicode(s){return /[^\x00-\xFF]/.test(s||"");}
-const pdf=document.getElementById("t2dPdfBtn"), docx=document.getElementById("t2dDocxBtn");
+async function omniLocalPdfDocx(){
+  const input=document.getElementById("p2wInput"); if(!input||!input.files[0]) throw new Error("Choose a PDF first.");
+  const file=input.files[0];
+  const h=await fetch(localBase+"/api/health",{cache:"no-store"}); if(!h.ok) throw new Error("Local Engine is not running.");
+  const health=await h.json(), token=health.token||window.OMNI_TOKEN;
+  const up=await fetch(localBase+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
+  const uj=await up.json(); if(!up.ok) throw new Error(uj.error||"PDF upload failed.");
+  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"pdf_to_docx",input:uj.file_id})});
+  const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||"PDF to DOCX failed.");
+  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{"X-Omni-Token":token}}); if(!d.ok) throw new Error("DOCX download failed.");
+  const blob=await d.blob(),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=j.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+const pdf=document.getElementById("t2dPdfBtn"), docx=document.getElementById("t2dDocxBtn"), p2w=document.getElementById("p2wRunBtn");
+if(p2w) p2w.addEventListener("click",async e=>{
+  e.preventDefault(); e.stopImmediatePropagation();
+  try{await omniLocalPdfDocx(); window.omniNotify&&window.omniNotify("Editable DOCX created with Local Engine.");}
+  catch(err){alert("PDF → editable DOCX requires the Local Engine with Poppler + LibreOffice.\n\n"+err.message);}
+},true);
 if(pdf) pdf.addEventListener("click",async e=>{
   const text=(document.getElementById("t2dText")||{}).value||"";
   if(!needsUnicode(text)) return;
