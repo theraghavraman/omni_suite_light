@@ -1488,12 +1488,41 @@ footer{margin-top:44px;padding:20px;text-align:center;color:var(--mute);font-siz
 .nav-btn:nth-child(11){--c:#7c5ce5;--c2:#5b8cff;--cs:rgba(124,92,229,.14)}
 @media(max-width:1020px){.nav-bar{display:flex;overflow-x:auto;scroll-snap-type:x proximity}.nav-btn{flex:0 0 108px;scroll-snap-align:center}}
 @media(max-width:640px){.nav-btn{flex-basis:96px;min-height:84px}}
-/* DROPZONE ALIGNMENT FIX */
-.dropzone{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%;min-height:176px;padding:36px 18px!important;position:relative}
-.dropzone>.dropzone-icon,.dropzone>h3,.dropzone>p{align-self:center!important;margin-left:auto!important;margin-right:auto!important}
-.dropzone>.dropzone-icon{flex:0 0 auto}
-.dropzone>h3,.dropzone>p{max-width:100%}
-@media(max-width:560px){.dropzone{min-height:150px;padding:28px 14px!important}}
+/* DROPZONE ALIGNMENT FIX — shared across every studio */
+.dropzone{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-auto-rows:max-content!important;
+  justify-items:center!important;
+  align-content:center!important;
+  align-items:center!important;
+  text-align:center!important;
+  width:100%!important;
+  min-height:176px!important;
+  padding:36px 18px!important;
+  position:relative!important;
+}
+.dropzone>.dropzone-icon,
+.dropzone>h3,
+.dropzone>p{
+  grid-column:1!important;
+  justify-self:center!important;
+  align-self:center!important;
+  width:auto!important;
+  max-width:100%!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+.dropzone>.dropzone-icon{
+  display:block!important;
+  position:relative!important;
+  left:auto!important;
+  right:auto!important;
+  flex:none!important;
+}
+.dropzone>h3,.dropzone>p{position:relative!important;left:auto!important;right:auto!important}
+@media(max-width:560px){.dropzone{min-height:150px!important;padding:28px 14px!important}}
 /* Keep the newer diagnostic/test/extended studio layouts intact. */
 .omni-test-lab,.omni-all-lab,.omni-data-grid,.omni-office-conversion-grid{position:relative;z-index:1}
 
