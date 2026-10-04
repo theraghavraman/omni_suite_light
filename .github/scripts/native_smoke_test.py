@@ -250,6 +250,11 @@ try:
     assert query["row_count"]==1 and query["rows"][0]["total"]==99.5
     print("28. Read-only Database Studio query: OK")
 
+    # CI coverage: Database Studio table discovery should expose both SQLite tables.
+    out=process({"op":"database_tables","url":db_url},"ci-test-token")
+    assert "customers" in json.dumps(out) and "orders" in json.dumps(out)
+    print("29. Database table discovery: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
