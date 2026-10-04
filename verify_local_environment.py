@@ -119,7 +119,7 @@ def main() -> int:
     print("=== OmniConverter Local Environment Verification ===")
     print(f"Python: {sys.executable}")
     runtime_ok, runtime_version = check_python_runtime()
-    print(f"Python runtime: {runtime_version} ({\"PASS\" if runtime_ok else \"UNSUPPORTED\"})")
+    print(f"Python runtime: {runtime_version} ({'PASS' if runtime_ok else 'UNSUPPORTED'})")
     py = check_python()
     native = check_native()
     assets = check_offline_assets()
