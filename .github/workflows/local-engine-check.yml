@@ -22,7 +22,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-local.txt
       - name: Validate Python bridge syntax
-        run: python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
+        run: python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
       - name: Install native dependencies (Ubuntu)
