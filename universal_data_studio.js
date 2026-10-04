@@ -6,8 +6,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{bytes:0,kind:'unknown',rows:0,numeric:[]},audio:null,animation:null,file:null};
-let __udsBound=false;
+const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{bytes:0,kind:'unknown',rows:0,numeric:[]},audio:null,animation:null,file:null};\nlet __udsBound=false;
 
 function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function ext(n){return (n.split('.').pop()||'').toLowerCase();}
@@ -29,15 +28,10 @@ function guessKind(name,text){
  return 'unknown';
 }
 function parseCSV(text,sep=','){
- const lines=text.replace(/^\uFEFF/,'').split(/\r?
-/).filter(x=>x.trim());
+ const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
  if(!lines.length)return [];
  const out=[];let row=[],cur='',q=false;
- for(let i=0;i<lines.join('
-').length;i++){const c=lines.join('
-')[i];if(c==='"'){if(q&&lines.join('
-')[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===sep&&!q){row.push(cur);cur='';}else if(c==='
-'&&!q){row.push(cur);out.push(row);row=[];cur='';}else cur+=c;}
+ for(let i=0;i<lines.join('\n').length;i++){const c=lines.join('\n')[i];if(c==='"'){if(q&&lines.join('\n')[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===sep&&!q){row.push(cur);cur='';}else if(c==='\n'&&!q){row.push(cur);out.push(row);row=[];cur='';}else cur+=c;}
  if(cur||row.length){row.push(cur);out.push(row);}
  const head=out.shift().map(x=>x.trim());return out.map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]??''])));
 }
@@ -59,15 +53,12 @@ function parseKML(text){const pts=[];const re=/<Placemark[\s\S]*?<coordinates>([
 function parseInput(name,text,buf){
  const k=guessKind(name,text);state.kind=k;state.audio=null;
  if(k==='table')state.records=parseCSV(text,ext(name)==='tsv'?'\t':',');
- else if(k==='records'){try{const j=ext(name)==='ndjson'||ext(name)==='jsonl'?text.split(/\r?
-/).filter(Boolean).map(x=>JSON.parse(x)):JSON.parse(text);state.records=normalize(j);}catch(e){state.records=[];throw new Error('JSON/NDJSON parse failed: '+e.message);}}
+ else if(k==='records'){try{const j=ext(name)==='ndjson'||ext(name)==='jsonl'?text.split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x)):JSON.parse(text);state.records=normalize(j);}catch(e){state.records=[];throw new Error('JSON/NDJSON parse failed: '+e.message);}}
  else if(k==='geo'){if(ext(name)==='gpx')state.records=parseGPX(text);else if(ext(name)==='kml')state.records=parseKML(text);else state.records=normalize(JSON.parse(text));}
- else if(k==='text'){state.records=text.split(/\r?
-/).filter(Boolean).map((line,i)=>({_index:i,line}));}
+ else if(k==='text'){state.records=text.split(/\r?\n/).filter(Boolean).map((line,i)=>({_index:i,line}));}
  else if(k==='binary'||k==='scientific-binary'){state.records=[];}
  else if(k==='audio'){state.audio=buf;state.records=[];}
- else {try{state.records=normalize(JSON.parse(text));state.kind='records';}catch{state.records=text.split(/\r?
-/).filter(Boolean).map((line,i)=>({_index:i,line}));state.kind='text';}}
+ else {try{state.records=normalize(JSON.parse(text));state.kind='records';}catch{state.records=text.split(/\r?\n/).filter(Boolean).map((line,i)=>({_index:i,line}));state.kind='text';}}
  state.raw=text;state.sourceName=name;state.meta={bytes:buf?.byteLength||text.length,kind:state.kind,rows:state.records.length,numeric:numericFields(state.records)};
  renderPreview();updateControls();
 }
@@ -92,8 +83,7 @@ function geoJSON(){
  return {type:'FeatureCollection',features};
 }
 function csvOut(rows){
- const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';};return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('
-');
+ const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';};return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\n');
 }
 function draw(){
  const c=$('udsCanvas');if(!c)return;const dpr=devicePixelRatio||1,w=c.clientWidth||800,h=380;c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);x.fillStyle='#f7f9ff';x.fillRect(0,0,w,h);
@@ -134,8 +124,7 @@ async function exportAs(fmt){
  else if(fmt==='wav'){downloadBlob(sonify(Number($('udsDuration')?.value||8)),'omni-data-sonification.wav');}
  else if(fmt==='webm'){await exportVideo();}
  else if(fmt==='html'){downloadBlob(new Blob([htmlReport()],{type:'text/html'}),'omni-data-report.html');}
- else if(fmt==='txt'){downloadBlob(new Blob([state.records.map(r=>Object.entries(r).map(([k,v])=>k+'='+v).join(' | ')).join('
-')],{type:'text/plain'}),'omni-data.txt');}
+ else if(fmt==='txt'){downloadBlob(new Blob([state.records.map(r=>Object.entries(r).map(([k,v])=>k+'='+v).join(' | ')).join('\n')],{type:'text/plain'}),'omni-data.txt');}
 }
 async function localHealth(){
  const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine is not running. Start Omni locally first.');const j=await r.json();window.OMNI_TOKEN=j.token||window.OMNI_TOKEN;if(!window.OMNI_TOKEN)throw new Error('Local Engine token unavailable.');return j;
@@ -184,4 +173,5 @@ try{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
   window.OMNI_UNIVERSAL_DATA={state,exportAs,sonify,fetchURL,loadFile};
 }catch(e){console.error('[OMNI Universal Data] init failed',e);const s=$('udsStatus');if(s){s.textContent='Universal Data engine failed to initialize: '+e.message;s.className='uds-status warn';}}
+
 })();
