@@ -1,0 +1,19 @@
+# Optional extended Local Engine stack
+# Install this after requirements-data.txt for Database, large-data, archive and media extras.
+fastparquet>=2024.11
+polars>=1.20
+scipy>=1.14
+sympy>=1.13
+SQLAlchemy>=2.0
+psycopg[binary]>=3.2
+mysql-connector-python>=9.0
+oracledb>=2.5
+pyodbc>=5.2
+py7zr>=0.22
+rarfile>=4.2
+imageio>=2.36
+pydub>=0.25
+moviepy>=2.1
+
+# EasyOCR is intentionally separate: it pulls a large ML runtime.
+# Install manually when desired: pip install easyocr
