@@ -82,7 +82,7 @@ try:
     print("10. FFmpeg audio conversion (MP3/FLAC): OK")
 
     svg=ROOT/"sample.svg"; svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120"><rect width="320" height="120" fill="white"/><text x="20" y="75" font-size="42">Omni SVG</text></svg>',encoding="utf-8")
-    svgup=upload(svg,"sample.svg")
+    svgup=upload(svg,"ci-test-token")
     out=process({"op":"image","input":svgup["file_id"],"format":"png"},"ci-test-token")
     download(out["file_id"],ROOT/"svg.png","ci-test-token"); print("11. SVG -> PNG: OK")
     process({"op":"image","input":up["file_id"],"format":"gif"},"ci-test-token"); print("12. PNG -> GIF: OK")
