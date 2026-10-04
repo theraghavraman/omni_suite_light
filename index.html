@@ -2397,8 +2397,12 @@ async function sourceText(){
  return parts.join('\n');
 }
 function hasImplementationReference(id,source,element){
+ if(!element)return false;
+ if(typeof element.onclick==='function')return true;
+ if(window.__OMNI_WIRED_CONTROLS?.has(element))return true;
+ if(id && window.__OMNI_WIRED_CONTROL_IDS?.has(id))return true;
+ if(element.dataset.action || element.getAttribute('data-action'))return true;
  if(!id)return false;
- if(element && (typeof element.onclick==='function' || element.dataset.action || element.getAttribute('data-action')))return true;
  const direct=[
   'getElementById("'+id+'")',
   "getElementById('"+id+"')",
@@ -2411,8 +2415,7 @@ function hasImplementationReference(id,source,element){
  ];
  if(direct.some(x=>source.includes(x)))return true;
  const escapedId=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- const mentions=(source.match(new RegExp('\\b'+escapedId+'\\b','g'))||[]).length;
- return mentions>=2;
+ return (source.match(new RegExp('\\b'+escapedId+'\\b','g'))||[]).length>=2;
 }
 async function runStructure(clear=true){
  if(clear) reset();
