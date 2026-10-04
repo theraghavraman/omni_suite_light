@@ -58,7 +58,8 @@ $chocoPackages = @(
     "pandoc",
     "7zip",
     "jq",
-    "yq"
+    "yq",
+    "rsvg-convert"
 )
 
 if (Has "winget") {
@@ -68,6 +69,10 @@ if (Has "winget") {
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "winget could not install/check $id (exit $LASTEXITCODE). The final verifier will identify missing dependencies."
         }
+    }
+    if ((-not (Has "rsvg-convert")) -and (Has "choco")) {
+        Write-Host "[NATIVE] Installing rsvg-convert through Chocolatey fallback..."
+        choco install rsvg-convert -y --no-progress
     }
 } elseif (Has "choco") {
     Write-Host "[NATIVE] Installing through Chocolatey..."
