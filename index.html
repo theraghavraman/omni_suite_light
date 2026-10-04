@@ -1488,6 +1488,42 @@ footer{margin-top:44px;padding:20px;text-align:center;color:var(--mute);font-siz
 .nav-btn:nth-child(11){--c:#7c5ce5;--c2:#5b8cff;--cs:rgba(124,92,229,.14)}
 @media(max-width:1020px){.nav-bar{display:flex;overflow-x:auto;scroll-snap-type:x proximity}.nav-btn{flex:0 0 108px;scroll-snap-align:center}}
 @media(max-width:640px){.nav-btn{flex-basis:96px;min-height:84px}}
+/* FINAL DROPZONE / RESPONSIVE WIDTH FIX */
+html,body{width:100%;max-width:100%;min-width:0}
+body{overflow-x:hidden}
+.container,.module-panel,.card,.dropzone{min-width:0!important;max-width:100%!important}
+.module-panel,.card{width:100%!important}
+.card>*{min-width:0!important;max-width:100%}
+.dropzone{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+.dropzone>*:not(.file-input){
+  flex:0 0 auto!important;
+  width:auto!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  transform:none!important;
+  left:auto!important;
+  right:auto!important;
+}
+.dropzone>.dropzone-icon{margin-bottom:12px!important}
+.dropzone>h3{line-height:1.25!important}
+.dropzone>p{line-height:1.45!important}
+@media(max-width:1020px){
+  .container,.module-panel,.card,.dropzone{width:100%!important;max-width:100%!important;min-width:0!important}
+}
+
 /* DROPZONE ALIGNMENT FIX — shared across every studio */
 .dropzone{
   display:grid!important;
