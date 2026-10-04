@@ -16,12 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate Python bridge syntax
-        run: python -m py_compile omni_local_server.py prepare_offline.py
+        run: python -m py_compile omni_local_server.py omni_data_engine.py prepare_offline.py
       - name: Install native dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick tesseract-ocr libreoffice calibre
+          sudo apt-get install -y ffmpeg qpdf poppler-utils imagemagick libheif-dev libeccodes-dev tesseract-ocr libreoffice calibre
       - name: Install native dependencies (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -30,7 +30,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ffmpeg qpdf poppler imagemagick tesseract python calibre
+          brew install ffmpeg qpdf poppler imagemagick libheif eccodes tesseract python calibre
           brew install --cask libreoffice
       - name: Verify native executables
         shell: bash
@@ -43,6 +43,7 @@ jobs:
           tesseract --version
           soffice --version
           ebook-convert --version
+          node --version
       - name: Refresh PATH after native package install (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
