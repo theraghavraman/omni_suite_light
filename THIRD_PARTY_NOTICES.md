@@ -21,13 +21,13 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 
 | Tool | Typical license | Used for |
 |---|---|---|
-| FFmpeg | LGPL or GPL depending on build/configuration | Audio/video processing |
+| FFmpeg | LGPL or GPL depending on build/configuration | Broad audio/video transcoding, containers and animation formats |
 | qpdf | Apache License 2.0 | PDF merge/split/compression |
 | Poppler | GPL | PDF rendering/text extraction |
-| ImageMagick | ImageMagick License | Image conversion/resizing |
+| ImageMagick | ImageMagick License | Broad raster/vector-adjacent image conversion and resizing; delegate availability varies |
 | Tesseract | Apache License 2.0 | Native OCR |
-| LibreOffice | MPL 2.0 | Office document conversion |
-| Calibre | GPL | EPUB/ebook conversion |
+| LibreOffice | MPL 2.0 | Word/Excel/PowerPoint/OpenDocument and related office-family conversion |
+| Calibre | GPL | Broad ebook conversion including EPUB, MOBI, AZW, comics, DJVU and document inputs |
 
 These native programs are not bundled by this repository. If a future release bundles any native executable, revisit the applicable distribution obligations for that specific build.
 
