@@ -1369,6 +1369,25 @@
       </div>
 
       <div class="card">
+        <h2>5. Unstructured Text & Log Bridge</h2>
+        <div class="sub">Turn arbitrary text/log files into line-numbered structured records without pretending the log has a universal schema.</div>
+        <div class="dropzone" id="textBridgeDrop"><h3>Choose TXT / LOG / MD / HTML / text data</h3><p>Each line becomes a record with line_number + text</p><input type="file" id="textBridgeInput" class="file-input" accept=".txt,.log,.md,.text,.csv,.out"></div>
+        <div class="options-grid"><div class="form-group"><label for="textBridgeTarget">Convert lines to</label><select id="textBridgeTarget" class="form-select"><option value="jsonl">JSONL / NDJSON</option><option value="json">JSON</option><option value="csv">CSV</option></select></div></div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="textBridgeRun">Structure Text</button></div>
+      </div>
+
+      <div class="card">
+        <h2>6. BLOB / Binary Data Bridge</h2>
+        <div class="sub">Convert arbitrary binary data between raw BLOB bytes, Base64, hexadecimal and a generic SQL hexadecimal literal. Useful for Oracle BLOB, SQL Server VARBINARY, PostgreSQL bytea workflows and API payloads.</div>
+        <div class="dropzone" id="blobBridgeDrop"><h3>Choose a binary / Base64 / hex file</h3><p>Local-only binary transformation • no database connection required</p><input type="file" id="blobBridgeInput" class="file-input" accept=".bin,.blob,.b64,.base64,.hex"></div>
+        <div class="options-grid">
+          <div class="form-group"><label for="blobBridgeSource">Source representation</label><select id="blobBridgeSource" class="form-select"><option value="binary">Raw binary / BLOB</option><option value="base64">Base64 text</option><option value="hex">Hex text</option></select></div>
+          <div class="form-group"><label for="blobBridgeTarget">Target representation</label><select id="blobBridgeTarget" class="form-select"><option value="base64">Base64</option><option value="hex">Hex</option><option value="binary">Raw binary</option><option value="sql">SQL hex literal</option></select></div>
+        </div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="blobBridgeRun">Convert BLOB</button></div>
+      </div>
+
+      <div class="card">
         <h2>5. Data Engineering Utilities</h2>
         <div class="sub">The same studio is designed as a bridge between storage representations: relational rows, document records, columnar files, interchange formats and generated database scripts.</div>
         <div class="omni-data-grid">
@@ -4865,6 +4884,16 @@ $('omniExportDiagnostics')?.addEventListener('click',()=>{
   const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='omni-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 render();
+})();
+
+// Extended unstructured/BLOB bridges
+(function(){
+ const $x=id=>document.getElementById(id); let textFile=null,blobFile=null;
+ function picker(inputId,dropId,setter){const i=$x(inputId),d=$x(dropId);if(!i||!d)return;const p=f=>{if(f){setter(f);d.style.display='none'}};i.addEventListener('change',e=>p(e.target.files[0]));d.addEventListener('click',e=>{if(e.target!==i)i.click()});d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('dragover')});d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('dragover');p(e.dataTransfer.files[0])})}
+ picker('textBridgeInput','textBridgeDrop',f=>textFile=f);picker('blobBridgeInput','blobBridgeDrop',f=>blobFile=f);
+ async function runBridge(file,payload,suffix){if(!file)return alert('Choose a file first.');try{await health();const up=await upload(file);const j=await process(payload(up.file_id));save(await download(j.file_id),j.name)}catch(e){alert(e.message)}}
+ $x('textBridgeRun')?.addEventListener('click',()=>runBridge(textFile,id=>({op:'text_lines',input:id,target:$x('textBridgeTarget').value})));
+ $x('blobBridgeRun')?.addEventListener('click',()=>runBridge(blobFile,id=>({op:'blob_convert',input:id,source:$x('blobBridgeSource').value,target:$x('blobBridgeTarget').value})));
 })();
 </script>
 <script id="omni-office-studio">
