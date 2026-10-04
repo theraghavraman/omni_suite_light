@@ -68,7 +68,7 @@ jobs:
           if command -v magick >/dev/null 2>&1; then command -v magick; else command -v convert; fi
           timeout 30s ffmpeg -version >/dev/null
           timeout 30s qpdf --version >/dev/null
-          timeout 30s pdftoppm -v >/dev/null 2>&1 || true
+          timeout 30s pdftoppm -v >/dev/null 2>&1
           timeout 30s tesseract --version >/dev/null
           timeout 30s soffice --version >/dev/null
           timeout 30s ebook-convert --version >/dev/null
