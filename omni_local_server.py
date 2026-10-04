@@ -396,7 +396,7 @@ class Handler(BaseHTTPRequestHandler):
                     "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
                     "./vendor/pdf-lib/pdf-lib.min.js"
                 ).replace(
-                    "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js",
+                    "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
                     "./vendor/tesseract/tesseract.min.js"
                 ).replace(
                     "window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'",
