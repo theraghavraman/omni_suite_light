@@ -305,6 +305,13 @@ try:
     assert isinstance(final_rows,list) and final_rows[0]["Name"]=="Alice"
     print("37. JSON structured-output contract: OK")
 
+    # CI coverage: privacy reports should remain deterministic enough to expose a content hash.
+    out=process({"op":"privacy_scan","input":data_up["file_id"]},"ci-test-token")
+    download(out["file_id"],ROOT/"data_privacy.json","ci-test-token")
+    privacy=json.loads((ROOT/"data_privacy.json").read_text(encoding="utf-8"))
+    assert privacy.get("sha256") and len(privacy["sha256"])==64
+    print("38. Privacy content-hash contract: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
