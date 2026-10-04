@@ -569,6 +569,16 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           <span class="rag-pill">Semantic Search</span><span class="rag-pill">Vector Search</span><span class="rag-pill">Hybrid Retrieval</span>
         </div>
       </div>
+      <div class="card rag-model-card">
+        <div class="rag-model-head"><div><span class="rag-kicker">LOCAL AI RUNTIME</span><h3 style="margin:.25rem 0 0">Model &amp; Privacy Status</h3></div><span class="rag-local-badge" id="ragPrivacyBadge">LOCAL-FIRST</span></div>
+        <div class="rag-model-grid">
+          <div class="rag-model-item"><div class="rag-model-icon">⌁</div><div><b>Embedding model</b><span id="ragEmbedState">Not loaded · loads on first semantic operation</span></div><strong id="ragEmbedDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">✦</div><div><b>Local small LLM</b><span id="ragLLMState">Not loaded · optional generation layer</span></div><strong id="ragLLMDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">⚡</div><div><b>Runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">▣</div><div><b>Knowledge storage</b><span id="ragStorageState">IndexedDB · browser-local</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
+        </div>
+        <div class="rag-privacy-strip"><span>🔒</span><div><b>Private by design</b><small>Documents, chunks and vectors stay in this browser. The optional local LLM receives retrieved context only. No document API key is required.</small></div></div>
+      </div>
       <div class="rag-grid">
         <div>
           <div class="card">
