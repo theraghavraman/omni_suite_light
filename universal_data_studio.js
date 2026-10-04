@@ -99,6 +99,18 @@ function sonify(duration=8){
 function htmlReport(){
  const g=state.records.some(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));return '<!doctype html><meta charset="utf-8"><title>Omni Data Report</title><style>body{font-family:system-ui;margin:30px;background:#f5f7fb;color:#182033}table{border-collapse:collapse;width:100%}td,th{padding:7px;border:1px solid #dce3ef;text-align:left}</style><h1>Omni Universal Data Report</h1><p>Source: '+esc(state.sourceName)+' · Type: '+esc(state.kind)+' · Rows: '+state.records.length+'</p><pre>'+esc(JSON.stringify({meta:state.meta,geojson:g?geoJSON():null},null,2))+'</pre>';
 }
+async function exportVideo(){
+ const c=$('udsCanvas');if(!c)throw new Error('Visualization canvas unavailable.');
+ const fps=24,seconds=Math.max(2,Math.min(20,Number($('udsVideoDuration')?.value||8)));
+ const stream=c.captureStream(fps);const chunks=[];
+ const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});
+ rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ const done=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=reject});
+ rec.start();
+ const start=performance.now();
+ function frame(t){const p=Math.min(1,(t-start)/(seconds*1000));draw();if(state.records.length){const old=state.records;const n=Math.max(1,Math.floor(p*old.length));state.records=old.slice(0,n);draw();state.records=old;}if(p<1)requestAnimationFrame(frame);else rec.stop();}
+ requestAnimationFrame(frame);await done;downloadBlob(new Blob(chunks,{type:'video/webm'}),'omni-data-visualization.webm');
+}
 async function exportAs(fmt){
  if(fmt==='json'){downloadBlob(new Blob([JSON.stringify(rowsForExport(),null,2)],{type:'application/json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.json');}
  else if(fmt==='csv'){downloadBlob(new Blob([csvOut(rowsForExport())],{type:'text/csv'}),state.sourceName.replace(/\.[^.]+$/,'')+'.csv');}
@@ -106,6 +118,7 @@ async function exportAs(fmt){
  else if(fmt==='svg'){const pts=state.records.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));if(!pts.length)throw new Error('SVG map requires latitude/longitude records.');const minx=Math.min(...pts.map(r=>r.lon)),maxx=Math.max(...pts.map(r=>r.lon)),miny=Math.min(...pts.map(r=>r.lat)),maxy=Math.max(...pts.map(r=>r.lat)),sx=maxx-minx||1,sy=maxy-miny||1;const circles=pts.map(r=>'<circle cx="'+(20+(r.lon-minx)/sx*760).toFixed(1)+'" cy="'+(380-(r.lat-miny)/sy*340).toFixed(1)+'" r="3"/>').join('');downloadBlob(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="100%" height="100%" fill="#f7f9ff"/><g fill="#635bff">'+circles+'</g></svg>'],{type:'image/svg+xml'}),'omni-map.svg');}
  else if(fmt==='png'){draw();const c=$('udsCanvas');const b=await new Promise(r=>c.toBlob(r,'image/png'));downloadBlob(b,'omni-data-visualization.png');}
  else if(fmt==='wav'){downloadBlob(sonify(Number($('udsDuration')?.value||8)),'omni-data-sonification.wav');}
+ else if(fmt==='webm'){await exportVideo();}
  else if(fmt==='html'){downloadBlob(new Blob([htmlReport()],{type:'text/html'}),'omni-data-report.html');}
  else if(fmt==='txt'){downloadBlob(new Blob([state.records.map(r=>Object.entries(r).map(([k,v])=>k+'='+v).join(' | ')).join('\n')],{type:'text/plain'}),'omni-data.txt');}
 }
