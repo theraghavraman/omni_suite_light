@@ -4387,6 +4387,7 @@ async function runBrowserTests(){
     ['Runtime','JSZip library',()=>{if(!window.JSZip)throw new Error('JSZip missing');return 'JSZip loaded';}],
     ['Runtime','pdf-lib library',()=>{if(!window.PDFLib)throw new Error('pdf-lib missing');return 'pdf-lib loaded';}],
     ['Runtime','Tesseract.js library',()=>{if(!window.Tesseract)throw new Error('Tesseract.js missing');return 'Tesseract.js loaded';}],
+    ['Offline','Local browser asset bundle',async()=>{if(location.hostname!=='127.0.0.1'&&location.hostname!=='localhost')return 'Public Pages mode uses CDN assets; use the Local Engine launcher for offline assets';const paths=['./vendor/pdfjs/pdf.min.js','./vendor/pdfjs/pdf.worker.min.js','./vendor/jszip/jszip.min.js','./vendor/pdf-lib/pdf-lib.min.js','./vendor/tesseract/tesseract.min.js','./vendor/tesseract/worker.min.js','./vendor/tesseract/core/tesseract-core.wasm.js','./vendor/tesseract/lang/eng.traineddata.gz'];const missing=[];for(const p of paths){try{const rr=await fetch(p,{cache:'no-store',method:'HEAD'});if(!rr.ok)missing.push(p);}catch(_){missing.push(p);}}if(missing.length)throw new Error('Missing local assets: '+missing.join(', '));return paths.length+' local browser assets reachable';}],
     ['Runtime','WebAssembly support',()=>{if(typeof WebAssembly==='undefined')throw new Error('WebAssembly unavailable');return 'WebAssembly available';}],
     ['Runtime','File/Blob/URL APIs',()=>{if(!window.File||!window.Blob||!window.URL||!URL.createObjectURL)throw new Error('Required File APIs missing');return 'File, Blob and object URLs available';}],
     ['Runtime','Canvas image pipeline',async()=>{const b=await canvasBlob('OMNI');const u=URL.createObjectURL(b);const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('Generated PNG could not be decoded'));img.src=u;});URL.revokeObjectURL(u);return b.size+' bytes PNG';}],
@@ -4396,6 +4397,7 @@ async function runBrowserTests(){
   ];
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
+  for(const label of ['PDF Suite','Word & Docs','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Word & Docs':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
   await test('browser','PDF create → PDF.js read → text extraction',async()=>{
     const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),loaded=await pdfjsLib.getDocument({data:bytes}).promise;
     const page=await loaded.getPage(1),tc=await page.getTextContent();const text=tc.items.map(x=>x.str).join(' ');
@@ -4432,7 +4434,9 @@ async function runLocalTests(){
   reset('local');writeLog('=== Local Engine diagnostics '+new Date().toISOString()+' ===');
   let h;
   try{h=await localHealth();state.local=h;}catch(e){
-    const t=begin('local','Local Engine connection');t.finish('SKIPPED','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');return;
+    skip('local','Local Engine connection','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');
+    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','LibreOffice Office conversion','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
+    return;
   }
   await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
   const tool=(name)=>h.tools&&h.tools[name]&&h.tools[name].installed;
