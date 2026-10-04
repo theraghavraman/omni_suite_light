@@ -76,7 +76,12 @@ if (Has "winget") {
 
 $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
 $user = [Environment]::GetEnvironmentVariable("Path", "User")
-$env:Path = "$machine;$user;$env:Path"
+$extraPaths = @(
+    "$env:ProgramFiles\LibreOffice\program",
+    "$env:ProgramFiles\Calibre2",
+    "$env:ProgramFiles\Tesseract-OCR"
+) | Where-Object { Test-Path $_ }
+$env:Path = "$machine;$user;$($extraPaths -join ';');$env:Path"
 
 $pythonCandidates = @(
     "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
