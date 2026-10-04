@@ -67,6 +67,9 @@ if (-not $python) {
 }
 
 Write-Host "[OK] Python: $python"
+Write-Host "[SETUP] Installing OmniConverter Data Studio Python packages..."
+& $python -m pip install -r "$PSScriptRoot\requirements-data.txt"
+if ($LASTEXITCODE -ne 0) { Write-Warning "Data Studio packages could not be installed; native media/document features will still work." }
 Write-Host "[SETUP] Downloading pinned browser assets for offline mode..."
 & $python prepare_offline.py
 
