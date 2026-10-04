@@ -31,5 +31,8 @@ gcsfs>=2024.10
 pyxlsb>=1.0
 charset-normalizer>=3.4
 
+# HTTPS certificate bundle used by the offline browser asset provisioner.
+certifi>=2026.1.4
+
 # Optional ML OCR is deliberately not installed by the core profile.
 # Use requirements-vision.txt only when EasyOCR is explicitly required.
