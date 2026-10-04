@@ -24,10 +24,16 @@ if not defined PYTHON (
   exit /b 1
 )
 
-echo [OK] Python launcher: %PYTHON%
+if exist "%~dp0.venv\Scripts\python.exe" (
+  set "RUNPY=%~dp0.venv\Scripts\python.exe"
+  echo [OK] Using OmniConverter virtual environment.
+) else (
+  set "RUNPY=%PYTHON%"
+  echo [WARN] .venv not found; using system Python.
+)
 echo [OK] Starting Local Engine on http://127.0.0.1:8765/
 echo.
-%PYTHON% omni_local_server.py
+"%RUNPY%" omni_local_server.py
 set "RC=%ERRORLEVEL%"
 
 echo.
