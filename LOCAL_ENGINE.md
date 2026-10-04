@@ -28,7 +28,7 @@ pdftoppm -v
 pdftotext -v
 ```
 
-The public GitHub Pages version does **not** need Poppler for PDF → PPTX: that conversion is generated directly in the browser. The Local Engine remains the native fallback for larger jobs and other conversions that require installed desktop renderers.
+The public GitHub Pages version can generate the PDF → PPTX page-replica in the browser. The Local Engine provides the native Poppler path for larger PDFs and environments where browser rendering is not desirable.
 
 or run:
 
@@ -98,6 +98,8 @@ The Local Engine panel exposes native operations for:
 - PDF compression
 - PDF rendering
 - PDF text extraction
+- PDF → editable DOCX text extraction
+- Unicode-safe Text/Markdown → DOCX/PDF
 - Office document conversion
 - EPUB/ebook conversion
 - audio/video conversion and trimming
@@ -131,13 +133,38 @@ Format acceptance is intentionally broader than browser codec support. A particu
 
 The Data Studio adds local conversion paths for structured and semi-structured data: CSV/TSV, JSON/JSONL, YAML, XML, Excel/XLSB, ODS, Parquet, ORC, Feather/Arrow IPC, Avro, SQLite, DuckDB, SQL scripts and MessagePack. It also provides SQL dialect translation, schema inference, dataset profiling, MongoDB BSON/Extended JSON conversion and DynamoDB JSON bridging.
 
-SQL translation is powered by SQLGlot when installed; SQLGlot supports 30+ dialects with different support levels. citeturn0search1turn0search7 Arrow/PyArrow provides the columnar interchange layer for Parquet, Feather/IPC, CSV, JSON and ORC. citeturn1search6turn1search9
+SQL translation is powered by SQLGlot when installed; SQLGlot supports 30+ dialects with different support levels. Arrow/PyArrow provides the columnar interchange layer for Parquet, Feather/IPC, CSV, JSON and ORC.
 
 The setup script installs the optional packages in `requirements-data.txt`. If they are absent, the Local Engine still starts and reports missing Data Studio modules at `/api/health` instead of crashing.
 
 ### Database-model boundary
 
-The studio can generate SQL, CQL and Cypher bridge scripts and convert exported MongoDB/DynamoDB representations. It intentionally does not claim lossless conversion between fundamentally different data models such as relational rows, MongoDB documents, Redis structures and Neo4j graphs. Neo4j's own import documentation uses CSV as a common bridge for relational-to-graph migration, while MongoDB's export documentation distinguishes JSON/CSV from BSON type-preserving exports. citeturn3search6turn0search6
+The studio can generate SQL, CQL and Cypher bridge scripts and convert exported MongoDB/DynamoDB representations. It intentionally does not claim lossless conversion between fundamentally different data models such as relational rows, MongoDB documents, Redis structures and Neo4j graphs. Neo4j's own import documentation uses CSV as a common bridge for relational-to-graph migration, while MongoDB's export documentation distinguishes JSON/CSV from BSON type-preserving exports.
+
+## Scientific / Earth / Astronomy Data Layer
+
+The Universal Data & Signal Studio uses the Local Engine for native scientific formats that browsers do not reliably decode.
+
+Supported readers:
+
+- **FITS / FIT** — Astropy FITS reader for astronomy images and tables.
+- **NetCDF / NC** — xarray with netCDF4/h5netcdf backends.
+- **HDF5 / H5** — h5py hierarchical dataset reader.
+- **NASA CDF** — cdflib reader.
+- **GRIB / GRIB1 / GRIB2** — xarray + cfgrib + ecCodes reader.
+
+These paths can convert scientific datasets to:
+
+- JSON with dataset metadata, variables, dimensions, shapes, dtypes and values.
+- CSV long-form data for analysis.
+- PNG for compatible two-dimensional numeric arrays.
+- NetCDF normalized datasets.
+- HDF5 normalized datasets.
+- FITS image/table output where the source data can be represented safely.
+
+Scientific conversion is deliberately described as **normalized conversion**, not lossless source-format cloning. A FITS WCS header, NetCDF attributes, HDF5 group structure or GRIB meteorological metadata can contain semantics that do not have an equivalent in CSV or PNG. The JSON/profile path preserves more of that metadata than a flat media export.
+
+The scientific Python stack is installed from `requirements-data.txt`. GRIB support requires an ecCodes runtime compatible with cfgrib. The installer reports missing packages rather than pretending unsupported scientific files are browser-readable.
 
 ## Security
 
