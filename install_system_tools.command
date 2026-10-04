@@ -49,18 +49,30 @@ if [ "$OS" = "Linux" ]; then
   if have apt-get; then
     $SUDO apt-get update
     $SUDO apt-get install -y       ffmpeg qpdf poppler-utils imagemagick ghostscript       libheif-dev libraw-dev libopenexr-dev libjxl-dev libwebp-dev       libjpeg-dev libpng-dev libtiff-dev libopenjp2-7-dev       tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin tesseract-ocr-ben       tesseract-ocr-mar tesseract-ocr-tam tesseract-ocr-tel tesseract-ocr-guj       tesseract-ocr-pan tesseract-ocr-deu tesseract-ocr-fra tesseract-ocr-spa       tesseract-ocr-chi-sim       python3 python3-venv python3-dev build-essential pkg-config       libreoffice calibre pandoc p7zip-full zip unzip sqlite3       unixodbc unixodbc-dev freetds-dev libpq-dev default-libmysqlclient-dev       libeccodes-dev
-    PYTHON=python3
-  elif have dnf; then
+    if command -v python3.13 >/dev/null 2>&1; then PYTHON=python3.13
+    elif command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+    elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+    else PYTHON=python3
+    fi  elif have dnf; then
     $SUDO dnf install -y       ffmpeg qpdf poppler-utils ImageMagick ghostscript       libheif-devel libraw-devel openexr-devel libjxl-devel libwebp-devel       libjpeg-turbo-devel libpng-devel libtiff-devel openjpeg2-devel       tesseract tesseract-langpack-eng tesseract-langpack-hin tesseract-langpack-ben       tesseract-langpack-mar tesseract-langpack-tam tesseract-langpack-tel       tesseract-langpack-guj tesseract-langpack-pan tesseract-langpack-deu       tesseract-langpack-fra tesseract-langpack-spa tesseract-langpack-chi_sim       python3 python3-devel gcc gcc-c++ make pkgconf-pkg-config       libreoffice calibre pandoc p7zip p7zip-plugins zip unzip sqlite       unixODBC unixODBC-devel freetds-devel libpq-devel mariadb-connector-c-devel       eccodes-devel
-    PYTHON=python3
-  elif have pacman; then
+    if command -v python3.13 >/dev/null 2>&1; then PYTHON=python3.13
+    elif command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+    elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+    else PYTHON=python3
+    fi  elif have pacman; then
     $SUDO pacman -Sy --needed --noconfirm       ffmpeg qpdf poppler imagemagick ghostscript       libheif libraw openexr libjxl libwebp       tesseract tesseract-data-eng tesseract-data-hin tesseract-data-ben       tesseract-data-mar tesseract-data-tam tesseract-data-tel tesseract-data-guj       tesseract-data-pan tesseract-data-deu tesseract-data-fra tesseract-data-spa       tesseract-data-chi_sim       python python-pip base-devel pkgconf       libreoffice-fresh calibre pandoc p7zip zip unzip sqlite       unixodbc freetds libpq mariadb-libs eccodes
-    PYTHON=python3
-  elif have zypper; then
+    if command -v python3.13 >/dev/null 2>&1; then PYTHON=python3.13
+    elif command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+    elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+    else PYTHON=python3
+    fi  elif have zypper; then
     $SUDO zypper --non-interactive refresh
     $SUDO zypper --non-interactive install --no-recommends       ffmpeg qpdf poppler-tools ImageMagick ghostscript       libheif-devel libraw-devel openexr-devel libjxl-devel libwebp-devel       libjpeg-devel libpng-devel libtiff-devel openjpeg2-devel       tesseract-ocr tesseract-ocr-traineddata-tesseract-ocr       python3 python3-pip python3-devel gcc gcc-c++ make pkg-config       libreoffice calibre pandoc p7zip zip unzip sqlite3       unixODBC unixODBC-devel freetds-devel postgresql-devel libmysqlclient-devel       eccodes-devel
-    PYTHON=python3
-  else
+    if command -v python3.13 >/dev/null 2>&1; then PYTHON=python3.13
+    elif command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+    elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+    else PYTHON=python3
+    fie
     echo "[ERROR] No supported Linux package manager detected (apt, dnf, pacman or zypper)."
     exit 1
   fi
