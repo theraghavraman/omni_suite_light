@@ -11,6 +11,7 @@ if (Has "winget") {
     $packages = @(
         "Gyan.FFmpeg.Shared",
         "QPDF.QPDF",
+        "oschwartz10612.Poppler",
         "ImageMagick.ImageMagick",
         "UB-Mannheim.TesseractOCR",
         "TheDocumentFoundation.LibreOffice",
@@ -28,7 +29,7 @@ if (Has "winget") {
     }
 } elseif (Has "choco") {
     Write-Host "[SETUP] Using Chocolatey..."
-    choco install ffmpeg qpdf imagemagick tesseract python -y
+    choco install ffmpeg qpdf poppler imagemagick tesseract python -y
 } else {
     Write-Host "[ERROR] Neither winget nor Chocolatey was found."
     Write-Host "Install Python 3.11+ and a supported package manager, then rerun this script."
@@ -80,4 +81,6 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ""
 Write-Host "[OK] Setup complete."
+Write-Host "[INFO] Poppler provides pdftoppm/pdftotext for PDF rendering and PDF → PPTX in the Local Engine."
+Write-Host "[INFO] If a new terminal is needed for PATH changes, close/reopen the terminal before running start_omni.bat."
 Write-Host "Run start_omni.bat to launch the Local Engine."
