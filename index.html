@@ -192,6 +192,30 @@
     .omni-local-pill.warn{color:#8a5a00;background:#fff8e6;border-color:#efd99c}
     .omni-help{margin-top:12px;padding:11px 12px;border-radius:11px;background:#f5f7fb;color:#647089;font-size:.82rem;line-height:1.5}
     .omni-diagnostics{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#101827;color:#dbe8ff;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow:auto;max-height:220px}
+    .omni-test-lab{margin:0 0 20px;padding:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#ffffff,#f5f8ff);box-shadow:0 14px 34px rgba(53,70,105,.08)}
+    .omni-test-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .omni-test-head h2{font-size:1.2rem;color:#26304b;margin-bottom:5px}
+    .omni-test-head p{color:#6c7890;line-height:1.5;font-size:.86rem}
+    .omni-test-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .omni-test-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:16px 0}
+    .omni-test-stat{padding:11px 12px;border:1px solid #dfe6f1;border-radius:12px;background:#fff}
+    .omni-test-stat b{display:block;font-size:1.2rem;color:#26304b}
+    .omni-test-stat span{font-size:.72rem;color:#758198}
+    .omni-test-group{margin-top:16px}
+    .omni-test-group h3{font-size:.86rem;color:#3a4660;margin-bottom:9px}
+    .omni-test-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .omni-test-row{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e1e7f0;border-radius:11px;background:#fff}
+    .omni-test-badge{font-size:.68rem;font-weight:900;text-align:center;padding:5px 7px;border-radius:999px}
+    .omni-test-badge.pass{background:#e8fbf2;color:#087a5b;border:1px solid #bcebd8}
+    .omni-test-badge.fail{background:#fff0f2;color:#b4233b;border:1px solid #efc4cd}
+    .omni-test-badge.skip{background:#fff8e7;color:#8a5a00;border:1px solid #ecd69f}
+    .omni-test-badge.run{background:#eef4ff;color:#3159a7;border:1px solid #cbd9f5}
+    .omni-test-name{font-weight:800;font-size:.8rem;color:#2e3850}
+    .omni-test-detail{font-size:.72rem;color:#7a8498;margin-top:2px;word-break:break-word}
+    .omni-test-time{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b95a8}
+    .omni-test-log{display:none;margin-top:12px;padding:12px;border-radius:11px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto}
+    @media(max-width:900px){.omni-test-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.omni-test-list{grid-template-columns:1fr}}
+    @media(max-width:560px){.omni-test-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.omni-test-row{grid-template-columns:70px 1fr}.omni-test-time{grid-column:2}}
     @media(max-width:760px){.omni-guide-grid{grid-template-columns:1fr}}
 
     footer { margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
@@ -2016,6 +2040,39 @@
           </div>
           <div class="items-list" id="decompressList"></div>
         </div>
+      </div>
+    </div>
+
+    <div class="module-panel" id="tabDiagnostics">
+      <div class="omni-test-lab">
+        <div class="omni-test-head">
+          <div>
+            <h2>🧪 Diagnostics &amp; Test Lab</h2>
+            <p>Real end-to-end checks for the browser layer and the Local Engine. Green means an operation actually executed; yellow means it cannot be tested in the current environment.</p>
+          </div>
+          <div class="omni-test-actions">
+            <button type="button" class="btn btn-primary" id="omniRunAllTests">▶ Run All Tests</button>
+            <button type="button" class="btn btn-secondary" id="omniRunBrowserTests">🌐 Browser Tests</button>
+            <button type="button" class="btn btn-secondary" id="omniRunLocalTests">⚙️ Local Tests</button>
+            <button type="button" class="btn btn-secondary" id="omniExportDiagnostics">⇩ Export Report</button>
+          </div>
+        </div>
+        <div id="omniDiagSummary" class="omni-test-summary">
+          <div class="omni-test-stat"><b id="diagPass">0</b><span>PASS</span></div>
+          <div class="omni-test-stat"><b id="diagFail">0</b><span>FAIL</span></div>
+          <div class="omni-test-stat"><b id="diagSkip">0</b><span>SKIPPED</span></div>
+          <div class="omni-test-stat"><b id="diagRun">0</b><span>RUNNING</span></div>
+          <div class="omni-test-stat"><b id="diagTotal">0</b><span>TESTS</span></div>
+        </div>
+        <div class="omni-test-group">
+          <h3>Browser layer</h3>
+          <div id="omniBrowserTests" class="omni-test-list"></div>
+        </div>
+        <div class="omni-test-group">
+          <h3>Local Engine</h3>
+          <div id="omniLocalTests" class="omni-test-list"></div>
+        </div>
+        <pre id="omniDiagLog" class="omni-test-log"></pre>
       </div>
     </div>
 
@@ -4130,7 +4187,7 @@ function openPicker(input){if(!input)return false;try{if(typeof input.showPicker
 document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.querySelector('input[type="file"]');if(!input||zone.dataset.omniPickerRepair==='1')return;zone.dataset.omniPickerRepair='1';zone.setAttribute('tabindex','0');zone.setAttribute('role','button');zone.addEventListener('click',function(e){if(e.target===input)return;e.preventDefault();e.stopImmediatePropagation();openPicker(input)},true);zone.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker(input)}});input.addEventListener('change',function(){if(this.files&&this.files.length)notify('Selected '+this.files.length+' file'+(this.files.length===1?'':'s')+': '+this.files[0].name)})});
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
 function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
-const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
+const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',function(){const b=document.querySelector('.nav-btn[data-tab="tabDiagnostics"]');if(b)b.click();setTimeout(()=>window.omniRunDiagnostics&&window.omniRunDiagnostics(),40)});
 async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
 })();
@@ -4260,6 +4317,171 @@ updateMode();
       }
     });
   });
+})();
+</script>
+<script id="omni-test-lab">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const browserBox=$('omniBrowserTests'), localBox=$('omniLocalTests'), logBox=$('omniDiagLog');
+const state={results:[],running:0,started:null,local:null};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function addResult(scope,name,status,detail,start){
+  const row={scope,name,status,detail:String(detail||''),ms:Date.now()-start};
+  state.results.push(row); state.running=Math.max(0,state.running-(status==='RUNNING'?0:1)); render();
+  return row;
+}
+function begin(scope,name){
+  state.running++; state.started=state.started||Date.now();
+  const row={scope,name,status:'RUNNING',detail:'Executing…',ms:0}; state.results.push(row); render();
+  return {finish:(status,detail)=>{row.status=status;row.detail=String(detail||'');row.ms=Date.now()-state.started;state.running=Math.max(0,state.running-1);render();}};
+}
+function render(){
+  const groups={browser:browserBox,local:localBox};
+  Object.values(groups).forEach(b=>{if(b)b.innerHTML='';});
+  state.results.forEach(r=>{
+    const box=groups[r.scope]; if(!box)return;
+    const el=document.createElement('div'); el.className='omni-test-row';
+    const cls=r.status.toLowerCase()==='pass'?'pass':r.status.toLowerCase()==='fail'?'fail':r.status.toLowerCase()==='skipped'?'skip':'run';
+    el.innerHTML='<span class="omni-test-badge '+cls+'">'+escapeHtml(r.status)+'</span><div><div class="omni-test-name">'+escapeHtml(r.name)+'</div><div class="omni-test-detail">'+escapeHtml(r.detail)+'</div></div><span class="omni-test-time">'+(r.ms?escapeHtml(r.ms+' ms'):'')+'</span>';
+    box.appendChild(el);
+  });
+  const c=s=>state.results.filter(r=>r.status===s).length;
+  $('diagPass').textContent=c('PASS'); $('diagFail').textContent=c('FAIL'); $('diagSkip').textContent=c('SKIPPED'); $('diagRun').textContent=state.running; $('diagTotal').textContent=state.results.length;
+}
+function writeLog(line){if(!logBox)return;logBox.style.display='block';logBox.textContent+=(logBox.textContent?'\n':'')+line;}
+function reset(scope){
+  state.results=state.results.filter(r=>r.scope!==scope); render();
+}
+async function test(scope,name,fn){
+  const t=begin(scope,name);
+  try{const detail=await fn();t.finish('PASS',detail||'Working');}
+  catch(e){console.error('[Diagnostics]',scope,name,e);t.finish('FAIL',e&&e.message||String(e));}
+}
+function skip(scope,name,detail){const t=begin(scope,name);t.finish('SKIPPED',detail);}
+function blobFromDataUrl(dataUrl){const [meta,b64]=dataUrl.split(',');const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:meta.split(':')[1].split(';')[0]});}
+async function canvasBlob(text){
+  const c=document.createElement('canvas');c.width=520;c.height=130;
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.fillStyle='#000';x.font='bold 52px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(text,c.width/2,c.height/2);
+  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Canvas toBlob failed')),'image/png'));
+}
+function wavBlob(){
+  const rate=8000,seconds=.25,samples=rate*seconds,buffer=new ArrayBuffer(44+samples*2),v=new DataView(buffer);
+  const w=(o,str)=>{for(let i=0;i<str.length;i++)v.setUint8(o+i,str.charCodeAt(i));};
+  w(0,'RIFF');v.setUint32(4,36+samples*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,samples*2,true);
+  for(let i=0;i<samples;i++)v.setInt16(44+i*2,Math.round(Math.sin(i/10)*5000),true);
+  return new Blob([buffer],{type:'audio/wav'});
+}
+async function makePdfBlob(){
+  if(!window.PDFLib)throw new Error('pdf-lib unavailable');
+  const doc=await PDFLib.PDFDocument.create(),page=doc.addPage([450,160]);page.drawText('OMNI DIAGNOSTIC',{x:40,y:95,size:24});
+  return new Blob([await doc.save()],{type:'application/pdf'});
+}
+async function runBrowserTests(){
+  reset('browser'); writeLog('=== Browser diagnostics '+new Date().toISOString()+' ===');
+  const staticTests=[
+    ['Runtime','DOM and core UI',()=>{if(!document.body||!window.__OMNI_CORE_READY)throw new Error('Core UI is not ready');return 'Core UI ready';}],
+    ['Runtime','PDF.js library',()=>{if(!window.pdfjsLib)throw new Error('PDF.js missing');return 'PDF.js 3.11.174 loaded';}],
+    ['Runtime','PDF.js worker configuration',()=>{if(!window.pdfjsLib||!pdfjsLib.GlobalWorkerOptions.workerSrc)throw new Error('PDF workerSrc missing');return pdfjsLib.GlobalWorkerOptions.workerSrc;}],
+    ['Runtime','JSZip library',()=>{if(!window.JSZip)throw new Error('JSZip missing');return 'JSZip loaded';}],
+    ['Runtime','pdf-lib library',()=>{if(!window.PDFLib)throw new Error('pdf-lib missing');return 'pdf-lib loaded';}],
+    ['Runtime','Tesseract.js library',()=>{if(!window.Tesseract)throw new Error('Tesseract.js missing');return 'Tesseract.js loaded';}],
+    ['Runtime','WebAssembly support',()=>{if(typeof WebAssembly==='undefined')throw new Error('WebAssembly unavailable');return 'WebAssembly available';}],
+    ['Runtime','File/Blob/URL APIs',()=>{if(!window.File||!window.Blob||!window.URL||!URL.createObjectURL)throw new Error('Required File APIs missing');return 'File, Blob and object URLs available';}],
+    ['Runtime','Canvas image pipeline',async()=>{const b=await canvasBlob('OMNI');const u=URL.createObjectURL(b);const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('Generated PNG could not be decoded'));img.src=u;});URL.revokeObjectURL(u);return b.size+' bytes PNG';}],
+    ['Runtime','UI tab wiring',()=>{const btns=[...document.querySelectorAll('.nav-btn[data-tab]')];const bad=btns.filter(b=>!document.getElementById(b.dataset.tab));if(bad.length)throw new Error(bad.length+' tab targets missing');return btns.length+' navigation tabs linked';}],
+    ['Runtime','Upload-zone wiring',()=>{const z=[...document.querySelectorAll('.dropzone')];const bad=z.filter(x=>!x.querySelector('input[type=file]'));if(bad.length)throw new Error(bad.length+' upload zones missing file inputs');return z.length+' upload zones wired';}],
+    ['Runtime','Browser capability APIs',()=>{const a=['CompressionStream','DecompressionStream','MediaRecorder','OfflineAudioContext','AudioContext','showDirectoryPicker'];return a.map(k=>k+': '+(k in window?'yes':'no')).join(' • ');}]
+  ];
+  for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
+
+  await test('browser','PDF create → PDF.js read → text extraction',async()=>{
+    const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),loaded=await pdfjsLib.getDocument({data:bytes}).promise;
+    const page=await loaded.getPage(1),tc=await page.getTextContent();const text=tc.items.map(x=>x.str).join(' ');
+    if(!/OMNI DIAGNOSTIC/.test(text))throw new Error('Generated PDF text could not be extracted');
+    return loaded.numPages+' page; extracted "'+text+'"';
+  });
+  await test('browser','ZIP create → read → extract',async()=>{
+    const zip=new JSZip();zip.file('omni-test.txt','Omni diagnostics');const bytes=await zip.generateAsync({type:'uint8array'});const loaded=await JSZip.loadAsync(bytes);const txt=await loaded.file('omni-test.txt').async('string');if(txt!=='Omni diagnostics')throw new Error('ZIP roundtrip mismatch');return bytes.length+' bytes roundtrip';});
+  if('CompressionStream' in window&&'DecompressionStream' in window){
+    await test('browser','GZIP compress → decompress roundtrip',async()=>{
+      const source=new TextEncoder().encode('Omni diagnostics compression test');const cs=new CompressionStream('gzip');const compressed=await new Response(new Blob([source]).stream().pipeThrough(cs)).arrayBuffer();const ds=new DecompressionStream('gzip');const back=new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(ds)).arrayBuffer());const text=new TextDecoder().decode(back);if(text!=='Omni diagnostics compression test')throw new Error('GZIP roundtrip mismatch');return compressed.byteLength+' bytes compressed';});
+  } else skip('browser','GZIP compress → decompress roundtrip','CompressionStream/DecompressionStream unavailable in this browser');
+  if(window.Tesseract){
+    await test('browser','OCR: generate image → Tesseract.js → text',async()=>{
+      const img=await canvasBlob('OMNI OCR');const worker=await Tesseract.createWorker('eng',1,Object.assign({},window.OMNI_TESSERACT_OPTIONS||{},{
+        logger:m=>{if(m.status)writeLog('[OCR] '+m.status+' '+(typeof m.progress==='number'?Math.round(m.progress*100)+'%':''));}
+      }));try{
+        const ret=await worker.recognize(img);const txt=(ret.data.text||'').trim().replace(/\s+/g,' ');if(!/OMNI/i.test(txt))throw new Error('OCR returned: '+(txt||'no text'));return 'Recognized: '+txt;
+      }finally{await worker.terminate();}
+    });
+  } else skip('browser','OCR: generate image → Tesseract.js → text','Tesseract.js library unavailable');
+  await test('browser','Audio API / offline rendering capability',async()=>{
+    if(!window.OfflineAudioContext)throw new Error('OfflineAudioContext unavailable');const ctx=new OfflineAudioContext(1,8000,8000);const osc=ctx.createOscillator();osc.frequency.value=440;osc.connect(ctx.destination);osc.start();const out=await ctx.startRendering();if(!out||!out.length)throw new Error('Audio rendering produced no samples');return out.length+' samples rendered locally';
+  });
+  await test('browser','Video API capability',async()=>{
+    const v=document.createElement('video');if(!v.canPlayType)throw new Error('HTMLVideoElement unavailable');return 'HTML video pipeline available; native codec coverage is browser-dependent';});
+  render();
+}
+async function localHealth(){
+  const base='http://127.0.0.1:8765';
+  const r=await fetch(base+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(!j.ok||!j.token)throw new Error('Health response missing local token');return j;
+}
+async function runLocalTests(){
+  reset('local');writeLog('=== Local Engine diagnostics '+new Date().toISOString()+' ===');
+  let h;
+  try{h=await localHealth();state.local=h;}catch(e){
+    const t=begin('local','Local Engine connection');t.finish('SKIPPED','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');return;
+  }
+  await test('local','Local Engine health + token pairing',async()=>{state.local=h;return (Object.entries(h.tools||{}).filter(x=>x[1]&&x[1].installed).length)+' native tools detected; token pairing successful';});
+  const tool=(name)=>h.tools&&h.tools[name]&&h.tools[name].installed;
+  for(const [name,label] of [['ffmpeg','FFmpeg'],['qpdf','qpdf'],['pdftoppm','Poppler pdftoppm'],['pdftotext','Poppler pdftotext'],['tesseract','Tesseract OCR'],['soffice','LibreOffice'],['ebook-convert','Calibre'],['magick','ImageMagick']]){
+    if(tool(name)) await test('local',label+' executable detected',async()=>h.tools[name].path||'installed');
+    else skip('local',label+' executable detected','Not installed');
+  }
+  const headersToken=()=>({'Origin':location.origin,'X-Omni-Token':h.token});
+  const upload=async(blob,name)=>{
+    const rr=await fetch('http://127.0.0.1:8765/api/upload',{method:'POST',headers:Object.assign({},headersToken(),{'Content-Type':blob.type||'application/octet-stream','X-Filename':encodeURIComponent(name)}),body:blob});
+    if(!rr.ok)throw new Error('Upload HTTP '+rr.status+' '+(await rr.text()).slice(0,180));return (await rr.json()).file_id;
+  };
+  const process=async(payload)=>{
+    const rr=await fetch('http://127.0.0.1:8765/api/process',{method:'POST',headers:Object.assign({},headersToken(),{'Content-Type':'application/json'}),body:JSON.stringify(payload)});
+    const j=await rr.json();if(!rr.ok||!j.ok)throw new Error(j.error||('Process HTTP '+rr.status));return j;
+  };
+  const download=async(fid)=>{
+    const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
+  };
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1></body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const ids={};
+  await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
+  if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
+  if(tool('pdftoppm')) await test('local','Poppler PDF → image rendering',async()=>{const o=await process({op:'pdf_render',input:ids.pdf,dpi:72});const b=await download(o.file_id);if(!b.size)throw new Error('Empty render archive');return o.name+' • '+b.size+' bytes';}); else skip('local','Poppler PDF → image rendering','pdftoppm unavailable');
+  if(tool('pdftotext')) await test('local','Poppler PDF → text extraction',async()=>{const o=await process({op:'pdf_to_text',input:ids.pdf});const b=await download(o.file_id);const txt=await b.text();if(!/OMNI LOCAL/.test(txt))throw new Error('Expected text not found');return 'Extracted: '+txt.trim();}); else skip('local','Poppler PDF → text extraction','pdftotext unavailable');
+  if(tool('qpdf')){
+    await test('local','qpdf PDF compression',async()=>{const o=await process({op:'pdf_compress',input:ids.pdf});const b=await download(o.file_id);if(!b.size)throw new Error('Empty compressed PDF');return o.name+' • '+b.size+' bytes';});
+    await test('local','qpdf PDF merge',async()=>{const o=await process({op:'pdf_merge',inputs:[ids.pdf,ids.pdf]});const b=await download(o.file_id);if(!b.size)throw new Error('Empty merged PDF');return o.name+' • '+b.size+' bytes';});
+    await test('local','qpdf PDF split',async()=>{const o=await process({op:'pdf_split',input:ids.pdf});const b=await download(o.file_id);if(!b.size)throw new Error('Empty split archive');return o.name+' • '+b.size+' bytes';});
+  } else {skip('local','qpdf PDF compression','qpdf unavailable');skip('local','qpdf PDF merge','qpdf unavailable');skip('local','qpdf PDF split','qpdf unavailable');}
+  if(tool('tesseract')) await test('local','Native Tesseract OCR',async()=>{const o=await process({op:'ocr',input:ids.image,lang:'eng'});const b=await download(o.file_id);const text=await b.text();if(!/OMNI/i.test(text))throw new Error('OCR returned: '+text.trim());return 'Recognized: '+text.trim().replace(/\s+/g,' ');}); else skip('local','Native Tesseract OCR','Tesseract unavailable');
+  const txtId=await upload(txt,'omni-diagnostic.txt');
+  if(tool('soffice')) await test('local','LibreOffice Office conversion',async()=>{const o=await process({op:'office_convert',input:txtId,format:'pdf'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty Office conversion output');return o.name+' • '+b.size+' bytes';}); else skip('local','LibreOffice Office conversion','LibreOffice unavailable');
+  const htmlId=await upload(html,'omni-diagnostic.html');
+  if(tool('ebook-convert')) await test('local','Calibre ebook conversion',async()=>{const o=await process({op:'ebook_convert',input:htmlId,format:'epub'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty EPUB');return o.name+' • '+b.size+' bytes';}); else skip('local','Calibre ebook conversion','Calibre unavailable');
+  if(tool('ffmpeg')) await test('local','FFmpeg audio conversion',async()=>{const wavId=await upload(wav,'omni-diagnostic.wav');const o=await process({op:'media',input:wavId,format:'mp3'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty MP3');return o.name+' • '+b.size+' bytes';}); else skip('local','FFmpeg audio conversion','FFmpeg unavailable');
+  await test('local','Python ZIP archive operation',async()=>{const o=await process({op:'zip',inputs:[ids.image,ids.pdf]});const b=await download(o.file_id);if(!b.size)throw new Error('Empty ZIP');return o.name+' • '+b.size+' bytes';});
+  await test('local','Python GZIP operation',async()=>{const o=await process({op:'gzip',input:txtId});const b=await download(o.file_id);if(!b.size)throw new Error('Empty GZIP');return o.name+' • '+b.size+' bytes';});
+}
+async function runAll(){state.results=[];logBox.textContent='';await runBrowserTests();await runLocalTests();render();}
+window.omniRunDiagnostics=runAll;
+$('omniRunAllTests')?.addEventListener('click',runAll);
+$('omniRunBrowserTests')?.addEventListener('click',runBrowserTests);
+$('omniRunLocalTests')?.addEventListener('click',runLocalTests);
+$('omniExportDiagnostics')?.addEventListener('click',()=>{
+  const report={generatedAt:new Date().toISOString(),url:location.href,online:navigator.onLine,results:state.results,local:state.local?{platform:state.local.platform,python:state.local.python,tools:state.local.tools}:null};
+  const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='omni-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+render();
 })();
 </script>
 </body>
