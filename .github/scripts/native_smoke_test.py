@@ -236,6 +236,12 @@ try:
     with zipfile.ZipFile(ROOT/"split.zip") as z: assert any(n.endswith(".pdf") for n in z.namelist())
     print("25. PDF split archive: OK")
 
+    # CI coverage: 7z archive path should work through the native tool or py7zr fallback.
+    out=process({"op":"archive","input":up["file_id"],"format":"7z"},"ci-test-token")
+    download(out["file_id"],ROOT/"sample.7z","ci-test-token")
+    assert (ROOT/"sample.7z").stat().st_size > 0
+    print("27. 7z archive/fallback path: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
