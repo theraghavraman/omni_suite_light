@@ -33,12 +33,12 @@ def run_setup() -> None:
         raise SystemExit(cp.returncode)
 
 def verify() -> bool:
-    """Verify only the launch-critical runtime, not optional studio capabilities."""
+    """Verify the launch-critical runtime, including bundled offline browser assets."""
     p = pyexe()
     if not p.is_file():
         return False
     cp = subprocess.run(
-        [str(p), "-c", "import omni_local_server, omni_data_engine, omni_platform"],
+        [str(p), "-c", "import certifi, omni_local_server, omni_data_engine, omni_platform"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -46,6 +46,25 @@ def verify() -> bool:
     if cp.returncode != 0:
         print("[ERROR] Core Local Engine import check failed:", flush=True)
         print((cp.stderr or cp.stdout or "unknown Python import error").strip(), flush=True)
+        return False
+
+    required_assets = [
+        ROOT / "vendor/pdfjs/pdf.min.js",
+        ROOT / "vendor/pdfjs/pdf.worker.min.js",
+        ROOT / "vendor/jszip/jszip.min.js",
+        ROOT / "vendor/pdf-lib/pdf-lib.min.js",
+        ROOT / "vendor/tesseract/tesseract.min.js",
+        ROOT / "vendor/tesseract/worker.min.js",
+        ROOT / "vendor/tesseract/core/tesseract-core.wasm.js",
+        ROOT / "vendor/tesseract/lang/eng.traineddata.gz",
+        ROOT / "vendor/sheetjs/xlsx.full.min.js",
+        ROOT / "vendor/jsyaml/js-yaml.min.js",
+    ]
+    missing = [str(p.relative_to(ROOT)) for p in required_assets if not p.is_file() or p.stat().st_size == 0]
+    if missing:
+        print("[SETUP] Offline browser assets are incomplete:", flush=True)
+        for item in missing:
+            print(f"        {item}", flush=True)
         return False
     return True
 
