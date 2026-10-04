@@ -5086,6 +5086,7 @@ async function convertDedicated(fileObj,targetId,label){
     const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
   }catch(e){alert(label+': '+e.message)}
 }
+const __officeDedicatedControlIds=['officePresentationInput','officePresentationDrop','officePresentationControls','officePresentationName','officePresentationMeta','officePresentationTarget','officePresentationReset','officePresentationRun','officeSpreadsheetInput','officeSpreadsheetDrop','officeSpreadsheetControls','officeSpreadsheetName','officeSpreadsheetMeta','officeSpreadsheetTarget','officeSpreadsheetReset','officeSpreadsheetRun'];
 function bindDedicated(prefix,label){
   let f=null;
   const input=$(prefix+'Input'),drop=$(prefix+'Drop'),controls=$(prefix+'Controls'),targetEl=$(prefix+'Target');
