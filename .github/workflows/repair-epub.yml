@@ -1,0 +1,45 @@
+name: Repair EPUB template
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove injected script from EPUB template
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+          marker = '<script id="omni-platform-ui">'
+          start = s.find(marker, 280000)
+          if start < 0:
+              raise SystemExit("Injected block not found")
+          end = s.find("</script>", start)
+          if end < 0:
+              raise SystemExit("Injected block is unterminated")
+          cleaned = s[:start] + s[end + len("</script>"):]
+          p.write_text(cleaned, encoding="utf-8")
+          print("Removed injected platform script.")
+          PY
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path("index.html").read_text(encoding="utf-8")
+          assert '<script id="omni-platform-ui">' not in s
+          assert 'const chapterHtml =' in s
+          print("Repair verification passed.")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix EPUB template script contamination"
+          git push
