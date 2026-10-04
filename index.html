@@ -531,7 +531,8 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
     </section>
 
     <nav class="nav-bar">
-      <button type="button" class="nav-btn active" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
+      <button type="button" class="nav-btn active" data-tab="tabRAGStudio"><span class="studio-icon"><span class="studio-svg">✦</span></span><span class="studio-label">Private RAG</span><small>RAG • LOCAL LLM</small></button>
+      <button type="button" class="nav-btn" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
       <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Office Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabEpub"><span class="studio-icon studio-epub"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h9.2L18.5 7v12.5H6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4.5V7h3.5M9 9h5.5M9 12h5.5M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 6.5v13a1 1 0 0 0 1 1h10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></svg></span><span class="studio-label">EPUB Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabImages"><span class="studio-icon studio-image"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="m5.5 17 4.4-4.3 3.1 3 2.2-2.1 3.3 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="studio-label">Image Tools</span></button>
@@ -555,7 +556,62 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 
 
     <!-- 9. DATA STUDIO -->
-    <div class="module-panel" id="tabData">
+    <!-- PRIVATE RAG STUDIO -->
+    <div class="module-panel" id="tabRAGStudio">
+      <div class="card rag-hero">
+        <div class="rag-kicker">PRIVATE • BROWSER-FIRST • NO SERVER KNOWLEDGE STORE</div>
+        <h2>🧠 Private RAG Studio</h2>
+        <div class="sub">Build a private retrieval-augmented generation workspace in your browser. Documents are chunked, embedded and indexed locally; a small local LLM can synthesize answers from retrieved sources.</div>
+        <div class="rag-statbar">
+          <div class="rag-stat"><b id="ragDocs">0</b>documents</div>
+          <div class="rag-stat"><b id="ragChunks">0</b>chunks</div>
+          <div class="rag-stat"><b id="ragIndex">Empty</b>index</div>
+          <span class="rag-pill">Semantic Search</span><span class="rag-pill">Vector Search</span><span class="rag-pill">Hybrid Retrieval</span>
+        </div>
+      </div>
+      <div class="rag-grid">
+        <div>
+          <div class="card">
+            <h2>1. Knowledge Base</h2>
+            <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
+            <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Nothing is uploaded to Omni Suite. The index stays in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
+            <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Refresh Repository Knowledge</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
+            <div class="rag-status" id="ragStatus">Initializing private RAG…</div>
+          </div>
+          <div class="card">
+            <h2>2. Ask the Knowledge Base</h2>
+            <textarea id="ragQuery" class="form-textarea" style="min-height:110px" placeholder="Ask a question about your indexed knowledge…"></textarea>
+            <div class="rag-controls" style="margin-top:12px">
+              <div class="form-group"><label for="ragTopK">Retrieved chunks</label><input id="ragTopK" class="form-input" type="number" min="1" max="12" value="6"></div>
+              <div class="form-group"><label for="ragUseLLM">Generation</label><select id="ragUseLLM" class="form-select"><option value="true">Local small LLM</option><option value="false">Retrieval only</option></select></div>
+              <div class="form-group"><label>Privacy</label><div class="rag-status rag-ok" style="padding-top:10px">Documents + vectors remain local</div></div>
+            </div>
+            <div class="actions-bar"><button class="btn btn-primary" id="ragAsk">Ask • Retrieve + Generate</button><span class="rag-status">Ctrl/⌘ + Enter also asks</span></div>
+          </div>
+          <div class="card">
+            <h2>3. Answer</h2>
+            <div id="ragAnswer" class="rag-answer">Your grounded answer will appear here.</div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h2>Retrieved Sources</h2>
+            <div class="sub">Hybrid ranking combines embedding similarity with lexical relevance. The LLM only receives the selected context.</div>
+            <div id="ragSources"><div class="rag-status">No search performed yet.</div></div>
+          </div>
+          <div class="card">
+            <h2>How this RAG works</h2>
+            <div class="sub"><b>1. Ingest</b> → extract text from documents.<br><br><b>2. Chunk</b> → split content into retrieval-sized passages.<br><br><b>3. Embed</b> → create local vector representations with a browser embedding model.<br><br><b>4. Retrieve</b> → semantic vector + lexical hybrid search.<br><br><b>5. Generate</b> → optional small local LLM answers using only retrieved context.</div>
+          </div>
+          <div class="card">
+            <h2>Repository Knowledge</h2>
+            <div class="sub">When you add <code>knowledge-base/manifest.json</code> to the repository, this studio can fetch those public source files, index them locally, and retrieve from them. The repository is source material — the vector index remains in the user's browser.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div class="module-panel" id="tabData">
       <div class="card">
         <h2>🧬 9. Data Studio — Structured • Semi-Structured • Unstructured</h2>
         <div class="sub">A local data engineering workbench for tabular files, document data, SQL dialects, schemas, binary columnar formats and NoSQL export bridges. Processing is local through the Local Engine.</div>
@@ -2821,6 +2877,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 </script>
 
 <script src="./universal_data_studio.js"></script>
+<script src="./rag_studio.js"></script>
 <script src="./bi_code_studio.js"></script>
 
 <script id="omni-unicode-local-bridge">
@@ -3214,11 +3271,12 @@ $('codeLabFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0
 $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 })();
 </script>
-<script id="omni-navigation-v7">(function(){'use strict';const names={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'All Tests'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
+<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'All Tests'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
 <script id="omni-workspace-v9">
 (function(){
 'use strict';
 const meta={
+ tabRAGStudio:['Private RAG','Build a private local knowledge base with semantic/vector retrieval, hybrid search and an optional browser-run small language model.'],
  tabPdf:['PDF Suite','Convert, merge, split, compress and inspect PDF documents in one focused workspace.'],
  tabWord:['Office Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],
  tabEpub:['EPUB Studio','Build, inspect and transform EPUB books and their internal assets.'],
