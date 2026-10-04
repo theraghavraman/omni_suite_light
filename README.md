@@ -2,7 +2,7 @@
 
 **A private, offline-capable file toolkit that keeps processing on your device.**
 
-OmniConverter Studio is a browser-first document, image, OCR, audio, video and archive utility suite. The public layer works without installation for browser-capable jobs; the optional Local Engine adds native desktop processing for heavy and specialist formats.
+OmniConverter Studio is a browser-first document, image, OCR, audio, video, archive and data-engineering utility suite. The public layer works without installation for browser-capable jobs; the optional Local Engine adds native desktop processing for heavy and specialist formats.
 
 It has two execution modes:
 1. Browser mode — the public GitHub Pages site. Files are processed locally by JavaScript/WASM inside the browser.
@@ -50,6 +50,7 @@ The interface uses **Outfit**, a freely licensed typeface distributed under the 
 | Calibre EPUB/ebook conversion | No | Yes |
 | ImageMagick native processing | No | Yes |
 | Native Tesseract OCR | No | Yes |
+| Data format conversion / profiling | Limited browser support | Yes |
 | Fully offline browser assets | No on first public visit | Yes after setup |
 
 ### Rule of thumb
@@ -170,6 +171,21 @@ The browser layer intentionally stays conservative because browsers cannot encod
 
 **Important:** “Supported” means the engine accepts the format family and will attempt conversion. Codec/delegate availability varies by local FFmpeg/ImageMagick/LibreOffice/Calibre build. FFmpeg builds can be inspected with `ffmpeg -formats` and `ffmpeg -codecs`. citeturn3search1turn3search2
 
+### Data Studio — structured, semi-structured and database data
+The Data Studio is the new data-engineering layer. It uses pandas/PyArrow/DuckDB and optional format-specific libraries locally; no dataset is uploaded to a cloud service by OmniConverter.
+
+**Structured:** CSV/TSV, XLS/XLSX/XLSB, ODS, Parquet, ORC, Feather/Arrow IPC, Avro, SQLite and DuckDB.
+
+**Semi-structured:** JSON, JSONL/NDJSON, YAML, XML, HTML tables, MessagePack and JSON Schema generation.
+
+**SQL:** DDL/INSERT generation plus SQL dialect translation for Oracle, Microsoft SQL Server/T-SQL, PostgreSQL, MySQL, SQLite, DuckDB, Snowflake, BigQuery, Databricks, Redshift, Spark SQL, Trino, Presto, ClickHouse, Hive, Teradata, Athena and additional SQLGlot dialects. SQLGlot officially supports 30+ dialects with different support levels. citeturn0search1turn0search7
+
+**NoSQL/document bridges:** MongoDB BSON/Extended JSON ↔ JSON/JSONL/CSV/SQL, DynamoDB AttributeValue JSON ↔ normal JSON, and generated CQL/Cypher from flattened document datasets. MongoDB documents that Extended JSON is useful when BSON type fidelity matters; Neo4j and Cassandra both provide CSV-oriented import workflows. citeturn0search6turn3search0turn1search2
+
+**Columnar / analytics:** Parquet, ORC, Feather/Arrow IPC and Avro provide interchange paths for analytical systems. Arrow exposes a common table model and dataset APIs for Parquet, IPC/Feather, CSV, JSON and ORC. citeturn1search6turn1search9turn1search14
+
+**Important:** Data-model conversion is not the same as database migration. A relational table, MongoDB document, Redis key/value structure and Neo4j graph have different semantics. Data Studio therefore generates bridge files/scripts rather than pretending that a lossless “everything-to-everything” conversion exists.
+
 ### Office Studio formats
 Office Studio uses the Local Engine for native Office-family conversion. It now includes legacy, current, macro-enabled, template and OpenDocument families. VBA/macros and application-specific features are not guaranteed to survive conversion; LibreOffice documents fidelity limitations for complex Microsoft Office files. citeturn4search10
 - **Presentations:** PPT, PPTX, PPTM, PPS, PPSX, POT, POTX, POTM, ODP, OTP, FODP
@@ -247,6 +263,12 @@ The predefined local operations include:
 - ocr
 - office_convert
 - ebook_convert
+- archive
+- data_convert
+- data_profile
+- sql_transpile
+- schema_generate
+- nosql_convert
 - zip
 - gzip
 
@@ -266,7 +288,9 @@ The UI is the primary interface; users should not need to construct API requests
 | start_omni.bat / start_omni.command | Local launchers |
 | LOCAL_ENGINE.md | Detailed native/offline architecture |
 | THIRD_PARTY_NOTICES.md | Third-party dependency/licensing notes |
-| .github/workflows/local-engine-check.yml | Static/Python validation workflow |
+| requirements-data.txt | Optional Data Studio Python stack |
+| omni_data_engine.py | Structured/semi-structured data and SQL/NoSQL conversion engine |
+| .github/workflows/local-engine-check.yml | Static/Python/native validation workflow |
 
 ## 15. Troubleshooting checklist
 
