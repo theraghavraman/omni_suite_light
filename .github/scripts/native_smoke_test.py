@@ -109,11 +109,13 @@ try:
     assert data_caps.get("modules",{}).get("pandas"), "pandas is required for Data Studio CI"
     assert data_caps.get("modules",{}).get("pyarrow"), "pyarrow is required for Data Studio CI"
     assert data_caps.get("modules",{}).get("sqlglot"), "sqlglot is required for Data Studio CI"
+    assert data_caps.get("modules",{}).get("tabulate"), "tabulate is required for Data Studio CI"
     data_csv=ROOT/"data.csv"; data_csv.write_text("id,name,amount\n1,Alice,10.5\n2,Bob,20\n",encoding="utf-8")
     data_up=upload(data_csv,"ci-test-token")
     out=process({"op":"data_convert","input":data_up["file_id"],"format":"json"},"ci-test-token"); download(out["file_id"],ROOT/"data.json","ci-test-token")
     out=process({"op":"data_convert","input":data_up["file_id"],"format":"parquet"},"ci-test-token"); download(out["file_id"],ROOT/"data.parquet","ci-test-token")
     out=process({"op":"data_convert","input":data_up["file_id"],"format":"xlsx"},"ci-test-token"); download(out["file_id"],ROOT/"data.xlsx","ci-test-token")
+    out=process({"op":"data_convert","input":data_up["file_id"],"format":"md"},"ci-test-token"); download(out["file_id"],ROOT/"data.md","ci-test-token"); assert "Alice" in (ROOT/"data.md").read_text(encoding="utf-8")
     print("17. Data Studio CSV -> JSON/Parquet/XLSX: OK")
 
     # Round-trip integrity: CSV -> Parquet -> CSV must preserve normalized values.
