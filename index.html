@@ -2978,6 +2978,23 @@ body{overflow-x:hidden}
       </div>
 
       <div class="card">
+        <h2>4. Encoded / Cryptic / Binary Bridge</h2>
+        <div class="sub">Convert common encoded representations in-browser and inspect data that is not naturally visual.</div>
+        <div class="options-grid">
+          <div class="form-group"><label>Conversion</label><select id="udsEncodedMode" class="form-select">
+            <option value="hex-to-base64">Hex → Base64</option><option value="base64-to-hex">Base64 → Hex</option>
+            <option value="hex-to-text">Hex → Text</option><option value="base64-to-text">Base64 → Text</option>
+            <option value="text-to-hex">Text → Hex</option><option value="text-to-base64">Text → Base64</option>
+          </select></div>
+        </div>
+        <div class="options-grid">
+          <div class="form-group"><label>Input</label><textarea id="udsEncodedInput" class="form-textarea" placeholder="Paste hexadecimal, Base64, or text here…"></textarea></div>
+          <div class="form-group"><label>Output</label><textarea id="udsEncodedOutput" class="form-textarea" readonly placeholder="Converted representation…"></textarea></div>
+        </div>
+        <div class="actions-bar"><button type="button" class="btn btn-primary" id="udsEncodedRun">⇄ Convert Encoding</button><button type="button" class="btn btn-secondary" id="udsEncodedDownload">⬇ Save Output</button></div>
+      </div>
+
+      <div class="card">
         <h2>4. Conversion Boundary & Local Escalation</h2>
         <div class="sub">Some formats carry information that a browser cannot safely decode without a specialist parser. Omni should not pretend otherwise.</div>
         <div class="uds-boundaries">
