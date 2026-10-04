@@ -1826,7 +1826,26 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
     });
   </script>
 
-  <script src="./omni-core.js"></script>
+  <script id="omni-event-wiring-probe">
+(function(){
+  window.__OMNI_WIRED_CONTROLS = new WeakSet();
+  window.__OMNI_WIRED_CONTROL_IDS = new Set();
+  const nativeAdd=EventTarget.prototype.addEventListener;
+  if(!EventTarget.prototype.__omniWiringPatched){
+    EventTarget.prototype.addEventListener=function(type,listener,options){
+      try{
+        if(this && this.id && typeof listener==='function'){
+          window.__OMNI_WIRED_CONTROLS.add(this);
+          window.__OMNI_WIRED_CONTROL_IDS.add(this.id);
+        }
+      }catch(_){}
+      return nativeAdd.call(this,type,listener,options);
+    };
+    EventTarget.prototype.__omniWiringPatched=true;
+  }
+})();
+</script>
+<script src="./omni-core.js"></script>
 
 
 <script id="omni-browser-first">
