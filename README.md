@@ -11,6 +11,23 @@ It has two execution modes:
 > GitHub Pages can run browser JavaScript, but it cannot execute programs installed on your PC. When a conversion needs a native program, use the Local Engine instructions below.
 
 
+## Complete local environment profile
+
+The repository now contains a single **complete Python profile** in `requirements-local.txt`. The one-click installers use this file rather than asking users to choose between dependency lists. It layers:
+
+- Data Studio: pandas, PyArrow, DuckDB, YAML, SQLGlot, Excel/ODS/legacy spreadsheet readers, Avro, BSON/MessagePack and profiling.
+- Scientific: NumPy, SciPy, SymPy, xarray, NetCDF4, HDF5/h5netcdf, Astropy, CDF/GRIB/eccodes and Pillow.
+- Database: SQLAlchemy, PostgreSQL, MySQL, Oracle, ODBC, DuckDB, Snowflake, BigQuery, Databricks, Trino, ClickHouse, Redshift, Cassandra, Redis, Neo4j and DynamoDB connectors.
+- Archive/media: py7zr, rarfile, imageio, pydub and MoviePy.
+- Object-store/file adapters: fsspec, S3, GCS and Azure filesystem adapters.
+- Local OCR/vision runtime: EasyOCR.
+
+The installer also provisions the native engines required by the studios: FFmpeg/FFprobe, qpdf, Poppler, ImageMagick plus common image delegates, Ghostscript, Tesseract plus language packs, LibreOffice, Calibre, Pandoc and 7-Zip. It downloads the pinned browser/OCR assets into `vendor/` for the local offline deployment.
+
+After installation, `verify_local_environment.py` runs a strict check of Python imports, native executables, offline assets and `pip check`. The setup is considered complete only when this verifier passes.
+
+**One-command rule:** use `Omni.bat` on Windows or `Omni.command` on macOS/Linux. Those launchers automatically start the full installer when the local environment is not ready.
+
 ## 0.5 Platform layer
 
 The suite now includes a **Local Engine Doctor**, dynamic capability routing, **Batch Lab** with isolated failures/retry, **Database Studio**, **Data Cleaning & Privacy Studio**, and a static CI contract audit. The Doctor reports Python packages and native executables separately so the UI can distinguish a real local capability from an unavailable dependency.
