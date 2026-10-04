@@ -212,6 +212,15 @@ try:
     assert "sha256" in privacy_text and "email" in privacy_text.lower()
     print("22. Privacy scan report/hash contract: OK")
 
+    # CI coverage: Data Clean should remove duplicates and normalize whitespace.
+    dirty=ROOT/"dirty.csv"; dirty.write_text("name,value\n Alice ,10\n Alice ,10\n Bob ,20\n",encoding="utf-8")
+    dirty_up=upload(dirty,"ci-test-token")
+    out=process({"op":"data_clean","input":dirty_up["file_id"],"format":"csv","actions":["drop_duplicates","trim_strings","normalize_columns"]},"ci-test-token")
+    download(out["file_id"],ROOT/"clean.csv","ci-test-token")
+    clean_text=(ROOT/"clean.csv").read_text(encoding="utf-8")
+    assert clean_text.count("Alice") == 1 and " Alice " not in clean_text
+    print("23. Data Clean duplicate/whitespace normalization: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
