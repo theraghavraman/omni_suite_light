@@ -5287,6 +5287,13 @@ cards.forEach(wire);
         const s=parseFloat($("omniLocalStart").value); const e=parseFloat($("omniLocalEnd").value);
         if(Number.isFinite(s)) payload.start=s; if(Number.isFinite(e)) payload.end=e;
       }
+      if(kind==="scientific_convert"){
+        payload.format=$("omniLocalFormat").value;
+        if(selected[0]) payload.source_format=(selected[0].name||"").split(".").pop().toLowerCase();
+      }
+      if(kind==="text_document"){
+        payload.format=$("omniLocalFormat").value;
+      }
       if(kind==="image"){
         payload.format=$("omniLocalFormat").value;
         const w=parseInt($("omniLocalWidth").value,10); if(Number.isFinite(w)&&w>0) payload.width=w;
