@@ -101,7 +101,6 @@ try:
     html=ROOT/"sample.html"; html.write_text("<html><body><h1>OmniConverter CI</h1></body></html>",encoding="utf-8")
     htmlup=upload(html,"ci-test-token")
     process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("15. Calibre ebook conversion: OK")
-    epubup=upload(ROOT/"sample.epub","ci-test-token") if (ROOT/"sample.epub").exists() else None
 
     print("Expanded native format smoke test: PASS")
 finally:
