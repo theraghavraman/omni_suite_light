@@ -1324,7 +1324,7 @@
 
       <div class="card">
         <h2>1. Universal Data Converter</h2>
-        <div class="sub">Convert tabular and semi-structured data through a common DataFrame/Arrow representation. Nested JSON/YAML is normalized into columns where practical.</div>
+        <div class="sub">Browser-first conversion for common tabular and semi-structured formats, with Local Engine fallback for columnar/database-native formats and other heavy cases. Nested JSON/YAML is normalized into columns where practical.</div>
         <div class="dropzone" id="dataConvertDrop"><h3>Choose a data file</h3><p>CSV, TSV, JSON, JSONL, YAML, XML, Excel, ODS, Parquet, Feather, Arrow, ORC, Avro, SQLite, DuckDB and more</p><input type="file" id="dataConvertInput" class="file-input" accept=".csv,.tsv,.txt,.json,.jsonl,.ndjson,.yaml,.yml,.xml,.html,.md,.xlsx,.xls,.xlsb,.ods,.h5,.hdf,.hdf5,.parquet,.feather,.arrow,.ipc,.orc,.avro,.sqlite,.db,.duckdb,.sql,.dta,.sas,.sav,.msgpack,.mpk"></div>
         <div class="controls-panel" id="dataConvertControls" style="display:none;">
           <div class="file-summary"><div><div class="file-name" id="dataConvertName">No file selected</div><div class="file-meta" id="dataConvertMeta"></div></div><button type="button" class="btn-reset" id="dataConvertReset">Reset</button></div>
@@ -1707,7 +1707,7 @@
       <div class="omni-office-conversion-grid">
         <div class="card omni-office-area" id="officePresentationConverter">
           <h2>5. Presentation Conversion Area</h2>
-          <div class="sub">Dedicated PowerPoint / Impress conversion workspace. Convert presentation families between legacy, modern, slideshow, template and OpenDocument formats, plus PDF → presentation conversion.</div>
+          <div class="sub">Browser-first PowerPoint / Impress workspace. Common browser-safe operations run in-page; native rendering is reserved for conversions the browser cannot safely preserve.</div>
           <div class="dropzone" id="officePresentationDrop">
             <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5M12 19v2M9 21h6"/></svg>
             <h3>Choose a presentation file</h3>
