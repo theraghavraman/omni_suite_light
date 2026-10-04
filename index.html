@@ -2977,13 +2977,34 @@
       p2wDropzone.style.display = 'none';
       p2wControls.style.display = 'flex';
       p2wFileName.textContent = file.name;
+      p2wFileMeta.textContent = 'Reading PDF…';
+
       try {
+        // PDF.js expects binary PDF data as a typed byte array. Using Uint8Array
+        // here also keeps this path consistent with the other PDF loaders.
         const ab = await file.arrayBuffer();
-        currentP2wPdf = await pdfjsLib.getDocument({ data: ab }).promise;
-        p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages`;
+        const bytes = new Uint8Array(ab);
+        currentP2wPdf = await pdfjsLib.getDocument({
+          data: bytes,
+          useWorkerFetch: false,
+          isEvalSupported: true
+        }).promise;
+        p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
       } catch (e) {
-        alert('Could not read PDF.');
-        resetP2w();
+        console.error('PDF to Word: PDF.js could not open file', e);
+
+        // Retry once with a fresh byte buffer. This helps with browsers that
+        // detach/reuse the first ArrayBuffer during PDF.js initialization.
+        try {
+          const retryBytes = new Uint8Array(await file.arrayBuffer());
+          currentP2wPdf = await pdfjsLib.getDocument({ data: retryBytes }).promise;
+          p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
+        } catch (retryError) {
+          console.error('PDF to Word retry failed', retryError);
+          const reason = retryError?.message || e?.message || 'Unknown PDF.js error';
+          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\\n\\n' + reason);
+          resetP2w();
+        }
       }
     }
     p2wResetBtn.addEventListener('click', resetP2w);
