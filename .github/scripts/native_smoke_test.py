@@ -221,6 +221,15 @@ try:
     assert clean_text.count("Alice") == 1 and " Alice " not in clean_text
     print("23. Data Clean duplicate/whitespace normalization: OK")
 
+    # CI coverage: line-oriented conversion should produce valid JSON Lines.
+    lines=ROOT/"lines.txt"; lines.write_text('{"id":1,"name":"Alice"}\n{"id":2,"name":"Bob"}\n',encoding="utf-8")
+    lines_up=upload(lines,"ci-test-token")
+    out=process({"op":"text_lines","input":lines_up["file_id"],"target":"jsonl"},"ci-test-token")
+    download(out["file_id"],ROOT/"lines.jsonl","ci-test-token")
+    jsonl=(ROOT/"lines.jsonl").read_text(encoding="utf-8").strip().splitlines()
+    assert len(jsonl)==2 and json.loads(jsonl[0])["name"]=="Alice"
+    print("24. Text-lines JSONL bridge: OK")
+
     print("Expanded native + Data Studio + Scientific smoke test: PASS")
 finally:
     if server:
