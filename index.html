@@ -4614,7 +4614,7 @@ updateMode();
 (function(){
 'use strict';
 const $=id=>document.getElementById(id), groups=$('omniAllGroups'), state=[];
-const studioMap={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabLocal:'Local Engine'};
+const studioMap={tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text / OCR',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine'};
 function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function add(studio,name,status,detail){state.push({studio,name,status,detail});}
 function render(){
