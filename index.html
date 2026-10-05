@@ -625,7 +625,9 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           <div class="card">
             <div class="rag-section-label">STEP 1</div><h2>Build your knowledge base</h2>
             <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
-            <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Nothing is uploaded to Omni Suite. The index stays in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
+            <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Selecting a file does not index it yet. Your file stays in this page until you choose to save it to GitHub or prepare the local search index.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
+            <div class="rag-list" id="ragSelectedFiles" style="margin-top:10px"><span style="display:block;padding:10px 12px;color:#667085;font-size:.75rem">Nothing selected yet.</span></div>
+            <div class="rag-status" id="ragFileStatus" style="margin-top:8px">Nothing selected yet.</div>
             <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
 <div class="rag-github-card">
   <div class="rag-section-label">PERSONAL GITHUB SYNC</div>
