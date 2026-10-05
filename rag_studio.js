@@ -23,7 +23,7 @@ function css(){
 .rag-list{max-height:260px;overflow:auto;border:1px solid #e1e5ee;border-radius:14px}.rag-item{padding:10px 12px;border-bottom:1px solid #edf0f5;display:flex;justify-content:space-between;gap:12px}.rag-item:last-child{border-bottom:0}.rag-item small{display:block;color:#70798b}
 .rag-answer{min-height:150px;white-space:pre-wrap;line-height:1.55;border:1px solid #e0e4ed;border-radius:14px;padding:16px;background:#fbfcfe}
 .rag-source{padding:10px 12px;border:1px solid #e4e7ef;border-radius:12px;margin-top:8px;background:#fff}.rag-source b{display:block}.rag-source b a{color:#5d46bd;text-decoration:none}.rag-source b a:hover{text-decoration:underline}.rag-source small{color:#667085}
-.rag-status{font-size:.82rem;color:#667085}.rag-ok{color:#087f5b}.rag-warn{color:#9a6700}.rag-error{color:#b42318}
+.rag-status{font-size:.82rem;color:#667085}.rag-ok{color:#087f5b}.rag-warn{color:#9a6700}.rag-error{color:#b42318}.rag-github-card{margin-top:12px;border:1px solid #dfe3ef;border-radius:15px;background:linear-gradient(145deg,#fff,#faf9ff);padding:14px}.rag-github-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:9px;margin-top:10px}.rag-github-note{font-size:.68rem;line-height:1.45;color:#667085;margin-top:8px}.rag-github-note b{color:#4b4666}.rag-github-status{margin-top:9px;padding:8px 10px;border-radius:10px;background:#f4f6fb;font-size:.74rem;color:#667085}.rag-github-status.ok{background:#ecfbf5;color:#087f5b}.rag-github-status.error{background:#fff0f0;color:#b42318}@media(max-width:700px){.rag-github-grid{grid-template-columns:1fr}}
 .rag-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.rag-controls .form-group{margin:0}
 .rag-pill{display:inline-flex;padding:5px 9px;border-radius:999px;background:#f0edff;color:#5d46bd;font-size:.72rem;font-weight:700}
 .rag-model-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff,#faf9ff);border:1px solid #e8e5f4}
@@ -116,18 +116,51 @@ async function refreshRepo(){
   const tree=await fetch("https://api.github.com/repos/"+repo+"/git/trees/main?recursive=1",{cache:"no-store"});
   if(!tree.ok)throw new Error("GitHub repository tree unavailable");
   const j=await tree.json();
-  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\/|dist\/|build\/|coverage\/)/i.test(x.path));
+  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst|pdf|docx)$/i.test(x.path)||/(^|\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\/|dist\/|build\/|coverage\/)/i.test(x.path));
   const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha])),oldMap=previous?.files||{};
   const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);await deleteSources(removed.map(p=>"Repository: "+p));
   const nextMap={...oldMap};removed.forEach(p=>delete nextMap[p]);
   const pending=files.filter(x=>oldMap[x.path]!==x.sha);
   let changed=0,failed=0;
-  const worker=async x=>{try{await deleteSources(["Repository: "+x.path]);const rr=await fetch("https://raw.githubusercontent.com/"+repo+"/main/"+x.path.split("/").map(encodeURIComponent).join("/"),{cache:"no-store"});if(!rr.ok||rr.status===404){delete nextMap[x.path];return false;}const t=await rr.text();if(t.length>300000){delete nextMap[x.path];return false;}await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha,repositoryName:repo});nextMap[x.path]=x.sha;return true}catch(e){delete nextMap[x.path];return false}};
+  const worker=async x=>{try{await deleteSources(["Repository: "+x.path]);const rr=await fetch("https://raw.githubusercontent.com/"+repo+"/main/"+x.path.split("/").map(encodeURIComponent).join("/"),{cache:"no-store"});if(!rr.ok||rr.status===404){delete nextMap[x.path];return false;}const binary=/\.(pdf|docx)$/i.test(x.path);let t;if(binary){const b=await rr.blob();if(b.size>12000000){delete nextMap[x.path];return false;}const f=new File([b],x.path.split("/").pop(),{type:b.type});t=await extractFile(f)}else{t=await rr.text();if(t.length>300000){delete nextMap[x.path];return false;}}if(!t||!t.trim()){delete nextMap[x.path];return false;}await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha,repositoryName:repo});nextMap[x.path]=x.sha;return true}catch(e){console.error("Repository index failed:",x.path,e);delete nextMap[x.path];return false}};
   for(let i=0;i<pending.length;i+=6){const results=await Promise.all(pending.slice(i,i+6).map(worker));results.forEach(ok=>ok?changed++:failed++)}
   await metaSet(REPO_KEY,{indexVersion:INDEX_VERSION,repository:repo,commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
   chunks=await getAll();updateStats();
   status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
+}
+function githubToken(){return sessionStorage.getItem("omniRagGithubToken")||localStorage.getItem("omniRagGithubToken")||""}
+function githubCfg(){return {repo:($("ragGithubRepo")?.value||DEFAULT_REPO).trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,""),folder:($("ragGithubFolder")?.value||"knowledge-base").trim().replace(/^\/+|\/+$/g,""),branch:($("ragGithubBranch")?.value||"main").trim()||"main"}}
+function b64(buf){let s="",a=new Uint8Array(buf);const step=0x8000;for(let i=0;i<a.length;i+=step)s+=String.fromCharCode(...a.subarray(i,Math.min(i+step,a.length)));return btoa(s)}
+function setGithubStatus(msg,kind=""){const el=$("ragGithubStatus");if(el){el.textContent=msg;el.className="rag-github-status "+kind}}
+function forgetGitHubToken(){sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken");const i=$("ragGithubToken");if(i)i.value="";setGithubStatus("GitHub token cleared from this browser.","ok")}
+async function saveSelectedToGitHub(){
+ const files=[...($("ragFiles")?.files||[])];if(!files.length){setGithubStatus("Choose at least one file first.","error");return}
+ const token=($("ragGithubToken")?.value||githubToken()).trim();if(!token){setGithubStatus("Enter your GitHub fine-grained token first.","error");return}
+ const cfg=githubCfg();if(!/^[^/]+\/[^/]+$/.test(cfg.repo)){setGithubStatus("Repository must look like owner/repository.","error");return}
+ if($("ragGithubRemember")?.checked)localStorage.setItem("omniRagGithubToken",token);else sessionStorage.setItem("omniRagGithubToken",token);
+ const btn=$("ragGithubSave");if(btn)btn.disabled=true;
+ try{
+  setGithubStatus("Checking GitHub access…");
+  const base="https://api.github.com/repos/"+cfg.repo;
+  const hr=await fetch(base,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
+  if(!hr.ok)throw new Error("GitHub access failed (HTTP "+hr.status+"). Check the token and repository.");
+  const repoInfo=await hr.json();if(repoInfo.permissions&&!repoInfo.permissions.push)throw new Error("This token does not have write access to the repository.");
+  for(let n=0;n<files.length;n++){
+   const f=files[n],safe=f.name.replace(/[^a-zA-Z0-9._() -]/g,"_"),path=(cfg.folder?cfg.folder+"/":"")+safe;
+   setGithubStatus("Saving "+(n+1)+"/"+files.length+" · "+path+" …");
+   if(f.size>10*1024*1024)throw new Error(f.name+" is larger than 10 MB; use a smaller knowledge file.");
+   const content=b64(await f.arrayBuffer());
+   const url=base+"/contents/"+path.split("/").map(encodeURIComponent).join("/");
+   let existing=null;const gr=await fetch(url+"?ref="+encodeURIComponent(cfg.branch),{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
+   if(gr.ok){existing=await gr.json()}else if(gr.status!==404)throw new Error("Could not check "+path+" (HTTP "+gr.status+")");
+   const body={message:"knowledge: add "+safe,content,branch:cfg.branch};if(existing?.sha)body.sha=existing.sha;
+   const pr=await fetch(url,{method:"PUT",headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},body:JSON.stringify(body)});
+   const pj=await pr.json();if(!pr.ok)throw new Error(pj.message||("GitHub save failed (HTTP "+pr.status+")"));
+  }
+  setGithubStatus("✓ Saved "+files.length+" file"+(files.length===1?"":"s")+" to "+cfg.repo+"/"+cfg.folder+" on "+cfg.branch+". Refreshing local repository knowledge…","ok");
+  await refreshRepo();
+ }catch(e){console.error(e);setGithubStatus("GitHub save failed: "+e.message,"error")}finally{if(btn)btn.disabled=false}
 }
 async function updateRepoStatus(){
  const m=await metaGet(REPO_KEY).catch(()=>null),box=$("ragRepoStatus");if(!box)return;
@@ -139,7 +172,7 @@ function bind(){
  css();initRuntimeStatus();$("ragFiles").onchange=e=>addFiles([...e.target.files]);
  const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");addFiles([...e.dataTransfer.files])});
  $("ragAsk").onclick=answer;$("ragQuery").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")answer()});
- $("ragRepo").onclick=refreshRepo;$("ragClear").onclick=async()=>{await clearDB();chunks=[];updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
+ $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{if(!e.target.checked)localStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
  $("ragEmbed").onclick=async()=>{try{await loadEmbedder();$("ragStatus").textContent="Semantic embedding model ready in this browser."}catch(e){$("ragStatus").textContent="Embedding model could not load: "+e.message}};
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }
