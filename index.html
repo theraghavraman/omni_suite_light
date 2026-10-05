@@ -4393,5 +4393,46 @@ function initCommandPalette(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCommandPalette,{once:true});else initCommandPalette();
 })();
 </script>
+<style id="omni-studio-active-white-final">
+/* Absolute final override for selected studio tiles. */
+.nav-bar .nav-btn.active,
+.nav-bar .nav-btn.active:hover,
+.nav-bar .nav-btn.active:focus,
+.nav-bar .nav-btn.active:focus-visible{
+  background:#FFFFFF !important;
+  background-image:none !important;
+  color:#1B2A49 !important;
+  border:1px solid rgba(27,42,73,.12) !important;
+  box-shadow:0 10px 24px -14px rgba(27,42,73,.24),inset 0 -3px 0 var(--c) !important;
+  text-shadow:none !important;
+}
+.nav-bar .nav-btn.active::before{content:none !important;display:none !important;background:none !important}
+.nav-bar .nav-btn.active::after{
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  left:50% !important;
+  bottom:5px !important;
+  width:22px !important;
+  height:4px !important;
+  margin-left:-11px !important;
+  border-radius:999px !important;
+  background:var(--c) !important;
+  opacity:1 !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
+.nav-bar .nav-btn.active .studio-icon{
+  color:var(--c) !important;
+  background:var(--cs) !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+  transform:scale(1.05) !important;
+}
+.nav-bar .nav-btn.active .studio-label,
+.nav-bar .nav-btn.active small{
+  color:#1B2A49 !important;
+}
+</style>
 </body>
 </html>
