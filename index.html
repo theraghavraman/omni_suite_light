@@ -3709,7 +3709,178 @@ async function runLocalTests(){
   const download=async(fid)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
-  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p></body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p><style id="omni-motion-enhancement-v1">
+/* Omni Suite Motion Enhancement v1 */
+:root{
+  --omni-motion-fast:.22s;
+  --omni-motion-med:.5s;
+  --omni-motion-slow:.8s;
+  --omni-motion-ease:cubic-bezier(.22,1,.36,1);
+  --omni-motion-spring:cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Smooth studio/page transitions */
+body.studio-mode .hero-header{
+  transition:opacity .45s var(--omni-motion-ease),transform .65s var(--omni-motion-ease),filter .45s ease;
+}
+body.studio-mode .hero-header{
+  opacity:.92;
+  transform:translateY(-8px) scale(.992);
+}
+.module-panel.active{
+  animation:omniStudioEnter .62s var(--omni-motion-ease) both;
+}
+.module-panel.active .studio-workspace-head{
+  animation:omniWorkspaceReveal .7s var(--omni-motion-ease) both;
+}
+.module-panel.active .studio-overview{
+  animation:omniOverviewReveal .72s var(--omni-motion-ease) .06s both;
+}
+@keyframes omniStudioEnter{
+  from{opacity:0;transform:translateY(24px);filter:blur(5px)}
+  to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+@keyframes omniWorkspaceReveal{
+  from{opacity:0;transform:translateX(-22px) scale(.985)}
+  to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes omniOverviewReveal{
+  from{opacity:0;transform:translateY(18px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+/* More alive studio navigation */
+.nav-bar .nav-btn{
+  transform-origin:center bottom;
+  will-change:transform;
+}
+.nav-bar .nav-btn::after{
+  transition:width .35s var(--omni-motion-spring),opacity .25s ease,transform .35s var(--omni-motion-spring);
+}
+.nav-bar .nav-btn:not(.active):hover{
+  animation:omniNavHover .55s var(--omni-motion-spring);
+}
+@keyframes omniNavHover{
+  0%{transform:translateY(0) rotate(0)}
+  55%{transform:translateY(-8px) rotate(-.8deg)}
+  100%{transform:translateY(-6px) rotate(0)}
+}
+.nav-bar .nav-btn:hover .studio-label{
+  letter-spacing:.025em;
+  transition:letter-spacing .3s var(--omni-motion-ease);
+}
+.nav-bar .nav-btn.active .studio-icon{
+  animation:omniActiveIcon .7s var(--omni-motion-spring);
+}
+@keyframes omniActiveIcon{
+  0%{transform:scale(.86) rotate(-8deg)}
+  55%{transform:scale(1.13) rotate(4deg)}
+  100%{transform:scale(1.05) rotate(0)}
+}
+
+/* Tool map: staggered entrance + tactile hover */
+.studio-tool-map .studio-tool-link{
+  opacity:0;
+  transform:translateY(10px);
+  animation:omniToolMapIn .45s var(--omni-motion-ease) forwards;
+  transition:transform .28s var(--omni-motion-spring),box-shadow .28s ease,background .28s ease,color .22s ease;
+}
+.studio-tool-map .studio-tool-link:nth-child(1){animation-delay:.04s}
+.studio-tool-map .studio-tool-link:nth-child(2){animation-delay:.07s}
+.studio-tool-map .studio-tool-link:nth-child(3){animation-delay:.10s}
+.studio-tool-map .studio-tool-link:nth-child(4){animation-delay:.13s}
+.studio-tool-map .studio-tool-link:nth-child(5){animation-delay:.16s}
+.studio-tool-map .studio-tool-link:nth-child(6){animation-delay:.19s}
+.studio-tool-map .studio-tool-link:nth-child(7){animation-delay:.22s}
+.studio-tool-map .studio-tool-link:nth-child(8){animation-delay:.25s}
+.studio-tool-map .studio-tool-link:nth-child(n+9){animation-delay:.28s}
+.studio-tool-map .studio-tool-link:hover{
+  transform:translateY(-3px) scale(1.025);
+  box-shadow:0 10px 22px -15px rgba(108,92,255,.55);
+}
+.studio-tool-map .studio-tool-link.active{
+  animation:omniToolPulse .5s var(--omni-motion-spring);
+}
+@keyframes omniToolMapIn{
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes omniToolPulse{
+  0%{transform:scale(.96)}
+  55%{transform:scale(1.045)}
+  100%{transform:scale(1)}
+}
+
+/* Ambient pointer glow — attached by the companion script below */
+.omni-pointer-glow{
+  position:fixed;
+  width:260px;height:260px;
+  left:0;top:0;
+  margin:-130px 0 0 -130px;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:1;
+  opacity:0;
+  background:radial-gradient(circle,rgba(108,92,255,.13),rgba(255,79,154,.055) 34%,transparent 70%);
+  filter:blur(2px);
+  transition:opacity .35s ease;
+  will-change:transform;
+}
+body.omni-pointer-active .omni-pointer-glow{opacity:1}
+
+/* Button press/ripple feel without changing button logic */
+.btn,.nav-btn,.studio-tool-link{
+  -webkit-user-select:none;
+  user-select:none;
+}
+.btn:not(:disabled):active{
+  transition-duration:.08s;
+}
+
+/* Respect accessibility settings */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.001ms !important;
+  }
+  .omni-pointer-glow{display:none !important}
+}
+@media (max-width:700px){
+  .omni-pointer-glow{display:none}
+  body.studio-mode .hero-header{transform:none;opacity:1}
+}
+</style>
+<script id="omni-motion-enhancement-v1-script">
+(function(){
+'use strict';
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+function init(){
+  if(document.querySelector('.omni-pointer-glow'))return;
+  const glow=document.createElement('div');
+  glow.className='omni-pointer-glow';
+  document.body.appendChild(glow);
+  let tx=0,ty=0,cx=0,cy=0,raf=0;
+  const move=e=>{
+    tx=e.clientX;ty=e.clientY;
+    document.body.classList.add('omni-pointer-active');
+    if(!raf)raf=requestAnimationFrame(tick);
+  };
+  const tick=()=>{
+    cx+=(tx-cx)*.16;cy+=(ty-cy)*.16;
+    glow.style.transform='translate3d('+cx+'px,'+cy+'px,0)';
+    raf=Math.abs(tx-cx)+Math.abs(ty-cy)>0.4?requestAnimationFrame(tick):0;
+  };
+  window.addEventListener('pointermove',move,{passive:true});
+  window.addEventListener('pointerleave',()=>document.body.classList.remove('omni-pointer-active'));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)document.body.classList.remove('omni-pointer-active');
+  });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
   if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
