@@ -332,7 +332,24 @@ def _ai_chat(messages, model=None, temperature=0.1, max_tokens=512):
     s=_ai_select(); provider=s["provider"]; model=model or AI_MODEL or s["model"]
     if not model: raise RuntimeError("Local AI provider is running but no model is loaded.")
     if provider=="ollama":
-        payload={"model":model,"messages":messages,"stream":False,"options":{"temperature":temperature,"num_predict":max_tokens}}
+        # Ollama's chat API carries images in a message-level "images" array.
+        ollama_messages=[]
+        for m in messages:
+            content=m.get("content","")
+            images=[]
+            if isinstance(content,list):
+                text_parts=[]
+                for part in content:
+                    if isinstance(part,dict) and part.get("type")=="text":
+                        text_parts.append(str(part.get("text","")))
+                    elif isinstance(part,dict) and part.get("type")=="image_url":
+                        u=((part.get("image_url") or {}).get("url") or "")
+                        if u: images.append(u.split(",",1)[-1])
+                content="\n".join(text_parts)
+            item={"role":m.get("role","user"),"content":str(content)}
+            if images: item["images"]=images
+            ollama_messages.append(item)
+        payload={"model":model,"messages":ollama_messages,"stream":False,"options":{"temperature":temperature,"num_predict":max_tokens}}
         out=_ai_http(OLLAMA_URL+"/api/chat",payload,AI_TIMEOUT)
         return {"text":str(out.get("message",{}).get("content","")).strip(),"provider":provider,"model":model}
     payload={"model":model,"messages":messages,"temperature":temperature,"max_tokens":max_tokens,"stream":False}
