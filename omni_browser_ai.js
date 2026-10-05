@@ -6,7 +6,7 @@
 (()=>{"use strict";
 
 const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
-const VERSION="1.0.0";
+const VERSION="1.1.0";
 const MODEL_REGISTRY=Object.freeze({
   general:{label:"SmolLM2 135M",task:"text-generation",model:"onnx-community/SmolLM2-135M-Instruct-ONNX",dtype:"q4",role:"General browser AI"},
   embeddings:{label:"all-MiniLM-L6-v2",task:"feature-extraction",model:"Xenova/all-MiniLM-L6-v2",dtype:"q4",role:"Embeddings / semantic similarity"},
@@ -20,7 +20,7 @@ const MODEL_REGISTRY=Object.freeze({
   documentQa:{label:"Donut DocVQA",task:"document-question-answering",model:"Xenova/donut-base-finetuned-docvqa",dtype:"q4",role:"Document understanding"},
   ner:{label:"Multilingual NER",task:"token-classification",model:"Xenova/bert-base-multilingual-cased-ner-hrl",dtype:"q4",role:"Entity extraction"},
   depth:{label:"Depth Anything V2 Small",task:"depth-estimation",model:"onnx-community/depth-anything-v2-small",dtype:"q4",role:"Image depth"},
-  stronger:{label:"Qwen3 0.6B",task:"text-generation",model:"onnx-community/Qwen3-0.6B-Instruct-ONNX",dtype:"q4",role:"Optional stronger browser LLM"}
+  stronger:{label:"Qwen3 0.6B",task:"text-generation",model:"onnx-community/Qwen3-0.6B-Instruct-ONNX",dtype:"q4f16",role:"Stronger browser document AI"}
 });
 const loaded=new Map(), loading=new Map();
 let transformers=null;
@@ -54,7 +54,7 @@ async function load(key){
 function trimText(t,n=7000){return String(t||"").replace(/\u0000/g," ").replace(/\s+/g," ").trim().slice(0,n)}
 function textFromOutput(o){
   if(Array.isArray(o)){
-    if(o[0]?.generated_text!=null)return String(o[0].generated_text);
+    if(o[0]?.generated_text!=null){const g=o[0].generated_text;if(Array.isArray(g))return String(g[g.length-1]?.content||g[g.length-1]?.text||"");return String(g);}
     if(o[0]?.summary_text!=null)return String(o[0].summary_text);
     if(o[0]?.text!=null)return String(o[0].text);
     if(o[0]?.answer!=null)return String(o[0].answer);
@@ -68,8 +68,14 @@ async function generate(prompt,options={}){
   const key=options.model||"general";
   const pipe=await load(key);
   const p=trimText(prompt,options.maxInput||6500);
-  const out=await pipe(p,{max_new_tokens:options.maxNewTokens||180,do_sample:false,return_full_text:false});
-  return textFromOutput(out);
+  let out;
+  if(key==="stronger"){
+    const messages=[{role:"system",content:"You are a precise document-analysis assistant. Use only facts supplied by the user. Never invent missing details. Do not repeat phrases or sections. Give a concise, well-structured final answer."},{role:"user",content:p}];
+    out=await pipe(messages,{max_new_tokens:options.maxNewTokens||220,do_sample:false,return_full_text:false});
+  }else{
+    out=await pipe(p,{max_new_tokens:options.maxNewTokens||180,do_sample:false,return_full_text:false});
+  }
+  return textFromOutput(out).replace(/<think>[\\s\\S]*?<\\/think>/gi,"").trim()||"No usable answer was generated.";
 }
 async function summarize(text,options={}){
   const pipe=await load("summarizer");
