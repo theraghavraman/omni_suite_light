@@ -1757,7 +1757,27 @@
     async function translateOcrText() {
       if (!ocrOutputText?.value?.trim()) return;
       if (!window.Translator || typeof window.Translator.create !== 'function') {
-        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Browser language conversion is not available in this browser. Try a current Chromium-based browser with the built-in Translator API enabled.';
+        const useWebFallback = window.confirm(
+          'This browser does not expose the built-in local Translator API.\\n\\nUse the optional web translation fallback? Your extracted OCR text will be sent to the translation service.\\n\\nChoose Cancel to keep the text entirely local.'
+        );
+        if (!useWebFallback) {
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Local browser translation is unavailable here. No text was uploaded.';
+          return;
+        }
+        ocrTranslateBtn.disabled = true;
+        ocrTranslateOutput.style.display = 'none';
+        ocrTranslateActions.style.display = 'none';
+        try {
+          const translated = await translateOcrViaWebFallback(ocrOutputText.value.trim(), ocrTranslateSource?.value || 'en', ocrTranslateTarget?.value || 'hi');
+          ocrTranslateOutput.value = translated || 'No translation returned.';
+          ocrTranslateOutput.style.display = 'block';
+          ocrTranslateActions.style.display = 'flex';
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Translated using the optional web fallback. The OCR text left this browser for translation.';
+        } catch (err) {
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Web translation failed: ' + (err?.message || err);
+        } finally {
+          ocrTranslateBtn.disabled = false;
+        }
         return;
       }
       const source = ocrTranslateSource?.value || 'en';
