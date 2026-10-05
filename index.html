@@ -1423,13 +1423,29 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
                 <option value="deu">German</option>
                 <option value="fra">French</option>
                 <option value="spa">Spanish</option>
+                <option value="ita">Italian</option>
+                <option value="por">Portuguese</option>
+                <option value="nld">Dutch</option>
+                <option value="tur">Turkish</option>
+                <option value="rus">Russian</option>
+                <option value="ara">Arabic</option>
+                <option value="urd">Urdu</option>
+                <option value="jpn">Japanese</option>
+                <option value="kor">Korean</option>
                 <option value="chi_sim">Chinese (Simplified)</option>
+                <option value="chi_tra">Chinese (Traditional)</option>
+                <option value="vie">Vietnamese</option>
                 <option value="ben">Bengali</option>
                 <option value="mar">Marathi</option>
+                <option value="nep">Nepali</option>
                 <option value="tam">Tamil</option>
                 <option value="tel">Telugu</option>
+                <option value="mal">Malayalam</option>
+                <option value="kan">Kannada</option>
                 <option value="guj">Gujarati</option>
                 <option value="pan">Punjabi</option>
+                <option value="ori">Odia</option>
+                <option value="sin">Sinhala</option>
               </select>
               <div class="form-hint">The offline setup downloads these language models locally; native Tesseract can provide additional languages installed on the computer.</div>
             </div>
@@ -1441,6 +1457,86 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           <div class="progress-wrapper" id="ocrProgressWrapper">
             <div class="progress-info"><span id="ocrProgressText">Recognizing text...</span><span id="ocrProgressPercent">0%</span></div>
             <div class="progress-bar-bg"><div class="progress-bar-fill" id="ocrProgressBar"></div></div>
+          </div>
+
+          <div id="ocrTranslatePanel" style="display:none; margin-top:14px; padding:14px; border:1px solid #dce5f0; border-radius:14px; background:linear-gradient(145deg,#fbfdff,#f4f7ff);">
+            <div style="font-size:.9rem;font-weight:800;color:#26304b;">🌐 Convert extracted text language</div>
+            <div style="font-size:.75rem;color:#6b7890;margin-top:4px;line-height:1.45;">Browser-only translation using the browser's built-in Translator when supported. No translation API or server upload is used.</div>
+            <div class="options-grid" style="margin-top:10px;">
+              <div class="form-group">
+                <label for="ocrTranslateSource">Source language</label>
+                <select id="ocrTranslateSource" class="form-select">
+                  <option value="en" selected>English</option>
+                  <option value="hi">Hindi</option>
+                  <option value="de">German</option>
+                  <option value="fr">French</option>
+                  <option value="es">Spanish</option>
+                  <option value="it">Italian</option>
+                  <option value="pt">Portuguese</option>
+                  <option value="nl">Dutch</option>
+                  <option value="tr">Turkish</option>
+                  <option value="ru">Russian</option>
+                  <option value="ar">Arabic</option>
+                  <option value="ur">Urdu</option>
+                  <option value="ja">Japanese</option>
+                  <option value="ko">Korean</option>
+                  <option value="zh">Chinese</option>
+                  <option value="vi">Vietnamese</option>
+                  <option value="bn">Bengali</option>
+                  <option value="mr">Marathi</option>
+                  <option value="ta">Tamil</option>
+                  <option value="te">Telugu</option>
+                  <option value="ml">Malayalam</option>
+                  <option value="kn">Kannada</option>
+                  <option value="gu">Gujarati</option>
+                  <option value="pa">Punjabi</option>
+                  <option value="ne">Nepali</option>
+                  <option value="or">Odia</option>
+                  <option value="si">Sinhala</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="ocrTranslateTarget">Convert to</label>
+                <select id="ocrTranslateTarget" class="form-select">
+                  <option value="hi">Hindi</option>
+                  <option value="en" selected>English</option>
+                  <option value="de">German</option>
+                  <option value="fr">French</option>
+                  <option value="es">Spanish</option>
+                  <option value="it">Italian</option>
+                  <option value="pt">Portuguese</option>
+                  <option value="nl">Dutch</option>
+                  <option value="tr">Turkish</option>
+                  <option value="ru">Russian</option>
+                  <option value="ar">Arabic</option>
+                  <option value="ur">Urdu</option>
+                  <option value="ja">Japanese</option>
+                  <option value="ko">Korean</option>
+                  <option value="zh">Chinese</option>
+                  <option value="vi">Vietnamese</option>
+                  <option value="bn">Bengali</option>
+                  <option value="mr">Marathi</option>
+                  <option value="ta">Tamil</option>
+                  <option value="te">Telugu</option>
+                  <option value="ml">Malayalam</option>
+                  <option value="kn">Kannada</option>
+                  <option value="gu">Gujarati</option>
+                  <option value="pa">Punjabi</option>
+                  <option value="ne">Nepali</option>
+                  <option value="or">Odia</option>
+                  <option value="si">Sinhala</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions-bar" style="margin-top:10px;">
+              <button type="button" class="btn btn-secondary" id="ocrTranslateBtn">🌐 Convert Language in Browser</button>
+            </div>
+            <div id="ocrTranslateStatus" class="form-hint" style="margin-top:8px;">Checking browser translation support…</div>
+            <textarea id="ocrTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" aria-label="Translated OCR text"></textarea>
+            <div id="ocrTranslateActions" class="actions-bar" style="display:none;margin-top:8px;">
+              <button type="button" class="btn btn-secondary" id="ocrTranslateCopyBtn">📋 Copy Translation</button>
+              <button type="button" class="btn btn-primary" id="ocrTranslateDownloadBtn">💾 Save Translation</button>
+            </div>
           </div>
 
           <div id="ocrOutputContainer" style="display:none; margin-top: 14px;">
