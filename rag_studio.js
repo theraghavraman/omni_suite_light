@@ -7,8 +7,8 @@ const $=id=>document.getElementById(id);
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository";
 let db=null, embedder=null, generator=null, chunks=[], lastResults=[];
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
-const MODEL_LLM="Xenova/Qwen1.5-0.5B-Chat";
-const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+const MODEL_LLM="onnx-community/gemma-3-1b-it-ONNX";
+const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
 
 function css(){
  if($("omni-rag-css"))return;
@@ -82,7 +82,7 @@ async function answer(){
  $("ragAnswer").textContent="Retrieving relevant knowledge…";$("ragSources").innerHTML="";
  try{const r=await search(q);renderResults(r);if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
  const context=r.map((x,i)=>`[Source ${i+1}: ${x.source}]\n${x.text}`).join("\n\n");
- if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading local model…");generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:navigator.gpu?"webgpu":"wasm"});setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator(prompt,{max_new_tokens:220,temperature:.2,do_sample:false});const raw=Array.isArray(o)?o[0]?.generated_text||"":String(o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent="Retrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}}
+ if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading local model…");generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:navigator.gpu?"webgpu":"wasm"});setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:120,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent="Retrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}}
  catch(e){$("ragAnswer").textContent="RAG error: "+e.message;$("ragStatus").textContent="Error"}}
 async function refreshRepo(){
  const status=$("ragStatus");status.textContent="Checking Omni Suite repository version…";
