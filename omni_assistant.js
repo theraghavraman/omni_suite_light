@@ -39,6 +39,31 @@ async function loadKnowledge(includePrivate=false){
 }
 function needsPrivateKnowledge(q){return /my document|my file|indexed|index|repository|repo|source code|implementation|codebase|commit|private rag/i.test(q)}
 async function retrieve(q){if(!docs.length)await loadKnowledge();if(!docs.length)return[];const candidates=docs.map(d=>({...d,lexical:lex(q,d.text)})).sort((a,b)=>b.lexical-a.lexical).slice(0,12);const qv=await emb(q);return candidates.map(d=>({...d,score:d.vector?(0.78*cos(qv,d.vector)+0.22*d.lexical):0.22*d.lexical})).sort((a,b)=>b.score-a.score).slice(0,6)}
+function intentAnswer(q){
+ const s=q.toLowerCase().trim();
+ const target=studioAction(s);
+ if(!target?.tab)return null;
+ if(/^(i want to|i need to|i need|i want|looking to|looking for|need to|want to|help me|work with|use|process|convert|handle|manage|query|run|analy[sz]e|edit|create|open)/.test(s)){
+  const reasons={
+   "PDF Suite":"PDF documents and PDF-specific workflows.",
+   "Office Studio":"Word, PowerPoint and spreadsheet workflows.",
+   "Data Studio":"CSV, JSON and structured/semi-structured data workflows.",
+   "Database Studio":"SQL and database inspection/query workflows.",
+   "Image Tools":"image conversion and manipulation.",
+   "Image to Text":"OCR and image-to-text extraction.",
+   "Audio Studio":"audio processing and conversion.",
+   "Video Studio":"video processing and conversion.",
+   "Compressor":"compression and file-size reduction.",
+   "Private RAG":"private browser-local document retrieval.",
+   "Code Studio":"code and data-format utilities.",
+   "Universal Data":"broader structured, semi-structured and unstructured data workflows.",
+   "Data Clean":"data cleaning and normalization.",
+   "Batch Lab":"batch processing workflows."
+  };
+  return "Use "+target.name+" for "+(reasons[target.name]||"this workflow")+"";
+ }
+ return null;
+}
 function fastAnswer(q){const s=q.toLowerCase().replace(/[?!.]/g,"").trim();const current=currentStudio?.name;
 if(/^(which studio|what studio|where should i start|help me choose)/.test(s))return "Tell me what you want to work with and I’ll point you to the right Studio. PDF → PowerPoint = Office Studio; OCR = Image to Text; CSV/JSON/data conversion = Data Studio; database queries = Database Studio; batch work = Batch Lab.";
 if(/pdf.*(powerpoint|ppt)|(?:powerpoint|ppt).*pdf/.test(s))return "For PDF ↔ PowerPoint, use Office Studio. Omni Suite is browser-first where practical; heavier or unsupported operations can fall back to the Local Engine.";
@@ -50,7 +75,7 @@ async function generate(q,r){const ai=await localAI();const cap=ai.capability();
 function updateContext(){currentStudio=studioContext();const e=document.getElementById("omniAsContext");if(e)e.textContent=currentStudio?.name?"Context: "+currentStudio.name:"Context: Omni Suite overview";updateAIHint()} function updateAIHint(){const e=document.getElementById("omniAsAIHint");if(!e||!window.OmniLocalAI)return;const s=window.OmniLocalAI.status();e.textContent=s.state==="idle"?(s.mobile?(s.constrained?"Mobile device detected · Local AI may be slower.":"Mobile-ready · Local AI loads only when needed."):"Local AI is idle until you ask a question."):(s.webgpu?"Local AI · WebGPU":"Local AI · WASM")}
 function add(text,kind){const c=document.createElement("div");c.className="omni-as-msg "+kind;c.textContent=text;document.getElementById("omniAsChat").appendChild(c);c.scrollIntoView({block:"end"});return c}
 async function ask(){if(busy)return;updateContext();const input=document.getElementById("omniAsInput"),q=input.value.trim();if(!q)return;input.value="";add(q,"user");
-const fast=fastAnswer(q);if(fast){const wait=add(fast,"bot");const target=studioAction(q);if(target?.tab){const action=document.createElement("button");action.className="omni-as-action";action.textContent="Open "+target.name;action.onclick=()=>openStudio(target.tab);wait.appendChild(action)}return}
+const instant=intentAnswer(q)||fastAnswer(q);if(instant){const wait=add(instant,"bot");const target=studioAction(q);if(target?.tab){const action=document.createElement("button");action.className="omni-as-action";action.textContent="Open "+target.name;action.onclick=()=>openStudio(target.tab);wait.appendChild(action)}return}
 const wait=add("Searching Omni Suite knowledge…","bot");busy=true;try{if(needsPrivateKnowledge(q))await loadKnowledge(true);const r=await retrieve(q);if(!r.length){wait.textContent="I don’t have verified information for that yet. Try asking about a Studio, conversion, supported workflow, privacy, or troubleshooting."}else{let ans;try{ans=await generate(q,r);document.getElementById("omniAsStatus").textContent=navigator.gpu?"LOCAL · WEBGPU":"LOCAL · WASM"}catch(e){ans=r[0].text;document.getElementById("omniAsStatus").textContent="RETRIEVAL FALLBACK"}wait.textContent=ans;const target=studioAction(q);if(target?.tab){const action=document.createElement("button");action.className="omni-as-action";action.textContent="Open "+target.name;action.onclick=()=>openStudio(target.tab);wait.appendChild(action)}const src=document.createElement("div");src.className="omni-as-source";src.innerHTML="Sources: "+r.slice(0,3).map(x=>{const m=String(x.source).match(/^Repository: (.+)$/);return m?"<a href=\"https://github.com/theraghavraman/omni_suite_light/blob/main/"+m[1].split("/").map(encodeURIComponent).join("/")+"\" target=\"_blank\" rel=\"noopener noreferrer\">"+esc(m[1])+"</a>":esc(x.source)}).join(" · ");wait.appendChild(src)}}catch(e){wait.textContent="I couldn’t complete the local retrieval right now. Please try again; the assistant does not send your question to a remote AI API."}finally{busy=false}}
 function start(){styles();ui();updateContext();document.querySelectorAll(".nav-btn").forEach(b=>b.addEventListener("click",()=>setTimeout(updateContext,0)));if(window.OmniLocalAI){window.OmniLocalAI.onStatus(x=>{const e=document.getElementById("omniAsStatus");if(e)e.textContent=x.state==="ready-webgpu"?"LOCAL · WEBGPU":x.state==="ready-wasm"?"LOCAL · WASM":x.state==="loading"?"LOADING AI":"LOCAL-FIRST";updateAIHint()});updateAIHint()}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
