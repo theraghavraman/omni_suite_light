@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <title>OmniConverter Studio - Universal File & Data Engineering Suite</title>
   <!-- Core Engines with Offline Fallbacks -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -709,6 +709,254 @@ header p,.card .sub,.omni-guide-item span{font-weight:400}
     }
     header h1{font-weight:800;letter-spacing:-.035em;line-height:.98}
   </style>
+
+
+<style id="omni-raghav-portfolio-theme">
+/* Omni Suite visual system: deliberately matches the Raghav Raman portfolio.
+   Palette: ink / soft / sun / sky / leaf / berry / violet.
+   Typography: Bricolage Grotesque / Figtree / Fira Code. */
+:root{
+  --ink:#1B2A49; --soft:#4D5B7A; --sun:#F0651A; --sky:#2563EB;
+  --leaf:#138A5B; --berry:#D6336C; --vio:#6D4AE8;
+  --omni-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --omni-body:'Figtree',system-ui,sans-serif;
+  --omni-mono:'Fira Code',ui-monospace,monospace;
+  --violet:var(--vio); --blue:var(--sky); --cyan:#3A86C8;
+  --green:var(--leaf); --pink:var(--berry); --orange:var(--sun); --gold:#FFC94D;
+  --line:rgba(27,42,73,.12); --primary:var(--sun); --text:var(--ink); --text-muted:var(--soft);
+  --border:rgba(27,42,73,.12); --border-focus:var(--sky);
+  --radius:22px;
+  --shadow:0 10px 30px rgba(27,42,73,.08);
+  --grad:linear-gradient(100deg,var(--ink) 25%,var(--sun) 62%,var(--berry));
+  --grad2:linear-gradient(90deg,var(--sky),var(--vio));
+  --grad3:linear-gradient(90deg,var(--leaf),var(--sky));
+}
+html{background:#FFE9CF !important}
+body{
+  background:#FFE9CF !important;
+  color:var(--ink) !important;
+  font-family:var(--omni-body) !important;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body,button,input,select,textarea,a{font-family:var(--omni-body) !important}
+header h1,.omni-wordmark-v3,.omni-wordmark-v3 strong,.omni-wordmark-v3 em,
+.omni-brand-copy strong,.card h2,.dropzone h3,.omni-guide-item strong,
+.nav-btn,.metric-pill strong,.omni-brand-title,.omni-command-copy b,
+.studio-label,.studio-workspace-head h2,.studio-workspace-head h3{
+  font-family:var(--omni-display) !important;
+  font-weight:800 !important;
+  letter-spacing:-.025em;
+}
+.eyebrow,.omni-identity-rule,.omni-wordmark-v3 small,.tag,.links,
+.window-bar b,.window-bar em,.float-chip,code,pre,kbd,
+.omni-command-search kbd,.omni-command-footer kbd{
+  font-family:var(--omni-mono) !important;
+}
+
+/* Remove the old neon/SaaS atmosphere. Keep motion, but make it editorial and warm. */
+.omni-motion-bg{opacity:.16 !important}
+.omni-motion-bg::before{background:radial-gradient(circle,rgba(255,194,77,.24),transparent 68%) !important}
+.omni-motion-bg::after{background:radial-gradient(circle,rgba(214,51,108,.10),transparent 68%) !important}
+.omni-grid{opacity:.12 !important;background-image:radial-gradient(rgba(37,99,235,.20) .8px,transparent 1px) !important}
+.omni-orbit{border-color:rgba(37,99,235,.12) !important;box-shadow:0 0 0 70px rgba(240,101,26,.025),0 0 0 150px rgba(37,99,235,.018) !important}
+body::before{background-image:radial-gradient(rgba(27,42,73,.12) .65px,transparent .8px) !important;opacity:.13 !important}
+
+/* Top chrome — closer to the portfolio's clean sticky header. */
+.omni-appbar{
+  background:rgba(255,255,255,.90) !important;
+  border:0 !important;
+  border-bottom:1px solid rgba(27,42,73,.12) !important;
+  border-radius:0 0 14px 14px !important;
+  box-shadow:0 6px 22px rgba(27,42,73,.06) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+}
+.omni-brand-copy strong{color:var(--ink) !important}
+.omni-brand-copy span{color:var(--soft) !important}
+.omni-command{
+  background:rgba(255,255,255,.72) !important;
+  border:1px solid rgba(27,42,73,.13) !important;
+  box-shadow:none !important;
+  color:var(--ink) !important;
+}
+.omni-command:hover,.omni-command.is-open{border-color:var(--sky) !important;box-shadow:0 0 0 4px rgba(37,99,235,.08) !important}
+
+/* Hero: portfolio-like editorial headline rather than SaaS gradient UI. */
+.hero-header{gap:44px !important;padding:64px 4px 38px !important}
+.hero-copy{padding:10px 6px !important}
+.eyebrow{color:#B45309 !important;letter-spacing:.08em !important;text-transform:uppercase !important;font-size:.76rem !important}
+.eyebrow-dot{background:var(--sun) !important;box-shadow:0 0 0 4px rgba(240,101,26,.18) !important}
+header h1{
+  color:transparent !important;
+  background:linear-gradient(100deg,var(--ink) 25%,var(--sun) 62%,var(--berry)) !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  font-size:clamp(3rem,7.2vw,5.8rem) !important;
+  line-height:.98 !important;
+  letter-spacing:-.035em !important;
+  font-weight:800 !important;
+}
+header h1 span{background:none !important;color:inherit !important;animation:none !important}
+header p{color:var(--soft) !important;font-size:1.08rem !important;line-height:1.65 !important}
+.hero-metrics{gap:13px !important}
+.metric-pill{
+  background:rgba(255,255,255,.86) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  box-shadow:0 8px 22px rgba(27,42,73,.07) !important;
+}
+.metric-pill strong{
+  background:none !important;
+  -webkit-text-fill-color:var(--sun) !important;
+  color:var(--sun) !important;
+}
+.metric-pill:nth-child(2) strong{color:var(--sky) !important;-webkit-text-fill-color:var(--sky) !important}
+.metric-pill:nth-child(3) strong{color:var(--leaf) !important;-webkit-text-fill-color:var(--leaf) !important}
+.metric-pill span{color:var(--soft) !important}
+.badge-privacy{color:var(--leaf) !important;background:rgba(19,138,91,.07) !important;border-color:rgba(19,138,91,.18) !important}
+
+/* Hero visual: warm glass card, blue grid, orange/berry/green signal line. */
+.hero-render{
+  background:rgba(255,255,255,.72) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  border-radius:24px !important;
+  box-shadow:0 28px 65px rgba(27,42,73,.14) !important;
+}
+.hero-render::before{background:linear-gradient(135deg,rgba(37,99,235,.07),transparent 45%,rgba(214,51,108,.07)) !important}
+.render-grid{
+  opacity:.8 !important;
+  background-image:linear-gradient(rgba(37,99,235,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.08) 1px,transparent 1px) !important;
+  background-size:28px 28px !important;
+}
+.render-window{
+  background:rgba(255,255,255,.88) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  border-radius:20px !important;
+  box-shadow:0 28px 65px rgba(27,42,73,.16) !important;
+}
+.window-bar{background:rgba(255,255,255,.92) !important;border-color:rgba(27,42,73,.10) !important}
+.window-bar em{background:var(--ink) !important}
+.render-paper{background:#fff !important;border-color:rgba(27,42,73,.10) !important}
+.paper-topline{background:var(--sky) !important}
+.paper-title{background:#DDE7FA !important}
+.paper-lines i{background:#E9EDF4 !important}
+.paper-image{background:linear-gradient(135deg,var(--ink),var(--sky)) !important}
+.pipe-node{background:#fff !important;border-color:rgba(27,42,73,.10) !important}
+.pipe-node.active{background:rgba(37,99,235,.06) !important;border-color:rgba(37,99,235,.22) !important}
+.pipe-icon{background:var(--sky) !important}
+.pipe-node:nth-of-type(3) .pipe-icon{background:var(--sun) !important}
+.pipe-node:nth-of-type(5) .pipe-icon{background:var(--leaf) !important}
+.render-status{background:#fff !important;border-color:rgba(27,42,73,.10) !important}
+.render-status strong{color:var(--sky) !important}
+
+/* Guide + cards: exact portfolio card language — white, thin border, colored left rail. */
+.omni-guide,.card{
+  background:rgba(255,255,255,.86) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  border-radius:22px !important;
+  box-shadow:0 10px 30px rgba(27,42,73,.08) !important;
+}
+.omni-guide-item{background:transparent !important;border:0 !important;border-radius:14px !important}
+.omni-guide-item::before{background:var(--sky) !important;width:5px !important}
+.omni-guide-item:nth-child(2)::before{background:var(--sun) !important}
+.omni-guide-item:nth-child(3)::before{background:var(--berry) !important}
+.omni-guide-item strong,.card h2{color:var(--ink) !important}
+.omni-guide-item span,.card .sub{color:var(--soft) !important}
+.card::before{
+  left:0 !important;right:auto !important;top:0 !important;bottom:0 !important;
+  width:5px !important;height:auto !important;
+  background:var(--c,var(--sun)) !important;
+  animation:none !important;
+}
+.card::after{background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(240,101,26,.10),transparent 70%) !important}
+.card h2::before{background:var(--ink) !important;box-shadow:none !important}
+.card:hover{box-shadow:0 18px 40px rgba(27,42,73,.12) !important;border-color:rgba(27,42,73,.16) !important}
+.omni-help{background:rgba(37,99,235,.05) !important;color:var(--soft) !important;border-color:rgba(37,99,235,.12) !important}
+
+/* Studio navigation: remove the rainbow SaaS tiles and use portfolio colors. */
+.nav-bar{
+  background:rgba(255,255,255,.78) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  border-radius:18px !important;
+  box-shadow:0 10px 30px rgba(27,42,73,.08) !important;
+  backdrop-filter:blur(12px) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
+}
+.nav-btn{
+  background:transparent !important;
+  color:var(--soft) !important;
+  border:1px solid transparent !important;
+  border-radius:13px !important;
+  box-shadow:none !important;
+}
+.nav-btn::before{display:none !important}
+.nav-btn:hover{background:rgba(37,99,235,.06) !important;color:var(--sky) !important;box-shadow:none !important;transform:translateY(-3px) !important}
+.nav-btn.active{
+  background:var(--ink) !important;
+  color:#fff !important;
+  box-shadow:0 7px 0 rgba(27,42,73,.18) !important;
+}
+.nav-btn.active::after{background:var(--sun) !important}
+.studio-icon{background:rgba(37,99,235,.08) !important;color:var(--sky) !important;box-shadow:none !important}
+.nav-btn:nth-child(1) .studio-icon{color:var(--sun) !important;background:rgba(240,101,26,.08) !important}
+.nav-btn:nth-child(3) .studio-icon{color:var(--berry) !important;background:rgba(214,51,108,.08) !important}
+.nav-btn:nth-child(4) .studio-icon{color:var(--leaf) !important;background:rgba(19,138,91,.08) !important}
+.nav-btn.active .studio-icon{color:#fff !important;background:rgba(255,255,255,.14) !important}
+.studio-label{font-size:.72rem !important}
+
+/* Inputs, upload areas and status chips. */
+.dropzone{
+  background:rgba(255,255,255,.72) !important;
+  border:2px dashed rgba(37,99,235,.28) !important;
+  color:var(--ink) !important;
+}
+.dropzone:hover,.dropzone.dragover{border-color:var(--sun) !important;background:rgba(255,248,239,.92) !important;box-shadow:0 18px 36px rgba(240,101,26,.10) !important}
+.dropzone-icon{background:var(--sun) !important;box-shadow:0 10px 22px rgba(240,101,26,.22) !important}
+.dropzone h3{color:var(--ink) !important}
+.dropzone p,.file-meta{color:var(--soft) !important}
+.form-select,.form-input,.form-textarea{
+  background:#fff !important;color:var(--ink) !important;border-color:rgba(27,42,73,.16) !important;
+}
+.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--sky) !important;box-shadow:0 0 0 4px rgba(37,99,235,.10) !important}
+.controls-panel{border-color:rgba(27,42,73,.14) !important}
+.btn-reset{border-color:rgba(214,51,108,.28) !important;color:var(--berry) !important;background:#fff !important}
+.btn-reset:hover{background:var(--berry) !important;color:#fff !important}
+
+/* Primary action language: portfolio orange + dark navy. */
+.btn,.btn-primary,.action-btn,.omni-primary,.omni-btn-primary{
+  background:var(--sun) !important;color:#fff !important;
+  border-color:var(--sun) !important;
+  box-shadow:0 5px 0 #B84A0F !important;
+}
+.btn:hover,.btn-primary:hover,.action-btn:hover,.omni-primary:hover,.omni-btn-primary:hover{
+  transform:translateY(2px) !important;
+  box-shadow:0 2px 0 #B84A0F !important;
+}
+button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color:var(--ink) !important;border-color:var(--ink) !important}
+
+/* Command palette and diagnostics should belong to the same system. */
+.omni-command-backdrop{background:rgba(27,42,73,.36) !important}
+.omni-command-panel,.palette{background:#fff !important;border-color:rgba(27,42,73,.12) !important;box-shadow:0 30px 90px rgba(27,42,73,.22) !important}
+.omni-command-search{background:#fff !important;border-color:rgba(27,42,73,.10) !important}
+.omni-command-search-icon,.omni-command-result-icon{color:var(--sky) !important;background:rgba(37,99,235,.07) !important;border-color:rgba(37,99,235,.12) !important}
+.omni-command-result:hover,.omni-command-result.active{background:rgba(37,99,235,.06) !important;border-color:rgba(37,99,235,.12) !important}
+.omni-command-result.active{box-shadow:inset 3px 0 0 var(--sun) !important}
+.omni-command-footer{background:#fff !important;border-color:rgba(27,42,73,.08) !important}
+.omni-diagnostics{background:#101827 !important}
+
+/* Capability legend/status colors use the portfolio palette. */
+.omni-capability-note{background:#fff !important;border-color:rgba(27,42,73,.12) !important;color:var(--soft) !important}
+.omni-capability-note.browser{color:var(--leaf) !important;background:rgba(19,138,91,.06) !important}
+.omni-capability-note.local{color:#B45309 !important;background:rgba(240,189,77,.10) !important}
+.omni-capability-note.validation{color:var(--berry) !important;background:rgba(214,51,108,.06) !important}
+.omni-cap-dot{background:var(--sky) !important}.omni-capability-note.browser .omni-cap-dot{background:var(--leaf) !important}.omni-capability-note.local .omni-cap-dot{background:var(--sun) !important}.omni-capability-note.validation .omni-cap-dot{background:var(--berry) !important}
+
+/* Keep the visual hierarchy clean on smaller screens. */
+@media(max-width:760px){
+  .hero-header{padding:42px 4px 24px !important}
+  header h1{font-size:clamp(2.6rem,12vw,4.4rem) !important}
+}
+</style>
 
 </head>
 <body>
