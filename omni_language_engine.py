@@ -87,6 +87,13 @@ def _translate_indictrans(text, source, target, max_new_tokens=512):
     post = processor.postprocess_batch(decoded, lang=target_tag)
     return post[0] if post else ""
 
+XLIT_TAGS = {
+    "asm":"as", "as":"as", "bn":"bn", "brx":"brx", "gu":"gu", "hi":"hi",
+    "kn":"kn", "ks":"ks", "kas":"ks", "gom":"gom", "mai":"mai", "ml":"ml",
+    "mni":"mni", "mr":"mr", "ne":"ne", "or":"or", "pa":"pa", "sa":"sa",
+    "sd":"sd", "si":"si", "ta":"ta", "te":"te", "ur":"ur"
+}
+
 def _load_xlit_native(src):
     key = "indic:" + src
     with _lock:
@@ -106,8 +113,8 @@ def transliterate(text, source, target="Latn", topk=4):
     value, src, tgt = str(text or "").strip(), _norm(source), _norm(target)
     if not value: raise ValueError("No text was supplied for transliteration.")
     if tgt in {"latn","latin","roman","en"}:
-        engine = _load_xlit_native(src)
-        out = engine.translit_sentence(value, lang_code=src, topk=max(1, int(topk)))
+        engine = _load_xlit_native(XLIT_TAGS.get(src, src))
+        out = engine.translit_sentence(value, lang_code=XLIT_TAGS.get(src, src), topk=max(1, int(topk)))
         return {"text":out, "model":"IndicXlit", "direction":"indic-to-roman"}
     engine = _load_xlit_roman()
     out = engine.translit_sentence(value, lang_code=src, topk=max(1, int(topk)))
