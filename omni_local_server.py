@@ -19,7 +19,7 @@ import omni_language_engine
 HOST = os.environ.get("OMNI_HOST", "127.0.0.1")
 PORT = int(os.environ.get("OMNI_PORT", "8765"))
 ENGINE_API_VERSION = 4
-ENGINE_BUILD = "omni-local-2026.10-complete"
+ENGINE_BUILD = "omni-local-2026.10-complete-language"
 ROOT = Path(tempfile.gettempdir()) / "omni_converter_engine"
 ROOT.mkdir(parents=True, exist_ok=True)
 LOCK = threading.Lock()
