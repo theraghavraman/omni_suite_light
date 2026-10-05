@@ -467,6 +467,31 @@
       decompressList.appendChild(row);
     }
 
+    async function extractNativeArchive(file, format) {
+      const base = 'http://127.0.0.1:8765';
+      const health = await fetch(base + '/api/health', {cache:'no-store'});
+      if (!health.ok) throw new Error('Local Engine is not running. Start the current Omni Local Engine to extract ' + format.toUpperCase() + ' archives.');
+      const h = await health.json();
+      if (!h.token || Number(h.engine_api_version || 0) < 4) throw new Error('Current Omni Local Engine is required for ' + format.toUpperCase() + ' extraction.');
+      const upload = await fetch(base + '/api/upload', {
+        method:'POST',
+        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},
+        body:file
+      });
+      if (!upload.ok) throw new Error('Local upload failed: HTTP ' + upload.status);
+      const uj = await upload.json();
+      const process = await fetch(base + '/api/process', {
+        method:'POST',
+        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':'application/json'},
+        body:JSON.stringify({op:'archive_extract',input:uj.file_id,format})
+      });
+      const pj = await process.json();
+      if (!process.ok || !pj.ok) throw new Error(pj.error || 'Native archive extraction failed');
+      const download = await fetch(base + '/api/download/' + encodeURIComponent(pj.file_id), {headers:{Origin:location.origin,'X-Omni-Token':h.token}});
+      if (!download.ok) throw new Error('Extracted archive download failed');
+      return await download.blob();
+    }
+
     decompressBtn.addEventListener('click', async () => {
       if (!decompressFile) return;
       decompressBtn.disabled = true;
@@ -483,12 +508,19 @@
             const blob = await entry.async('blob');
             addExtractedItem(entry.name, blob);
           }
+        } else if (lower.endsWith('.7z') || lower.endsWith('.rar')) {
+          const nativeFormat = lower.endsWith('.7z') ? '7z' : 'rar';
+          const archiveBlob = await extractNativeArchive(decompressFile, nativeFormat);
+          if (!window.JSZip) throw new Error('ZIP engine is unavailable for displaying extracted native archive contents.');
+          const zip = await JSZip.loadAsync(archiveBlob);
+          const entries = Object.values(zip.files).filter(e => !e.dir);
+          for (const entry of entries) addExtractedItem(entry.name, await entry.async('blob'));
         } else {
           let format = null;
           if (lower.endsWith('.gz') || lower.endsWith('.gzip')) format = 'gzip';
           else if (lower.endsWith('.deflate')) format = 'deflate';
           else if (lower.endsWith('.br')) format = 'br';
-          else throw new Error('Unknown compression type. Use .zip, .gz, .deflate or .br.');
+          else throw new Error('Unknown compression type. Use .zip, .7z, .rar, .gz, .deflate or .br.');
           if (!compressionStreamSupported(format, true)) throw new Error('This browser does not support decompression for ' + format + '.');
           const blob = await streamDecompress(decompressFile, format);
           const outputName = decompressFile.name.replace(/\.(gz|gzip|deflate|br)$/i, '') || 'decompressed.bin';
