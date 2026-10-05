@@ -4,5 +4,6 @@ torch>=2.3
 transformers>=4.45,<5
 sentencepiece>=0.2
 safetensors>=0.4
+huggingface_hub>=0.28
 IndicTransToolkit
 git+https://github.com/AI4Bharat/IndicXlit.git#subdirectory=app
