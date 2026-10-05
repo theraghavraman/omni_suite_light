@@ -4682,7 +4682,7 @@ function enter(id,button){
    tabRAGStudio:['#7C3AED','#C026D3','rgba(124,58,237,.14)'],
    tabLanguageStudio:['#0F766E','#06B6D4','rgba(15,118,110,.14)'],
    tabPdf:['#E11D48','#F97316','rgba(225,29,72,.14)'],
-   tabWord:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],tabOfficeEditor:['#D97706','#EA580C','rgba(217,119,6,.14)'],
+   tabWord:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],tabOfficeEditor:['#FF0000','#FF0000','rgba(255,0,0,.14)'],
    tabEpub:['#8B5CF6','#EC4899','rgba(139,92,246,.14)'],
    tabImages:['#F97316','#FACC15','rgba(249,115,22,.14)'],
    tabOcr:['#059669','#84CC16','rgba(5,150,105,.14)'],
@@ -5280,7 +5280,7 @@ body[data-active-studio] .module-panel.active .progress-bar-fill{
 .nav-bar .nav-btn[data-tab="tabRAGStudio"]{--c:#7C3AED;--c2:#C026D3;--cs:rgba(124,58,237,.14)}
 .nav-bar .nav-btn[data-tab="tabLanguageStudio"]{--c:#0F766E;--c2:#06B6D4;--cs:rgba(15,118,110,.14)}
 .nav-bar .nav-btn[data-tab="tabPdf"]{--c:#E11D48;--c2:#F97316;--cs:rgba(225,29,72,.14)}
-.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}nav-bar .nav-btn[data-tab="tabOfficeEditor"]{--c:#D97706;--c2:#EA580C;--cs:rgba(217,119,6,.14)}
+.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}nav-bar .nav-btn[data-tab="tabOfficeEditor"]{--c:#FF0000;--c2:#FF0000;--cs:rgba(255,0,0,.14)}
 .nav-bar .nav-btn[data-tab="tabEpub"]{--c:#8B5CF6;--c2:#EC4899;--cs:rgba(139,92,246,.14)}
 .nav-bar .nav-btn[data-tab="tabImages"]{--c:#F97316;--c2:#FACC15;--cs:rgba(249,115,22,.14)}
 .nav-bar .nav-btn[data-tab="tabOcr"]{--c:#059669;--c2:#84CC16;--cs:rgba(5,150,105,.14)}
@@ -5790,33 +5790,33 @@ setMode('word');
 </script>
 
 <style id="omni-office-studio-v1">
-#tabOfficeEditor{--studio-accent:#D97706;--studio-accent-2:#EA580C}
+#tabOfficeEditor{--studio-accent:#FF0000;--studio-accent-2:#FF0000}
 #tabOfficeEditor .office-editor-shell{overflow:hidden}
 #tabOfficeEditor .office-editor-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:8px 0 18px}
 #tabOfficeEditor .office-editor-badges{display:flex;gap:7px;flex-wrap:wrap}
 #tabOfficeEditor .office-editor-badges span{font-size:.7rem;font-weight:800;letter-spacing:.08em;padding:7px 9px;border-radius:999px;background:rgba(217,119,6,.10);color:#9A3412}
 #tabOfficeEditor .office-editor-toolbar,#tabOfficeEditor .office-word-tools,#tabOfficeEditor .office-sheet-bar,#tabOfficeEditor .office-pdf-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid rgba(217,119,6,.18);background:rgba(217,119,6,.04);border-radius:14px;margin-bottom:10px}
-#tabOfficeEditor .office-open-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:#D97706;color:#fff;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #A44A0A}
+#tabOfficeEditor .office-open-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:#FF0000;color:#fff;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #990000}
 #tabOfficeEditor .office-open-btn input{display:none}
-#tabOfficeEditor .office-mode-btn.active{background:#D97706!important;color:#fff!important;border-color:#D97706!important}
+#tabOfficeEditor .office-mode-btn.active{background:#FF0000!important;color:#fff!important;border-color:#FF0000!important}
 #tabOfficeEditor .office-editor-status{padding:10px 12px;border-radius:10px;background:#FFF7ED;color:#9A3412;font-size:.9rem;margin-bottom:12px}
 #tabOfficeEditor .office-word-editor{min-height:560px;background:#fff;border:1px solid #d8dee8;border-radius:14px;padding:54px 68px;box-shadow:0 14px 35px rgba(30,41,59,.07);outline:none;font-family:Arial,sans-serif;line-height:1.6}
-#tabOfficeEditor .office-word-editor:focus{border-color:#D97706;box-shadow:0 0 0 4px rgba(217,119,6,.12)}
+#tabOfficeEditor .office-word-editor:focus{border-color:#FF0000;box-shadow:0 0 0 4px rgba(255,0,0,.12)}
 #tabOfficeEditor .office-doc-table{border-collapse:collapse;width:100%;margin:14px 0}
 #tabOfficeEditor .office-doc-table td,#tabOfficeEditor .office-doc-table th{border:1px solid #cbd5e1;padding:8px;min-width:80px}
 #tabOfficeEditor .office-sheet-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-#tabOfficeEditor .office-sheet-tabs button{border:1px solid #D97706;background:#fff;color:#9A3412;border-radius:8px;padding:7px 12px}
-#tabOfficeEditor .office-sheet-tabs button.active{background:#D97706;color:#fff}
+#tabOfficeEditor .office-sheet-tabs button{border:1px solid #FF0000;background:#fff;color:#990000;border-radius:8px;padding:7px 12px}
+#tabOfficeEditor .office-sheet-tabs button.active{background:#FF0000;color:#fff}
 #tabOfficeEditor .office-sheet-grid{overflow:auto;max-height:650px;border:1px solid #d8dee8;border-radius:12px;background:#fff}
 #tabOfficeEditor .office-sheet-grid table{border-collapse:collapse;min-width:900px}
 #tabOfficeEditor .office-sheet-grid th{position:sticky;top:0;background:#FFF7ED;color:#9A3412;border:1px solid #e5e7eb;padding:6px;z-index:2}
 #tabOfficeEditor .office-sheet-grid td{border:1px solid #e5e7eb;padding:6px;min-width:110px;height:30px;outline:none}
-#tabOfficeEditor .office-sheet-grid td:focus{background:#FFFBEB;box-shadow:inset 0 0 0 2px #D97706}
+#tabOfficeEditor .office-sheet-grid td:focus{background:rgba(255,0,0,.05);box-shadow:inset 0 0 0 2px #FF0000}
 #tabOfficeEditor .office-pdf-stage{display:flex;justify-content:center;min-height:500px;background:#f1f5f9;border-radius:14px;padding:22px;overflow:auto}
 #tabOfficeEditor .office-pdf-canvas-wrap{position:relative;display:inline-block;background:#fff;box-shadow:0 14px 35px rgba(15,23,42,.16)}
 #tabOfficeEditor #officePdfCanvas{display:block}
 #tabOfficeEditor #officePdfOverlay{position:absolute;inset:0}
-#tabOfficeEditor .office-pdf-mark{position:absolute;border:2px dashed #D97706;background:rgba(217,119,6,.12);padding:4px;overflow:hidden;color:#7C2D12;font-size:14px;box-sizing:border-box}
+#tabOfficeEditor .office-pdf-mark{position:absolute;border:2px dashed #FF0000;background:rgba(255,0,0,.12);padding:4px;overflow:hidden;color:#990000;font-size:14px;box-sizing:border-box}
 #tabOfficeEditor .office-pdf-mark.text{background:rgba(255,255,255,.82);border-style:solid}
 #tabOfficeEditor .office-pdf-mark.highlight{background:rgba(250,204,21,.35);border-color:#EAB308}
 #tabOfficeEditor .office-pdf-note{font-size:.8rem;color:#64748b}
@@ -5831,9 +5831,9 @@ setMode('word');
 
 <style id="omni-office-studio-theme-v2">
 body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor button:not(.office-mode-btn),
-body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-mode-btn.active{background:#D97706!important;border-color:#D97706!important;color:#fff!important}
-body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor button:hover:not(:disabled){background:#EA580C!important;border-color:#EA580C!important;color:#fff!important}
-body[data-active-studio="tabOfficeEditor"] .studio-workspace-head{background:linear-gradient(120deg,#D97706,#EA580C)!important}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-mode-btn.active{background:#FF0000!important;border-color:#FF0000!important;color:#fff!important}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor button:hover:not(:disabled){background:#FF0000!important;border-color:#FF0000!important;color:#fff!important}
+body[data-active-studio="tabOfficeEditor"] .studio-workspace-head{background:#FF0000!important;box-shadow:0 24px 44px -22px #FF0000!important}
 </style>
 </body>
 </html>
