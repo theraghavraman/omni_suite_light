@@ -2688,7 +2688,7 @@ async function runStructure(clear=true){
    if(!panel||!nav){add(studio,'Studio panel + navigation','FAIL',(!panel?'Panel missing. ':'')+(!nav?'Navigation missing.':''));return;}
    add(studio,'Studio panel + navigation','PASS','Panel and navigation target exist');
    panel.querySelectorAll('input[type="file"]').forEach(el=>add(studio,'Upload: '+(el.id||'unnamed'),'PASS','File input is present and reachable'));
-   panel.querySelectorAll('select').forEach(el=>{add(studio,'Control: '+(el.id||'unnamed'),'PASS',el.options.length+' choices');[...el.options].forEach(o=>add(studio,'Option: '+(el.id||'select')+' → '+o.textContent.trim(),'PASS','Option is present'));});
+   panel.querySelectorAll('select').forEach(el=>add(studio,'Control: '+(el.id||'unnamed'),'PASS',el.options.length+' choices; option behavior is tested separately'));
    panel.querySelectorAll('textarea,input:not([type="file"]),button').forEach(el=>{
      const id=el.id||el.getAttribute('aria-label')||el.textContent.trim().replace(/\s+/g,' ').slice(0,50)||el.tagName;
      if(el.matches('button')){const referenced=hasImplementationReference(el.id,source,el);add(studio,'Action: '+id,referenced?'PASS':'FAIL',referenced?'Implementation reference found in application code':'No implementation reference found for this button');}
