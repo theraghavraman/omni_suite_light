@@ -522,33 +522,42 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 }
 </style>
 
-<style id="omni-identity-redesign">
-/* Omni Suite identity — compact two-cup eye mark, isolated from global header typography. */
-.omni-identity{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:2px 0 20px;position:relative}
-.omni-identity-eyes{height:94px;width:232px;display:flex;align-items:center;justify-content:center;gap:16px;position:relative;filter:drop-shadow(0 12px 14px rgba(79,47,19,.14))}
-.omni-identity-eyes::after{content:"";position:absolute;width:108px;height:20px;bottom:-2px;left:62px;border-bottom:3px solid rgba(99,53,22,.78);border-radius:50%;transform:rotate(-1deg);opacity:.7}
-.omni-eye-cup{position:relative;width:82px;height:82px;border-radius:50%;background:radial-gradient(circle at 50% 49%,#a95418 0 55%,#c8762c 56% 63%,#f4eadb 64% 76%,#fff 77% 100%);border:3px solid #fff;box-shadow:inset 0 3px 6px rgba(255,255,255,.9),inset 0 -7px 10px rgba(86,45,14,.2),0 5px 8px rgba(74,43,17,.13)}
-.omni-eye-cup.left{transform:rotate(-7deg)}
-.omni-eye-cup.right{transform:rotate(7deg)}
-.omni-eye-coffee{position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle at 43% 37%,#d9914d,#a64f19 70%);box-shadow:inset 0 2px 5px rgba(255,220,177,.3)}
-.omni-eye-shine{position:absolute;width:19px;height:9px;border-radius:50%;background:rgba(255,234,199,.5);top:25px;left:25px;transform:rotate(-25deg)}
-.omni-eye-handle{position:absolute;width:28px;height:28px;border:7px solid #f5eee3;border-radius:50%;top:24px;z-index:-1}
-.omni-eye-cup.left .omni-eye-handle{right:-25px;border-left-color:transparent}
-.omni-eye-cup.right .omni-eye-handle{left:-25px;border-right-color:transparent}
-.omni-identity-name{display:flex;align-items:baseline;gap:11px;font-size:clamp(3.2rem,6.3vw,5rem);font-weight:950;line-height:.82;letter-spacing:-.065em}
-.omni-identity-name span{color:#171a35}
-.omni-identity-name b{font-weight:950;background:linear-gradient(110deg,#ff8a3d 5%,#ffb51b 48%,#ff4f9a 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.omni-identity-rule{display:flex;align-items:center;gap:9px;color:#806346;font-size:.66rem;font-weight:900;letter-spacing:.12em}
-.omni-identity-rule i{width:24px;height:2px;border-radius:99px;background:linear-gradient(90deg,#ff8a3d,#ff4f9a)}
+
+
+<style id="omni-identity-v3-style">
+/* V3 identity: a compact eye badge built from two coffee cups, paired with a clean wordmark. */
+.omni-identity-v3{display:flex;align-items:center;gap:18px;margin:4px 0 22px;min-height:100px}
+.omni-eye-badge{position:relative;width:158px;height:88px;flex:0 0 158px;border-radius:46px;background:linear-gradient(145deg,#fffaf3,#f4e6d5);border:1px solid rgba(133,87,42,.14);box-shadow:inset 0 1px 0 #fff,0 12px 26px rgba(93,57,25,.13);overflow:visible}
+.omni-eye-badge::before{content:"";position:absolute;left:18px;right:18px;top:38px;height:14px;border-radius:50%;background:rgba(105,62,28,.08);filter:blur(6px)}
+.omni-lid{position:absolute;width:45px;height:15px;border-top:4px solid #6b3b20;border-radius:50%;top:12px;z-index:4}
+.omni-lid.lid-left{left:27px;transform:rotate(-11deg)}
+.omni-lid.lid-right{right:27px;transform:rotate(11deg)}
+.omni-cup-v3{position:absolute;top:17px;width:55px;height:55px;border-radius:50%;background:radial-gradient(circle at 50% 47%,#a64e18 0 53%,#ce7930 54% 62%,#f3e8d9 63% 75%,#fff 76%);border:2px solid #fff;box-shadow:inset 0 2px 5px rgba(255,255,255,.85),inset 0 -5px 8px rgba(78,39,12,.2),0 4px 7px rgba(72,42,17,.18);z-index:3}
+.omni-cup-v3.cup-left{left:28px;transform:rotate(-9deg)}
+.omni-cup-v3.cup-right{right:28px;transform:rotate(9deg)}
+.omni-cup-v3 i{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 43% 37%,#d58a46,#9e4917 72%);box-shadow:inset 0 2px 4px rgba(255,218,174,.35)}
+.omni-cup-v3 b{position:absolute;width:13px;height:6px;border-radius:50%;background:rgba(255,235,201,.55);top:16px;left:17px;transform:rotate(-25deg)}
+.omni-cup-v3::after{content:"";position:absolute;width:20px;height:20px;border:5px solid #f4eadf;border-radius:50%;top:15px;z-index:-1}
+.omni-cup-v3.cup-left::after{right:-17px;border-left-color:transparent}
+.omni-cup-v3.cup-right::after{left:-17px;border-right-color:transparent}
+.omni-wordmark-v3{display:flex;flex-direction:column;gap:7px}
+.omni-wordmark-v3>div{display:flex;align-items:baseline;gap:9px;line-height:.84;letter-spacing:-.06em;white-space:nowrap}
+.omni-wordmark-v3 strong{font-size:clamp(3rem,5.4vw,4.4rem);font-weight:950;color:#181a35}
+.omni-wordmark-v3 em{font-style:normal;font-size:clamp(3rem,5.4vw,4.4rem);font-weight:950;background:linear-gradient(110deg,#ff8a3d,#ffb51b 46%,#ff4f9a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.omni-wordmark-v3 small{font-size:.67rem;font-weight:900;letter-spacing:.115em;color:#795b43}
 @media(max-width:760px){
- .omni-identity{margin-bottom:17px}
- .omni-identity-eyes{width:190px;height:76px;gap:11px}
- .omni-eye-cup{width:66px;height:66px}
- .omni-eye-coffee{inset:10px}.omni-eye-shine{top:20px;left:20px;width:16px;height:7px}
- .omni-eye-handle{width:23px;height:23px;border-width:6px;top:20px}
- .omni-eye-cup.left .omni-eye-handle{right:-20px}.omni-eye-cup.right .omni-eye-handle{left:-20px}
- .omni-identity-name{font-size:clamp(2.55rem,12vw,3.8rem);gap:8px}
- .omni-identity-rule{font-size:.52rem;letter-spacing:.08em;gap:6px}.omni-identity-rule i{width:15px}
+ .omni-identity-v3{gap:10px;margin-bottom:17px;min-height:76px}
+ .omni-eye-badge{width:112px;height:64px;flex-basis:112px;border-radius:34px}
+ .omni-cup-v3{width:40px;height:40px;top:12px}
+ .omni-cup-v3.cup-left{left:20px}.omni-cup-v3.cup-right{right:20px}
+ .omni-cup-v3 i{inset:6px}.omni-cup-v3 b{top:12px;left:12px;width:10px;height:5px}
+ .omni-cup-v3::after{width:15px;height:15px;border-width:4px;top:11px}
+ .omni-cup-v3.cup-left::after{right:-13px}.omni-cup-v3.cup-right::after{left:-13px}
+ .omni-lid{width:32px;height:10px;border-width:3px;top:8px}
+ .omni-lid.lid-left{left:18px}.omni-lid.lid-right{right:18px}
+ .omni-wordmark-v3{gap:4px}.omni-wordmark-v3>div{gap:6px}
+ .omni-wordmark-v3 strong,.omni-wordmark-v3 em{font-size:clamp(2rem,9vw,3rem)}
+ .omni-wordmark-v3 small{font-size:.43rem;letter-spacing:.07em}
 }
 </style>
 </head>
@@ -571,21 +580,16 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
   <div class="container">
     <header class="hero-header">
       <div class="hero-copy">
-        <div class="omni-identity" aria-label="Omni Suite">
-          <div class="omni-identity-eyes" aria-hidden="true">
-            <div class="omni-eye-cup left">
-              <span class="omni-eye-coffee"></span>
-              <span class="omni-eye-shine"></span>
-              <span class="omni-eye-handle"></span>
-            </div>
-            <div class="omni-eye-cup right">
-              <span class="omni-eye-coffee"></span>
-              <span class="omni-eye-shine"></span>
-              <span class="omni-eye-handle"></span>
-            </div>
+        <div class="omni-identity-v3" aria-label="Omni Suite">
+          <div class="omni-eye-badge" aria-hidden="true">
+            <span class="omni-lid lid-left"></span><span class="omni-lid lid-right"></span>
+            <span class="omni-cup-v3 cup-left"><i></i><b></b></span>
+            <span class="omni-cup-v3 cup-right"><i></i><b></b></span>
           </div>
-          <div class="omni-identity-name"><span>OMNI</span><b>SUITE</b></div>
-          <div class="omni-identity-rule"><i></i><span>UNIVERSAL FILE &amp; DATA ENGINEERING</span><i></i></div>
+          <div class="omni-wordmark-v3">
+            <div><strong>OMNI</strong><em>SUITE</em></div>
+            <small>UNIVERSAL FILE &amp; DATA ENGINEERING</small>
+          </div>
         </div>
         <div class="eyebrow"><span class="eyebrow-dot"></span> Offline-Capable &bull; Private &bull; Client-Side</div>
         <p>One visual workspace for documents, images, OCR, audio, video, data, RAG and code — rendered locally in your browser whenever possible.</p>
