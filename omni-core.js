@@ -1709,6 +1709,51 @@
       setTimeout(() => ocrCopyBtn.textContent = '📋 Copy Text', 2000);
     });
 
+    function splitWebTranslationText(text, maxLen=450) {
+      const normalized = String(text || '').replace(/\\r\\n/g, '\\n').trim();
+      if (!normalized) return [];
+      const parts = normalized.split(/(?<=[.!?।॥！？])\\s+|\\n+/).map(x => x.trim()).filter(Boolean);
+      const chunks = [];
+      let current = '';
+      for (const part of parts) {
+        if (part.length > maxLen) {
+          if (current) { chunks.push(current); current = ''; }
+          for (let i = 0; i < part.length; i += maxLen) chunks.push(part.slice(i, i + maxLen));
+        } else if (!current) {
+          current = part;
+        } else if ((current.length + 1 + part.length) <= maxLen) {
+          current += ' ' + part;
+        } else {
+          chunks.push(current);
+          current = part;
+        }
+      }
+      if (current) chunks.push(current);
+      return chunks;
+    }
+
+    async function translateOcrViaWebFallback(text, source, target) {
+      const chunks = splitWebTranslationText(text);
+      if (!chunks.length) return '';
+      const translated = [];
+      for (let i = 0; i < chunks.length; i++) {
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent =
+          'Using web fallback… translating part ' + (i + 1) + ' of ' + chunks.length + '…';
+        const url = 'https://api.mymemory.translated.net/get?q=' +
+          encodeURIComponent(chunks[i]) + '&langpair=' + encodeURIComponent(source + '|' + target);
+        const response = await fetch(url, {method:'GET', mode:'cors', cache:'no-store'});
+        if (!response.ok) throw new Error('Web translation service returned HTTP ' + response.status + '.');
+        const data = await response.json();
+        const result = data?.responseData?.translatedText ||
+          data?.matches?.find(m => m?.translation)?.translation || '';
+        if (!result || /MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(result)) {
+          throw new Error(data?.responseDetails || 'The web translation service returned no usable translation.');
+        }
+        translated.push(result);
+      }
+      return translated.join('\\n');
+    }
+
     async function translateOcrText() {
       if (!ocrOutputText?.value?.trim()) return;
       if (!window.Translator || typeof window.Translator.create !== 'function') {
@@ -1730,7 +1775,20 @@
         if (typeof window.Translator.availability === 'function') {
           const availability = await window.Translator.availability({sourceLanguage: source, targetLanguage: target});
           if (availability === 'unavailable') {
-            throw new Error('This browser does not support translation for this language pair.');
+            const useWebFallback = window.confirm(
+              'This browser does not provide a local Translator model for ' +
+              source.toUpperCase() + ' → ' + target.toUpperCase() +
+              '.\\n\\nUse the optional web translation fallback? Your extracted OCR text will be sent to the translation service.\\n\\nChoose Cancel to keep the text entirely local.'
+            );
+            if (useWebFallback) {
+              const translated = await translateOcrViaWebFallback(ocrOutputText.value.trim(), source, target);
+              ocrTranslateOutput.value = translated || 'No translation returned.';
+              ocrTranslateOutput.style.display = 'block';
+              ocrTranslateActions.style.display = 'flex';
+              if (ocrTranslateStatus) ocrTranslateStatus.textContent =
+                'Translated using the optional web fallback. The OCR text left this browser for translation.';
+            }
+            return;
           }
           if (ocrTranslateStatus) ocrTranslateStatus.textContent =
             availability === 'available' ? 'Translation model ready in browser.' : 'Browser is preparing the local translation model…';
