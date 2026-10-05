@@ -355,9 +355,103 @@ def local_ai_capabilities():
     s=_local_ai_status()
     return {"provider":s["provider"],"model":s["model"],"available":s["enabled"],"local_only":True,"providers":s["providers"]}
 
+"""
+Local AI Assist bridge.
+
+The Studio AI Assist UI never loads an LLM in the browser. It calls these
+loopback endpoints and this Python process talks to Ollama or LM Studio.
+"""
+AI_PROVIDER = os.environ.get("OMNI_AI_PROVIDER", "auto").strip().lower()
+OLLAMA_URL = os.environ.get("OMNI_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_MODEL = os.environ.get("OMNI_OLLAMA_MODEL", "").strip()
+LMSTUDIO_URL = os.environ.get("OMNI_LMSTUDIO_URL", "http://127.0.0.1:1234").rstrip("/")
+LMSTUDIO_MODEL = os.environ.get("OMNI_LMSTUDIO_MODEL", "").strip()
+AI_TIMEOUT = int(os.environ.get("OMNI_AI_TIMEOUT", "600"))
+
+def _json_http(url, method="GET", body=None, headers=None, timeout=4):
+    import urllib.request
+    req = urllib.request.Request(url, method=method, headers={"Content-Type":"application/json", **(headers or {})})
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    try:
+        with urllib.request.urlopen(req, data=data, timeout=timeout) as r:
+            raw=r.read()
+            return json.loads(raw.decode("utf-8","replace")) if raw else {}
+    except Exception as exc:
+        raise RuntimeError(str(exc)) from exc
+
+def _ollama_models():
+    try:
+        j=_json_http(OLLAMA_URL+"/api/tags",timeout=2)
+        return [str(x.get("name","")).strip() for x in j.get("models",[]) if x.get("name")]
+    except Exception:
+        return []
+
+def _lmstudio_models():
+    try:
+        j=_json_http(LMSTUDIO_URL+"/v1/models",timeout=2)
+        return [str(x.get("id","")).strip() for x in j.get("data",[]) if x.get("id")]
+    except Exception:
+        return []
+
+def ai_status():
+    ollama=_ollama_models()
+    lmstudio=_lmstudio_models()
+    provider=AI_PROVIDER
+    if provider=="auto":
+        provider="ollama" if ollama else ("lmstudio" if lmstudio else "none")
+    models=ollama if provider=="ollama" else lmstudio if provider=="lmstudio" else []
+    model=(OLLAMA_MODEL if provider=="ollama" else LMSTUDIO_MODEL) or (models[0] if models else "")
+    return {"ok":True,"local_only":True,"provider":provider,"configured_provider":AI_PROVIDER,
+            "model":model,"ollama":{"available":bool(ollama),"url":OLLAMA_URL,"models":ollama},
+            "lmstudio":{"available":bool(lmstudio),"url":LMSTUDIO_URL,"models":lmstudio},
+            "token":TOKEN,"architecture":"browser UI -> loopback Python -> Ollama/LM Studio -> local model"}
+
+def _pick_ai_provider():
+    s=ai_status()
+    if AI_PROVIDER=="ollama":
+        if not s["ollama"]["available"]: raise RuntimeError("Ollama is not running or has no models. Start Ollama and pull a model.")
+        return "ollama",(OLLAMA_MODEL or s["ollama"]["models"][0])
+    if AI_PROVIDER=="lmstudio":
+        if not s["lmstudio"]["available"]: raise RuntimeError("LM Studio server is not running or has no visible models. Start its local server and load a model.")
+        return "lmstudio",(LMSTUDIO_MODEL or s["lmstudio"]["models"][0])
+    if s["ollama"]["available"]: return "ollama",(OLLAMA_MODEL or s["ollama"]["models"][0])
+    if s["lmstudio"]["available"]: return "lmstudio",(LMSTUDIO_MODEL or s["lmstudio"]["models"][0])
+    raise RuntimeError("No local AI provider is available. Start Ollama or LM Studio on this computer.")
+
+def _local_ai_chat(prompt,max_tokens=220,temperature=0.2,image_data_url=None):
+    provider,model=_pick_ai_provider()
+    system="You are Omni Suite AI Assist. Use only the supplied Studio context. Never invent facts. Be concise, practical and accurate."
+    if provider=="ollama":
+        msg={"role":"user","content":str(prompt)}
+        if image_data_url: msg["images"]=[image_data_url.split(",",1)[-1]]
+        j=_json_http(OLLAMA_URL+"/api/chat","POST",{"model":model,"messages":[{"role":"system","content":system},msg],"stream":False,"options":{"temperature":temperature,"num_predict":max_tokens}},timeout=AI_TIMEOUT)
+        text=((j.get("message") or {}).get("content") or "").strip()
+    else:
+        content=[{"type":"text","text":str(prompt)}]
+        if image_data_url: content.append({"type":"image_url","image_url":{"url":image_data_url}})
+        j=_json_http(LMSTUDIO_URL+"/v1/chat/completions","POST",{"model":model,"messages":[{"role":"system","content":system},{"role":"user","content":content}],"temperature":temperature,"max_tokens":max_tokens,"stream":False},timeout=AI_TIMEOUT)
+        text=((((j.get("choices") or [{}])[0]).get("message") or {}).get("content") or "").strip()
+    if not text: raise RuntimeError("Local model returned an empty response.")
+    return {"ok":True,"text":text,"provider":provider,"model":model}
+
+def _local_ai_embed(text):
+    provider,model=_pick_ai_provider()
+    if provider=="ollama":
+        j=_json_http(OLLAMA_URL+"/api/embed","POST",{"model":model,"input":str(text)[:12000]},timeout=AI_TIMEOUT)
+        vec=(j.get("embeddings") or [[]])[0]
+    else:
+        j=_json_http(LMSTUDIO_URL+"/v1/embeddings","POST",{"model":model,"input":str(text)[:12000]},timeout=AI_TIMEOUT)
+        vec=((((j.get("data") or [{}])[0]).get("embedding")) or [])
+    if not vec: raise RuntimeError("The selected local provider does not expose an embedding model.")
+    return {"ok":True,"vector":vec,"provider":provider,"model":model}
+
 def process_job(payload):
     op = payload.get("op")
-    if op == "ai_status":\n        return {"ok": True, "ai": local_ai_capabilities()}\n\n    if op == "ai_chat":\n        messages=payload.get("messages") or [{"role":"user","content":str(payload.get("prompt",""))}]\n        return {"ok":True, **_ai_chat(messages, payload.get("model"), float(payload.get("temperature",0.1)), int(payload.get("max_tokens",512)))}\n\n    if op == "ai_embed":\n        return {"ok":True, **_ai_embed(str(payload.get("text","")), payload.get("model"))}\n\n    if op == "health":
+    if op == "ai_status":\n        return {"ok": True, "ai": local_ai_capabilities()}\n\n    if op == "ai_chat":\n        messages=payload.get("messages") or [{"role":"user","content":str(payload.get("prompt",""))}]\n        return {"ok":True, **_ai_chat(messages, payload.get("model"), float(payload.get("temperature",0.1)), int(payload.get("max_tokens",512)))}\n\n    if op == "ai_embed":\n        return {"ok":True, **_ai_embed(str(payload.get("text","")), payload.get("model"))}\n\n    if op == "ai_generate":
+        return _local_ai_chat(str(payload.get("prompt","")),int(payload.get("max_tokens",220)),float(payload.get("temperature",0.2)),payload.get("image_data_url"))
+    if op == "ai_embed":
+        return _local_ai_embed(str(payload.get("text","")))
+    if op == "health":
         return {"ok": True, "engine_api_version": ENGINE_API_VERSION, "engine_build": ENGINE_BUILD, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"], "ai": local_ai_capabilities()}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "archive_extract": ["7z","rar"], "language_translation": omni_language_engine.capability().get("translation", []), "language_transliteration": omni_language_engine.capability().get("transliteration", []), "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
 
     if op == "code_capabilities":
@@ -970,6 +1064,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path not in ("/api/health",) and not parsed.path.startswith("/api/"):
             if self.serve_static(parsed.path):
                 return
+        if parsed.path == "/api/ai/status":
+            if not origin_allowed(self):
+                self.send_json({"ok":False,"error":"Origin not allowed"},403); return
+            self.send_json(ai_status()); return
         if parsed.path in ("/", "/api/health"):
             if not origin_allowed(self):
                 self.send_json({"ok": False, "error": "Origin not allowed"}, 403)
