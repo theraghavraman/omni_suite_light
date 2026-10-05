@@ -286,10 +286,78 @@ def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
+
+# ---------------- Local AI provider bridge ----------------
+AI_PROVIDER = os.environ.get("OMNI_AI_PROVIDER", "auto").strip().lower()
+OLLAMA_URL = os.environ.get("OMNI_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+LMSTUDIO_URL = os.environ.get("OMNI_LMSTUDIO_URL", "http://127.0.0.1:1234").rstrip("/")
+AI_MODEL = os.environ.get("OMNI_AI_MODEL", "").strip()
+AI_TIMEOUT = int(os.environ.get("OMNI_AI_TIMEOUT", "300"))
+
+def _ai_http(url, payload=None, timeout=10):
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type":"application/json","Accept":"application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def _local_ai_status():
+    providers=[]
+    try:
+        x=_ai_http(OLLAMA_URL+"/api/tags", timeout=2)
+        models=[m.get("name") for m in x.get("models",[]) if m.get("name")]
+        providers.append({"provider":"ollama","available":True,"url":OLLAMA_URL,"models":models})
+    except Exception as e:
+        providers.append({"provider":"ollama","available":False,"url":OLLAMA_URL,"models":[],"error":str(e)})
+    try:
+        x=_ai_http(LMSTUDIO_URL+"/v1/models", timeout=2)
+        models=[m.get("id") for m in x.get("data",[]) if m.get("id")]
+        providers.append({"provider":"lmstudio","available":True,"url":LMSTUDIO_URL,"models":models})
+    except Exception as e:
+        providers.append({"provider":"lmstudio","available":False,"url":LMSTUDIO_URL,"models":[],"error":str(e)})
+    preferred=AI_PROVIDER
+    selected=None
+    if preferred in ("ollama","lmstudio"):
+        selected=next((p for p in providers if p["provider"]==preferred and p["available"]),None)
+    elif preferred=="auto":
+        selected=next((p for p in providers if p["available"]),None)
+    return {"enabled":bool(selected),"provider":selected["provider"] if selected else None,"model":AI_MODEL or ((selected["models"][0] if selected and selected["models"] else None)), "providers":providers, "local_only":True}
+
+def _ai_select():
+    s=_local_ai_status()
+    if not s["enabled"]: raise RuntimeError("No local AI provider is running. Start Ollama or LM Studio, load a model, then try again.")
+    return s
+
+def _ai_chat(messages, model=None, temperature=0.1, max_tokens=512):
+    s=_ai_select(); provider=s["provider"]; model=model or AI_MODEL or s["model"]
+    if not model: raise RuntimeError("Local AI provider is running but no model is loaded.")
+    if provider=="ollama":
+        payload={"model":model,"messages":messages,"stream":False,"options":{"temperature":temperature,"num_predict":max_tokens}}
+        out=_ai_http(OLLAMA_URL+"/api/chat",payload,AI_TIMEOUT)
+        return {"text":str(out.get("message",{}).get("content","")).strip(),"provider":provider,"model":model}
+    payload={"model":model,"messages":messages,"temperature":temperature,"max_tokens":max_tokens,"stream":False}
+    out=_ai_http(LMSTUDIO_URL+"/v1/chat/completions",payload,AI_TIMEOUT)
+    text=str((out.get("choices") or [{}])[0].get("message",{}).get("content","")).strip()
+    return {"text":text,"provider":provider,"model":model}
+
+def _ai_embed(text, model=None):
+    s=_ai_select(); provider=s["provider"]; model=model or AI_MODEL or s["model"]
+    if provider=="ollama":
+        out=_ai_http(OLLAMA_URL+"/api/embed",{"model":model,"input":[str(text)]},AI_TIMEOUT)
+        vec=(out.get("embeddings") or [[]])[0]
+    else:
+        out=_ai_http(LMSTUDIO_URL+"/v1/embeddings",{"model":model,"input":[str(text)]},AI_TIMEOUT)
+        vec=((out.get("data") or [{}])[0]).get("embedding",[])
+    if not vec: raise RuntimeError("Local provider returned no embedding. Load an embedding-capable model or use retrieval-only mode.")
+    return {"vector":vec,"provider":provider,"model":model}
+
+def local_ai_capabilities():
+    s=_local_ai_status()
+    return {"provider":s["provider"],"model":s["model"],"available":s["enabled"],"local_only":True,"providers":s["providers"]}
+
 def process_job(payload):
     op = payload.get("op")
-    if op == "health":
-        return {"ok": True, "engine_api_version": ENGINE_API_VERSION, "engine_build": ENGINE_BUILD, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"]}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "archive_extract": ["7z","rar"], "language_translation": omni_language_engine.capability().get("translation", []), "language_transliteration": omni_language_engine.capability().get("transliteration", []), "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
+    if op == "ai_status":\n        return {"ok": True, "ai": local_ai_capabilities()}\n\n    if op == "ai_chat":\n        messages=payload.get("messages") or [{"role":"user","content":str(payload.get("prompt",""))}]\n        return {"ok":True, **_ai_chat(messages, payload.get("model"), float(payload.get("temperature",0.1)), int(payload.get("max_tokens",512)))}\n\n    if op == "ai_embed":\n        return {"ok":True, **_ai_embed(str(payload.get("text","")), payload.get("model"))}\n\n    if op == "health":
+        return {"ok": True, "engine_api_version": ENGINE_API_VERSION, "engine_build": ENGINE_BUILD, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"], "ai": local_ai_capabilities()}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "archive_extract": ["7z","rar"], "language_translation": omni_language_engine.capability().get("translation", []), "language_transliteration": omni_language_engine.capability().get("transliteration", []), "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
 
     if op == "code_capabilities":
         return {"ok": True, "languages": omni_code_runner.available_languages()}
