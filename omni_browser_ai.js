@@ -71,11 +71,11 @@ async function generate(prompt,options={}){
   let out;
   if(key==="stronger"){
     const messages=[{role:"system",content:"You are a precise document-analysis assistant. Use only facts supplied by the user. Never invent missing details. Do not repeat phrases or sections. Give a concise, well-structured final answer."},{role:"user",content:p}];
-    out=await pipe(messages,{max_new_tokens:options.maxNewTokens||220,do_sample:false,return_full_text:false});
+    out=await pipe(messages,{max_new_tokens:options.maxNewTokens||220,do_sample:false,return_full_text:false,enable_thinking:false});
   }else{
     out=await pipe(p,{max_new_tokens:options.maxNewTokens||180,do_sample:false,return_full_text:false});
   }
-  return textFromOutput(out).replace(/<think>[\\s\\S]*?<\\/think>/gi,"").trim()||"No usable answer was generated.";
+  return textFromOutput(out).trim()||"No usable answer was generated.";
 }
 async function summarize(text,options={}){
   const pipe=await load("summarizer");
