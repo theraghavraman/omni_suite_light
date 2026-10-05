@@ -6,11 +6,11 @@
 (()=>{"use strict";
 
 const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
-const VERSION="1.2.0";
+const VERSION="1.3.0";
 const MODEL_REGISTRY=Object.freeze({
   general:{label:"SmolLM2 135M",task:"text-generation",model:"onnx-community/SmolLM2-135M-Instruct-ONNX",dtype:"q4",role:"General browser AI"},
   embeddings:{label:"all-MiniLM-L6-v2",task:"feature-extraction",model:"Xenova/all-MiniLM-L6-v2",dtype:"q4",role:"Embeddings / semantic similarity"},
-  summarizer:{label:"DistilBART CNN",task:"summarization",model:"Xenova/distilbart-cnn-6-6",dtype:"q4",role:"Summarization"},
+  summarizer:{label:"FLAN-T5 Small",task:"text2text-generation",model:"Xenova/flan-t5-small",dtype:"q4",role:"Lightweight summarization and document instructions"},
   asr:{label:"Whisper Tiny",task:"automatic-speech-recognition",model:"Xenova/whisper-tiny",dtype:"q4",role:"Speech to text"},
   tts:{label:"Supertonic TTS",task:"text-to-speech",model:"onnx-community/Supertonic-TTS-ONNX",dtype:"fp32",role:"Text to speech"},
   caption:{label:"ViT-GPT2",task:"image-to-text",model:"Xenova/vit-gpt2-image-captioning",dtype:"q4",role:"Image captioning"},
@@ -20,7 +20,7 @@ const MODEL_REGISTRY=Object.freeze({
   documentQa:{label:"Donut DocVQA",task:"document-question-answering",model:"Xenova/donut-base-finetuned-docvqa",dtype:"q4",role:"Document understanding"},
   ner:{label:"Multilingual NER",task:"token-classification",model:"Xenova/bert-base-multilingual-cased-ner-hrl",dtype:"q4",role:"Entity extraction"},
   depth:{label:"Depth Anything V2 Small",task:"depth-estimation",model:"onnx-community/depth-anything-v2-small",dtype:"q4",role:"Image depth"},
-  stronger:{label:"Qwen2.5 0.5B Instruct",task:"text-generation",model:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4",role:"Stronger browser document AI"}
+  stronger:{label:"Qwen2.5 0.5B Instruct (Experimental)",task:"text-generation",model:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4",role:"Optional experimental document AI"}
 });
 const loaded=new Map(), loading=new Map();
 let transformers=null;
@@ -53,6 +53,7 @@ async function load(key){
   return p;
 }
 function trimText(t,n=7000){return String(t||"").replace(/\u0000/g," ").replace(/\s+/g," ").trim().slice(0,n)}
+function cleanGeneratedText(s){let x=String(s||"").replace(/\s+/g," ").trim();x=x.replace(/^(answer|summary|response)\s*:\s*/i,"").trim();const w=x.split(/\s+/),o=[];for(const v of w){if(o.length>=3&&v===o[o.length-1]&&v===o[o.length-2])continue;o.push(v)}return o.join(" ")}
 function textFromOutput(o){
   if(Array.isArray(o)){
     if(o[0]?.generated_text!=null){const g=o[0].generated_text;if(Array.isArray(g))return String(g[g.length-1]?.content||g[g.length-1]?.text||"");return String(g);}
@@ -70,13 +71,13 @@ async function generate(prompt,options={}){
   const pipe=await load(key);
   const p=trimText(prompt,options.maxInput||6500);
   let out;
-  if(key==="stronger"){
+  if(key==="summarizer"){out=await pipe("summarize: "+p,{max_new_tokens:options.maxNewTokens||120,num_beams:4,no_repeat_ngram_size:3,return_full_text:false});}else if(key==="stronger"){
     const messages=[{role:"system",content:"You are a precise document-analysis assistant. Use only facts supplied by the user. Never invent missing details. Do not repeat phrases or sections. Give a concise, well-structured final answer."},{role:"user",content:p}];
     out=await pipe(messages,{max_new_tokens:options.maxNewTokens||220,do_sample:false,return_full_text:false,enable_thinking:false});
   }else{
     out=await pipe(p,{max_new_tokens:options.maxNewTokens||180,do_sample:false,return_full_text:false});
   }
-  return textFromOutput(out).trim()||"No usable answer was generated.";
+  return cleanGeneratedText(textFromOutput(out))||"No usable answer was generated.";
 }
 async function summarize(text,options={}){
   const pipe=await load("summarizer");
