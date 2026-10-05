@@ -1215,6 +1215,76 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
   #omniStaticStudios .studio-back-label{display:none !important}
 }
 </style>
+
+<style id="omni-mobile-center-only">
+/* Mobile-only centering pass. Desktop/tablet styles are untouched. */
+@media (max-width: 640px){
+  .container{
+    margin-inline:auto !important;
+  }
+
+  .hero-header{
+    width:100% !important;
+    margin-inline:auto !important;
+    justify-items:center !important;
+    text-align:center !important;
+  }
+
+  .hero-copy{
+    width:100% !important;
+    margin-inline:auto !important;
+    padding-inline:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    text-align:center !important;
+  }
+
+  .hero-copy .omni-identity-v3,
+  .hero-copy .omni-cup-brand-mark,
+  .hero-copy .omni-brand-wordmark{
+    justify-content:center !important;
+    margin-inline:auto !important;
+  }
+
+  .hero-copy .eyebrow,
+  .hero-copy > p,
+  .hero-metrics,
+  .badge-privacy{
+    margin-inline:auto !important;
+    text-align:center !important;
+    justify-content:center !important;
+  }
+
+  .hero-copy > p{
+    max-width:34rem !important;
+  }
+
+  .hero-metrics{
+    width:100% !important;
+    flex-wrap:wrap !important;
+  }
+
+  .hero-render{
+    width:100% !important;
+    margin-inline:auto !important;
+  }
+
+  .omni-guide{
+    margin-inline:auto !important;
+    text-align:center !important;
+  }
+
+  .omni-guide-grid{
+    justify-items:stretch !important;
+  }
+
+  .nav-bar{
+    margin-inline:auto !important;
+  }
+}
+</style>
+
 </head>
 <body>
   <button type="button" id="omniStaticStudios" aria-label="Back to Studios"><span>←</span><span class="studio-back-label">Studios</span></button>
