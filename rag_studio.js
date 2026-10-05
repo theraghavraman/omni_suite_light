@@ -46,6 +46,25 @@ function css(){
 .rag-privacy-strip small{display:block;margin-top:2px;font-size:.67rem;line-height:1.45;color:#667085}
 @media(max-width:850px){.rag-grid{grid-template-columns:1fr}.rag-controls{grid-template-columns:1fr}.rag-model-grid{grid-template-columns:1fr}.rag-model-item{padding:11px}.rag-model-head{align-items:flex-start}.rag-local-badge{font-size:.58rem}}
 @media(max-width:430px){.rag-model-head{gap:8px}.rag-model-head h3{font-size:1.12rem!important}.rag-kicker{font-size:.64rem}.rag-model-item{grid-template-columns:30px minmax(0,1fr) auto;gap:8px}.rag-model-icon{width:28px;height:28px}.rag-model-item span{font-size:.66rem}.rag-privacy-strip small{font-size:.64rem}}
+
+#tabRAGStudio .rag-top-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:18px;align-items:stretch;margin-bottom:18px}
+#tabRAGStudio .rag-grid{gap:18px}
+#tabRAGStudio .rag-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#fff 0%,#f8f6ff 55%,#f1fbff 100%);border:1px solid #e5e1f3}
+#tabRAGStudio .rag-hero::after{content:"";position:absolute;width:180px;height:180px;right:-65px;top:-75px;border-radius:50%;background:rgba(124,92,255,.10)}
+#tabRAGStudio .rag-hero h2{position:relative;font-size:1.55rem;letter-spacing:-.02em}
+#tabRAGStudio .rag-model-card{height:100%;background:linear-gradient(145deg,#fff,#fbfaff)}
+#tabRAGStudio .rag-model-item{background:#fff;padding:11px;border-radius:13px}
+#tabRAGStudio .rag-model-item b{font-size:.75rem}
+#tabRAGStudio .rag-model-item span{margin-top:4px;font-size:.66rem;line-height:1.35}
+#tabRAGStudio .rag-privacy-strip{background:#f7fcfa}
+#tabRAGStudio .rag-answer{min-height:170px;padding:18px;border-radius:15px;background:linear-gradient(180deg,#fbfcff,#f7f8fc);line-height:1.65}
+#tabRAGStudio .rag-source{padding:12px 14px;border-radius:13px;box-shadow:0 2px 8px rgba(34,31,66,.035)}
+#tabRAGStudio .rag-section-label{font-size:.63rem;font-weight:850;letter-spacing:.13em;color:#7659cf;margin-bottom:4px}
+#tabRAGStudio .rag-stat{background:rgba(255,255,255,.86)}
+#tabRAGStudio .actions-bar{gap:9px;align-items:center;flex-wrap:wrap}
+#tabRAGStudio .actions-bar .btn{border-radius:11px}
+@media(max-width:950px){#tabRAGStudio .rag-top-grid{grid-template-columns:1fr}#tabRAGStudio .rag-grid{grid-template-columns:1fr}#tabRAGStudio .rag-model-grid{grid-template-columns:1fr}}
+@media(max-width:600px){#tabRAGStudio .rag-controls{grid-template-columns:1fr}#tabRAGStudio .rag-hero h2{font-size:1.3rem}}
 `;document.head.appendChild(s)
 }
 function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE)){const st=d.createObjectStore(STORE,{keyPath:"id"});st.createIndex("source","source")}if(!d.objectStoreNames.contains(META))d.createObjectStore(META,{keyPath:"key"})};r.onsuccess=()=>{db=r.result;res()};r.onerror=()=>rej(r.error)})}
