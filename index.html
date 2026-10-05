@@ -1304,7 +1304,8 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
       <button type="button" class="nav-btn active" data-tab="tabRAGStudio"><span class="studio-icon"><span class="studio-svg">✦</span></span><span class="studio-label">Private RAG</span><small>RAG • LOCAL LLM</small></button>
       <button type="button" class="nav-btn" data-tab="tabLanguageStudio"><span class="studio-icon"><span class="studio-svg">文</span></span><span class="studio-label">Language Engine</span><small>TRANSLATE • TRANSLITERATE</small></button>
       <button type="button" class="nav-btn" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
-      <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Office Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Doc Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabOfficeEditor" style="--c:#D97706;--c2:#EA580C;--cs:rgba(217,119,6,.14)"><span class="studio-icon"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M17 4v4h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="studio-label">Office Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabEpub"><span class="studio-icon studio-epub"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h9.2L18.5 7v12.5H6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4.5V7h3.5M9 9h5.5M9 12h5.5M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 6.5v13a1 1 0 0 0 1 1h10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></svg></span><span class="studio-label">EPUB Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabImages"><span class="studio-icon studio-image"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="m5.5 17 4.4-4.3 3.1 3 2.2-2.1 3.3 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="studio-label">Image Tools</span></button>
       <button type="button" class="nav-btn" data-tab="tabOcr"><span class="studio-icon studio-ocr"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 9V5.5A1.5 1.5 0 0 1 6 4h3.5M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="m13.6 13.6 3.1 3.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="studio-label">Image to Text</span><small>OCR</small></button>
@@ -1970,6 +1971,75 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <!-- 3. EPUB STUDIO -->
+    
+    <div class="module-panel" id="tabOfficeEditor">
+      <div class="card office-editor-shell">
+        <div class="office-editor-head">
+          <div>
+            <div class="kicker">BROWSER-ONLY OFFICE WORKSPACE</div>
+            <h2>Office Studio</h2>
+            <p class="sub">Open and edit supported Word, Excel/CSV and PDF files directly in this browser. Files stay in the page unless you explicitly download or export them.</p>
+          </div>
+          <div class="office-editor-badges"><span>CLIENT-SIDE</span><span>NO SERVER</span><span>PRIVATE</span></div>
+        </div>
+        <div class="office-editor-toolbar">
+          <label class="office-open-btn"><input id="officeEditorFile" type="file" accept=".docx,.xlsx,.csv,.tsv,.pdf">Open file</label>
+          <button type="button" class="btn btn-secondary office-mode-btn active" data-office-mode="word">Document</button>
+          <button type="button" class="btn btn-secondary office-mode-btn" data-office-mode="sheet">Spreadsheet</button>
+          <button type="button" class="btn btn-secondary office-mode-btn" data-office-mode="pdf">PDF</button>
+          <button type="button" class="btn btn-primary" id="officeEditorSave">Save / Export</button>
+          <button type="button" class="btn btn-secondary" id="officeEditorNew">New</button>
+        </div>
+        <div class="office-editor-status" id="officeEditorStatus">Choose a DOCX, XLSX, CSV or PDF file to begin. Everything is rendered in the browser.</div>
+
+        <section class="office-pane" id="officeWordPane">
+          <div class="office-word-tools">
+            <button type="button" class="btn btn-secondary" data-cmd="bold"><b>B</b></button>
+            <button type="button" class="btn btn-secondary" data-cmd="italic"><i>I</i></button>
+            <button type="button" class="btn btn-secondary" data-cmd="underline"><u>U</u></button>
+            <button type="button" class="btn btn-secondary" data-cmd="insertUnorderedList">• List</button>
+            <select id="officeWordSize" class="form-select"><option value="16px">Normal</option><option value="22px">Heading</option><option value="30px">Title</option></select>
+            <button type="button" class="btn btn-secondary" id="officeWordTable">Insert Table</button>
+          </div>
+          <div id="officeWordEditor" class="office-word-editor" contenteditable="true" spellcheck="true">
+            <h1>New document</h1><p>Start writing here. Use the toolbar for basic rich-text editing, then export to DOCX or PDF.</p>
+          </div>
+        </section>
+
+        <section class="office-pane" id="officeSheetPane" hidden>
+          <div class="office-sheet-bar">
+            <input id="officeSheetFormula" class="form-input" placeholder="Select a cell to edit its value or formula">
+            <button type="button" class="btn btn-secondary" id="officeSheetAddRow">+ Row</button>
+            <button type="button" class="btn btn-secondary" id="officeSheetAddCol">+ Column</button>
+          </div>
+          <div id="officeSheetTabs" class="office-sheet-tabs"></div>
+          <div id="officeSheetGrid" class="office-sheet-grid">
+            <div class="office-empty">Open an XLSX/CSV file to edit its cells.</div>
+          </div>
+        </section>
+
+        <section class="office-pane" id="officePdfPane" hidden>
+          <div class="office-pdf-toolbar">
+            <button type="button" class="btn btn-secondary" id="officePdfPrev">←</button>
+            <span id="officePdfPage">Page 0 / 0</span>
+            <button type="button" class="btn btn-secondary" id="officePdfNext">→</button>
+            <button type="button" class="btn btn-secondary" id="officePdfText">Add text</button>
+            <button type="button" class="btn btn-secondary" id="officePdfHighlight">Highlight</button>
+            <button type="button" class="btn btn-secondary" id="officePdfClear">Clear marks</button>
+          </div>
+          <div id="officePdfStage" class="office-pdf-stage"><div class="office-empty">Open a PDF to render it here.</div></div>
+          <p class="office-pdf-note">Browser-only PDF editing in this workspace focuses on rendering, text annotations and highlights. Editing the original PDF's existing text/layout is format-sensitive and is not claimed as lossless.</p>
+        </section>
+
+        <div class="office-capability-grid">
+          <div><strong>DOCX</strong><span>Rich text, headings, lists, tables, browser editing, DOCX export</span></div>
+          <div><strong>XLSX / CSV</strong><span>Sheets, cell editing, formulas as stored text, rows/columns, XLSX export</span></div>
+          <div><strong>PDF</strong><span>Browser rendering, page navigation, text boxes, highlights, PDF export</span></div>
+          <div><strong>Privacy</strong><span>No upload is required for the editor itself; processing runs in the page</span></div>
+        </div>
+      </div>
+    </div>
+
     <div class="module-panel" id="tabEpub">
       <div class="card">
         <h2>1. EPUB to PDF &amp; Readable JPG Pages</h2>
@@ -3495,14 +3565,14 @@ async function runOptions(clear=true){
  }
 }
 function runOfficeChecks(){
- const panel=$('tabWord');if(!panel){add('Office Studio','Office Studio panel','FAIL','Panel missing');return}
+ const panel=$('tabWord');if(!panel){add('Doc Studio','Doc Studio panel','FAIL','Panel missing');return}
  const ids=['officeConvertInput','officeConvertTarget','officeConvertBtn','officePptPdfBtn','officePdfPptBtn','officeCsvXlsxBtn','officeSheetXlsxBtn','officeDeckPptxBtn','officePresentationInput','officePresentationTarget','officePresentationRun','officePresentationReset','officeSpreadsheetInput','officeSpreadsheetTarget','officeSpreadsheetRun','officeSpreadsheetReset'];
- ids.forEach(id=>{const el=$(id);add('Office Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
+ ids.forEach(id=>{const el=$(id);add('Doc Studio','Office control: '+id,el?'PASS':'FAIL',el?'Control is present':'Control is missing')});
  const targets=panel.querySelectorAll('#officeConvertTarget option');
- add('Office Studio','Office target formats','PASS',targets.length+' supported target formats');
- ['pdf','docx','docm','dotx','xlsx','xlsm','xlsb','ods','csv','pptx','pptm','ppsx','potx','odp','otp'].forEach(fmt=>add('Office Studio','Universal target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
- const presentationTargets=['pdf','ppt','pptx','pptm','pps','ppsx','pot','potx','potm','odp','otp','fodp'];const pt=$('officePresentationTarget');presentationTargets.forEach(fmt=>add('Office Studio','Presentation target '+fmt,pt&&[...pt.options].some(o=>o.value===fmt)?'PASS':'FAIL',pt&&[...pt.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
- const spreadsheetTargets=['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'];const st=$('officeSpreadsheetTarget');spreadsheetTargets.forEach(fmt=>add('Office Studio','Spreadsheet target '+fmt,st&&[...st.options].some(o=>o.value===fmt)?'PASS':'FAIL',st&&[...st.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
+ add('Doc Studio','Office target formats','PASS',targets.length+' supported target formats');
+ ['pdf','docx','docm','dotx','xlsx','xlsm','xlsb','ods','csv','pptx','pptm','ppsx','potx','odp','otp'].forEach(fmt=>add('Doc Studio','Universal target format '+fmt,targets.length&&[...targets].some(o=>o.value===fmt)?'PASS':'FAIL','Format option '+(targets.length&&[...targets].some(o=>o.value===fmt)?'is present':'is missing')));
+ const presentationTargets=['pdf','ppt','pptx','pptm','pps','ppsx','pot','potx','potm','odp','otp','fodp'];const pt=$('officePresentationTarget');presentationTargets.forEach(fmt=>add('Doc Studio','Presentation target '+fmt,pt&&[...pt.options].some(o=>o.value===fmt)?'PASS':'FAIL',pt&&[...pt.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
+ const spreadsheetTargets=['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'];const st=$('officeSpreadsheetTarget');spreadsheetTargets.forEach(fmt=>add('Doc Studio','Spreadsheet target '+fmt,st&&[...st.options].some(o=>o.value===fmt)?'PASS':'FAIL',st&&[...st.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
 }
 async function runAll(){
  reset();
@@ -3629,7 +3699,7 @@ async function runBrowserTests(){
   ];
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
-  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Language Engine','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Language Engine':'tabLanguageStudio','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
+  for(const label of ['PDF Suite','Doc Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Language Engine','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Doc Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Language Engine':'tabLanguageStudio','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
   await test('browser','PDF → PPTX browser conversion',async()=>{
     const pdf=await makePdfBlob();
     const out=await window.OMNI_BROWSER_FIRST.office(new File([pdf],'omni-browser-test.pdf',{type:'application/pdf'}),'pptx',{download:false});
@@ -3682,7 +3752,7 @@ async function runLocalTests(){
   let h;
   try{h=await localHealth();state.local=h;}catch(e){
     skip('local','Local Engine connection','Not connected at 127.0.0.1:8765 — start the Local Engine to run native tests');
-    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Office Studio: PPT → PDF','Office Studio: PDF → PPTX','Office Studio: CSV → XLSX','Office Studio: XLSX → ODS','Office Studio: PPTX → ODP','Ebook Studio: native format bridge','Image Tools: native format bridge','Audio Studio: native format bridge','Video Studio: native format bridge','Data Studio: data conversion/profile','Data Studio: SQL dialect translation','Data Studio: NoSQL bridge','Data Studio: Text/Log bridge','Data Studio: BLOB bridge','SQL simulation engine','Programming language local runner','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
+    ['Authenticated upload/API','ImageMagick image conversion','Poppler PDF → image rendering','Poppler PDF → text extraction','qpdf PDF compression','qpdf PDF merge','qpdf PDF split','Native Tesseract OCR','Doc Studio: PPT → PDF','Doc Studio: PDF → PPTX','Doc Studio: CSV → XLSX','Doc Studio: XLSX → ODS','Doc Studio: PPTX → ODP','Ebook Studio: native format bridge','Image Tools: native format bridge','Audio Studio: native format bridge','Video Studio: native format bridge','Data Studio: data conversion/profile','Data Studio: SQL dialect translation','Data Studio: NoSQL bridge','Data Studio: Text/Log bridge','Data Studio: BLOB bridge','SQL simulation engine','Programming language local runner','Calibre ebook conversion','FFmpeg audio conversion','ZIP archive operation','GZIP operation'].forEach(name=>skip('local',name,'Requires Local Engine connection'));
     return;
   }
   await test('local','Local Engine health + build compatibility',async()=>{
@@ -3725,22 +3795,22 @@ async function runLocalTests(){
   const csv=new Blob(['Name,Value\\nOmni,42\\nSuite,99\\n'],{type:'text/csv'});
   const csvId=await upload(csv,'omni-diagnostic.csv');
   if(tool('soffice')){
-    await test('local','Office Studio: CSV → XLSX',async()=>{const o=await process({op:'office_convert',input:csvId,format:'xlsx'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty XLSX');return o.name+' • '+b.size+' bytes';});
-    await test('local','Office Studio: CSV → ODS',async()=>{const o=await process({op:'office_convert',input:csvId,format:'ods'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty ODS');return o.name+' • '+b.size+' bytes';});
-  } else {skip('local','Office Studio: CSV → XLSX','LibreOffice unavailable');skip('local','Office Studio: CSV → ODS','LibreOffice unavailable');}
+    await test('local','Doc Studio: CSV → XLSX',async()=>{const o=await process({op:'office_convert',input:csvId,format:'xlsx'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty XLSX');return o.name+' • '+b.size+' bytes';});
+    await test('local','Doc Studio: CSV → ODS',async()=>{const o=await process({op:'office_convert',input:csvId,format:'ods'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty ODS');return o.name+' • '+b.size+' bytes';});
+  } else {skip('local','Doc Studio: CSV → XLSX','LibreOffice unavailable');skip('local','Doc Studio: CSV → ODS','LibreOffice unavailable');}
   let generatedPptId=null;
   if(tool('pdftoppm')) {
-    await test('local','Office Studio: PDF → PPTX',async()=>{const o=await process({op:'pdf_to_ppt',input:ids.pdf,dpi:96});const b=await download(o.file_id);if(!b.size)throw new Error('Empty PPTX');const ab=await b.arrayBuffer();const sig=new TextDecoder().decode(new Uint8Array(ab.slice(0,2)));if(sig!=='PK')throw new Error('Output is not a PPTX ZIP package');generatedPptId=await upload(b,'omni-generated.pptx');return o.name+' • '+b.size+' bytes';});
-  } else skip('local','Office Studio: PDF → PPTX','Poppler unavailable');
+    await test('local','Doc Studio: PDF → PPTX',async()=>{const o=await process({op:'pdf_to_ppt',input:ids.pdf,dpi:96});const b=await download(o.file_id);if(!b.size)throw new Error('Empty PPTX');const ab=await b.arrayBuffer();const sig=new TextDecoder().decode(new Uint8Array(ab.slice(0,2)));if(sig!=='PK')throw new Error('Output is not a PPTX ZIP package');generatedPptId=await upload(b,'omni-generated.pptx');return o.name+' • '+b.size+' bytes';});
+  } else skip('local','Doc Studio: PDF → PPTX','Poppler unavailable');
   if(tool('soffice')) {
     if(generatedPptId){
-      await test('local','Office Studio: PPTX → PDF',async()=>{const p=await process({op:'office_convert',input:generatedPptId,format:'pdf'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty PDF');return 'PPTX → PDF • '+b.size+' bytes';});
-      await test('local','Office Studio: PPTX → ODP',async()=>{const p=await process({op:'office_convert',input:generatedPptId,format:'odp'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty ODP');return 'PPTX → ODP • '+b.size+' bytes';});
+      await test('local','Doc Studio: PPTX → PDF',async()=>{const p=await process({op:'office_convert',input:generatedPptId,format:'pdf'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty PDF');return 'PPTX → PDF • '+b.size+' bytes';});
+      await test('local','Doc Studio: PPTX → ODP',async()=>{const p=await process({op:'office_convert',input:generatedPptId,format:'odp'});const b=await download(p.file_id);if(!b.size)throw new Error('Empty ODP');return 'PPTX → ODP • '+b.size+' bytes';});
     } else {
-      skip('local','Office Studio: PPTX → PDF','No PPTX fixture: Poppler is unavailable');
-      skip('local','Office Studio: PPTX → ODP','No PPTX fixture: Poppler is unavailable');
+      skip('local','Doc Studio: PPTX → PDF','No PPTX fixture: Poppler is unavailable');
+      skip('local','Doc Studio: PPTX → ODP','No PPTX fixture: Poppler is unavailable');
     }
-  } else {skip('local','Office Studio: PPTX → PDF','LibreOffice unavailable');skip('local','Office Studio: PPTX → ODP','LibreOffice unavailable');}
+  } else {skip('local','Doc Studio: PPTX → PDF','LibreOffice unavailable');skip('local','Doc Studio: PPTX → ODP','LibreOffice unavailable');}
   if(tool('soffice')) await test('local','LibreOffice Office conversion',async()=>{const o=await process({op:'office_convert',input:txtId,format:'pdf'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty Office conversion output');return o.name+' • '+b.size+' bytes';}); else skip('local','LibreOffice Office conversion','LibreOffice unavailable');
   const htmlId=await upload(html,'omni-diagnostic.html');
   if(tool('ebook-convert')) await test('local','Calibre ebook conversion',async()=>{const o=await process({op:'ebook_convert',input:htmlId,format:'epub'});const b=await download(o.file_id);if(!b.size)throw new Error('Empty EPUB');return o.name+' • '+b.size+' bytes';}); else skip('local','Calibre ebook conversion','Calibre unavailable');
@@ -3836,7 +3906,7 @@ async function convert(forcedTarget){
     if(!dl.ok)throw new Error('Output download failed');
     const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){alert('Office Studio: '+e.message)}
+  }catch(e){alert('Doc Studio: '+e.message)}
 }
 run.onclick=()=>convert();
 $('officePptPdfBtn').onclick=()=>{target.value='pdf';convert('pdf')};
@@ -4297,7 +4367,7 @@ $('codeLabFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0
 $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 })();
 </script>
-<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
+<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Doc Studio',tabOfficeEditor:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
 <script id="omni-workspace-v9">
 (function(){
 'use strict';
@@ -4305,7 +4375,7 @@ const meta={
  tabRAGStudio:['Private RAG','Build a private local knowledge base with semantic/vector retrieval, hybrid search and an optional browser-run small language model.'],
  tabLanguageStudio:['Language Engine','Translate, transliterate and inspect multilingual text with a browser-first language workspace.'],
  tabPdf:['PDF Suite','Convert, merge, split, compress and inspect PDF documents in one focused workspace.'],
- tabWord:['Office Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],
+ tabWord:['Doc Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],\n tabOfficeEditor:['Office Studio','Edit supported Word, spreadsheet and PDF files locally in the browser with no server-side document processing.'],
  tabEpub:['EPUB Studio','Build, inspect and transform EPUB books and their internal assets.'],
  tabImages:['Image Tools','Convert, resize, optimize and transform images with browser-first processing.'],
  tabOcr:['Image to Text','Extract searchable text from images and scans with local browser OCR.'],
@@ -4341,7 +4411,7 @@ function enter(id,button){
    tabRAGStudio:['#7C3AED','#C026D3','rgba(124,58,237,.14)'],
    tabLanguageStudio:['#0F766E','#06B6D4','rgba(15,118,110,.14)'],
    tabPdf:['#E11D48','#F97316','rgba(225,29,72,.14)'],
-   tabWord:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],
+   tabWord:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],tabOfficeEditor:['#D97706','#EA580C','rgba(217,119,6,.14)'],
    tabEpub:['#8B5CF6','#EC4899','rgba(139,92,246,.14)'],
    tabImages:['#F97316','#FACC15','rgba(249,115,22,.14)'],
    tabOcr:['#059669','#84CC16','rgba(5,150,105,.14)'],
@@ -4939,7 +5009,7 @@ body[data-active-studio] .module-panel.active .progress-bar-fill{
 .nav-bar .nav-btn[data-tab="tabRAGStudio"]{--c:#7C3AED;--c2:#C026D3;--cs:rgba(124,58,237,.14)}
 .nav-bar .nav-btn[data-tab="tabLanguageStudio"]{--c:#0F766E;--c2:#06B6D4;--cs:rgba(15,118,110,.14)}
 .nav-bar .nav-btn[data-tab="tabPdf"]{--c:#E11D48;--c2:#F97316;--cs:rgba(225,29,72,.14)}
-.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}
+.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}nav-bar .nav-btn[data-tab="tabOfficeEditor"]{--c:#D97706;--c2:#EA580C;--cs:rgba(217,119,6,.14)}
 .nav-bar .nav-btn[data-tab="tabEpub"]{--c:#8B5CF6;--c2:#EC4899;--cs:rgba(139,92,246,.14)}
 .nav-bar .nav-btn[data-tab="tabImages"]{--c:#F97316;--c2:#FACC15;--cs:rgba(249,115,22,.14)}
 .nav-bar .nav-btn[data-tab="tabOcr"]{--c:#059669;--c2:#84CC16;--cs:rgba(5,150,105,.14)}
@@ -5356,6 +5426,143 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
   border-color:#54CDB6 !important;
   box-shadow:0 2px 0 #42BFA8,0 14px 28px -14px rgba(20,160,140,.6) !important;
 }
+</style>
+
+<script id="omni-office-browser-editor-v1">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const state={mode:'word',file:null,workbook:null,sheet:'',pdf:null,pdfPage:1,pdfBytes:null,pdfAnnotations:[],selectedCell:null};
+const status=(s)=>{const e=$('officeEditorStatus');if(e)e.textContent=s};
+function setMode(mode){
+ state.mode=mode;
+ document.querySelectorAll('#tabOfficeEditor .office-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.officeMode===mode));
+ $('officeWordPane').hidden=mode!=='word';$('officeSheetPane').hidden=mode!=='sheet';$('officePdfPane').hidden=mode!=='pdf';
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function docxHtml(xml){
+ const doc=new DOMParser().parseFromString(xml,'application/xml');const body=doc.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','body')[0];if(!body)return '<p>Unable to read document body.</p>';
+ const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';let html='';
+ for(const node of body.children){
+  if(node.localName==='p'){
+   let p='<p>';for(const r of node.getElementsByTagNameNS(W,'r')){
+    const rp=r.getElementsByTagNameNS(W,'rPr')[0];const b=rp&&rp.getElementsByTagNameNS(W,'b').length;const i=rp&&rp.getElementsByTagNameNS(W,'i').length;const u=rp&&rp.getElementsByTagNameNS(W,'u').length;
+    let t='';for(const x of r.getElementsByTagNameNS(W,'t'))t+=x.textContent||'';for(const br of r.getElementsByTagNameNS(W,'br'))t+='\n';
+    let v=esc(t).replace(/\n/g,'<br>');if(b)v='<strong>'+v+'</strong>';if(i)v='<em>'+v+'</em>';if(u)v='<u>'+v+'</u>';p+=v;
+   }html+=p+'</p>';
+  }else if(node.localName==='tbl'){
+   html+='<table class="office-doc-table"><tbody>';for(const tr of node.getElementsByTagNameNS(W,'tr')){html+='<tr>';for(const tc of tr.getElementsByTagNameNS(W,'tc')){let txt='';for(const t of tc.getElementsByTagNameNS(W,'t'))txt+=t.textContent||'';html+='<td>'+esc(txt)+'</td>'}html+='</tr>'}html+='</tbody></table>';
+  }
+ }return html||'<p>Empty document.</p>';
+}
+function runXml(el){
+ let props='';const tag=el.tagName==='STRONG'?'b':el.tagName==='EM'?'i':el.tagName==='U'?'u':null;if(tag)props='<w:rPr><w:'+tag+(tag==='u'?' w:val="single"':'')+'/></w:rPr>';
+ const text=(el.innerText||el.textContent||'').replace(/\u00a0/g,' ');return '<w:r>'+props+'<w:t xml:space="preserve">'+esc(text)+'</w:t></w:r>';
+}
+function htmlToDocXml(){
+ const ed=$('officeWordEditor');let body='';
+ ed.childNodes.forEach(n=>{
+  if(n.nodeType===3){const t=n.textContent.trim();if(t)body+='<w:p>'+runXml(n)+'</w:p>';return}
+  if(n.nodeType!==1)return;
+  if(n.tagName==='TABLE'){body+='<w:tbl>';n.querySelectorAll('tr').forEach(tr=>{body+='<w:tr>';tr.querySelectorAll('th,td').forEach(td=>{body+='<w:tc><w:p><w:r><w:t xml:space="preserve">'+esc(td.innerText||'')+'</w:t></w:r></w:p></w:tc>'});body+='</w:tr>'});body+='</w:tbl>';return}
+  const name=n.tagName==='H1'||n.tagName==='H2'||n.tagName==='H3'?'p':'p';body+='<w:'+name+'>';n.childNodes.forEach(ch=>{if(ch.nodeType===3){const t=ch.textContent;if(t)body+=runXml(ch)}else if(ch.nodeType===1){body+=runXml(ch)}});body+='</w:p>';
+ });return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+body+'<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>';
+}
+async function exportDocx(){
+ const z=new JSZip();
+ z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+ z.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+ z.folder('word').file('document.xml',htmlToDocXml()).file('styles.xml','<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos"/><w:sz w:val="22"/></w:rPr></w:style></w:styles>');
+ z.folder('word').folder('_rels').file('document.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>');
+ download(await z.generateAsync({type:'blob'}),(state.file?.name||'document').replace(/\.[^.]+$/,'')+'.docx');status('DOCX exported in the browser.');
+}
+async function loadDocx(file){
+ const z=await JSZip.loadAsync(await file.arrayBuffer());const xml=await z.file('word/document.xml').async('text');$('officeWordEditor').innerHTML=docxHtml(xml);setMode('word');status('DOCX opened locally. Basic rich text and tables are editable.');
+}
+function renderSheet(){
+ const ws=state.workbook?.Sheets[state.sheet];if(!ws)return;
+ const ref=ws['!ref']||'A1:A1',range=XLSX.utils.decode_range(ref),maxR=Math.min(range.e.r,99),maxC=Math.min(range.e.c,29);let html='<table><thead><tr><th></th>';
+ for(let c=0;c<=maxC;c++)html+='<th>'+XLSX.utils.encode_col(c)+'</th>';html+='</tr></thead><tbody>';
+ for(let r=0;r<=maxR;r++){html+='<tr><th>'+(r+1)+'</th>';for(let c=0;c<=maxC;c++){const a=XLSX.utils.encode_cell({r,c}),v=ws[a]?.v??'';html+='<td contenteditable="true" data-cell="'+a+'">'+esc(v)+'</td>'}html+='</tr>'}html+='</tbody></table>';$('officeSheetGrid').innerHTML=html;
+ $('officeSheetGrid').querySelectorAll('td').forEach(td=>td.addEventListener('input',()=>{if(state.workbook?.Sheets[state.sheet])state.workbook.Sheets[state.sheet][td.dataset.cell]={v:td.innerText,t:'s'}}));
+ document.querySelectorAll('#officeSheetTabs button').forEach(b=>b.classList.toggle('active',b.dataset.sheet===state.sheet));
+}
+function loadSheet(file){
+ const reader=new FileReader();reader.onload=()=>{state.workbook=XLSX.read(reader.result,{type:'array',cellFormula:true});state.sheet=state.workbook.SheetNames[0];const tabs=state.workbook.SheetNames.map(s=>'<button type="button" data-sheet="'+esc(s)+'">'+esc(s)+'</button>').join('');$('officeSheetTabs').innerHTML=tabs;$('officeSheetTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{state.sheet=b.dataset.sheet;renderSheet()});renderSheet();setMode('sheet');status('Spreadsheet opened locally. Edit cells and export XLSX.');};reader.readAsArrayBuffer(file)}
+function exportSheet(){if(!state.workbook)return;const out=XLSX.write(state.workbook,{bookType:'xlsx',type:'array'});download(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),(state.file?.name||'workbook').replace(/\.[^.]+$/,'')+'.xlsx');status('XLSX exported in the browser.')}
+async function loadPdf(file){state.pdfBytes=await file.arrayBuffer();state.pdf=await pdfjsLib.getDocument({data:state.pdfBytes.slice(0)}).promise;state.pdfPage=1;state.pdfAnnotations=[];setMode('pdf');await renderPdf();status('PDF rendered locally. Use Add text or Highlight, then export with Save / Export.')}
+async function renderPdf(){
+ if(!state.pdf)return;const page=await state.pdf.getPage(state.pdfPage),vp=page.getViewport({scale:1.35}),stage=$('officePdfStage');stage.innerHTML='<div class="office-pdf-canvas-wrap"><canvas id="officePdfCanvas"></canvas><div id="officePdfOverlay"></div></div>';const canvas=$('officePdfCanvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;$('officePdfPage').textContent='Page '+state.pdfPage+' / '+state.pdf.numPages;drawPdfAnnotations();}
+function drawPdfAnnotations(){const overlay=$('officePdfOverlay');if(!overlay)return;overlay.innerHTML='';state.pdfAnnotations.filter(a=>a.page===state.pdfPage).forEach((a,i)=>{const d=document.createElement('div');d.className='office-pdf-mark '+a.type;d.textContent=a.text||'';d.style.left=(a.x*100)+'%';d.style.top=(a.y*100)+'%';d.style.width=(a.w*100)+'%';d.style.height=(a.h*100)+'%';d.dataset.idx=i;overlay.appendChild(d)});}
+function addPdfMark(type,x,y){if(type==='text'){const text=prompt('Text to add to the PDF:','');if(!text)return;state.pdfAnnotations.push({page:state.pdfPage,type,text,x,y,w:.28,h:.05})}else state.pdfAnnotations.push({page:state.pdfPage,type,x,y,w:.25,h:.08});drawPdfAnnotations()}
+async function exportPdf(){if(!state.pdfBytes)return;const doc=await PDFLib.PDFDocument.load(state.pdfBytes),font=await doc.embedFont(PDFLib.StandardFonts.Helvetica),pages=doc.getPages();for(const a of state.pdfAnnotations){const p=pages[a.page-1];if(!p)continue;const sz=p.getSize();const x=a.x*sz.width,y=sz.height-(a.y+a.h)*sz.height;if(a.type==='text')p.drawText(a.text,{x,y,size:12,font,color:PDFLib.rgb(.08,.16,.24),maxWidth:a.w*sz.width});else p.drawRectangle({x,y,width:a.w*sz.width,height:a.h*sz.height,color:PDFLib.rgb(1,1,.2),opacity:.32,borderWidth:0})}download(new Blob([await doc.save()],{type:'application/pdf'}),(state.file?.name||'document').replace(/\.[^.]+$/,'')+'-edited.pdf');status('Annotated PDF exported in the browser.')}
+$('officeEditorFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;state.file=f;try{const ext=f.name.toLowerCase().split('.').pop();if(ext==='docx')await loadDocx(f);else if(['xlsx','csv','tsv'].includes(ext))loadSheet(f);else if(ext==='pdf')await loadPdf(f);else status('This browser editor currently supports DOCX, XLSX, CSV/TSV and PDF.')}catch(err){status('Could not open file: '+(err.message||String(err)))}});
+document.querySelectorAll('#tabOfficeEditor .office-mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.officeMode)));
+document.querySelectorAll('#tabOfficeEditor [data-cmd]').forEach(b=>b.addEventListener('click',()=>{document.execCommand(b.dataset.cmd,false,null);$('officeWordEditor').focus()}));
+$('officeWordSize')?.addEventListener('change',e=>{document.execCommand('formatBlock',false,e.target.value==='30px'?'h1':e.target.value==='22px'?'h2':'p');$('officeWordEditor').focus()});
+$('officeWordTable')?.addEventListener('click',()=>{const t=document.createElement('table');t.className='office-doc-table';for(let r=0;r<3;r++){const tr=t.insertRow();for(let c=0;c<3;c++){const td=tr.insertCell();td.textContent='Cell'}}$('officeWordEditor').appendChild(t)});
+$('officeEditorNew')?.addEventListener('click',()=>{state.file=null;state.workbook=null;state.pdf=null;$('officeWordEditor').innerHTML='<h1>New document</h1><p>Start writing here.</p>';setMode('word');status('New browser-only document.')});
+$('officeEditorSave')?.addEventListener('click',async()=>{try{if(state.mode==='word')await exportDocx();else if(state.mode==='sheet')exportSheet();else await exportPdf()}catch(e){status('Export failed: '+(e.message||String(e)))}});
+$('officeSheetFormula')?.addEventListener('change',e=>{const a=state.selectedCell;if(a&&state.workbook?.Sheets[state.sheet]){state.workbook.Sheets[state.sheet][a]={v:e.target.value,t:'s'};renderSheet()}});
+$('officeSheetGrid')?.addEventListener('click',e=>{const td=e.target.closest('td[data-cell]');if(!td)return;state.selectedCell=td.dataset.cell;$('officeSheetFormula').value=state.workbook?.Sheets[state.sheet]?.[state.selectedCell]?.v??''});
+$('officeSheetAddRow')?.addEventListener('click',()=>{if(!state.workbook)return;const ws=state.workbook.Sheets[state.sheet],r=XLSX.utils.decode_range(ws['!ref']||'A1:A1');r.e.r++;ws['!ref']=XLSX.utils.encode_range(r);renderSheet()});
+$('officeSheetAddCol')?.addEventListener('click',()=>{if(!state.workbook)return;const ws=state.workbook.Sheets[state.sheet],r=XLSX.utils.decode_range(ws['!ref']||'A1:A1');r.e.c++;ws['!ref']=XLSX.utils.encode_range(r);renderSheet()});
+$('officePdfPrev')?.addEventListener('click',async()=>{if(state.pdf&&state.pdfPage>1){state.pdfPage--;await renderPdf()}});
+$('officePdfNext')?.addEventListener('click',async()=>{if(state.pdf&&state.pdfPage<state.pdf.numPages){state.pdfPage++;await renderPdf()}});
+$('officePdfText')?.addEventListener('click',()=>{const s=$('officePdfStage').getBoundingClientRect();addPdfMark('text',.1,.1)});
+$('officePdfHighlight')?.addEventListener('click',()=>addPdfMark('highlight',.1,.18));
+$('officePdfClear')?.addEventListener('click',()=>{state.pdfAnnotations=state.pdfAnnotations.filter(a=>a.page!==state.pdfPage);drawPdfAnnotations()});
+$('officePdfStage')?.addEventListener('click',e=>{if(e.target.id!=='officePdfOverlay')return});
+setMode('word');
+})();
+</script>
+
+<style id="omni-office-studio-v1">
+#tabOfficeEditor{--studio-accent:#D97706;--studio-accent-2:#EA580C}
+#tabOfficeEditor .office-editor-shell{overflow:hidden}
+#tabOfficeEditor .office-editor-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:8px 0 18px}
+#tabOfficeEditor .office-editor-badges{display:flex;gap:7px;flex-wrap:wrap}
+#tabOfficeEditor .office-editor-badges span{font-size:.7rem;font-weight:800;letter-spacing:.08em;padding:7px 9px;border-radius:999px;background:rgba(217,119,6,.10);color:#9A3412}
+#tabOfficeEditor .office-editor-toolbar,#tabOfficeEditor .office-word-tools,#tabOfficeEditor .office-sheet-bar,#tabOfficeEditor .office-pdf-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid rgba(217,119,6,.18);background:rgba(217,119,6,.04);border-radius:14px;margin-bottom:10px}
+#tabOfficeEditor .office-open-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:#D97706;color:#fff;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #A44A0A}
+#tabOfficeEditor .office-open-btn input{display:none}
+#tabOfficeEditor .office-mode-btn.active{background:#D97706!important;color:#fff!important;border-color:#D97706!important}
+#tabOfficeEditor .office-editor-status{padding:10px 12px;border-radius:10px;background:#FFF7ED;color:#9A3412;font-size:.9rem;margin-bottom:12px}
+#tabOfficeEditor .office-word-editor{min-height:560px;background:#fff;border:1px solid #d8dee8;border-radius:14px;padding:54px 68px;box-shadow:0 14px 35px rgba(30,41,59,.07);outline:none;font-family:Arial,sans-serif;line-height:1.6}
+#tabOfficeEditor .office-word-editor:focus{border-color:#D97706;box-shadow:0 0 0 4px rgba(217,119,6,.12)}
+#tabOfficeEditor .office-doc-table{border-collapse:collapse;width:100%;margin:14px 0}
+#tabOfficeEditor .office-doc-table td,#tabOfficeEditor .office-doc-table th{border:1px solid #cbd5e1;padding:8px;min-width:80px}
+#tabOfficeEditor .office-sheet-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+#tabOfficeEditor .office-sheet-tabs button{border:1px solid #D97706;background:#fff;color:#9A3412;border-radius:8px;padding:7px 12px}
+#tabOfficeEditor .office-sheet-tabs button.active{background:#D97706;color:#fff}
+#tabOfficeEditor .office-sheet-grid{overflow:auto;max-height:650px;border:1px solid #d8dee8;border-radius:12px;background:#fff}
+#tabOfficeEditor .office-sheet-grid table{border-collapse:collapse;min-width:900px}
+#tabOfficeEditor .office-sheet-grid th{position:sticky;top:0;background:#FFF7ED;color:#9A3412;border:1px solid #e5e7eb;padding:6px;z-index:2}
+#tabOfficeEditor .office-sheet-grid td{border:1px solid #e5e7eb;padding:6px;min-width:110px;height:30px;outline:none}
+#tabOfficeEditor .office-sheet-grid td:focus{background:#FFFBEB;box-shadow:inset 0 0 0 2px #D97706}
+#tabOfficeEditor .office-pdf-stage{display:flex;justify-content:center;min-height:500px;background:#f1f5f9;border-radius:14px;padding:22px;overflow:auto}
+#tabOfficeEditor .office-pdf-canvas-wrap{position:relative;display:inline-block;background:#fff;box-shadow:0 14px 35px rgba(15,23,42,.16)}
+#tabOfficeEditor #officePdfCanvas{display:block}
+#tabOfficeEditor #officePdfOverlay{position:absolute;inset:0}
+#tabOfficeEditor .office-pdf-mark{position:absolute;border:2px dashed #D97706;background:rgba(217,119,6,.12);padding:4px;overflow:hidden;color:#7C2D12;font-size:14px;box-sizing:border-box}
+#tabOfficeEditor .office-pdf-mark.text{background:rgba(255,255,255,.82);border-style:solid}
+#tabOfficeEditor .office-pdf-mark.highlight{background:rgba(250,204,21,.35);border-color:#EAB308}
+#tabOfficeEditor .office-pdf-note{font-size:.8rem;color:#64748b}
+#tabOfficeEditor .office-capability-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+#tabOfficeEditor .office-capability-grid>div{padding:13px;border:1px solid #e2e8f0;border-radius:12px;background:#fff}
+#tabOfficeEditor .office-capability-grid strong,#tabOfficeEditor .office-capability-grid span{display:block}
+#tabOfficeEditor .office-capability-grid strong{color:#9A3412;margin-bottom:4px}
+#tabOfficeEditor .office-capability-grid span{font-size:.78rem;color:#64748b}
+@media(max-width:800px){#tabOfficeEditor .office-capability-grid{grid-template-columns:1fr 1fr}#tabOfficeEditor .office-word-editor{padding:30px 20px}}
+@media(max-width:520px){#tabOfficeEditor .office-capability-grid{grid-template-columns:1fr}#tabOfficeEditor .office-editor-head{display:block}}
+</style>
+
+<style id="omni-office-studio-theme-v2">
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor button:not(.office-mode-btn),
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-mode-btn.active{background:#D97706!important;border-color:#D97706!important;color:#fff!important}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor button:hover:not(:disabled){background:#EA580C!important;border-color:#EA580C!important;color:#fff!important}
+body[data-active-studio="tabOfficeEditor"] .studio-workspace-head{background:linear-gradient(120deg,#D97706,#EA580C)!important}
 </style>
 </body>
 </html>
