@@ -70,7 +70,7 @@ The browser AI layer is isolated from Omni Assistant, Private RAG, and Omni Lang
 Current browser-AI model registry includes:
 - SmolLM2 135M Instruct ONNX — Apache 2.0.
 - all-MiniLM-L6-v2 ONNX — Apache 2.0.
-- DistilBART CNN — Apache 2.0.
+- FLAN-T5 Small ONNX — Apache 2.0 — lightweight browser summarization/document instructions.
 - Whisper Tiny ONNX — Apache 2.0.
 - Supertonic TTS ONNX — OpenRAIL.
 - ViT-GPT2 image captioning ONNX — model repository is Transformers.js-compatible.
@@ -80,6 +80,6 @@ Current browser-AI model registry includes:
 - Donut DocVQA — model repository is Transformers.js-compatible.
 - Multilingual NER — model repository is Transformers.js-compatible.
 - Depth Anything V2 Small ONNX — Apache 2.0.
-- Qwen2.5 0.5B Instruct ONNX — Apache 2.0.
+- Qwen2.5 0.5B Instruct ONNX — Apache 2.0 — retained as an optional experimental model; not used for PDF AI Assist by default.
 
 Verify the upstream model repository/license before redistributing model weights. Omni Suite does not commit third-party model binaries to this repository.
