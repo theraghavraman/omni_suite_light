@@ -141,7 +141,8 @@ async function run(action,panel,ui){
    if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
    if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
    ui.status.textContent="Loading the isolated browser model… first use may take a moment.";
-   if(action.op==="summarize")result=await ai.summarize(text);\n   else if(action.op==="pdfGenerate")result=await pdfGenerate(text,action.prompt);
+   if(action.op==="summarize")result=await ai.summarize(text);
+   else if(action.op==="pdfGenerate")result=await pdfGenerate(text,action.prompt);
    else if(action.op==="generate")result=await ai.generate(action.prompt+"\n\nSTUDIO CONTEXT:\n"+text,{model:action.model||"general",maxNewTokens:220});
    else if(action.op==="embed"){const v=await ai.embed(text);result="Embedding generated locally.\nDimensions: "+v.length+"\nFirst values: "+v.slice(0,12).map(x=>x.toFixed(4)).join(", ")}
    else if(action.op==="caption"){const u=imageUrl(file);try{result=await ai.caption(u)}finally{URL.revokeObjectURL(u)}}
