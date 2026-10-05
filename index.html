@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://api.fontshare.com">
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <title>OmniConverter Studio - Universal File & Data Engineering Suite</title>
   <!-- Core Engines with Offline Fallbacks -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -657,6 +658,28 @@ header p{color:#4f6077;line-height:1.72}
  body{padding-top:14px}
  .hero-header{gap:20px}
 }
+</style>
+
+<style id="omni-raghav-typography">
+/* Exact typography family used by the Raghav Raman portfolio:
+   Bricolage Grotesque = display/brand, Figtree = UI/body, Fira Code = technical labels. */
+:root{
+ --omni-display:"Bricolage Grotesque",system-ui,sans-serif;
+ --omni-body:"Figtree",system-ui,sans-serif;
+ --omni-mono:"Fira Code",ui-monospace,SFMono-Regular,monospace;
+}
+body,button,input,select,textarea,a{font-family:var(--omni-body)}
+header h1,.omni-identity-v3,.omni-wordmark-v3,.omni-identity-name,.omni-brand-title,.card h2,.dropzone h3,.omni-guide-item strong,.nav-btn,.metric-pill strong{
+ font-family:var(--omni-display)
+}
+.eyebrow,.omni-identity-rule,.omni-wordmark-v3 small,.omni-brand-wordmark .omni-tagline,.tag,.links,.window-bar b,.window-bar em,.float-chip{
+ font-family:var(--omni-mono)
+}
+header h1{font-weight:800;letter-spacing:-.035em;line-height:.98}
+header p,.card .sub,.omni-guide-item span{font-weight:400}
+.metric-pill strong{font-weight:800}
+.card h2,.dropzone h3,.omni-guide-item strong{font-weight:800}
+.nav-btn{font-weight:600}
 </style>
 </head>
 <body>
