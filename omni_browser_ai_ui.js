@@ -91,7 +91,7 @@ async function contextFor(panel){
  }
  return {text:visibleText(panel),meta:"Using visible Studio context."};
 }
-function pdfChunks(text,size=5200){
+function pdfChunks(text,size=1600){
  const NL=String.fromCharCode(10);
  const clean=String(text||"").replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(new RegExp(NL+"{3,}","g"),NL+NL).trim();
  if(!clean)return [];
@@ -111,11 +111,11 @@ async function pdfGenerate(text,instruction){
  if(!chunks.length)throw new Error("The PDF contains no usable text.");
  const perChunk=[];
  for(let i=0;i<chunks.length;i++){
-   perChunk.push(await A().generate(instruction+NL+NL+"DOCUMENT SECTION "+(i+1)+" OF "+chunks.length+":"+NL+chunks[i],{model:"stronger",maxInput:6000,maxNewTokens:180}));
+   perChunk.push(await A().generate(instruction+NL+NL+"DOCUMENT SECTION "+(i+1)+" OF "+chunks.length+":"+NL+chunks[i],{model:"summarizer",maxInput:2200,maxNewTokens:120}));
  }
  if(perChunk.length===1)return perChunk[0];
  const combined=perChunk.map((x,i)=>"SECTION "+(i+1)+" SUMMARY:"+NL+x).join(NL+NL);
- return await A().generate(instruction+NL+NL+"Combine these section summaries into one final answer. Remove duplicates and preserve concrete facts."+NL+NL+combined,{model:"stronger",maxInput:6200,maxNewTokens:240});
+ return await A().generate(instruction+NL+NL+"Combine these section summaries into one final answer. Remove duplicates and preserve concrete facts."+NL+NL+combined,{model:"summarizer",maxInput:2600,maxNewTokens:160});
 }
 function imageUrl(file){return URL.createObjectURL(file)}
 function downloadBlob(blob,name){
