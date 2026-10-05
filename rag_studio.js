@@ -97,7 +97,7 @@ async function refreshRepo(){
   const tree=await fetch("https://api.github.com/repos/"+repo+"/git/trees/main?recursive=1",{cache:"no-store"});
   if(!tree.ok)throw new Error("GitHub repository tree unavailable");
   const j=await tree.json();
-  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\\/|dist\\/|build\\/|coverage\\/)/i.test(x.path));
+  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\/|dist\/|build\/|coverage\/)/i.test(x.path));
   const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha])),oldMap=previous?.files||{};
   const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);await deleteSources(removed.map(p=>"Repository: "+p));
   const nextMap={...oldMap};removed.forEach(p=>delete nextMap[p]);
