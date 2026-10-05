@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Omni build: bootfix-20261006 -->
+  <!-- Omni build: webkit-bootfix-20261006 -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,8 +20,8 @@
   <script src="./omni_deepseek_code_ai.js?v=1"></script>
   <script src="./omni_browser_ai_ui.js?v=2"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
-  <script src="./vendor/sheetjs/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'"></script>
-  <script src="./vendor/jsyaml/js-yaml.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js'"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" onerror="this.onerror=null;this.src='./vendor/sheetjs/xlsx.full.min.js'"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js" onerror="this.onerror=null;this.src='./vendor/jsyaml/js-yaml.min.js'"></script>
   
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
@@ -2882,25 +2882,46 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   </div>
 
   <script id="omni-boot-guard">
-    /* Capture only failures that happen before the main core marks itself ready. */
+    /*
+     * Capture only execution failures that prevent the core from booting.
+     * Resource failures from script/link/img elements are handled by the
+     * element itself (including its CDN/local fallback) and must not be
+     * mislabeled as JavaScript syntax errors.
+     */
     window.__OMNI_BOOT_ERROR = null;
     window.__OMNI_BOOT_ERRORS = [];
-    window.addEventListener('error', function (e) {
-      if (window.__OMNI_CORE_READY) return;
-      var msg = (e && (e.error && e.error.stack || e.message)) || 'Unknown JavaScript error';
+    function omniCaptureBootError(message, filename, lineno, colno, stack) {
+      var msg = message || 'Unknown JavaScript error';
       window.__OMNI_BOOT_ERROR = String(msg);
       window.__OMNI_BOOT_ERRORS.push(String(msg));
       if (window.__OMNI_BOOT_ERRORS.length > 5) window.__OMNI_BOOT_ERRORS.shift();
-      console.error('[Omni boot]', msg, e && e.filename, e && e.lineno);
-    });
+      console.error('[Omni boot]', msg, filename, lineno, colno, stack || '');
+    }
+    window.addEventListener('error', function (e) {
+      if (window.__OMNI_CORE_READY) return;
+      var target = e && e.target;
+      if (target && target !== window) {
+        var tag = String(target.tagName || '').toUpperCase();
+        if (tag === 'SCRIPT' || tag === 'LINK' || tag === 'IMG') return;
+      }
+      omniCaptureBootError(
+        (e && e.error && e.error.stack) || (e && e.message),
+        e && e.filename,
+        e && e.lineno,
+        e && e.colno,
+        e && e.error && e.error.stack
+      );
+    }, true);
     window.addEventListener('unhandledrejection', function (e) {
       if (window.__OMNI_CORE_READY) return;
       var reason = e && e.reason;
-      var msg = reason && (reason.stack || reason.message) || String(reason || 'Unhandled promise rejection');
-      window.__OMNI_BOOT_ERROR = String(msg);
-      window.__OMNI_BOOT_ERRORS.push(String(msg));
-      if (window.__OMNI_BOOT_ERRORS.length > 5) window.__OMNI_BOOT_ERRORS.shift();
-      console.error('[Omni boot rejection]', msg);
+      omniCaptureBootError(
+        (reason && (reason.stack || reason.message)) || String(reason || 'Unhandled promise rejection'),
+        '',
+        0,
+        0,
+        reason && reason.stack
+      );
     });
   </script>
 
@@ -2931,7 +2952,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=bootfix-20261006b"></script>
+<script src="./omni-core.js?v=webkit-bootfix-20261006c"></script>
 
 
 <script id="omni-browser-first">
