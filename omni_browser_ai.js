@@ -12,7 +12,7 @@ const MODEL_REGISTRY=Object.freeze({
   embeddings:{label:"all-MiniLM-L6-v2",task:"feature-extraction",model:"Xenova/all-MiniLM-L6-v2",dtype:"q4",role:"Embeddings / semantic similarity"},
   summarizer:{label:"DistilBART CNN",task:"summarization",model:"Xenova/distilbart-cnn-6-6",dtype:"q4",role:"Summarization"},
   asr:{label:"Whisper Tiny",task:"automatic-speech-recognition",model:"Xenova/whisper-tiny",dtype:"q4",role:"Speech to text"},
-  tts:{label:"Supertonic TTS",task:"text-to-speech",model:"onnx-community/Supertonic-TTS-ONNX",dtype:"q4",role:"Text to speech"},
+  tts:{label:"Supertonic TTS",task:"text-to-speech",model:"onnx-community/Supertonic-TTS-ONNX",dtype:"fp32",role:"Text to speech"},
   caption:{label:"ViT-GPT2",task:"image-to-text",model:"Xenova/vit-gpt2-image-captioning",dtype:"q4",role:"Image captioning"},
   objects:{label:"DETR",task:"object-detection",model:"Xenova/detr-resnet-50",dtype:"q4",role:"Object detection"},
   background:{label:"MODNet",task:"background-removal",model:"Xenova/modnet",dtype:"fp32",role:"Background removal"},
