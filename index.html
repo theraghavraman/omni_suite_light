@@ -3709,8 +3709,7 @@ async function runLocalTests(){
   const download=async(fid)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
-  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p>
-</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p></body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
   if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
