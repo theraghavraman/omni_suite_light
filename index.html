@@ -517,6 +517,30 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 .omni-mini-cup.right::after{left:-6px;right:auto}
 @media(max-width:640px){.omni-appbar-cup-eyes{width:38px;flex-basis:38px;gap:2px}.omni-mini-cup{width:18px;height:18px}}
 </style>
+
+<style id="omni-cup-eye-polish">
+/* Refined cup-eye identity: compact, aligned, and isolated from global header typography. */
+.omni-cup-brand-mark{display:flex;align-items:center;gap:20px;margin-bottom:20px;min-height:92px;padding:4px 0}
+.omni-cup-eyes{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;width:112px;height:82px;flex:0 0 112px;filter:drop-shadow(0 9px 10px rgba(92,56,20,.16))}
+.omni-cup{width:54px;height:54px;flex:0 0 54px}
+.omni-cup::before{inset:9px}
+.omni-cup::after{width:21px;height:21px;border-width:6px;top:16px;right:-18px}
+.omni-cup.right::after{left:-18px}
+.omni-cup-highlight{width:13px;height:6px;top:17px;left:17px}
+.omni-face-brow{width:34px;height:7px;top:-15px;left:10px}
+.omni-face-smile{width:44px;height:19px;border-width:4px;bottom:-20px;left:50%}
+.omni-brand-wordmark{gap:6px;min-width:0}
+.omni-brand-title{display:flex;align-items:baseline;gap:12px;font-size:clamp(2.35rem,4.5vw,3.65rem);line-height:.9;letter-spacing:-.055em;font-weight:950;white-space:nowrap}
+.omni-brand-title .omni-word{color:var(--ink)}
+.omni-brand-title .suite-word{background:linear-gradient(110deg,#ff8a3d,#ffb51b 48%,#ff4f9a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.omni-brand-wordmark .omni-tagline{font-size:.7rem;font-weight:850;letter-spacing:.08em;color:#806346;text-transform:uppercase}
+@media(max-width:760px){
+  .omni-cup-brand-mark{gap:10px;min-height:76px;margin-bottom:16px}
+  .omni-cup-eyes{width:78px;flex-basis:78px;height:62px;gap:5px;transform:scale(.72);transform-origin:left center}
+  .omni-brand-title{font-size:clamp(1.85rem,9vw,2.8rem);gap:7px}
+  .omni-brand-wordmark .omni-tagline{font-size:.52rem;letter-spacing:.045em}
+}
+</style>
 </head>
 <body>
 <div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-appbar-cup-eyes" aria-hidden="true"><span class="omni-mini-cup"></span><span class="omni-mini-cup right"></span></span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
@@ -537,14 +561,14 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
   <div class="container">
     <header class="hero-header">
       <div class="hero-copy">
-        <div class="omni-cup-brand-mark" aria-label="Omni Suite logo">
+        <div class="omni-cup-brand-mark" aria-label="Omni Suite identity">
           <div class="omni-cup-eyes" aria-hidden="true">
             <div class="omni-cup"><span class="omni-face-brow"></span><span class="omni-cup-highlight"></span></div>
             <div class="omni-cup right"><span class="omni-face-brow"></span><span class="omni-cup-highlight"></span></div>
             <span class="omni-face-smile"></span>
           </div>
           <div class="omni-brand-wordmark">
-            <h1><span class="omni-word">OMNI</span> <span class="suite-word">SUITE</span></h1>
+            <div class="omni-brand-title"><span class="omni-word">OMNI</span><span class="suite-word">SUITE</span></div>
             <div class="omni-tagline">Universal File &amp; Data Engineering Suite</div>
           </div>
         </div>
