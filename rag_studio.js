@@ -24,7 +24,7 @@ function css(){
 .rag-list{max-height:260px;overflow:auto;border:1px solid #e1e5ee;border-radius:14px}.rag-item{padding:10px 12px;border-bottom:1px solid #edf0f5;display:flex;justify-content:space-between;gap:12px}.rag-item:last-child{border-bottom:0}.rag-item small{display:block;color:#70798b}
 .rag-answer{min-height:150px;white-space:pre-wrap;line-height:1.55;border:1px solid #e0e4ed;border-radius:14px;padding:16px;background:#fbfcfe}
 .rag-source{padding:10px 12px;border:1px solid #e4e7ef;border-radius:12px;margin-top:8px;background:#fff}.rag-source b{display:block}.rag-source b a{color:#5d46bd;text-decoration:none}.rag-source b a:hover{text-decoration:underline}.rag-source small{color:#667085}
-.rag-status{font-size:.82rem;color:#667085}.rag-ok{color:#087f5b}.rag-warn{color:#9a6700}.rag-error{color:#b42318}.rag-github-card{margin-top:12px;border:1px solid #dfe3ef;border-radius:15px;background:linear-gradient(145deg,#fff,#faf9ff);padding:14px}.rag-github-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:9px;margin-top:10px}.rag-github-note{font-size:.68rem;line-height:1.45;color:#667085;margin-top:8px}.rag-github-note b{color:#4b4666}.rag-github-status{margin-top:9px;padding:8px 10px;border-radius:10px;background:#f4f6fb;font-size:.74rem;color:#667085}.rag-github-status.ok{background:#ecfbf5;color:#087f5b}.rag-github-status.error{background:#fff0f0;color:#b42318}@media(max-width:700px){.rag-github-grid{grid-template-columns:1fr}}
+.rag-status{font-size:.82rem;color:#667085}.rag-file-activity{margin-top:8px;padding:10px 12px;border:1px solid #dfe3ef;border-radius:11px;background:#f5f6fb;font-weight:700;color:#4f5870}.rag-file-activity.busy{background:#f1eeff;border-color:#d5ccff;color:#5d46bd}.rag-file-activity.ok{background:#ecfbf5;border-color:#bcebd9;color:#087f5b}.rag-file-activity.error{background:#fff0f0;border-color:#f3caca;color:#b42318}.rag-ok{color:#087f5b}.rag-warn{color:#9a6700}.rag-error{color:#b42318}.rag-github-card{margin-top:12px;border:1px solid #dfe3ef;border-radius:15px;background:linear-gradient(145deg,#fff,#faf9ff);padding:14px}.rag-github-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:9px;margin-top:10px}.rag-github-note{font-size:.68rem;line-height:1.45;color:#667085;margin-top:8px}.rag-github-note b{color:#4b4666}.rag-github-status{margin-top:9px;padding:8px 10px;border-radius:10px;background:#f4f6fb;font-size:.74rem;color:#667085}.rag-github-status.ok{background:#ecfbf5;color:#087f5b}.rag-github-status.error{background:#fff0f0;color:#b42318}@media(max-width:700px){.rag-github-grid{grid-template-columns:1fr}}
 .rag-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.rag-controls .form-group{margin:0}
 .rag-pill{display:inline-flex;padding:5px 9px;border-radius:999px;background:#f0edff;color:#5d46bd;font-size:.72rem;font-weight:700}
 .rag-model-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff,#faf9ff);border:1px solid #e8e5f4}
@@ -85,7 +85,7 @@ async function loadTransformers(){if(window.__omniTransformers)return window.__o
 function setModelState(kind,state,text){const map={embed:["ragEmbedState","ragEmbedDot"],llm:["ragLLMState","ragLLMDot"],runtime:["ragRuntimeState","ragRuntimeDot"],storage:["ragStorageState","ragStorageDot"]};const ids=map[kind];if(!ids)return;const a=$(ids[0]),b=$(ids[1]);if(a)a.textContent=text;if(b)b.className="rag-dot "+state;b.textContent=state==="ok"?"●":state==="busy"?"◌":state==="warn"?"!":"○"}
 function initRuntimeStatus(){const gpu=!!navigator.gpu;setModelState("runtime",gpu?"ok":"warn",gpu?"WebGPU available · faster local generation":"WebGPU unavailable · WASM fallback");setModelState("storage","ok","IndexedDB · browser-local")}
 function resetEmbedWorker(error){const e=error instanceof Error?error:new Error(String(error||"Embedding worker stopped"));for(const [,p] of embedPending)p.reject(e);embedPending.clear();const ready=embedWorkerReady;if(embedWorker){try{embedWorker.terminate()}catch(_){}}embedWorker=null;embedWorkerReady=null;ready?.reject?.(e);setModelState("embed","warn","Unavailable · "+e.message)}
-function getEmbedWorker(){if(embedWorker)return embedWorker;if(!window.Worker)throw new Error("Web Workers are unavailable in this browser.");setModelState("embed","busy","Starting background embedding worker…");embedWorker=new Worker("./rag_embed_worker.js?v=1",{type:"module"});embedWorker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){setModelState("embed","ok",d.device==="webgpu"?"Ready · Web Worker + WebGPU":"Ready · Web Worker + WASM");if(embedWorkerReady)embedWorkerReady.resolve(d);return}if(d.type==="progress"){if(d.total)$("ragStatus").textContent=`Embedding ${d.done}/${d.total} in background…`;return}if(d.type==="result"){const p=embedPending.get(d.id);if(!p)return;embedPending.delete(d.id);p.resolve(d.vectors);return}if(d.type==="error"){const p=embedPending.get(d.id);if(p){embedPending.delete(d.id);p.reject(new Error(d.message||"Embedding worker error"))}else resetEmbedWorker(new Error(d.message||"Embedding worker error"))}};embedWorker.onerror=e=>resetEmbedWorker(new Error(e.message||"Embedding worker failed"));return embedWorker}
+function getEmbedWorker(){if(embedWorker)return embedWorker;if(!window.Worker)throw new Error("Web Workers are unavailable in this browser.");setModelState("embed","busy","Starting background embedding worker…");embedWorker=new Worker("./rag_embed_worker.js?v=1",{type:"module"});embedWorker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){setModelState("embed","ok",d.device==="webgpu"?"Ready · Web Worker + WebGPU":"Ready · Web Worker + WASM");if(embedWorkerReady)embedWorkerReady.resolve(d);return}if(d.type==="progress"){if(d.total)setRagActivity(`Embedding ${d.done}/${d.total} in background…`,"busy");return}if(d.type==="result"){const p=embedPending.get(d.id);if(!p)return;embedPending.delete(d.id);p.resolve(d.vectors);return}if(d.type==="error"){const p=embedPending.get(d.id);if(p){embedPending.delete(d.id);p.reject(new Error(d.message||"Embedding worker error"))}else resetEmbedWorker(new Error(d.message||"Embedding worker error"))}};embedWorker.onerror=e=>resetEmbedWorker(new Error(e.message||"Embedding worker failed"));return embedWorker}
 async function ensureEmbedWorker(){if(embedWorkerReady)return embedWorkerReady.promise;getEmbedWorker();embedWorkerReady={};embedWorkerReady.promise=new Promise((resolve,reject)=>{embedWorkerReady.resolve=resolve;embedWorkerReady.reject=reject});return embedWorkerReady.promise}
 async function embedTexts(texts){await ensureEmbedWorker();const id=++embedRequestId;return new Promise((resolve,reject)=>{embedPending.set(id,{resolve,reject});embedWorker.postMessage({type:"embed",id,texts})})}
 async function embed(text){const out=await embedTexts([text]);return out[0]}
@@ -99,7 +99,7 @@ async function indexText(text,source,meta={}){
  const parts=splitText(text);if(!parts.length)return 0;const out=[];const batchSize=8;
  for(let start=0;start<parts.length;start+=batchSize){
   const batch=parts.slice(start,start+batchSize);
-  $("ragStatus").textContent=`Embedding ${Math.min(start+batch.length,parts.length)}/${parts.length} in background — ${source}`;
+  setRagActivity(`Embedding ${Math.min(start+batch.length,parts.length)}/${parts.length} in background — ${source}`,"busy");
   const vectors=await embedTexts(batch);
   const batchOut=[];
   for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]})}
@@ -117,20 +117,26 @@ function updatePendingStatus(){
  const el=$("ragFileStatus");if(!el)return;
  el.textContent=pendingFiles.length?pendingFiles.length+" file"+(pendingFiles.length===1?"":"s")+" selected · ready to save or index":"Nothing selected yet.";
 }
+function setRagActivity(text,kind=""){
+ const el=$("ragFileStatus");if(el){el.textContent=text;el.className="rag-status rag-file-activity "+kind}
+ const status=$("ragStatus");if(status)status.textContent=text;
+}
 function queueFiles(files){
  const existing=new Set(pendingFiles.map(f=>f.name+"|"+f.size+"|"+f.lastModified));
  for(const f of files){const k=f.name+"|"+f.size+"|"+f.lastModified;if(!existing.has(k)){pendingFiles.push(f);existing.add(k)}}
  renderPendingFiles();updatePendingStatus();
- $("ragStatus").textContent=pendingFiles.length?"Files selected. Save to GitHub now, or click Prepare Semantic Search to index them locally.":"Ready — choose documents.";
+ setRagActivity(pendingFiles.length?"1 file selected · ready to save or index":"Nothing selected yet.");
 }
 async function indexPendingFiles(){
- if(!pendingFiles.length){$("ragStatus").textContent="Choose files first.";return}
- const files=[...pendingFiles];$("ragEmbed").disabled=true;
+ if(!pendingFiles.length){setRagActivity("Choose files first.","error");return}
+ const files=[...pendingFiles];const btn=$("ragEmbed");btn.disabled=true;const originalLabel=btn.textContent;btn.textContent="⏳ Preparing…";
+ setRagActivity("Starting semantic search preparation…","busy");
  try{
   await ensureEmbedWorker();
+  setRagActivity("Background embedding worker ready. Reading selected files…","busy");
   for(let n=0;n<files.length;n++){
    const f=files[n];
-   $("ragStatus").textContent="Reading "+(n+1)+"/"+files.length+" · "+f.name;
+   setRagActivity("Reading "+(n+1)+"/"+files.length+" · "+f.name,"busy");
    await new Promise(r=>requestAnimationFrame(r));
    const t=await extractFile(f);
    await new Promise(r=>requestAnimationFrame(r));
@@ -138,9 +144,9 @@ async function indexPendingFiles(){
    await new Promise(r=>requestAnimationFrame(r));
   }
   chunks=await getAll();updateStats();
-  $("ragStatus").textContent="✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally.";
- }catch(e){console.error(e);$("ragStatus").textContent="Could not index selected files: "+e.message}
- finally{$("ragEmbed").disabled=false}
+  setRagActivity("✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally.","ok");
+ }catch(e){console.error(e);setRagActivity("Could not index selected files: "+e.message,"error")}
+ finally{btn.disabled=false;btn.textContent=originalLabel}
 }
 async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$("ragStatus").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
 function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
