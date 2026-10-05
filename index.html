@@ -626,7 +626,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
             <div class="rag-section-label">STEP 2</div><h2>Ask your knowledge base</h2>
             <textarea id="ragQuery" class="form-textarea" style="min-height:110px" placeholder="Ask a question about your indexed knowledge…"></textarea>
             <div class="rag-controls" style="margin-top:12px">
-              <div class="form-group"><label for="ragTopK">Retrieved chunks</label><input id="ragTopK" class="form-input" type="number" min="1" max="12" value="6"></div>
+              <div class="form-group"><label for="ragTopK">Retrieved chunks</label><input id="ragTopK" class="form-input" type="number" min="1" max="20" value="12"></div>
               <div class="form-group"><label for="ragUseLLM">Generation</label><select id="ragUseLLM" class="form-select"><option value="true">Local small LLM</option><option value="false">Retrieval only</option></select></div>
               <div class="form-group"><label>Privacy</label><div class="rag-status rag-ok" style="padding-top:10px">Documents + vectors remain local</div></div>
             </div>
@@ -640,7 +640,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
         <div>
           <div class="card">
             <div class="rag-section-label">EVIDENCE</div><h2>Retrieved sources</h2>
-            <div class="sub">Hybrid ranking combines embedding similarity with lexical relevance. The LLM only receives the selected context.</div>
+            <div class="sub">Hybrid ranking combines embedding similarity with lexical relevance. Up to 20 passages can be retrieved, and the selected source text is shown in full. The LLM receives the selected context.</div>
             <div id="ragSources"><div class="rag-status">No search performed yet.</div></div>
           </div>
           <div class="card">
@@ -2921,7 +2921,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 </script>
 
 <script src="./universal_data_studio.js"></script>
-<script src="./rag_studio.js?v=rag6"></script>
+<script src="./rag_studio.js?v=rag7"></script>
 <script src="./omni_local_ai.js?v=fast3"></script>
 <script src="./omni_assistant.js?v=fast6"></script>
 <script src="./bi_code_studio.js"></script>
