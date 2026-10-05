@@ -4912,5 +4912,116 @@ body[data-active-studio] .module-panel.active .progress-bar-fill{
   body[data-active-studio] .btn-secondary{background:#fff !important}
 }
 </style>
-\n</body>
+\n
+<style id="omni-studio-palette-v2">
+/* Distinct studio identities — each studio keeps its own color throughout its workspace. */
+.nav-bar .nav-btn[data-tab="tabRAGStudio"]{--c:#7C3AED;--c2:#C026D3;--cs:rgba(124,58,237,.14)}
+.nav-bar .nav-btn[data-tab="tabLanguageStudio"]{--c:#0F766E;--c2:#06B6D4;--cs:rgba(15,118,110,.14)}
+.nav-bar .nav-btn[data-tab="tabPdf"]{--c:#E11D48;--c2:#F97316;--cs:rgba(225,29,72,.14)}
+.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}
+.nav-bar .nav-btn[data-tab="tabEpub"]{--c:#8B5CF6;--c2:#EC4899;--cs:rgba(139,92,246,.14)}
+.nav-bar .nav-btn[data-tab="tabImages"]{--c:#F97316;--c2:#FACC15;--cs:rgba(249,115,22,.14)}
+.nav-bar .nav-btn[data-tab="tabOcr"]{--c:#059669;--c2:#84CC16;--cs:rgba(5,150,105,.14)}
+.nav-bar .nav-btn[data-tab="tabAudio"]{--c:#DB2777;--c2:#7C3AED;--cs:rgba(219,39,119,.14)}
+.nav-bar .nav-btn[data-tab="tabVideo"]{--c:#DC2626;--c2:#EA580C;--cs:rgba(220,38,38,.14)}
+.nav-bar .nav-btn[data-tab="tabCompress"]{--c:#0891B2;--c2:#2563EB;--cs:rgba(8,145,178,.14)}
+.nav-bar .nav-btn[data-tab="tabData"]{--c:#0D9488;--c2:#22C55E;--cs:rgba(13,148,136,.14)}
+.nav-bar .nav-btn[data-tab="tabLocal"]{--c:#475569;--c2:#64748B;--cs:rgba(71,85,105,.14)}
+.nav-bar .nav-btn[data-tab="tabVizInterchange"]{--c:#0284C7;--c2:#6366F1;--cs:rgba(2,132,199,.14)}
+.nav-bar .nav-btn[data-tab="tabCodeStudio"]{--c:#4F46E5;--c2:#06B6D4;--cs:rgba(79,70,229,.14)}
+.nav-bar .nav-btn[data-tab="tabUniversalData"]{--c:#0891B2;--c2:#14B8A6;--cs:rgba(8,145,178,.14)}
+.nav-bar .nav-btn[data-tab="tabDatabaseStudio"]{--c:#CA8A04;--c2:#F97316;--cs:rgba(202,138,4,.14)}
+.nav-bar .nav-btn[data-tab="tabDataClean"]{--c:#16A34A;--c2:#14B8A6;--cs:rgba(22,163,74,.14)}
+.nav-bar .nav-btn[data-tab="tabBatchLab"]{--c:#EA580C;--c2:#DB2777;--cs:rgba(234,88,12,.14)}
+.nav-bar .nav-btn[data-tab="tabLocalDoctor"]{--c:#4F46E5;--c2:#9333EA;--cs:rgba(79,70,229,.14)}
+.nav-bar .nav-btn[data-tab="tabDiagnostics"]{--c:#16A34A;--c2:#0EA5E9;--cs:rgba(22,163,74,.14)}
+.nav-bar .nav-btn[data-tab="tabAllTests"]{--c:#BE185D;--c2:#7C3AED;--cs:rgba(190,24,93,.14)}
+
+/* The selected studio tile uses its own identity, not the global mint theme. */
+.nav-bar .nav-btn.active,
+.nav-bar .nav-btn.active:hover,
+.nav-bar .nav-btn.active:focus,
+.nav-bar .nav-btn.active:focus-visible{
+  color:var(--c) !important;
+  border-color:color-mix(in srgb,var(--c) 22%,transparent) !important;
+  box-shadow:0 10px 24px -14px color-mix(in srgb,var(--c) 42%,transparent),inset 0 -3px 0 var(--c) !important;
+}
+.nav-bar .nav-btn.active .studio-icon{
+  color:var(--c) !important;
+  background:var(--cs) !important;
+}
+.nav-bar .nav-btn.active .studio-label,
+.nav-bar .nav-btn.active small{color:var(--c) !important}
+
+/* Non-selected tiles advertise their own identity on hover. */
+.nav-bar .nav-btn:hover{
+  color:var(--c) !important;
+  border-color:color-mix(in srgb,var(--c) 24%,transparent) !important;
+  background:color-mix(in srgb,var(--c) 7%,white) !important;
+}
+.nav-bar .nav-btn:hover .studio-icon{color:var(--c) !important;background:var(--cs) !important}
+
+/* Workspace follows the selected studio's --c/--c2 automatically. */
+body[data-active-studio] .studio-workspace-head{
+  background:linear-gradient(120deg,var(--studio-live),var(--studio-live-2)) !important;
+}
+body[data-active-studio] .studio-workspace-title,
+body[data-active-studio] .studio-workspace-kicker{color:#fff !important}
+body[data-active-studio] .studio-workspace-desc{color:rgba(255,255,255,.86) !important}
+body[data-active-studio] .studio-meta-chip.primary{
+  color:var(--studio-live) !important;
+  background:#fff !important;
+}
+body[data-active-studio] .studio-overview .card::before,
+body[data-active-studio] .card::before{
+  background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important;
+}
+body[data-active-studio] .card h2::before{background:var(--studio-live) !important}
+body[data-active-studio] .dropzone-icon{background:var(--studio-live) !important}
+body[data-active-studio] .btn,
+body[data-active-studio] .btn-primary,
+body[data-active-studio] .action-btn,
+body[data-active-studio] .omni-primary,
+body[data-active-studio] .omni-btn-primary,
+body[data-active-studio] .btn-success,
+body[data-active-studio] .clean-action{
+  background:var(--studio-live) !important;
+  border-color:var(--studio-live) !important;
+}
+body[data-active-studio] .btn:hover,
+body[data-active-studio] .btn-primary:hover,
+body[data-active-studio] .action-btn:hover,
+body[data-active-studio] .omni-primary:hover,
+body[data-active-studio] .omni-btn-primary:hover,
+body[data-active-studio] .btn-success:hover,
+body[data-active-studio] .clean-action:hover{
+  background:var(--studio-live-2) !important;
+  border-color:var(--studio-live-2) !important;
+}
+body[data-active-studio] .btn-secondary,
+body[data-active-studio] .btn-reset{
+  color:var(--studio-live) !important;
+  border-color:color-mix(in srgb,var(--studio-live) 35%,transparent) !important;
+}
+body[data-active-studio] .btn-secondary:hover,
+body[data-active-studio] .btn-reset:hover{
+  background:var(--studio-live) !important;color:#fff !important;
+}
+body[data-active-studio] .dropzone:hover,
+body[data-active-studio] .dropzone.dragover{
+  border-color:var(--studio-live) !important;
+  background:color-mix(in srgb,var(--studio-live) 8%,white) !important;
+}
+body[data-active-studio] input:focus,
+body[data-active-studio] select:focus,
+body[data-active-studio] textarea:focus{
+  border-color:var(--studio-live) !important;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--studio-live) 14%,transparent) !important;
+}
+body[data-active-studio] .progress-bar-fill{
+  background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important;
+}
+</style>
+
+</body>
 </html>
