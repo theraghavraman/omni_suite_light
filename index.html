@@ -2882,10 +2882,11 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   </div>
 
   <script id="omni-boot-guard">
-    /* Captures failures that happen before the main core can mark itself ready. */
+    /* Capture only failures that happen before the main core marks itself ready. */
     window.__OMNI_BOOT_ERROR = null;
     window.__OMNI_BOOT_ERRORS = [];
     window.addEventListener('error', function (e) {
+      if (window.__OMNI_CORE_READY) return;
       var msg = (e && (e.error && e.error.stack || e.message)) || 'Unknown JavaScript error';
       window.__OMNI_BOOT_ERROR = String(msg);
       window.__OMNI_BOOT_ERRORS.push(String(msg));
@@ -2893,6 +2894,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
       console.error('[Omni boot]', msg, e && e.filename, e && e.lineno);
     });
     window.addEventListener('unhandledrejection', function (e) {
+      if (window.__OMNI_CORE_READY) return;
       var reason = e && e.reason;
       var msg = reason && (reason.stack || reason.message) || String(reason || 'Unhandled promise rejection');
       window.__OMNI_BOOT_ERROR = String(msg);
