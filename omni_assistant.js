@@ -72,15 +72,24 @@ if(/privacy|private|secure|api key/.test(s))return "Omni Suite is designed brows
 if(/troubleshoot|not working|error|broken|failed/.test(s))return current?"You’re currently in "+current+". Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.":"Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.";
 if(/current studio|where am i/.test(s))return current?"You are currently in "+current+".":"You’re currently at the Omni Suite overview.";return null}
 function cleanAssistantAnswer(text){
- const s=String(text||"").replace(/\\r/g,"");
- const lines=s.split("\\n").filter(line=>!/^\\s*(?:[-*]\\s*)?(?:\\d+[.)]\\s*)?\\*{0,2}\\[?Source\\s*\\d+\\]?\\*{0,2}\\s*:?\\s*$/i.test(line));
- return lines.join("\\n").replace(/\\[\\s*Source\\s*\\d+\\s*[:\\]]\\s*/gi,"").replace(/\\n{3,}/g,"\\n\\n").trim();
+ let s=String(text||"").replace(/\\r/g,"");
+ const lines=s.split("\\n").filter(line=>{
+   const x=line.trim();
+   if(!x)return true;
+   if(/^(?:[-*]\\s*)?(?:\\d+[.)]\\s*)?\\*{0,2}\\s*\\[?\\s*(?:Source|Citation|Reference)\\s*\\d+[^\\n]*$/i.test(x))return false;
+   if(/^(?:Sources?|Citations?|References?)\\s*:/i.test(x))return false;
+   return true;
+ });
+ s=lines.join("\\n");
+ s=s.replace(/\\[\\s*(?:Source|Citation|Reference)\\s*\\d+(?:\\s*:[^\\]]*)?\\s*\\]/gi,"");
+ s=s.replace(/\\*{0,2}\\[?\\s*(?:Source|Citation|Reference)\\s*\\d+\\s*\\]?\\*{0,2}/gi,"");
+ return s.replace(/\\n{3,}/g,"\\n\\n").trim();
 }
 function uniqueSources(rows){
  const seen=new Set();
  return rows.filter(x=>{const key=String(x.source||"").trim().toLowerCase();if(!key||seen.has(key))return false;seen.add(key);return true;});
 }
-async function generate(q,r,view){const ai=await localAI();const cap=ai.capability();if(cap.constrained&&!cap.webgpu)return r[0]?.text||"Retrieved Omni Suite knowledge is shown below.";document.getElementById("omniAsStatus").textContent="LOADING GEMMA";const context=r.slice(0,3).map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+String(x.text).slice(0,420)).join("\n\n");const studio=currentStudio?.name?"\nCURRENT STUDIO: "+currentStudio.name:"";const prompt="You are Omni Assistant for Omni Suite. Answer only from these sources. Be concise: 1-3 short sentences. Do not invent capabilities. Never output source labels, citation placeholders, numbered source lists, or text such as [Source 1], [Source 2], or [Source 3]. Sources are rendered by the interface separately."+studio+"\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q+"\nANSWER:";let streamed="";const o=await ai.generate(prompt,{max_new_tokens:64,temperature:.1,onToken:t=>{streamed+=String(t);if(view){view.textContent=streamed;view.dataset.streaming="1"}}});return o||streamed||"I could not generate a local answer."; }
+async function generate(q,r,view){const ai=await localAI();const cap=ai.capability();if(cap.constrained&&!cap.webgpu)return cleanAssistantAnswer(r[0]?.text)||"Retrieved Omni Suite knowledge is available, but the local model is constrained on this device.";document.getElementById("omniAsStatus").textContent="LOADING GEMMA";const context=r.slice(0,3).map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+String(x.text).slice(0,420)).join("\n\n");const studio=currentStudio?.name?"\nCURRENT STUDIO: "+currentStudio.name:"";const prompt="You are Omni Assistant for Omni Suite. Answer only from the supplied references. Be concise: 1-3 short sentences. Do not invent capabilities. Never output reference labels, citation placeholders, numbered reference lists, source lists, or bracketed labels such as [Source 1]. Sources are rendered by the interface separately."+studio+"\\n\\nREFERENCES:\\n"+context+"\\n\\nQUESTION: "+q+"\\nANSWER:";let streamed="";const o=await ai.generate(prompt,{max_new_tokens:64,temperature:.1,onToken:t=>{streamed+=String(t);if(view){view.textContent=cleanAssistantAnswer(streamed);view.dataset.streaming="1"}}});return o||streamed||"I could not generate a local answer."; }
 function updateContext(){currentStudio=studioContext();const e=document.getElementById("omniAsContext");if(e)e.textContent=currentStudio?.name?"Context: "+currentStudio.name:"Context: Omni Suite overview";updateAIHint()} function updateAIHint(){const e=document.getElementById("omniAsAIHint");if(!e||!window.OmniLocalAI)return;const s=window.OmniLocalAI.status();e.textContent=s.state==="idle"?(s.mobile?(s.constrained?"Mobile device detected · Local AI may be slower.":"Mobile-ready · Local AI loads only when needed."):"Local AI is idle until you ask a question."):(s.webgpu?"Local AI · WebGPU":"Local AI · WASM")}
 function add(text,kind){const c=document.createElement("div");c.className="omni-as-msg "+kind;c.textContent=text;document.getElementById("omniAsChat").appendChild(c);c.scrollIntoView({block:"end"});return c}
 async function ask(){if(busy)return;updateContext();const input=document.getElementById("omniAsInput"),q=input.value.trim();if(!q)return;input.value="";add(q,"user");
