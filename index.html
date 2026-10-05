@@ -617,7 +617,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           <div class="rag-model-item"><div class="rag-model-icon">⚡</div><div><b>Browser runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
           <div class="rag-model-item"><div class="rag-model-icon">▣</div><div><b>Storage</b><span id="ragStorageState">Browser-local IndexedDB</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
         </div>
-        <div class="rag-privacy-strip"><span>🔒</span><div><b>Private by design</b><small>Your files, search index and vectors stay in this browser. No document is uploaded to a knowledge server.</small></div></div>
+        <div class="rag-privacy-strip"><span>🔒</span><div><b>Browser-local by default</b><small>Files and vectors stay in this browser unless you explicitly use “Save My Knowledge to GitHub”.</small></div></div>
       </div>
       </div>
       <div class="rag-grid">
@@ -626,7 +626,22 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
             <div class="rag-section-label">STEP 1</div><h2>Build your knowledge base</h2>
             <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
             <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Nothing is uploaded to Omni Suite. The index stays in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
-            <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div><div class="rag-repo-status" id="ragRepoStatus"><b>Repository knowledge</b><span>Checking local index…</span></div>
+            <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
+<div class="rag-github-card">
+  <div class="rag-section-label">PERSONAL GITHUB SYNC</div>
+  <h3 style="margin:.2rem 0 .3rem">☁️ Save My Knowledge to GitHub</h3>
+  <div class="sub">For your personal use: save the files you selected above directly into your GitHub repository. After saving, Omni refreshes the repository knowledge index automatically.</div>
+  <div class="rag-github-grid">
+    <div class="form-group"><label for="ragGithubRepo">Repository</label><input id="ragGithubRepo" class="form-input" value="theraghavraman/omni_suite_light" placeholder="owner/repository"></div>
+    <div class="form-group"><label for="ragGithubFolder">Folder</label><input id="ragGithubFolder" class="form-input" value="knowledge-base" placeholder="knowledge-base"></div>
+    <div class="form-group"><label for="ragGithubBranch">Branch</label><input id="ragGithubBranch" class="form-input" value="main" placeholder="main"></div>
+  </div>
+  <div class="form-group" style="margin-top:9px"><label for="ragGithubToken">GitHub fine-grained token</label><input id="ragGithubToken" class="form-input" type="password" autocomplete="off" placeholder="github_pat_…"></div>
+  <div class="actions-bar" style="margin-top:9px"><button type="button" class="btn btn-primary" id="ragGithubSave">☁️ Save Selected Files to GitHub</button><button type="button" class="btn btn-secondary" id="ragGithubForget">Forget Token</button><label style="display:flex;align-items:center;gap:7px;font-size:.75rem;color:#667085"><input id="ragGithubRemember" type="checkbox"> Remember on this device</label></div>
+  <div class="rag-github-note"><b>Recommended:</b> create a fine-grained GitHub token limited to this repository with <b>Contents: Read and write</b>. The token is used only for GitHub API calls from this browser. Do not paste a token into the public repository code.</div>
+  <div class="rag-github-status" id="ragGithubStatus">Ready — choose files, then save them to GitHub when you want persistence.</div>
+</div>
+<div class="rag-repo-status" id="ragRepoStatus"><b>Repository knowledge</b><span>Checking local index…</span></div>
             <div class="rag-status" id="ragStatus">Initializing private RAG…</div>
           </div>
           <div class="card">
