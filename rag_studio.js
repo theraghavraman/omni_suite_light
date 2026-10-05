@@ -6,7 +6,8 @@
 const $=id=>document.getElementById(id);
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
 function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
-let db=null, embedder=null, generator=null, chunks=[], lastResults=[], pendingFiles=[];
+let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[];
+let embedWorker=null, embedWorkerReady=null, embedRequestId=0, embedPending=new Map();
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
 const MODEL_LLM="onnx-community/gemma-3-270m-it-ONNX";
 const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
@@ -83,8 +84,11 @@ function cosine(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];
 async function loadTransformers(){if(window.__omniTransformers)return window.__omniTransformers;const m=await import(CDN);window.__omniTransformers=m;return m}
 function setModelState(kind,state,text){const map={embed:["ragEmbedState","ragEmbedDot"],llm:["ragLLMState","ragLLMDot"],runtime:["ragRuntimeState","ragRuntimeDot"],storage:["ragStorageState","ragStorageDot"]};const ids=map[kind];if(!ids)return;const a=$(ids[0]),b=$(ids[1]);if(a)a.textContent=text;if(b)b.className="rag-dot "+state;b.textContent=state==="ok"?"●":state==="busy"?"◌":state==="warn"?"!":"○"}
 function initRuntimeStatus(){const gpu=!!navigator.gpu;setModelState("runtime",gpu?"ok":"warn",gpu?"WebGPU available · faster local generation":"WebGPU unavailable · WASM fallback");setModelState("storage","ok","IndexedDB · browser-local")}
-async function loadEmbedder(){if(embedder){setModelState("embed","ok","Ready · cached in this browser");return embedder}const m=await loadTransformers();setModelState("embed","busy","Downloading/loading model…");$("ragStatus").textContent="Loading local embedding model…";try{embedder=await m.pipeline("feature-extraction",MODEL_EMBED,{dtype:"q8"});setModelState("embed","ok","Ready · cached in this browser");return embedder}catch(e){setModelState("embed","warn","Unavailable · "+e.message);throw e}}
-async function embed(text){const p=await loadEmbedder();const o=await p(text,{pooling:"mean",normalize:true});return Array.from(o.data)}
+function resetEmbedWorker(error){const e=error instanceof Error?error:new Error(String(error||"Embedding worker stopped"));for(const [,p] of embedPending)p.reject(e);embedPending.clear();if(embedWorker){try{embedWorker.terminate()}catch(_){}}embedWorker=null;embedWorkerReady=null;setModelState("embed","warn","Unavailable · "+e.message)}
+function getEmbedWorker(){if(embedWorker)return embedWorker;if(!window.Worker)throw new Error("Web Workers are unavailable in this browser.");setModelState("embed","busy","Starting background embedding worker…");embedWorker=new Worker("./rag_embed_worker.js?v=1",{type:"module"});embedWorker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){setModelState("embed","ok",d.device==="webgpu"?"Ready · Web Worker + WebGPU":"Ready · Web Worker + WASM");if(embedWorkerReady)embedWorkerReady.resolve(d);return}if(d.type==="progress"){if(d.total)$(\"ragStatus\").textContent=`Embedding ${d.done}/${d.total} in background…`;return}if(d.type==="result"){const p=embedPending.get(d.id);if(!p)return;embedPending.delete(d.id);p.resolve(d.vectors);return}if(d.type==="error"){const p=embedPending.get(d.id);if(p){embedPending.delete(d.id);p.reject(new Error(d.message||"Embedding worker error"))}else resetEmbedWorker(new Error(d.message||"Embedding worker error"))}};embedWorker.onerror=e=>resetEmbedWorker(new Error(e.message||"Embedding worker failed"));return embedWorker}
+async function ensureEmbedWorker(){if(embedWorkerReady)return embedWorkerReady.promise;getEmbedWorker();embedWorkerReady={};embedWorkerReady.promise=new Promise((resolve,reject)=>{embedWorkerReady.resolve=resolve;embedWorkerReady.reject=reject});return embedWorkerReady.promise}
+async function embedTexts(texts){await ensureEmbedWorker();const id=++embedRequestId;return new Promise((resolve,reject)=>{embedPending.set(id,{resolve,reject});embedWorker.postMessage({type:"embed",id,texts})})}
+async function embed(text){const out=await embedTexts([text]);return out[0]}
 async function extractFile(f){
  const n=f.name.toLowerCase();
  if(n.endsWith(".pdf")&&window.pdfjsLib){const ar=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ar}).promise;let t="";for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i),c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n"}return t}
@@ -92,7 +96,17 @@ async function extractFile(f){
  return await f.text()
 }
 async function indexText(text,source,meta={}){
- const parts=splitText(text);if(!parts.length)return 0;const out=[];for(let i=0;i<parts.length;i++){const c=parts[i];$("ragStatus").textContent=`Embedding ${i+1}/${parts.length} — ${source}`;out.push({id:source+"#"+i+"-"+hash(c),source,text:c,meta,index:i,vector:await embed(c)})}await putMany(out);chunks=await getAll();return out.length}
+ const parts=splitText(text);if(!parts.length)return 0;const out=[];const batchSize=8;
+ for(let start=0;start<parts.length;start+=batchSize){
+  const batch=parts.slice(start,start+batchSize);
+  $(\"ragStatus\").textContent=`Embedding ${Math.min(start+batch.length,parts.length)}/${parts.length} in background — ${source}`;
+  const vectors=await embedTexts(batch);
+  const batchOut=[];
+  for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]})}
+  out.push(...batchOut);await putMany(batchOut);
+  await new Promise(r=>setTimeout(r,0));
+ }
+ chunks=await getAll();return out.length}
 function renderPendingFiles(){
  const box=$("ragSelectedFiles");if(!box)return;
  if(!pendingFiles.length){box.innerHTML='<span>Nothing selected yet.</span>';return}
@@ -113,7 +127,7 @@ async function indexPendingFiles(){
  if(!pendingFiles.length){$("ragStatus").textContent="Choose files first.";return}
  const files=[...pendingFiles];$("ragEmbed").disabled=true;
  try{
-  await loadEmbedder();
+  await ensureEmbedWorker();
   for(let n=0;n<files.length;n++){
    const f=files[n];
    $("ragStatus").textContent="Reading "+(n+1)+"/"+files.length+" · "+f.name;
@@ -128,7 +142,7 @@ async function indexPendingFiles(){
  }catch(e){console.error(e);$("ragStatus").textContent="Could not index selected files: "+e.message}
  finally{$("ragEmbed").disabled=false}
 }
-async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}
+async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$(\"ragStatus\").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
 function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 async function answer(){
