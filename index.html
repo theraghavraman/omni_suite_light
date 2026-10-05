@@ -1155,6 +1155,35 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
   color:#F0651A !important;
 }
 </style>
+<style id="omni-studio-active-white">
+/* Studio navigation: keep the active state light and editorial, never black. */
+.nav-btn.active{
+  background:#fff !important;
+  color:var(--ink) !important;
+  border:1px solid rgba(27,42,73,.12) !important;
+  box-shadow:0 10px 24px -14px rgba(27,42,73,.28), inset 0 -3px 0 var(--c) !important;
+  transform:translateY(-2px) !important;
+}
+.nav-btn.active::before{display:none !important}
+.nav-btn.active::after{
+  background:var(--c) !important;
+  width:22px !important;
+  height:4px !important;
+  bottom:5px !important;
+  margin-left:-11px !important;
+}
+.nav-btn.active .studio-icon{
+  color:var(--c) !important;
+  background:var(--cs) !important;
+  box-shadow:inset 0 0 0 1px var(--cs) !important;
+  transform:scale(1.05) !important;
+}
+.nav-btn.active .studio-label{color:var(--ink) !important}
+.nav-btn.active:hover{
+  color:var(--ink) !important;
+  box-shadow:0 14px 28px -16px var(--c), inset 0 -3px 0 var(--c) !important;
+}
+</style>
 </head>
 <body>
 <div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-appbar-cup-eyes omni-appbar-monogram" aria-hidden="true">OM</span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
