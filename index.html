@@ -3710,162 +3710,6 @@ async function runLocalTests(){
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
   const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p>
-<style id="omni-brand-color-motion-v1">
-/* Animated brand color system — keeps the identity vivid without changing layout. */
-.omni-appbar-monogram{
-  background:linear-gradient(135deg,#3157d5 0%,#6c4ee8 30%,#d94f8b 58%,#f08a2e 82%,#20a99a 100%) !important;
-  background-size:320% 320% !important;
-  animation:omniBrandTileFlow 7s ease-in-out infinite !important;
-  color:#fff !important;
-}
-.omni-brand-button:hover .omni-appbar-monogram{
-  background-size:320% 320% !important;
-  animation:omniBrandTileFlow 3.5s ease-in-out infinite !important;
-}
-.omni-wordmark-v3 strong{
-  background:linear-gradient(100deg,#3157d5 0%,#6c4ee8 24%,#d94f8b 48%,#f08a2e 72%,#20a99a 100%);
-  background-size:320% 320%;
-  -webkit-background-clip:text;
-  background-clip:text;
-  -webkit-text-fill-color:transparent;
-  color:transparent !important;
-  animation:omniBrandTextFlow 8s ease-in-out infinite;
-  text-shadow:none !important;
-}
-@keyframes omniBrandTileFlow{
-  0%,100%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-}
-@keyframes omniBrandTextFlow{
-  0%,100%{background-position:0% 50%}
-  25%{background-position:45% 100%}
-  50%{background-position:100% 50%}
-  75%{background-position:55% 0%}
-}
-@media(prefers-reduced-motion:reduce){
-  .omni-appbar-monogram,.omni-wordmark-v3 strong{animation:none !important}
-  .omni-appbar-monogram{background-position:50% 50% !important}
-  .omni-wordmark-v3 strong{background-position:50% 50% !important}
-}
-</style>
-
-
-<style id="omni-a1ffea-theme-v1">
-/* Omni Suite — A1FFEA mint theme */
-:root{
-  --omni-mint:#A1FFEA;
-  --omni-mint-strong:#55D8C5;
-  --omni-teal:#168C91;
-  --omni-deep:#16324F;
-  --omni-mint-soft:#E9FFFA;
-  --omni-mint-wash:#F4FFFC;
-}
-body{
-  background:
-    radial-gradient(900px 520px at 4% -6%,rgba(161,255,234,.55),transparent 62%),
-    radial-gradient(800px 500px at 100% 0,rgba(85,216,197,.20),transparent 60%),
-    radial-gradient(900px 600px at 82% 100%,rgba(39,142,165,.14),transparent 60%),
-    radial-gradient(700px 500px at 0 100%,rgba(161,255,234,.30),transparent 60%),
-    var(--omni-mint-wash) !important;
-}
-html{background:var(--omni-mint-wash) !important}
-header h1,.omni-wordmark-v3 strong{color:var(--omni-deep) !important}
-header h1 span{
-  background:linear-gradient(110deg,var(--omni-deep),var(--omni-teal),#4D63D8) !important;
-  background-size:240% 240% !important;
-  -webkit-background-clip:text !important;
-  background-clip:text !important;
-  -webkit-text-fill-color:transparent !important;
-  animation:omniMintTextFlow 7s ease-in-out infinite !important;
-}
-.omni-wordmark-v3 strong{
-  background:linear-gradient(100deg,var(--omni-deep),var(--omni-teal) 45%,#4D63D8 75%,var(--omni-deep)) !important;
-  background-size:300% 300% !important;
-  -webkit-background-clip:text !important;
-  background-clip:text !important;
-  -webkit-text-fill-color:transparent !important;
-  animation:omniMintTextFlow 8s ease-in-out infinite !important;
-}
-.omni-wordmark-v3 em{
-  background:linear-gradient(110deg,var(--omni-teal),var(--omni-mint-strong),#4D63D8) !important;
-  background-size:220% 220% !important;
-  -webkit-background-clip:text !important;
-  background-clip:text !important;
-  -webkit-text-fill-color:transparent !important;
-  animation:omniMintTextFlow 6s ease-in-out infinite reverse !important;
-}
-.omni-appbar-monogram{
-  background:linear-gradient(135deg,var(--omni-deep),var(--omni-teal),var(--omni-mint-strong),#4D63D8) !important;
-  background-size:300% 300% !important;
-  animation:omniMintTileFlow 7s ease-in-out infinite !important;
-}
-.omni-appbar-monogram:hover{background-position:100% 50% !important}
-
-.omni-appbar,.omni-guide,.card,.nav-bar,.metric-pill,.hero-render,.render-window{
-  border-color:rgba(22,50,79,.10) !important;
-}
-.omni-appbar,.nav-bar{background:rgba(255,255,255,.76) !important}
-.omni-guide,.card{background:rgba(255,255,255,.84) !important}
-.hero-render{background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(161,255,234,.30)) !important}
-.render-grid{background-image:linear-gradient(rgba(22,140,145,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(22,140,145,.10) 1px,transparent 1px) !important}
-.hero-render::before{background:conic-gradient(from 0deg,rgba(161,255,234,.35),transparent 20%,rgba(22,140,145,.18) 40%,transparent 58%,rgba(77,99,216,.15) 78%,transparent) !important}
-.metric-pill strong{color:var(--omni-teal) !important;-webkit-text-fill-color:var(--omni-teal) !important;background:none !important}
-.metric-pill:nth-child(2) strong{color:#4D63D8 !important;-webkit-text-fill-color:#4D63D8 !important}
-.metric-pill:nth-child(3) strong{color:var(--omni-teal) !important;-webkit-text-fill-color:var(--omni-teal) !important}
-
-.eyebrow,.hero-copy .eyebrow{color:var(--omni-teal) !important}
-.eyebrow-dot,.hero-copy .eyebrow-dot{background:var(--omni-mint-strong) !important;box-shadow:0 0 0 5px rgba(161,255,234,.55) !important}
-.badge-privacy{color:var(--omni-teal) !important;background:rgba(161,255,234,.30) !important;border-color:rgba(22,140,145,.22) !important}
-.omni-guide-item::before{background:var(--omni-mint-strong) !important}
-.omni-guide-item:nth-child(2)::before{background:var(--omni-teal) !important}
-.omni-guide-item:nth-child(3)::before{background:#4D63D8 !important}
-
-.card::before{background:linear-gradient(90deg,var(--omni-mint-strong),var(--omni-teal),#4D63D8) !important}
-.card::after{background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(161,255,234,.24),transparent 70%) !important}
-.card h2::before{background:var(--omni-teal) !important}
-
-.nav-btn:hover{background:rgba(161,255,234,.22) !important;color:var(--omni-teal) !important}
-.nav-btn.active{background:var(--omni-deep) !important;color:#fff !important;box-shadow:0 7px 0 rgba(22,50,79,.18) !important}
-.nav-btn.active::after{background:var(--omni-mint) !important}
-.studio-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.28) !important}
-.nav-btn:nth-child(1) .studio-icon,.nav-btn:nth-child(3) .studio-icon,.nav-btn:nth-child(6) .studio-icon,.nav-btn:nth-child(7) .studio-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.28) !important}
-.nav-btn.active .studio-icon{color:#fff !important;background:rgba(161,255,234,.18) !important}
-
-.dropzone{border-color:rgba(22,140,145,.30) !important;background:rgba(255,255,255,.68) !important}
-.dropzone:hover,.dropzone.dragover{border-color:var(--omni-teal) !important;background:rgba(161,255,234,.22) !important;box-shadow:0 18px 36px rgba(22,140,145,.10) !important}
-.dropzone-icon{background:var(--omni-teal) !important;box-shadow:0 10px 22px rgba(22,140,145,.20) !important}
-.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--omni-teal) !important;box-shadow:0 0 0 4px rgba(161,255,234,.38) !important}
-.btn,.btn-primary,.action-btn,.omni-primary,.omni-btn-primary{
-  background:var(--omni-teal) !important;color:#fff !important;border-color:var(--omni-teal) !important;
-  box-shadow:0 5px 0 #0C6267 !important;
-}
-.btn:hover,.btn-primary:hover,.action-btn:hover,.omni-primary:hover,.omni-btn-primary:hover{box-shadow:0 2px 0 #0C6267 !important}
-.omni-command-result:hover,.omni-command-result.active{background:rgba(161,255,234,.22) !important;border-color:rgba(22,140,145,.16) !important}
-.omni-command-result.active{box-shadow:inset 3px 0 0 var(--omni-teal) !important}
-.omni-command-search-icon,.omni-command-result-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.25) !important}
-
-.omni-motion-bg::before{background:radial-gradient(circle,rgba(161,255,234,.42),transparent 68%) !important}
-.omni-motion-bg::after{background:radial-gradient(circle,rgba(22,140,145,.16),transparent 68%) !important}
-.omni-grid{background-image:radial-gradient(rgba(22,140,145,.16) 1px,transparent 1.2px) !important}
-.omni-orbit{border-color:rgba(22,140,145,.24) !important;box-shadow:0 0 0 70px rgba(161,255,234,.10),0 0 0 150px rgba(22,140,145,.04) !important}
-
-.omni-diagnostics{background:linear-gradient(135deg,#f5fffc,#e9fffa) !important;border-left-color:var(--omni-teal) !important;color:var(--omni-deep) !important}
-.omni-diagnostics::before{color:var(--omni-teal) !important}
-#omniStaticStudios span:first-child{color:var(--omni-teal) !important}
-
-@keyframes omniMintTextFlow{
-  0%,100%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-}
-@keyframes omniMintTileFlow{
-  0%,100%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-}
-@media(prefers-reduced-motion:reduce){
-  header h1 span,.omni-wordmark-v3 strong,.omni-wordmark-v3 em,.omni-appbar-monogram{animation:none !important}
-}
-</style>
-
 </body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
@@ -4809,5 +4653,158 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script>
+<style id="omni-brand-color-motion-v1">
+/* Animated brand color system — keeps the identity vivid without changing layout. */
+.omni-appbar-monogram{
+  background:linear-gradient(135deg,#3157d5 0%,#6c4ee8 30%,#d94f8b 58%,#f08a2e 82%,#20a99a 100%) !important;
+  background-size:320% 320% !important;
+  animation:omniBrandTileFlow 7s ease-in-out infinite !important;
+  color:#fff !important;
+}
+.omni-brand-button:hover .omni-appbar-monogram{
+  background-size:320% 320% !important;
+  animation:omniBrandTileFlow 3.5s ease-in-out infinite !important;
+}
+.omni-wordmark-v3 strong{
+  background:linear-gradient(100deg,#3157d5 0%,#6c4ee8 24%,#d94f8b 48%,#f08a2e 72%,#20a99a 100%);
+  background-size:320% 320%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent !important;
+  animation:omniBrandTextFlow 8s ease-in-out infinite;
+  text-shadow:none !important;
+}
+@keyframes omniBrandTileFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+@keyframes omniBrandTextFlow{
+  0%,100%{background-position:0% 50%}
+  25%{background-position:45% 100%}
+  50%{background-position:100% 50%}
+  75%{background-position:55% 0%}
+}
+@media(prefers-reduced-motion:reduce){
+  .omni-appbar-monogram,.omni-wordmark-v3 strong{animation:none !important}
+  .omni-appbar-monogram{background-position:50% 50% !important}
+  .omni-wordmark-v3 strong{background-position:50% 50% !important}
+}
+</style>
+<style id="omni-a1ffea-theme-v1">
+/* Omni Suite — A1FFEA mint theme */
+:root{
+  --omni-mint:#A1FFEA;
+  --omni-mint-strong:#55D8C5;
+  --omni-teal:#168C91;
+  --omni-deep:#16324F;
+  --omni-mint-soft:#E9FFFA;
+  --omni-mint-wash:#F4FFFC;
+}
+body{
+  background:
+    radial-gradient(900px 520px at 4% -6%,rgba(161,255,234,.55),transparent 62%),
+    radial-gradient(800px 500px at 100% 0,rgba(85,216,197,.20),transparent 60%),
+    radial-gradient(900px 600px at 82% 100%,rgba(39,142,165,.14),transparent 60%),
+    radial-gradient(700px 500px at 0 100%,rgba(161,255,234,.30),transparent 60%),
+    var(--omni-mint-wash) !important;
+}
+html{background:var(--omni-mint-wash) !important}
+header h1,.omni-wordmark-v3 strong{color:var(--omni-deep) !important}
+header h1 span{
+  background:linear-gradient(110deg,var(--omni-deep),var(--omni-teal),#4D63D8) !important;
+  background-size:240% 240% !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  animation:omniMintTextFlow 7s ease-in-out infinite !important;
+}
+.omni-wordmark-v3 strong{
+  background:linear-gradient(100deg,var(--omni-deep),var(--omni-teal) 45%,#4D63D8 75%,var(--omni-deep)) !important;
+  background-size:300% 300% !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  animation:omniMintTextFlow 8s ease-in-out infinite !important;
+}
+.omni-wordmark-v3 em{
+  background:linear-gradient(110deg,var(--omni-teal),var(--omni-mint-strong),#4D63D8) !important;
+  background-size:220% 220% !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  animation:omniMintTextFlow 6s ease-in-out infinite reverse !important;
+}
+.omni-appbar-monogram{
+  background:linear-gradient(135deg,var(--omni-deep),var(--omni-teal),var(--omni-mint-strong),#4D63D8) !important;
+  background-size:300% 300% !important;
+  animation:omniMintTileFlow 7s ease-in-out infinite !important;
+}
+.omni-appbar-monogram:hover{background-position:100% 50% !important}
+
+.omni-appbar,.omni-guide,.card,.nav-bar,.metric-pill,.hero-render,.render-window{
+  border-color:rgba(22,50,79,.10) !important;
+}
+.omni-appbar,.nav-bar{background:rgba(255,255,255,.76) !important}
+.omni-guide,.card{background:rgba(255,255,255,.84) !important}
+.hero-render{background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(161,255,234,.30)) !important}
+.render-grid{background-image:linear-gradient(rgba(22,140,145,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(22,140,145,.10) 1px,transparent 1px) !important}
+.hero-render::before{background:conic-gradient(from 0deg,rgba(161,255,234,.35),transparent 20%,rgba(22,140,145,.18) 40%,transparent 58%,rgba(77,99,216,.15) 78%,transparent) !important}
+.metric-pill strong{color:var(--omni-teal) !important;-webkit-text-fill-color:var(--omni-teal) !important;background:none !important}
+.metric-pill:nth-child(2) strong{color:#4D63D8 !important;-webkit-text-fill-color:#4D63D8 !important}
+.metric-pill:nth-child(3) strong{color:var(--omni-teal) !important;-webkit-text-fill-color:var(--omni-teal) !important}
+
+.eyebrow,.hero-copy .eyebrow{color:var(--omni-teal) !important}
+.eyebrow-dot,.hero-copy .eyebrow-dot{background:var(--omni-mint-strong) !important;box-shadow:0 0 0 5px rgba(161,255,234,.55) !important}
+.badge-privacy{color:var(--omni-teal) !important;background:rgba(161,255,234,.30) !important;border-color:rgba(22,140,145,.22) !important}
+.omni-guide-item::before{background:var(--omni-mint-strong) !important}
+.omni-guide-item:nth-child(2)::before{background:var(--omni-teal) !important}
+.omni-guide-item:nth-child(3)::before{background:#4D63D8 !important}
+
+.card::before{background:linear-gradient(90deg,var(--omni-mint-strong),var(--omni-teal),#4D63D8) !important}
+.card::after{background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(161,255,234,.24),transparent 70%) !important}
+.card h2::before{background:var(--omni-teal) !important}
+
+.nav-btn:hover{background:rgba(161,255,234,.22) !important;color:var(--omni-teal) !important}
+.nav-btn.active{background:var(--omni-deep) !important;color:#fff !important;box-shadow:0 7px 0 rgba(22,50,79,.18) !important}
+.nav-btn.active::after{background:var(--omni-mint) !important}
+.studio-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.28) !important}
+.nav-btn:nth-child(1) .studio-icon,.nav-btn:nth-child(3) .studio-icon,.nav-btn:nth-child(6) .studio-icon,.nav-btn:nth-child(7) .studio-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.28) !important}
+.nav-btn.active .studio-icon{color:#fff !important;background:rgba(161,255,234,.18) !important}
+
+.dropzone{border-color:rgba(22,140,145,.30) !important;background:rgba(255,255,255,.68) !important}
+.dropzone:hover,.dropzone.dragover{border-color:var(--omni-teal) !important;background:rgba(161,255,234,.22) !important;box-shadow:0 18px 36px rgba(22,140,145,.10) !important}
+.dropzone-icon{background:var(--omni-teal) !important;box-shadow:0 10px 22px rgba(22,140,145,.20) !important}
+.form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--omni-teal) !important;box-shadow:0 0 0 4px rgba(161,255,234,.38) !important}
+.btn,.btn-primary,.action-btn,.omni-primary,.omni-btn-primary{
+  background:var(--omni-teal) !important;color:#fff !important;border-color:var(--omni-teal) !important;
+  box-shadow:0 5px 0 #0C6267 !important;
+}
+.btn:hover,.btn-primary:hover,.action-btn:hover,.omni-primary:hover,.omni-btn-primary:hover{box-shadow:0 2px 0 #0C6267 !important}
+.omni-command-result:hover,.omni-command-result.active{background:rgba(161,255,234,.22) !important;border-color:rgba(22,140,145,.16) !important}
+.omni-command-result.active{box-shadow:inset 3px 0 0 var(--omni-teal) !important}
+.omni-command-search-icon,.omni-command-result-icon{color:var(--omni-teal) !important;background:rgba(161,255,234,.25) !important}
+
+.omni-motion-bg::before{background:radial-gradient(circle,rgba(161,255,234,.42),transparent 68%) !important}
+.omni-motion-bg::after{background:radial-gradient(circle,rgba(22,140,145,.16),transparent 68%) !important}
+.omni-grid{background-image:radial-gradient(rgba(22,140,145,.16) 1px,transparent 1.2px) !important}
+.omni-orbit{border-color:rgba(22,140,145,.24) !important;box-shadow:0 0 0 70px rgba(161,255,234,.10),0 0 0 150px rgba(22,140,145,.04) !important}
+
+.omni-diagnostics{background:linear-gradient(135deg,#f5fffc,#e9fffa) !important;border-left-color:var(--omni-teal) !important;color:var(--omni-deep) !important}
+.omni-diagnostics::before{color:var(--omni-teal) !important}
+#omniStaticStudios span:first-child{color:var(--omni-teal) !important}
+
+@keyframes omniMintTextFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+@keyframes omniMintTileFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+@media(prefers-reduced-motion:reduce){
+  header h1 span,.omni-wordmark-v3 strong,.omni-wordmark-v3 em,.omni-appbar-monogram{animation:none !important}
+}
+</style>
 </body>
 </html>
