@@ -4303,6 +4303,7 @@ $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 'use strict';
 const meta={
  tabRAGStudio:['Private RAG','Build a private local knowledge base with semantic/vector retrieval, hybrid search and an optional browser-run small language model.'],
+ tabLanguageStudio:['Language Engine','Translate, transliterate and inspect multilingual text with a browser-first language workspace.'],
  tabPdf:['PDF Suite','Convert, merge, split, compress and inspect PDF documents in one focused workspace.'],
  tabWord:['Office Studio','Move between document, spreadsheet and presentation formats without leaving the workspace.'],
  tabEpub:['EPUB Studio','Build, inspect and transform EPUB books and their internal assets.'],
@@ -4336,10 +4337,30 @@ function setupPanel(p){
 function enter(id,button){
  document.body.classList.add('studio-mode');
  document.body.dataset.activeStudio=id;
- const cs=getComputedStyle(button);
- const accent=cs.getPropertyValue('--c').trim()||'#168C91';
- const accent2=cs.getPropertyValue('--c2').trim()||accent;
- const soft=cs.getPropertyValue('--cs').trim()||'rgba(22,140,145,.14)';
+ const palette={
+   tabRAGStudio:['#7C3AED','#C026D3','rgba(124,58,237,.14)'],
+   tabLanguageStudio:['#0F766E','#06B6D4','rgba(15,118,110,.14)'],
+   tabPdf:['#E11D48','#F97316','rgba(225,29,72,.14)'],
+   tabWord:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],
+   tabEpub:['#8B5CF6','#EC4899','rgba(139,92,246,.14)'],
+   tabImages:['#F97316','#FACC15','rgba(249,115,22,.14)'],
+   tabOcr:['#059669','#84CC16','rgba(5,150,105,.14)'],
+   tabAudio:['#DB2777','#7C3AED','rgba(219,39,119,.14)'],
+   tabVideo:['#DC2626','#EA580C','rgba(220,38,38,.14)'],
+   tabCompress:['#0891B2','#2563EB','rgba(8,145,178,.14)'],
+   tabData:['#0D9488','#22C55E','rgba(13,148,136,.14)'],
+   tabLocal:['#475569','#64748B','rgba(71,85,105,.14)'],
+   tabVizInterchange:['#0284C7','#6366F1','rgba(2,132,199,.14)'],
+   tabCodeStudio:['#4F46E5','#06B6D4','rgba(79,70,229,.14)'],
+   tabUniversalData:['#0891B2','#14B8A6','rgba(8,145,178,.14)'],
+   tabDatabaseStudio:['#CA8A04','#F97316','rgba(202,138,4,.14)'],
+   tabDataClean:['#16A34A','#14B8A6','rgba(22,163,74,.14)'],
+   tabBatchLab:['#EA580C','#DB2777','rgba(234,88,12,.14)'],
+   tabLocalDoctor:['#4F46E5','#9333EA','rgba(79,70,229,.14)'],
+   tabDiagnostics:['#16A34A','#0EA5E9','rgba(22,163,74,.14)'],
+   tabAllTests:['#BE185D','#7C3AED','rgba(190,24,93,.14)']
+ };
+ const [accent,accent2,soft]=palette[id]||['#168C91','#06B6D4','rgba(22,140,145,.14)'];
  document.body.style.setProperty('--active-studio-accent',accent);
  document.body.style.setProperty('--active-studio-accent-2',accent2);
  document.body.style.setProperty('--active-studio-soft',soft);
@@ -5021,6 +5042,43 @@ body[data-active-studio] textarea:focus{
 body[data-active-studio] .progress-bar-fill{
   background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important;
 }
+</style>
+
+
+<style id="omni-studio-workspace-final-v3">
+/* Final studio-specific workspace mapping. No studio falls back to the global mint palette. */
+body[data-active-studio="tabRAGStudio"]{--studio-live:#7C3AED;--studio-live-2:#C026D3;--studio-live-soft:rgba(124,58,237,.14)}
+body[data-active-studio="tabLanguageStudio"]{--studio-live:#0F766E;--studio-live-2:#06B6D4;--studio-live-soft:rgba(15,118,110,.14)}
+body[data-active-studio="tabPdf"]{--studio-live:#E11D48;--studio-live-2:#F97316;--studio-live-soft:rgba(225,29,72,.14)}
+body[data-active-studio="tabWord"]{--studio-live:#2563EB;--studio-live-2:#06B6D4;--studio-live-soft:rgba(37,99,235,.14)}
+body[data-active-studio="tabEpub"]{--studio-live:#8B5CF6;--studio-live-2:#EC4899;--studio-live-soft:rgba(139,92,246,.14)}
+body[data-active-studio="tabImages"]{--studio-live:#F97316;--studio-live-2:#FACC15;--studio-live-soft:rgba(249,115,22,.14)}
+body[data-active-studio="tabOcr"]{--studio-live:#059669;--studio-live-2:#84CC16;--studio-live-soft:rgba(5,150,105,.14)}
+body[data-active-studio="tabAudio"]{--studio-live:#DB2777;--studio-live-2:#7C3AED;--studio-live-soft:rgba(219,39,119,.14)}
+body[data-active-studio="tabVideo"]{--studio-live:#DC2626;--studio-live-2:#EA580C;--studio-live-soft:rgba(220,38,38,.14)}
+body[data-active-studio="tabCompress"]{--studio-live:#0891B2;--studio-live-2:#2563EB;--studio-live-soft:rgba(8,145,178,.14)}
+body[data-active-studio="tabData"]{--studio-live:#0D9488;--studio-live-2:#22C55E;--studio-live-soft:rgba(13,148,136,.14)}
+body[data-active-studio="tabLocal"]{--studio-live:#475569;--studio-live-2:#64748B;--studio-live-soft:rgba(71,85,105,.14)}
+body[data-active-studio="tabVizInterchange"]{--studio-live:#0284C7;--studio-live-2:#6366F1;--studio-live-soft:rgba(2,132,199,.14)}
+body[data-active-studio="tabCodeStudio"]{--studio-live:#4F46E5;--studio-live-2:#06B6D4;--studio-live-soft:rgba(79,70,229,.14)}
+body[data-active-studio="tabUniversalData"]{--studio-live:#0891B2;--studio-live-2:#14B8A6;--studio-live-soft:rgba(8,145,178,.14)}
+body[data-active-studio="tabDatabaseStudio"]{--studio-live:#CA8A04;--studio-live-2:#F97316;--studio-live-soft:rgba(202,138,4,.14)}
+body[data-active-studio="tabDataClean"]{--studio-live:#16A34A;--studio-live-2:#14B8A6;--studio-live-soft:rgba(22,163,74,.14)}
+body[data-active-studio="tabBatchLab"]{--studio-live:#EA580C;--studio-live-2:#DB2777;--studio-live-soft:rgba(234,88,12,.14)}
+body[data-active-studio="tabLocalDoctor"]{--studio-live:#4F46E5;--studio-live-2:#9333EA;--studio-live-soft:rgba(79,70,229,.14)}
+body[data-active-studio="tabDiagnostics"]{--studio-live:#16A34A;--studio-live-2:#0EA5E9;--studio-live-soft:rgba(22,163,74,.14)}
+body[data-active-studio="tabAllTests"]{--studio-live:#BE185D;--studio-live-2:#7C3AED;--studio-live-soft:rgba(190,24,93,.14)}
+body[data-active-studio] .studio-workspace-head{background:linear-gradient(120deg,var(--studio-live),var(--studio-live-2)) !important}
+body[data-active-studio] .studio-overview{border-color:color-mix(in srgb,var(--studio-live) 25%,transparent) !important}
+body[data-active-studio] .card::before{background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important}
+body[data-active-studio] .card h2::before{background:var(--studio-live) !important}
+body[data-active-studio] .studio-tool-link:hover{color:var(--studio-live) !important;background:var(--studio-live-soft) !important;border-color:color-mix(in srgb,var(--studio-live) 35%,transparent) !important}
+body[data-active-studio] .btn-primary,body[data-active-studio] .action-btn,body[data-active-studio] .btn-success,body[data-active-studio] .clean-action{background:var(--studio-live) !important;border-color:var(--studio-live) !important}
+body[data-active-studio] .btn-secondary,body[data-active-studio] .btn-reset{color:var(--studio-live) !important;border-color:color-mix(in srgb,var(--studio-live) 40%,transparent) !important}
+body[data-active-studio] .dropzone:hover,body[data-active-studio] .dropzone.dragover{border-color:var(--studio-live) !important;background:var(--studio-live-soft) !important}
+body[data-active-studio] .dropzone-icon{background:var(--studio-live) !important}
+body[data-active-studio] input:focus,body[data-active-studio] select:focus,body[data-active-studio] textarea:focus{border-color:var(--studio-live) !important;box-shadow:0 0 0 4px var(--studio-live-soft) !important}
+body[data-active-studio] .progress-bar-fill{background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important}
 </style>
 
 </body>
