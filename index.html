@@ -1019,6 +1019,81 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
   .omni-diagnostics:not(:empty){animation:none}
 }
 </style>
+<style id="omni-hero-portfolio-motion">
+/* Hero composition — the portfolio's warm editorial language, with visible motion. */
+.hero-header{
+  position:relative;
+  min-height:500px;
+  align-items:center;
+  padding:42px 4px 34px !important;
+}
+.hero-copy{position:relative;z-index:3}
+.hero-copy .omni-identity-v3{margin-bottom:26px !important}
+.hero-copy .eyebrow{color:var(--sun) !important}
+.hero-copy .eyebrow-dot{background:var(--sun) !important;box-shadow:0 0 0 5px rgba(240,101,26,.13)!important}
+.hero-copy>p{max-width:56ch !important;font-size:1.04rem !important}
+.hero-render{
+  min-height:430px !important;
+  border-radius:30px !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,239,213,.88)) !important;
+  border:1px solid rgba(27,42,73,.10) !important;
+  box-shadow:0 34px 70px -34px rgba(27,42,73,.26),0 8px 20px rgba(240,101,26,.08) !important;
+  overflow:hidden;
+  animation:omniHeroFloat 7s ease-in-out infinite,omniReveal .9s cubic-bezier(.16,1,.3,1) .28s both !important;
+}
+.hero-render::before{
+  background:conic-gradient(from 0deg,rgba(240,101,26,.18),transparent 19%,rgba(37,99,235,.13) 38%,transparent 53%,rgba(214,51,108,.12) 70%,transparent 84%,rgba(255,201,77,.20)) !important;
+  animation:omniHeroSpin 24s linear infinite !important;
+}
+.render-grid{
+  opacity:.28 !important;
+  background-image:radial-gradient(rgba(27,42,73,.15) .75px,transparent .9px) !important;
+  background-size:22px 22px !important;
+  animation:omniGridDrift 18s linear infinite !important;
+}
+.render-orbit{border-color:rgba(37,99,235,.20) !important}
+.orbit-a{animation:omniOrbitA 8s ease-in-out infinite !important}
+.orbit-b{border-color:rgba(240,101,26,.22) !important;animation:omniOrbitB 10s ease-in-out infinite reverse !important}
+.render-glow{filter:blur(38px)!important}
+.glow-a{background:rgba(214,51,108,.16)!important;animation:omniGlow 5.5s ease-in-out infinite!important}
+.glow-b{background:rgba(240,101,26,.16)!important;animation:omniGlow 7s ease-in-out infinite reverse!important}
+.render-window{
+  background:rgba(255,255,255,.91)!important;
+  border:1px solid rgba(27,42,73,.10)!important;
+  box-shadow:0 26px 55px -28px rgba(27,42,73,.30)!important;
+  animation:omniWindowFloat 6s ease-in-out infinite!important;
+}
+.window-bar{background:linear-gradient(90deg,#fff8ed,#f2f7ff)!important}
+.window-bar em{background:var(--ink)!important}
+.paper-image{background:linear-gradient(135deg,#FFE9CF,#FFC94D)!important}
+.pipeline .pipe-node.active{box-shadow:0 0 0 5px rgba(240,101,26,.10)!important}
+.float-chip{
+  background:rgba(255,255,255,.92)!important;
+  border:1px solid rgba(27,42,73,.11)!important;
+  color:var(--ink)!important;
+  box-shadow:0 14px 30px -20px rgba(27,42,73,.35)!important;
+  animation:omniChipFloat 5s ease-in-out infinite!important;
+}
+.chip-two{animation-delay:-1.7s!important}.chip-three{animation-delay:-3.2s!important}
+.hero-metrics .metric-pill{animation:omniMetricFloat 5s ease-in-out infinite}
+.hero-metrics .metric-pill:nth-child(2){animation-delay:-1.1s}
+.hero-metrics .metric-pill:nth-child(3){animation-delay:-2.2s}
+@keyframes omniHeroSpin{to{transform:rotate(360deg)}}
+@keyframes omniHeroFloat{0%,100%{transform:translate3d(0,0,0) rotate(.2deg)}50%{transform:translate3d(0,-10px,0) rotate(-.25deg)}}
+@keyframes omniWindowFloat{0%,100%{transform:translate(-50%,-50%) rotate(-1.2deg)}50%{transform:translate(-50%,calc(-50% - 7px)) rotate(.4deg)}}
+@keyframes omniOrbitA{0%,100%{transform:rotate(18deg) translate(0,0)}50%{transform:rotate(23deg) translate(-10px,7px)}}
+@keyframes omniOrbitB{0%,100%{transform:rotate(-22deg) translate(0,0)}50%{transform:rotate(-17deg) translate(12px,-8px)}}
+@keyframes omniGlow{0%,100%{transform:scale(.88);opacity:.62}50%{transform:scale(1.18);opacity:1}}
+@keyframes omniChipFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(-1deg)}}
+@keyframes omniMetricFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media(max-width:900px){
+  .hero-header{grid-template-columns:1fr!important;min-height:0!important;padding-top:30px!important}
+  .hero-render{min-height:380px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-render,.render-grid,.render-orbit,.render-glow,.render-window,.float-chip,.hero-metrics .metric-pill{animation:none!important}
+}
+</style>
 </head>
 <body>
 <div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-appbar-cup-eyes omni-appbar-monogram" aria-hidden="true">OM</span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
@@ -1044,7 +1119,6 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
             <div><strong>OMNI</strong><em>SUITE</em></div>
             <small>UNIVERSAL FILE &amp; DATA ENGINEERING</small>
           </div>
-        </div>
         </div>
         <div class="eyebrow"><span class="eyebrow-dot"></span> Offline-Capable &bull; Private &bull; Client-Side</div>
         <p>One visual workspace for documents, images, OCR, audio, video, data, RAG and code — rendered locally in your browser whenever possible.</p>
