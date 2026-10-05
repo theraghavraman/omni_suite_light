@@ -63,7 +63,32 @@ function firstFile(panel,kind){
  const inputs=[...panel.querySelectorAll('input[type="file"]')].filter(x=>x.offsetParent!==null);
  if(kind==="image")return inputs.find(x=>String(x.accept||"").includes("image"))?.files?.[0]||inputs.find(x=>x.files?.[0])?.files?.[0]||null;
  if(kind==="audio")return inputs.find(x=>String(x.accept||"").includes("audio"))?.files?.[0]||inputs.find(x=>x.files?.[0])?.files?.[0]||null;
+ if(kind==="pdf")return inputs.find(x=>String(x.accept||"").includes("pdf"))?.files?.[0]||inputs.find(x=>/\.pdf$/i.test(x.files?.[0]?.name||""))?.files?.[0]||null;
  return inputs.find(x=>x.files?.[0])?.files?.[0]||null;
+}
+async function extractPdfText(file){
+ if(!file)throw new Error("Choose a PDF in PDF Suite first.");
+ if(!window.pdfjsLib?.getDocument)throw new Error("PDF text extraction is not available in this browser session.");
+ const data=await file.arrayBuffer();
+ const pdf=await window.pdfjsLib.getDocument({data}).promise;
+ const pages=[];
+ for(let n=1;n<=pdf.numPages;n++){
+   const page=await pdf.getPage(n);
+   const tc=await page.getTextContent();
+   const text=tc.items.map(x=>x.str||"").join(" ").replace(/\s+/g," ").trim();
+   if(text)pages.push("PAGE "+n+"\n"+text);
+ }
+ const joined=pages.join("\n\n");
+ if(!joined.trim())throw new Error("This PDF has no selectable text. It may be a scanned/image-only PDF; run OCR first.");
+ return {text:joined.slice(0,30000),pages:pages.length,totalPages:pdf.numPages};
+}
+async function contextFor(panel){
+ if(panel.id==="tabPdf"){
+   const file=firstFile(panel,"pdf");
+   const extracted=await extractPdfText(file);
+   return {text:extracted.text,meta:"Using extracted text from "+extracted.pages+" of "+extracted.totalPages+" PDF page(s)."};
+ }
+ return {text:visibleText(panel),meta:"Using visible Studio context."};
 }
 function imageUrl(file){return URL.createObjectURL(file)}
 function downloadBlob(blob,name){
@@ -79,7 +104,8 @@ function wavBlob(audio,sr){
 }
 async function run(action,panel,ui){
  const ai=A();if(!ai)throw new Error("Browser AI Engine has not loaded yet.");
- const text=visibleText(panel);
+ const ctx=await contextFor(panel);
+ const text=ctx.text;
  const file=firstFile(panel,action.kind);
  if(action.kind==="image"&&!file)throw new Error("Choose an image in this Studio first.");
  if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
@@ -99,7 +125,7 @@ async function run(action,panel,ui){
    else if(action.op==="ocr"){const u=imageUrl(file);try{result=await ai.advancedOcr(u)}finally{URL.revokeObjectURL(u)}}
    else if(action.op==="ner"){const d=await ai.entities(text);result=d.length?d.map(x=>x.word+" — "+x.entity_group+" ("+(Number(x.score||0)*100).toFixed(1)+"%)").join("\n"):"No entities detected."}
    else if(action.op==="docqa"){const q=window.prompt("Ask a question about the selected document image:","What is the main subject of this document?");if(!q)throw new Error("Document question cancelled.");const u=imageUrl(file);try{result=await ai.docQa(u,q)}finally{URL.revokeObjectURL(u)}}
-   ui.textarea.value=result;ui.status.className="omni-browser-ai-status ok";ui.status.textContent="Done · model cached in this browser.";
+   ui.textarea.value=result;ui.status.className="omni-browser-ai-status ok";ui.status.textContent="Done · model cached in this browser. "+ctx.meta;
  }catch(e){ui.textarea.value="";ui.status.className="omni-browser-ai-status err";ui.status.textContent="AI Assist failed: "+(e?.message||e)}
 }
 function actionDefs(panelId){
@@ -107,7 +133,7 @@ function actionDefs(panelId){
  const map={
   tabRAGStudio:[["Summarize","summarize"],["Explain","generate","Explain the following retrieved knowledge in clear, practical language."],["Semantic vector","embed"]],
   tabLanguageStudio:[["Explain task","generate","Explain this language task and suggest a clear next step."],["Rewrite","generate","Rewrite the following text clearly while preserving meaning."]],
-  tabPdf:[["Summarize PDF","summarize"],["Explain","generate","Explain the following PDF content for a non-expert."],["Key points","generate","Extract the most important facts from the following PDF content as a concise bullet list."]],
+  tabPdf:[["Summarize PDF","summarize","","pdf"],["Explain","generate","Explain the following PDF content for a non-expert.","pdf"],["Key points","generate","Extract the most important facts from the following PDF content as a concise bullet list.","pdf"]],
   tabWord:[["Summarize","summarize"],["Rewrite","generate","Rewrite the following document text for clarity and professionalism."],["Key points","generate","Extract the key points from this document."]],
   tabEpub:[["Summarize","summarize"],["Themes","generate","Identify the major themes, ideas and recurring concepts in this book text."]],
   tabImages:[["Describe image","caption","image"],["Detect objects","detect","image"],["Remove background","background","image"],["Depth map","depth","image"]],
@@ -127,7 +153,7 @@ function actionDefs(panelId){
   tabDiagnostics:[["Explain diagnostics","generate","Explain these browser/runtime diagnostics and distinguish warnings from actionable failures."],["Troubleshoot","generate","Suggest a prioritized troubleshooting plan for these diagnostics."]],
   tabAllTests:[["Explain failures","generate","Explain the failed tests below and identify the most likely root cause for each."],["Fix plan","generate","Create a prioritized fix plan for the failed tests."]]
  };
- return (map[panelId]||[]).map(x=>({label:x[0],op:x[1],kind:x[2]||"text",prompt:x[2]&&x[1]==="generate"?x[2]:x[2]}));
+ return (map[panelId]||[]).map(x=>({label:x[0],op:x[1],kind:x[3]||x[2]||"text",prompt:x[1]==="generate"?x[2]:""}));
 }
 function add(panel){
  if(!panel||panel.querySelector(".omni-browser-ai"))return;
