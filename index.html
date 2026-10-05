@@ -3516,7 +3516,12 @@ $('omniRunStructure')?.addEventListener('click',()=>{runStructure().catch(e=>{re
 $('omniRunOptions')?.addEventListener('click',runOptions);
 $('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
 $('omniBackToStudios')?.addEventListener('click',()=>document.querySelector('.nav-bar')?.scrollIntoView({behavior:'smooth',block:'start'}));
-$('omniStaticStudios')?.addEventListener('click',()=>document.querySelector('.nav-bar')?.scrollIntoView({behavior:'smooth',block:'start'}));
+$('omniStaticStudios')?.addEventListener('click',()=>{
+ const nav=document.querySelector('.nav-bar');
+ if(!nav)return;
+ const top=nav.getBoundingClientRect().top+window.scrollY-120;
+ window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+});
 $('omniExportResult')?.addEventListener('click',()=>{
  const report={
    generatedAt:new Date().toISOString(),
