@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <title>OmniConverter Studio - Universal File & Data Engineering Suite</title>
   <!-- Core Engines with Offline Fallbacks -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -682,18 +682,28 @@ header p,.card .sub,.omni-guide-item span{font-weight:400}
 .nav-btn{font-weight:600}
 </style>
 
-  <style id="omni-bricolage-only">
-    /* Raghav direction: Bricolage Grotesque is the primary typeface throughout Omni Suite. */
+  
+
+
+  <style id="omni-space-grotesk">
+    /* Chosen direction: Space Grotesk — modern, energetic, technical, and highly legible. */
     :root{
-      --omni-display:"Bricolage Grotesque",system-ui,sans-serif;
-      --omni-body:"Bricolage Grotesque",system-ui,sans-serif;
-      --omni-mono:"Bricolage Grotesque",system-ui,sans-serif;
+      --omni-display:"Space Grotesk",system-ui,sans-serif;
+      --omni-body:"Space Grotesk",system-ui,sans-serif;
+      --omni-mono:"Fira Code",ui-monospace,SFMono-Regular,monospace;
     }
     html,body,body *,button,input,select,textarea,a{
-      font-family:"Bricolage Grotesque",system-ui,sans-serif !important;
-    }
-    body{
+      font-family:"Space Grotesk",system-ui,sans-serif !important;
       font-optical-sizing:auto;
+    }
+    code,pre,kbd,.mono,.technical,.status-code{
+      font-family:"Fira Code",ui-monospace,SFMono-Regular,monospace !important;
+    }
+    header h1,.omni-identity-v3,.omni-wordmark-v3,.omni-identity-name,.omni-brand-title,
+    .card h2,.dropzone h3,.omni-guide-item strong,.nav-btn,.metric-pill strong{
+      font-family:"Space Grotesk",system-ui,sans-serif !important;
+      font-weight:700;
+      letter-spacing:-.025em;
     }
   </style>
 
