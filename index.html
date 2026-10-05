@@ -4231,7 +4231,7 @@ function cleanCsv(text,delimiter){
 function cleanRowsFromObjects(value){
   const arr=Array.isArray(value)?value:(value&&Array.isArray(value.data)?value.data:[value]);
   if(!arr.length)return {headers:[],rows:[]};
-  if(Array.isArray(arr[0]))return {headers:arr[0].map((x,i)=>String(x??('column_'+(i+1))),rows:arr.slice(1)};
+  if(Array.isArray(arr[0]))return {headers:arr[0].map((x,i)=>String(x??('column_'+(i+1)))),rows:arr.slice(1)};
   const headers=[...new Set(arr.flatMap(x=>x&&typeof x==='object'?Object.keys(x):[]))];
   return {headers,rows:arr.map(x=>headers.map(h=>x?.[h]??''))};
 }
