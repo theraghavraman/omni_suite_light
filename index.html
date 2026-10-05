@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="./omni_language_engine.js?v=1"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
   <script src="./vendor/sheetjs/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'"></script>
   <script src="./vendor/jsyaml/js-yaml.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js'"></script>
@@ -1460,82 +1461,53 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           </div>
 
           <div id="ocrTranslatePanel" style="display:none; margin-top:14px; padding:14px; border:1px solid #dce5f0; border-radius:14px; background:linear-gradient(145deg,#fbfdff,#f4f7ff);">
-            <div style="font-size:.9rem;font-weight:800;color:#26304b;">🌐 Convert extracted text language</div>
-            <div style="font-size:.75rem;color:#6b7890;margin-top:4px;line-height:1.45;">Uses the browser's built-in Translator first, so supported pairs stay local. If your browser does not support a selected pair, Omni Suite can offer an optional web fallback with a clear privacy warning.</div>
+            <div style="font-size:.9rem;font-weight:800;color:#26304b;">🌐 Omni Language Engine</div>
+            <div style="font-size:.75rem;color:#6b7890;margin-top:4px;line-height:1.45;">OCR text can be translated or transliterated by the separate Omni Language Engine. Its models are isolated from Omni Assistant and Private RAG. No web translation fallback is used.</div>
+
             <div class="options-grid" style="margin-top:10px;">
               <div class="form-group">
                 <label for="ocrTranslateSource">Source language</label>
                 <select id="ocrTranslateSource" class="form-select">
-                  <option value="en" selected>English</option>
-                  <option value="hi">Hindi</option>
-                  <option value="de">German</option>
-                  <option value="fr">French</option>
-                  <option value="es">Spanish</option>
-                  <option value="it">Italian</option>
-                  <option value="pt">Portuguese</option>
-                  <option value="nl">Dutch</option>
-                  <option value="tr">Turkish</option>
-                  <option value="ru">Russian</option>
-                  <option value="ar">Arabic</option>
-                  <option value="ur">Urdu</option>
-                  <option value="ja">Japanese</option>
-                  <option value="ko">Korean</option>
-                  <option value="zh">Chinese</option>
-                  <option value="vi">Vietnamese</option>
-                  <option value="bn">Bengali</option>
-                  <option value="mr">Marathi</option>
-                  <option value="ta">Tamil</option>
-                  <option value="te">Telugu</option>
-                  <option value="ml">Malayalam</option>
-                  <option value="kn">Kannada</option>
-                  <option value="gu">Gujarati</option>
-                  <option value="pa">Punjabi</option>
-                  <option value="ne">Nepali</option>
-                  <option value="or">Odia</option>
-                  <option value="si">Sinhala</option>
+                  <option value="en" selected>English</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="mr">Marathi</option><option value="ne">Nepali</option><option value="or">Odia</option><option value="pa">Punjabi</option><option value="si">Sinhala</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="ur">Urdu</option><option value="asm">Assamese</option><option value="brx">Bodo</option><option value="doi">Dogri</option><option value="gom">Konkani</option><option value="mai">Maithili</option><option value="mni">Manipuri</option><option value="sa">Sanskrit</option><option value="sat">Santali</option><option value="sd">Sindhi</option><option value="kas">Kashmiri</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="ocrTranslateTarget">Convert to</label>
+                <label for="ocrTranslateTarget">Translate to</label>
                 <select id="ocrTranslateTarget" class="form-select">
-                  <option value="hi">Hindi</option>
-                  <option value="en" selected>English</option>
-                  <option value="de">German</option>
-                  <option value="fr">French</option>
-                  <option value="es">Spanish</option>
-                  <option value="it">Italian</option>
-                  <option value="pt">Portuguese</option>
-                  <option value="nl">Dutch</option>
-                  <option value="tr">Turkish</option>
-                  <option value="ru">Russian</option>
-                  <option value="ar">Arabic</option>
-                  <option value="ur">Urdu</option>
-                  <option value="ja">Japanese</option>
-                  <option value="ko">Korean</option>
-                  <option value="zh">Chinese</option>
-                  <option value="vi">Vietnamese</option>
-                  <option value="bn">Bengali</option>
-                  <option value="mr">Marathi</option>
-                  <option value="ta">Tamil</option>
-                  <option value="te">Telugu</option>
-                  <option value="ml">Malayalam</option>
-                  <option value="kn">Kannada</option>
-                  <option value="gu">Gujarati</option>
-                  <option value="pa">Punjabi</option>
-                  <option value="ne">Nepali</option>
-                  <option value="or">Odia</option>
-                  <option value="si">Sinhala</option>
+                  <option value="en" selected>English</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="mr">Marathi</option><option value="ne">Nepali</option><option value="or">Odia</option><option value="pa">Punjabi</option><option value="si">Sinhala</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="ur">Urdu</option><option value="asm">Assamese</option><option value="brx">Bodo</option><option value="doi">Dogri</option><option value="gom">Konkani</option><option value="mai">Maithili</option><option value="mni">Manipuri</option><option value="sa">Sanskrit</option><option value="sat">Santali</option><option value="sd">Sindhi</option><option value="kas">Kashmiri</option>
                 </select>
               </div>
             </div>
             <div class="actions-bar" style="margin-top:10px;">
-              <button type="button" class="btn btn-secondary" id="ocrTranslateBtn">🌐 Convert Language in Browser</button>
+              <button type="button" class="btn btn-secondary" id="ocrTranslateBtn">🌐 Translate with Omni Language Engine</button>
             </div>
-            <div id="ocrTranslateStatus" class="form-hint" style="margin-top:8px;">Checking browser translation support… Supported pairs are translated locally; unsupported pairs can use an optional web fallback after confirmation.</div>
+            <div id="ocrTranslateStatus" class="form-hint" style="margin-top:8px;">Language model status will appear here.</div>
             <textarea id="ocrTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" aria-label="Translated OCR text"></textarea>
             <div id="ocrTranslateActions" class="actions-bar" style="display:none;margin-top:8px;">
               <button type="button" class="btn btn-secondary" id="ocrTranslateCopyBtn">📋 Copy Translation</button>
               <button type="button" class="btn btn-primary" id="ocrTranslateDownloadBtn">💾 Save Translation</button>
+            </div>
+
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e1e7f0;">
+              <div style="font-size:.85rem;font-weight:800;color:#26304b;">🔤 Transliteration</div>
+              <div style="font-size:.75rem;color:#6b7890;margin-top:4px;">Convert native Indic text to Roman text, or Roman text into a selected Indic script.</div>
+              <div class="options-grid" style="margin-top:10px;">
+                <div class="form-group">
+                  <label for="ocrTranslitTarget">Target script / language</label>
+                  <select id="ocrTranslitTarget" class="form-select">
+                    <option value="Latn" selected>Roman / Latin</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="mr">Marathi</option><option value="ne">Nepali</option><option value="or">Odia</option><option value="pa">Punjabi</option><option value="si">Sinhala</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="ur">Urdu</option><option value="asm">Assamese</option><option value="brx">Bodo</option><option value="gom">Konkani</option><option value="mai">Maithili</option><option value="mni">Manipuri</option><option value="sa">Sanskrit</option><option value="sat">Santali</option><option value="sd">Sindhi</option><option value="kas">Kashmiri</option>
+                  </select>
+                </div>
+              </div>
+              <div class="actions-bar" style="margin-top:10px;">
+                <button type="button" class="btn btn-secondary" id="ocrTranslitBtn">🔤 Transliterate with Omni Language Engine</button>
+              </div>
+              <div id="ocrTranslitStatus" class="form-hint" style="margin-top:8px;">Uses the isolated transliteration model when installed.</div>
+              <textarea id="ocrTranslitOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" aria-label="Transliterated OCR text"></textarea>
+              <div id="ocrTranslitActions" class="actions-bar" style="display:none;margin-top:8px;">
+                <button type="button" class="btn btn-secondary" id="ocrTranslitCopyBtn">📋 Copy Transliteration</button>
+                <button type="button" class="btn btn-primary" id="ocrTranslitDownloadBtn">💾 Save Transliteration</button>
+              </div>
             </div>
           </div>
 
@@ -2041,7 +2013,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=ocr-lang2"></script>
+<script src="./omni-core.js?v=lang-engine1"></script>
 
 
 <script id="omni-browser-first">
