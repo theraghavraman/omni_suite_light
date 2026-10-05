@@ -123,8 +123,11 @@ def capability():
     available = {"translation":[], "transliteration":[]}
     for route, path in LANGUAGE_CONFIG["translation"].items():
         if _exists(path): available["translation"].append(route)
-    if Path(LANGUAGE_CONFIG["transliteration"]["root"]).exists():
+    try:
+        import ai4bharat.transliteration  # noqa: F401
         available["transliteration"].append("IndicXlit")
+    except Exception:
+        pass
     return available
 
 def config():
