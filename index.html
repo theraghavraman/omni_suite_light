@@ -3709,7 +3709,47 @@ async function runLocalTests(){
   const download=async(fid)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
-  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p></body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p>
+<style id="omni-brand-color-motion-v1">
+/* Animated brand color system — keeps the identity vivid without changing layout. */
+.omni-appbar-monogram{
+  background:linear-gradient(135deg,#3157d5 0%,#6c4ee8 30%,#d94f8b 58%,#f08a2e 82%,#20a99a 100%) !important;
+  background-size:320% 320% !important;
+  animation:omniBrandTileFlow 7s ease-in-out infinite !important;
+  color:#fff !important;
+}
+.omni-brand-button:hover .omni-appbar-monogram{
+  background-size:320% 320% !important;
+  animation:omniBrandTileFlow 3.5s ease-in-out infinite !important;
+}
+.omni-wordmark-v3 strong{
+  background:linear-gradient(100deg,#3157d5 0%,#6c4ee8 24%,#d94f8b 48%,#f08a2e 72%,#20a99a 100%);
+  background-size:320% 320%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent !important;
+  animation:omniBrandTextFlow 8s ease-in-out infinite;
+  text-shadow:none !important;
+}
+@keyframes omniBrandTileFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+@keyframes omniBrandTextFlow{
+  0%,100%{background-position:0% 50%}
+  25%{background-position:45% 100%}
+  50%{background-position:100% 50%}
+  75%{background-position:55% 0%}
+}
+@media(prefers-reduced-motion:reduce){
+  .omni-appbar-monogram,.omni-wordmark-v3 strong{animation:none !important}
+  .omni-appbar-monogram{background-position:50% 50% !important}
+  .omni-wordmark-v3 strong{background-position:50% 50% !important}
+}
+</style>
+
+</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
   if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
