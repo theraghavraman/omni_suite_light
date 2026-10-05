@@ -4284,7 +4284,7 @@ function cleanEscapeCsv(v){
 }
 function cleanExportBlob(data,format,base){
   const {headers,rows}=data;
-  if(format==='csv')return {blob:new Blob([[headers, ...rows].map(r=>r.map(cleanEscapeCsv).join(',')).join('\r\n'),{type:'text/csv;charset=utf-8'}),name:base+'.csv'};
+  if(format==='csv')return {blob:new Blob([[headers, ...rows].map(r=>r.map(cleanEscapeCsv).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),name:base+'.csv'};
   if(format==='json')return {blob:new Blob([JSON.stringify(rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))),null,2)],{type:'application/json'}),name:base+'.json'};
   if(format==='jsonl')return {blob:new Blob([rows.map(r=>JSON.stringify(Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))).join('\n')],{type:'application/jsonl'}),name:base+'.jsonl'};
   if(format==='md')return {blob:new Blob(['| '+headers.map(String).join(' | ')+' |\n| '+headers.map(()=> '---').join(' | ')+' |\n'+rows.map(r=>'| '+r.map(v=>String(v??'').replace(/\|/g,'\\|')).join(' | ')+' |').join('\n')],{type:'text/markdown'}),name:base+'.md'};
