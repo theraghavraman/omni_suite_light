@@ -590,38 +590,40 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
     <!-- 9. DATA STUDIO -->
     <!-- PRIVATE RAG STUDIO -->
     <div class="module-panel" id="tabRAGStudio">
+      <div class="rag-top-grid">
       <div class="card rag-hero">
-        <div class="rag-kicker">PRIVATE • BROWSER-FIRST • NO SERVER KNOWLEDGE STORE</div>
+        <div class="rag-kicker">PRIVATE KNOWLEDGE • BROWSER-FIRST</div>
         <h2>🧠 Private RAG Studio</h2>
-        <div class="sub">Build a private retrieval-augmented generation workspace in your browser. Documents are chunked, embedded and indexed locally; a small local LLM can synthesize answers from retrieved sources.</div>
+        <div class="sub">Search your own documents privately in the browser, retrieve the most relevant passages, and optionally generate a grounded answer with a local model.</div>
         <div class="rag-statbar">
           <div class="rag-stat"><b id="ragDocs">0</b>documents</div>
           <div class="rag-stat"><b id="ragChunks">0</b>chunks</div>
           <div class="rag-stat"><b id="ragIndex">Empty</b>index</div>
-          <span class="rag-pill">Semantic Search</span><span class="rag-pill">Vector Search</span><span class="rag-pill">Hybrid Retrieval</span>
+          <span class="rag-pill">Private</span><span class="rag-pill">Local Search</span><span class="rag-pill">Grounded Answers</span>
         </div>
       </div>
       <div class="card rag-model-card">
-        <div class="rag-model-head"><div><span class="rag-kicker">LOCAL AI RUNTIME</span><h3 style="margin:.25rem 0 0">Model &amp; Privacy Status</h3></div><span class="rag-local-badge" id="ragPrivacyBadge">LOCAL-FIRST</span></div>
+        <div class="rag-model-head"><div><span class="rag-kicker">SYSTEM STATUS</span><h3 style="margin:.25rem 0 0">Local AI &amp; Privacy</h3></div><span class="rag-local-badge" id="ragPrivacyBadge">LOCAL-FIRST</span></div>
         <div class="rag-model-grid">
-          <div class="rag-model-item"><div class="rag-model-icon">⌁</div><div><b>Embedding model</b><span id="ragEmbedState">Not loaded · loads on first semantic operation</span></div><strong id="ragEmbedDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">✦</div><div><b>Local small LLM</b><span id="ragLLMState">Not loaded · optional generation layer</span></div><strong id="ragLLMDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">⚡</div><div><b>Runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">▣</div><div><b>Knowledge storage</b><span id="ragStorageState">IndexedDB · browser-local</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">⌁</div><div><b>Search model</b><span id="ragEmbedState">Ready when semantic search starts</span></div><strong id="ragEmbedDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">✦</div><div><b>Answer model</b><span id="ragLLMState">Optional local generation</span></div><strong id="ragLLMDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">⚡</div><div><b>Browser runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div class="rag-model-icon">▣</div><div><b>Storage</b><span id="ragStorageState">Browser-local IndexedDB</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
         </div>
-        <div class="rag-privacy-strip"><span>🔒</span><div><b>Private by design</b><small>Documents, chunks and vectors stay in this browser. The optional local LLM receives retrieved context only. No document API key is required.</small></div></div>
+        <div class="rag-privacy-strip"><span>🔒</span><div><b>Private by design</b><small>Your files, search index and vectors stay in this browser. No document is uploaded to a knowledge server.</small></div></div>
+      </div>
       </div>
       <div class="rag-grid">
         <div>
           <div class="card">
-            <h2>1. Knowledge Base</h2>
+            <div class="rag-section-label">STEP 1</div><h2>Build your knowledge base</h2>
             <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
             <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Nothing is uploaded to Omni Suite. The index stays in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
             <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div><div class="rag-repo-status" id="ragRepoStatus"><b>Repository knowledge</b><span>Checking local index…</span></div>
             <div class="rag-status" id="ragStatus">Initializing private RAG…</div>
           </div>
           <div class="card">
-            <h2>2. Ask the Knowledge Base</h2>
+            <div class="rag-section-label">STEP 2</div><h2>Ask your knowledge base</h2>
             <textarea id="ragQuery" class="form-textarea" style="min-height:110px" placeholder="Ask a question about your indexed knowledge…"></textarea>
             <div class="rag-controls" style="margin-top:12px">
               <div class="form-group"><label for="ragTopK">Retrieved chunks</label><input id="ragTopK" class="form-input" type="number" min="1" max="12" value="6"></div>
@@ -631,22 +633,22 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
             <div class="actions-bar"><button class="btn btn-primary" id="ragAsk">Ask • Retrieve + Generate</button><span class="rag-status">Ctrl/⌘ + Enter also asks</span></div>
           </div>
           <div class="card">
-            <h2>3. Answer</h2>
+            <div class="rag-section-label">STEP 3</div><h2>Grounded answer</h2>
             <div id="ragAnswer" class="rag-answer">Your grounded answer will appear here.</div>
           </div>
         </div>
         <div>
           <div class="card">
-            <h2>Retrieved Sources</h2>
+            <div class="rag-section-label">EVIDENCE</div><h2>Retrieved sources</h2>
             <div class="sub">Hybrid ranking combines embedding similarity with lexical relevance. The LLM only receives the selected context.</div>
             <div id="ragSources"><div class="rag-status">No search performed yet.</div></div>
           </div>
           <div class="card">
-            <h2>How this RAG works</h2>
+            <div class="rag-section-label">OVERVIEW</div><h2>How it works</h2>
             <div class="sub"><b>1. Ingest</b> → extract text from documents.<br><br><b>2. Chunk</b> → split content into retrieval-sized passages.<br><br><b>3. Embed</b> → create local vector representations with a browser embedding model.<br><br><b>4. Retrieve</b> → semantic vector + lexical hybrid search.<br><br><b>5. Generate</b> → optional small local LLM answers using only retrieved context.</div>
           </div>
           <div class="card">
-            <h2>Repository Knowledge</h2>
+            <div class="rag-section-label">REPOSITORY</div><h2>Repository knowledge</h2>
             <div class="sub">Omni Suite repository files are indexed into the browser-local vector store. Refresh checks the latest commit and only re-indexes changed files; deleted files are removed from the repository index. Your personal uploaded documents remain separate.</div>
           </div>
         </div>
