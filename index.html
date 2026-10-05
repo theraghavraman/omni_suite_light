@@ -3519,7 +3519,8 @@ $('omniBackToStudios')?.addEventListener('click',()=>document.querySelector('.na
 $('omniStaticStudios')?.addEventListener('click',()=>{
  const nav=document.querySelector('.nav-bar');
  if(!nav)return;
- const top=nav.getBoundingClientRect().top+window.scrollY-120;
+ // Place the complete studio grid comfortably below the sticky top edge.
+ const top=nav.getBoundingClientRect().top+window.scrollY-260;
  window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
 });
 $('omniExportResult')?.addEventListener('click',()=>{
