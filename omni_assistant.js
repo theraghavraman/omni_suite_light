@@ -94,8 +94,8 @@ function cleanAssistantAnswer(text){
  // The local 270M model can occasionally emit citation-like numeric spans
  // (for example "[2000-2001]") even when the prompt forbids citations.
  // They are not valid Omni Suite source references, so remove them before rendering.
- s=s.replace(/\\[\\s*\\d{1,6}\\s*[-–—]\\s*\\d{1,6}\\s*\\]/g,"");
- return s.replace(/\\n{3,}/g,"\\n\\n").trim();
+ s=s.replace(/\[\s*\d{1,6}\s*[-–—]\s*\d{1,6}\s*\]/g,"");
+ return s.replace(/\n{3,}/g,"\n\n").trim();
 }
 function uniqueSources(rows){
  const seen=new Set();
