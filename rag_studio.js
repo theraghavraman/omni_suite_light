@@ -91,12 +91,13 @@ async function refreshRepo(){
   if(!cr.ok)throw new Error("GitHub commit metadata unavailable");
   const commit=await cr.json(), commitSha=commit.sha, commitDate=commit.commit?.author?.date||commit.commit?.committer?.date||"";
   const previous=await metaGet(REPO_KEY);
-  if(previous?.commitSha===commitSha){status.textContent=`Repository knowledge is up to date · ${previous.filesCount||0} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · commit ${commitSha.slice(0,7)}`;updateStats();return}
-  status.textContent="Reading repository file map…";
+  const INDEX_VERSION=2;
+  if(previous?.indexVersion===INDEX_VERSION&&previous?.commitSha===commitSha){status.textContent=`Repository knowledge is up to date · ${previous.filesCount||0} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · commit ${commitSha.slice(0,7)}`;updateStats();return}
+  status.textContent="Reading complete repository file map…";
   const tree=await fetch("https://api.github.com/repos/theraghavraman/omni_suite_light/git/trees/main?recursive=1",{cache:"no-store"});
   if(!tree.ok)throw new Error("GitHub repository tree unavailable");
   const j=await tree.json();
-  const files=(j.tree||[]).filter(x=>x.type==="blob"&&/\.(html?|css|js|mjs|json|md|txt|py|sql|yaml|yml|csv|xml|svg)$/i.test(x.path)&&!/(node_modules|vendor\/.*\.min\.|dist\/.*\.min\.)/i.test(x.path)).slice(0,220);
+  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\/|dist\/|build\/|coverage\/)/i.test(x.path));
   const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha]));
   const oldMap=previous?.files||{};
   const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);
@@ -110,15 +111,15 @@ async function refreshRepo(){
     await deleteSources(["Repository: "+x.path]);
     const rr=await fetch("https://raw.githubusercontent.com/theraghavraman/omni_suite_light/main/"+x.path,{cache:"no-store"});
     if(!rr.ok){failed++;continue}
-    const t=await rr.text();if(t.length>180000){failed++;continue}
+    const t=await rr.text();if(t.length>300000){failed++;continue}
     totalNewChunks+=await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha});
     nextMap[x.path]=x.sha;
     changed++;
    }catch(e){failed++}
   }
-  await metaSet(REPO_KEY,{commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
+  await metaSet(REPO_KEY,{indexVersion:INDEX_VERSION,commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
   chunks=await getAll();updateStats();
-  status.textContent=`Repository indexed locally · ${files.length} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
+  status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
 }
 async function updateRepoStatus(){
