@@ -64,6 +64,9 @@ function intentAnswer(q){
  return null;
 }
 function fastAnswer(q){const s=q.toLowerCase().replace(/[?!.]/g,"").trim();const current=currentStudio?.name;
+if(/^(hi|hello|hey|hiya|good morning|good afternoon|good evening|howdy)$/.test(s))return "Hi! I’m Omni Assistant. What would you like to do with Omni Suite?";
+if(/^(thanks|thank you|thx|ty)$/.test(s))return "You’re welcome! What would you like to work on next?";
+if(/^(bye|goodbye|see you)$/.test(s))return "Goodbye! I’ll be here when you need help with Omni Suite.";
 if(/^(which studio|what studio|where should i start|help me choose)/.test(s))return "Tell me what you want to work with and I’ll point you to the right Studio. PDF → PowerPoint = Office Studio; OCR = Image to Text; CSV/JSON/data conversion = Data Studio; database queries = Database Studio; batch work = Batch Lab.";
 if(/pdf.*(powerpoint|ppt)|(?:powerpoint|ppt).*pdf/.test(s))return "For PDF ↔ PowerPoint, use Office Studio. Omni Suite is browser-first where practical; heavier or unsupported operations can fall back to the Local Engine.";
 if(/how.*(file|document).*conversion|how.*conversion.*work|file conversion/.test(s))return "Omni Suite uses a browser-first conversion pipeline: it first tries a supported in-browser converter, keeps processing local where possible, and uses the Local Engine only when the browser cannot reliably perform the operation. The exact path depends on the file format and Studio." ;
@@ -88,7 +91,11 @@ function cleanAssistantAnswer(text){
  const counts={};
  lines2.forEach(line=>{const k=line.trim().toLowerCase();if(k)counts[k]=(counts[k]||0)+1;});
  s=lines2.filter(line=>{const k=line.trim().toLowerCase();return !(counts[k]>=3 && /your company name|company name|placeholder|lorem ipsum/i.test(k));}).join("\n");
- return s.replace(/\n{3,}/g,"\n\n").trim();
+ // The local 270M model can occasionally emit citation-like numeric spans
+ // (for example "[2000-2001]") even when the prompt forbids citations.
+ // They are not valid Omni Suite source references, so remove them before rendering.
+ s=s.replace(/\\[\\s*\\d{1,6}\\s*[-–—]\\s*\\d{1,6}\\s*\\]/g,"");
+ return s.replace(/\\n{3,}/g,"\\n\\n").trim();
 }
 function uniqueSources(rows){
  const seen=new Set();
