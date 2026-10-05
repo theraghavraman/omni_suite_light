@@ -4,7 +4,8 @@
  */
 (()=>{"use strict";
 const $=id=>document.getElementById(id);
-const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository";
+const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
+function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
 let db=null, embedder=null, generator=null, chunks=[], lastResults=[];
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
 const MODEL_LLM="onnx-community/gemma-3-270m-it-ONNX";
@@ -85,39 +86,26 @@ async function answer(){
  if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading Gemma 3 270M…");let device="wasm",dtype="q4";try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}catch(e){if(device==="webgpu"){generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"})}else throw e};setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:64,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent="Retrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}}
  catch(e){$("ragAnswer").textContent="RAG error: "+e.message;$("ragStatus").textContent="Error"}}
 async function refreshRepo(){
- const status=$("ragStatus");status.textContent="Checking Omni Suite repository version…";
+ const status=$("ragStatus"),repo=repoRef();status.textContent="Checking "+repo+" repository version…";
  try{
-  const cr=await fetch("https://api.github.com/repos/theraghavraman/omni_suite_light/commits/main",{cache:"no-store"});
+  const cr=await fetch("https://api.github.com/repos/"+repo+"/commits/main",{cache:"no-store"});
   if(!cr.ok)throw new Error("GitHub commit metadata unavailable");
   const commit=await cr.json(), commitSha=commit.sha, commitDate=commit.commit?.author?.date||commit.commit?.committer?.date||"";
-  const previous=await metaGet(REPO_KEY);
-  const INDEX_VERSION=2;
-  if(previous?.indexVersion===INDEX_VERSION&&previous?.commitSha===commitSha){status.textContent=`Repository knowledge is up to date · ${previous.filesCount||0} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · commit ${commitSha.slice(0,7)}`;updateStats();return}
+  const previous=await metaGet(REPO_KEY),INDEX_VERSION=3;
+  if(previous?.indexVersion===INDEX_VERSION&&previous?.commitSha===commitSha&&previous?.repository===repo){status.textContent=`Repository knowledge is up to date · ${previous.filesCount||0} files · ${chunks.filter(x=>x.meta?.repository).length} chunks · commit ${commitSha.slice(0,7)}`;updateStats();return}
   status.textContent="Reading complete repository file map…";
-  const tree=await fetch("https://api.github.com/repos/theraghavraman/omni_suite_light/git/trees/main?recursive=1",{cache:"no-store"});
+  const tree=await fetch("https://api.github.com/repos/"+repo+"/git/trees/main?recursive=1",{cache:"no-store"});
   if(!tree.ok)throw new Error("GitHub repository tree unavailable");
   const j=await tree.json();
-  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\/|dist\/|build\/|coverage\/)/i.test(x.path));
-  const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha]));
-  const oldMap=previous?.files||{};
-  const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);
-  await deleteSources(removed.map(p=>"Repository: "+p));
-  const nextMap={...oldMap};
-  removed.forEach(p=>delete nextMap[p]);
-  let changed=0,failed=0,totalNewChunks=0;
-  for(const x of files){
-   if(oldMap[x.path]===x.sha)continue;
-   try{
-    await deleteSources(["Repository: "+x.path]);
-    const rr=await fetch("https://raw.githubusercontent.com/theraghavraman/omni_suite_light/main/"+x.path,{cache:"no-store"});
-    if(!rr.ok){failed++;continue}
-    const t=await rr.text();if(t.length>300000){failed++;continue}
-    totalNewChunks+=await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha});
-    nextMap[x.path]=x.sha;
-    changed++;
-   }catch(e){failed++}
-  }
-  await metaSet(REPO_KEY,{indexVersion:INDEX_VERSION,commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
+  const files=(j.tree||[]).filter(x=>x.type==="blob"&&(/\.(html?|css|js|mjs|json|md|mdx|txt|py|sql|yaml|yml|csv|xml|svg|toml|ini|sh|ps1|bat|cmd|rst)$/i.test(x.path)||/(^|\\/)(Dockerfile|Makefile|\.gitignore|\.gitattributes|requirements\.txt|Procfile)$/i.test(x.path))&&!/(node_modules|vendor\\/|dist\\/|build\\/|coverage\\/)/i.test(x.path));
+  const treeMap=Object.fromEntries(files.map(x=>[x.path,x.sha])),oldMap=previous?.files||{};
+  const removed=Object.keys(oldMap).filter(p=>!treeMap[p]);await deleteSources(removed.map(p=>"Repository: "+p));
+  const nextMap={...oldMap};removed.forEach(p=>delete nextMap[p]);
+  const pending=files.filter(x=>oldMap[x.path]!==x.sha);
+  let changed=0,failed=0;
+  const worker=async x=>{try{await deleteSources(["Repository: "+x.path]);const rr=await fetch("https://raw.githubusercontent.com/"+repo+"/main/"+x.path,{cache:"no-store"});if(!rr.ok||rr.status===404)return false;const t=await rr.text();if(t.length>300000)return false;await indexText(t,"Repository: "+x.path,{repository:true,path:x.path,blobSha:x.sha,commitSha,repositoryName:repo});nextMap[x.path]=x.sha;return true}catch(e){return false}};
+  for(let i=0;i<pending.length;i+=6){const results=await Promise.all(pending.slice(i,i+6).map(worker));results.forEach(ok=>ok?changed++:failed++)}
+  await metaSet(REPO_KEY,{indexVersion:INDEX_VERSION,repository:repo,commitSha,commitDate,files:nextMap,filesCount:Object.keys(nextMap).length,changedAt:new Date().toISOString(),failed});
   chunks=await getAll();updateStats();
   status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
