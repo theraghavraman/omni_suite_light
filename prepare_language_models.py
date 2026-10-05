@@ -52,7 +52,8 @@ def download_translation():
         snapshot_download(
             repo_id=model_id,
             local_dir=str(target),
-            local_dir_use_symlinks=False,
+            allow_patterns=["*.json","*.py","*.safetensors","*.model","*.txt","*.md","*.gitattributes"],
+            ignore_patterns=["*.bin"],
             token=os.environ.get("HF_TOKEN") or None,
         )
         print(f"[OK] {target}")
