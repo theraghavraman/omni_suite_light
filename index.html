@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Omni build: bootfix-20261006 -->
+  <!-- Omni build: pages-redeploy-20261006-01 -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2883,6 +2883,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 
   <script id="omni-boot-guard">
     /* Captures failures that happen before the main core can mark itself ready. */
+    window.__OMNI_BUILD_ID = 'pages-redeploy-20261006-01';
     window.__OMNI_BOOT_ERROR = null;
     window.__OMNI_BOOT_ERRORS = [];
     window.addEventListener('error', function (e) {
@@ -2929,7 +2930,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=bootfix-20261006b"></script>
+<script src="./omni-core.js?v=pages-redeploy-20261006-01"></script>
 
 
 <script id="omni-browser-first">
@@ -3321,7 +3322,7 @@ function notify(message,error){if(typeof window.omniNotify==='function'){try{win
 function openPicker(input){if(!input)return false;try{if(typeof input.showPicker==='function'){input.showPicker();return true}}catch(_){}try{input.click();return true}catch(_){notify('The browser blocked the file picker. Try Chrome/Edge/Safari and tap again.',true);return false}}
 document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.querySelector('input[type="file"]');if(!input||zone.dataset.omniPickerRepair==='1')return;zone.dataset.omniPickerRepair='1';zone.setAttribute('tabindex','0');zone.setAttribute('role','button');zone.addEventListener('click',function(e){if(e.target===input)return;e.preventDefault();e.stopImmediatePropagation();openPicker(input)},true);zone.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker(input)}});input.addEventListener('change',function(){if(this.files&&this.files.length)notify('Selected '+this.files.length+' file'+(this.files.length===1?'':'s')+': '+this.files[0].name)})});
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
-function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
+function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Build: '+(window.__OMNI_BUILD_ID || 'unknown'),'Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
 const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
 async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(Number(j.engine_api_version||0)<4){p.className='omni-local-pill warn';p.textContent='⚠ Local Engine outdated • Relaunch current Omni launcher';return;}omniToken=j.token||omniToken;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
