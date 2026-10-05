@@ -48,3 +48,17 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 These native programs are not bundled by this repository. If a future release bundles any native executable, revisit the applicable distribution obligations for that specific build.
 
 This file is a practical dependency notice, not legal advice.
+
+## Optional Omni Language Engine
+
+The multilingual AI stack is intentionally isolated from Omni Assistant and Private RAG. It is optional and is not installed by the normal local dependency profile.
+
+| Dependency/model | License | Role |
+|---|---|---|
+| AI4Bharat IndicTrans2 model checkpoints | MIT | High-quality Indic translation |
+| AI4Bharat IndicXlit | MIT | Roman↔native Indic transliteration |
+| PyTorch | BSD-style | Local model runtime |
+| Hugging Face Transformers | Apache License 2.0 | Local translation model runtime |
+| IndicTransToolkit | See upstream distribution | IndicTrans2 preprocessing/postprocessing |
+
+Model binaries are not committed to the normal source tree. Use `prepare_language_models.py` to materialize them under `language-models/` after reviewing the upstream model terms. The language engine uses local model files at inference time and has no online translation fallback.
