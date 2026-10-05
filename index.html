@@ -1461,7 +1461,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 
           <div id="ocrTranslatePanel" style="display:none; margin-top:14px; padding:14px; border:1px solid #dce5f0; border-radius:14px; background:linear-gradient(145deg,#fbfdff,#f4f7ff);">
             <div style="font-size:.9rem;font-weight:800;color:#26304b;">🌐 Convert extracted text language</div>
-            <div style="font-size:.75rem;color:#6b7890;margin-top:4px;line-height:1.45;">Browser-only translation using the browser's built-in Translator when supported. No translation API or server upload is used.</div>
+            <div style="font-size:.75rem;color:#6b7890;margin-top:4px;line-height:1.45;">Uses the browser's built-in Translator first, so supported pairs stay local. If your browser does not support a selected pair, Omni Suite can offer an optional web fallback with a clear privacy warning.</div>
             <div class="options-grid" style="margin-top:10px;">
               <div class="form-group">
                 <label for="ocrTranslateSource">Source language</label>
@@ -1531,7 +1531,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
             <div class="actions-bar" style="margin-top:10px;">
               <button type="button" class="btn btn-secondary" id="ocrTranslateBtn">🌐 Convert Language in Browser</button>
             </div>
-            <div id="ocrTranslateStatus" class="form-hint" style="margin-top:8px;">Checking browser translation support…</div>
+            <div id="ocrTranslateStatus" class="form-hint" style="margin-top:8px;">Checking browser translation support… Supported pairs are translated locally; unsupported pairs can use an optional web fallback after confirmation.</div>
             <textarea id="ocrTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" aria-label="Translated OCR text"></textarea>
             <div id="ocrTranslateActions" class="actions-bar" style="display:none;margin-top:8px;">
               <button type="button" class="btn btn-secondary" id="ocrTranslateCopyBtn">📋 Copy Translation</button>
@@ -2041,7 +2041,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=ocr-lang1"></script>
+<script src="./omni-core.js?v=ocr-lang2"></script>
 
 
 <script id="omni-browser-first">
