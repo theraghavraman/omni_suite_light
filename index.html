@@ -39,6 +39,25 @@ background:radial-gradient(900px 520px at 4% -6%,rgba(108,92,255,.22),transparen
 button,input,select,textarea,a{-webkit-tap-highlight-color:transparent}
 button,.btn,.nav-btn{touch-action:manipulation}
 .container{width:100%;max-width:1220px;position:relative;z-index:2}
+/* ---------- OMNI SUITE cup-eye identity ---------- */
+.omni-brand-mark{display:flex;align-items:center;gap:18px;margin-bottom:18px;min-height:118px}
+.omni-cup-eyes{display:flex;align-items:center;gap:12px;padding:8px 12px 4px;filter:drop-shadow(0 16px 18px rgba(116,72,18,.18))}
+.omni-cup{position:relative;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 50% 48%,#a95b20 0 54%,#c87932 55% 62%,#f7eee0 63% 75%,#fff 76% 100%);box-shadow:inset 0 3px 5px rgba(255,255,255,.8),inset 0 -5px 8px rgba(107,55,16,.2),0 7px 10px rgba(83,51,21,.18);border:3px solid #f7f2e9;transform:rotate(-7deg);}
+.omni-cup.right{transform:rotate(7deg)}
+.omni-cup::before{content:"";position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle at 45% 40%,#d9914d,#9b4d18 72%);box-shadow:inset 0 3px 5px rgba(255,214,158,.32)}
+.omni-cup::after{content:"";position:absolute;width:30px;height:30px;border:8px solid #f5eee2;border-left-color:transparent;border-radius:50%;top:22px;right:-25px;z-index:-1;box-shadow:0 2px 3px rgba(90,55,25,.12)}
+.omni-cup.right::after{left:-25px;right:auto}
+.omni-cup-highlight{position:absolute;width:18px;height:8px;border-radius:50%;background:rgba(255,232,190,.42);top:24px;left:25px;transform:rotate(-25deg)}
+.omni-face-brow{position:absolute;width:48px;height:11px;border-radius:100% 100% 20% 20%;background:#633516;top:-22px;left:15px;transform:rotate(-10deg);box-shadow:0 2px 3px rgba(71,39,17,.12)}
+.omni-cup.right .omni-face-brow{transform:rotate(10deg)}
+.omni-face-smile{position:absolute;width:64px;height:28px;border:5px solid #633516;border-top:0;border-left-color:transparent;border-right-color:transparent;border-radius:0 0 50% 50%;left:calc(50% + 9px);bottom:-30px;transform:translateX(-50%);opacity:.95}
+.omni-brand-wordmark{display:flex;flex-direction:column;gap:3px}
+.omni-brand-wordmark h1{margin:0;font-size:clamp(2.7rem,6vw,5rem);line-height:.9;letter-spacing:-.055em;font-weight:950}
+.omni-brand-wordmark h1 .omni-word{color:var(--ink)}
+.omni-brand-wordmark h1 .suite-word{background:linear-gradient(110deg,#ff8a3d,#ffb51b 48%,#ff4f9a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.omni-brand-wordmark .omni-tagline{font-size:.86rem;font-weight:850;letter-spacing:.055em;color:#7a5534;text-transform:uppercase}
+@media(max-width:760px){.omni-brand-mark{gap:10px;align-items:flex-start}.omni-cup-eyes{gap:7px;padding-left:0;transform:scale(.78);transform-origin:left center;width:128px}.omni-brand-wordmark h1{font-size:clamp(2.2rem,12vw,3.4rem)}.omni-brand-wordmark .omni-tagline{font-size:.68rem}.omni-face-smile{bottom:-25px}}
+
 
 /* ---------- ambient background ---------- */
 .omni-motion-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
