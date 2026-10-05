@@ -5,7 +5,7 @@
  */
 (() => {
   'use strict';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const API_VERSION = 1;
   const state = { lastProvider:null, localHealth:null, localBase:null, localToken:null, browserAdapter:null };
 
@@ -91,10 +91,15 @@
 
   async function status() {
     const local = await localHealth();
+    const a = adapter();
+    let browser = {configured:Boolean(a)};
+    try {
+      if (a && typeof a.status === 'function') browser = Object.assign(browser, await a.status());
+    } catch (_) {}
     return {
       engine:'Omni Language Engine', version:VERSION, api_version:API_VERSION,
       isolated_from_assistant:true, isolated_from_rag:true,
-      local, browser_adapter:Boolean(adapter()), last_provider:state.lastProvider
+      local, browser_adapter:Boolean(a), browser, last_provider:state.lastProvider
     };
   }
 
