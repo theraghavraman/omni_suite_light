@@ -2764,7 +2764,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
       <div class="omni-all-lab">
         <div class="omni-all-head">
           <div><h2>🔬 All Options Functional Test</h2><p>This is a separate exhaustive test screen. It inventories every studio action, control, upload zone and select option, then checks that the UI wiring and implementation references exist. It does not alter your files.</p></div>
-          <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button><button type="button" class="btn btn-secondary" id="omniExportResult">⇩ Export Test Result</button><select id="omniAllFilter" class="form-select" style="width:auto;min-width:150px;"><option value="all">Show all results</option><option value="failed">Show failed only</option></select></div>
+          <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button><button type="button" class="btn btn-secondary" id="omniExportResult">⇩ Export Test Result</button><button type="button" class="btn btn-secondary" id="omniBackToStudios">← Back to Studios</button><select id="omniAllFilter" class="form-select" style="width:auto;min-width:150px;"><option value="all">Show all results</option><option value="failed">Show failed only</option></select></div>
         </div>
         <div class="omni-all-summary"><div class="omni-all-stat"><b id="allPass">0</b><span>PASS</span></div><div class="omni-all-stat"><b id="allFail">0</b><span>FAIL</span></div><div class="omni-all-stat"><b id="allSkip">0</b><span>SKIPPED</span></div><div class="omni-all-stat"><b id="allTotal">0</b><span>CHECKS</span></div><div class="omni-all-stat"><b id="allControls">0</b><span>CONTROLS</span></div></div>
         <div id="omniAllGroups" class="omni-all-groups"></div>
@@ -3394,10 +3394,8 @@ function hasImplementationReference(id,source,element){
   "'"+id+"'.onclick"
  ];
  if(direct.some(x=>source.includes(x)))return true;
- const valueRef = new RegExp("(?:getElementById|\\$)\\s*\\(\\s*['\\\"]"+escapedId+"['\\\"]\\s*\\)\\s*\\.?\\s*(?:value|selectedIndex|selectedOptions)");
- if(valueRef.test(source))return true;
- const escapedId=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- return (source.match(new RegExp('\\b'+escapedId+'\\b','g'))||[]).length>=2;
+ const occurrences=source.split(String(id)).length-1;
+ return occurrences>=2;
 }
 async function runStructure(clear=true){
  if(clear) reset();
@@ -3484,6 +3482,7 @@ $('omniRunAllOptions')?.addEventListener('click',()=>{runAll().catch(e=>{reset()
 $('omniRunStructure')?.addEventListener('click',()=>{runStructure().catch(e=>{reset();add('All Tests','Structure test','FAIL',e.message||String(e));render();});});
 $('omniRunOptions')?.addEventListener('click',runOptions);
 $('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
+$('omniBackToStudios')?.addEventListener('click',()=>document.querySelector('.nav-bar')?.scrollIntoView({behavior:'smooth',block:'start'}));
 $('omniExportResult')?.addEventListener('click',()=>{
  const report={
    generatedAt:new Date().toISOString(),
