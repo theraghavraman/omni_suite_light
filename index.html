@@ -1603,7 +1603,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
     <div class="module-panel" id="tabCompress">
       <div class="card">
         <h2>🗜️ File Compression &amp; Decompression Studio</h2>
-        <div class="sub">Compress files locally into ZIP, GZIP, DEFLATE, or Brotli when your browser supports it. Decompress ZIP/GZIP/DEFLATE files and save the extracted output.</div>
+        <div class="sub">Compress files locally into ZIP, GZIP, DEFLATE, or Brotli in the browser. 7z is available through the Local Engine. RAR is supported for extraction only because RAR creation is not an open archive-writing path.</div>
 
         <div class="options-grid">
           <div class="form-group">
@@ -1655,10 +1655,10 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 
       <div class="card">
         <h2>📦 Decompress / Extract</h2>
-        <div class="sub">Extract ZIP archives or decompress GZIP/DEFLATE/Brotli streams. ZIP contents are listed individually so you can save only what you need.</div>
+        <div class="sub">Extract ZIP, 7z, and RAR archives, or decompress GZIP/DEFLATE/Brotli streams. ZIP/7z/RAR contents are listed individually so you can save only what you need. 7z/RAR extraction uses the Local Engine.</div>
         <div class="dropzone" id="decompressDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 2h9l5 5v15H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
-          <h3>Drop a ZIP / GZIP / DEFLATE File</h3>
+          <h3>Drop a ZIP / 7z / RAR / GZIP / DEFLATE File</h3>
           <input type="file" id="decompressInput" class="file-input">
         </div>
         <div class="controls-panel" id="decompressControls" style="display:none;">
@@ -1678,8 +1678,8 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
       </div>
       <div class="card" id="archiveNativeBridge">
         <h2>📦 Native Archive Bridge</h2>
-        <div class="sub">Local Engine compression for TAR, GZIP, BZIP2, XZ and 7z, in addition to the browser ZIP/GZIP/DEFLATE/Brotli tools.</div>
-        <div class="dropzone" id="archiveNativeDropzone"><h3>Choose a file to package</h3><p>Runs locally with Python standard-library compressors; 7z uses the installed 7-Zip executable.</p><input type="file" id="archiveNativeInput" class="file-input"></div>
+        <div class="sub">Local Engine compression for TAR, GZIP, BZIP2, XZ and 7z, plus Local Engine extraction for 7z and RAR. Browser ZIP/GZIP/DEFLATE/Brotli remain unchanged.</div>
+        <div class="dropzone" id="archiveNativeDropzone"><h3>Choose a file to package</h3><p>Runs locally; 7z uses the installed 7-Zip executable. RAR is extraction-only and uses the same 7-Zip engine.</p><input type="file" id="archiveNativeInput" class="file-input"></div>
         <div class="controls-panel" id="archiveNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="archiveNativeName">No file selected</div><div class="file-meta" id="archiveNativeMeta"></div></div><button type="button" class="btn-reset" id="archiveNativeReset">Reset</button></div>
           <div class="options-grid"><div class="form-group"><label for="archiveNativeTarget">Target archive</label><select id="archiveNativeTarget" class="form-select"><option value="zip">ZIP</option><option value="tar">TAR</option><option value="gz">GZIP</option><option value="bz2">BZIP2</option><option value="xz">XZ</option><option value="7z">7z</option></select></div></div>
           <div class="actions-bar"><button type="button" class="btn btn-primary" id="archiveNativeRun">Compress Locally</button></div>
