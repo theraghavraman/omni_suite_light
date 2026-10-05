@@ -2085,6 +2085,8 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 (function(){
   window.__OMNI_WIRED_CONTROLS = new WeakSet();
   window.__OMNI_WIRED_CONTROL_IDS = new Set();
+  window.__OMNI_WIRED_EVENT_TYPES = new WeakMap();
+  window.__OMNI_WIRED_EVENT_IDS = new Map();
   const nativeAdd=EventTarget.prototype.addEventListener;
   if(!EventTarget.prototype.__omniWiringPatched){
     EventTarget.prototype.addEventListener=function(type,listener,options){
@@ -2092,6 +2094,12 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
         if(this && this.id && typeof listener==='function'){
           window.__OMNI_WIRED_CONTROLS.add(this);
           window.__OMNI_WIRED_CONTROL_IDS.add(this.id);
+          const types=window.__OMNI_WIRED_EVENT_TYPES.get(this)||new Set();
+          types.add(String(type));
+          window.__OMNI_WIRED_EVENT_TYPES.set(this,types);
+          const idTypes=window.__OMNI_WIRED_EVENT_IDS.get(this.id)||new Set();
+          idTypes.add(String(type));
+          window.__OMNI_WIRED_EVENT_IDS.set(this.id,idTypes);
         }
       }catch(_){}
       return nativeAdd.call(this,type,listener,options);
@@ -2689,13 +2697,45 @@ async function runStructure(clear=true){
  });
  render();
 }
-function runOptions(clear=true){
+async function runOptions(clear=true){
  if(clear) reset();
- document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests)').forEach(panel=>{
-   const studio=studioMap[panel.id]||panel.id;
-   panel.querySelectorAll('select').forEach(sel=>[...sel.options].forEach(o=>{const old=sel.value;sel.value=o.value;sel.dispatchEvent(new Event('change',{bubbles:true}));add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Selectable; change event dispatched safely');sel.value=old;}));
- });
- render();
+ const uncaught=[];
+ const onError=e=>{uncaught.push(e&&e.message?e.message:String(e));};
+ const onReject=e=>{uncaught.push(e&&e.reason&&e.reason.message?e.reason.message:String(e&&e.reason||e));};
+ window.addEventListener('error',onError);
+ window.addEventListener('unhandledrejection',onReject);
+ try{
+   document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests)').forEach(panel=>{
+     const studio=studioMap[panel.id]||panel.id;
+     panel.querySelectorAll('select').forEach(sel=>{
+       const opts=[...sel.options];
+       if(!opts.length){add(studio,'Option wiring: '+(sel.id||'select'),'FAIL','Select has no options');return;}
+       const eventTypes=window.__OMNI_WIRED_EVENT_TYPES?.get(sel)||new Set();
+       const idEventTypes=sel.id?(window.__OMNI_WIRED_EVENT_IDS?.get(sel.id)||new Set()):new Set();
+       const hasChange=eventTypes.has('change')||idEventTypes.has('change')||typeof sel.onchange==='function';
+       opts.forEach(o=>{
+         const old=sel.value;
+         try{
+           sel.value=o.value;
+           if(sel.value!==o.value) throw new Error('Browser rejected option value');
+           if(!hasChange) throw new Error('No change-event implementation is wired to this control');
+           const beforeErrors=uncaught.length;
+           sel.dispatchEvent(new Event('change',{bubbles:true,cancelable:true}));
+           if(uncaught.length>beforeErrors) throw new Error('Option change raised: '+uncaught.slice(beforeErrors).join(' | '));
+           add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted and its real change-event wiring executed without an error');
+         }catch(e){
+           add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'FAIL',e&&e.message?e.message:String(e));
+         }finally{
+           sel.value=old;
+         }
+       });
+     });
+   });
+ }finally{
+   window.removeEventListener('error',onError);
+   window.removeEventListener('unhandledrejection',onReject);
+   render();
+ }
 }
 function runOfficeChecks(){
  const panel=$('tabWord');if(!panel){add('Office Studio','Office Studio panel','FAIL','Panel missing');return}
@@ -2708,9 +2748,10 @@ function runOfficeChecks(){
  const spreadsheetTargets=['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'];const st=$('officeSpreadsheetTarget');spreadsheetTargets.forEach(fmt=>add('Office Studio','Spreadsheet target '+fmt,st&&[...st.options].some(o=>o.value===fmt)?'PASS':'FAIL',st&&[...st.options].some(o=>o.value===fmt)?'Format option is present':'Format option is missing'));
 }
 async function runAll(){
- reset();await runStructure(false);runOptions(false);runOfficeChecks();
- const actionRows=state.filter(x=>x.name.startsWith('Action:'));
- actionRows.forEach(r=>{if(r.status==='FAIL')return;});
+ reset();
+ await runStructure(false);
+ await runOptions(false);
+ runOfficeChecks();
  render();
 }
 $('omniRunAllOptions')?.addEventListener('click',()=>{runAll().catch(e=>{reset();add('All Tests','Test runner','FAIL',e.message||String(e));render();});});
