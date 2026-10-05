@@ -2758,6 +2758,25 @@ $('omniRunAllOptions')?.addEventListener('click',()=>{runAll().catch(e=>{reset()
 $('omniRunStructure')?.addEventListener('click',()=>{runStructure().catch(e=>{reset();add('All Tests','Structure test','FAIL',e.message||String(e));render();});});
 $('omniRunOptions')?.addEventListener('click',runOptions);
 $('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
+$('omniExportResult')?.addEventListener('click',()=>{
+ const report={
+   generatedAt:new Date().toISOString(),
+   url:location.href,
+   summary:{
+     pass:state.filter(x=>x.status==='PASS').length,
+     fail:state.filter(x=>x.status==='FAIL').length,
+     skipped:state.filter(x=>x.status==='SKIPPED').length,
+     total:state.length,
+     controls:document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests) button,.module-panel:not(#tabDiagnostics):not(#tabAllTests) input,.module-panel:not(#tabDiagnostics):not(#tabAllTests) select,.module-panel:not(#tabDiagnostics):not(#tabAllTests) textarea').length
+   },
+   results:state.map(x=>({studio:x.studio,name:x.name,status:x.status,detail:x.detail}))
+ };
+ const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='omni-all-options-test-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 })();
 </script>
 <script id="omni-test-lab">
