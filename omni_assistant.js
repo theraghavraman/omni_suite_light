@@ -83,7 +83,12 @@ function cleanAssistantAnswer(text){
  s=lines.join("\n");
  s=s.replace(/\[\s*(?:Source|Citation|Reference)\s*\d+(?:\s*:[^\]]*)?\s*\]/gi,"");
  s=s.replace(/\*{0,2}\[?\s*(?:Source|Citation|Reference)\s*\d+\s*\]?\*{0,2}/gi,"");
- s=s.replace(/(?:\*{0,2})\[?\s*Your Company Name\s*\]?\*{0,2}/gi,"");\n const lines2=s.split("\n"); const counts={}; lines2.forEach(line=>{const k=line.trim().toLowerCase();if(k)counts[k]=(counts[k]||0)+1;}); s=lines2.filter(line=>{const k=line.trim().toLowerCase();return !(counts[k]>=3 && /your company name|company name|placeholder|lorem ipsum/i.test(k));}).join("\n");\n return s.replace(/\n{3,}/g,"\n\n").trim();
+ s=s.replace(/(?:\*{0,2})\[?\s*Your Company Name\s*\]?\*{0,2}/gi,"");
+ const lines2=s.split("\n");
+ const counts={};
+ lines2.forEach(line=>{const k=line.trim().toLowerCase();if(k)counts[k]=(counts[k]||0)+1;});
+ s=lines2.filter(line=>{const k=line.trim().toLowerCase();return !(counts[k]>=3 && /your company name|company name|placeholder|lorem ipsum/i.test(k));}).join("\n");
+ return s.replace(/\n{3,}/g,"\n\n").trim();
 }
 function uniqueSources(rows){
  const seen=new Set();
