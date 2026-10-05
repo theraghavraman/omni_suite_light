@@ -2929,7 +2929,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=bootfix-20261006"></script>
+<script src="./omni-core.js?v=bootfix-20261006b"></script>
 
 
 <script id="omni-browser-first">
@@ -4201,136 +4201,314 @@ function save(blob,name){
   setTimeout(()=>URL.revokeObjectURL(u),60000);
 }
 
-/* Data Clean — browser-first, with Local Engine only for formats the browser cannot safely handle. */
-const cleanInput=$('cleanInput');
-if(cleanInput){
-  cleanInput.addEventListener('change',()=>{cleanFile=cleanInput.files?.[0]||null;setText('cleanName',cleanFile?.name||'No file selected');});
-  const drop=cleanInput.closest('.dropzone');
-  if(drop){
-    drop.addEventListener('click',e=>{if(e.target!==cleanInput)cleanInput.click();});
-    drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover');});
-    drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
-    drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');const f=e.dataTransfer.files?.[0];if(f){cleanFile=f;setText('cleanName',f.name);}});
-  }
+/* Data Clean — browser-first; Local Engine only for formats that need native processing. */
+const cleanInput = $('cleanInput');
+if (cleanInput) {
+  cleanInput.addEventListener('change', function () {
+    cleanFile = cleanInput.files && cleanInput.files[0] ? cleanInput.files[0] : null;
+    setText('cleanName', cleanFile ? cleanFile.name : 'No file selected');
+  });
 }
-function cleanCsv(text,delimiter){
-  const out=[],row=[];let cell='',quoted=false;
-  for(let i=0;i<text.length;i++){
-    const ch=text[i];
-    if(ch==='"'){
-      if(quoted&&text[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;
-    }else if(ch===delimiter&&!quoted){row.push(cell);cell='';}
-    else if((ch==='\n'||ch==='\r')&&!quoted){
-      if(ch==='\r'&&text[i+1]==='\n')i++;
-      row.push(cell);cell='';
-      if(row.some(v=>String(v).trim()!==''))out.push(row.splice(0,row.length));
-    }else cell+=ch;
+const cleanDrop = $('cleanDrop');
+if (cleanDrop) {
+  cleanDrop.addEventListener('click', function (e) {
+    if (e.target !== cleanInput) cleanInput && cleanInput.click();
+  });
+  cleanDrop.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    cleanDrop.classList.add('dragover');
+  });
+  cleanDrop.addEventListener('dragleave', function () {
+    cleanDrop.classList.remove('dragover');
+  });
+  cleanDrop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    cleanDrop.classList.remove('dragover');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) {
+      cleanFile = f;
+      setText('cleanName', f.name);
+    }
+  });
+}
+function cleanCsv(text, delimiter) {
+  const out = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (quoted && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (ch === delimiter && !quoted) {
+      row.push(cell);
+      cell = '';
+    } else if ((ch === '\n' || ch === '\r') && !quoted) {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      cell = '';
+      if (row.some(function (v) { return String(v).trim() !== ''; })) {
+        out.push(row);
+      }
+      row = [];
+    } else {
+      cell += ch;
+    }
   }
-  if(cell!==''||row.length){row.push(cell);if(row.some(v=>String(v).trim()!==''))out.push(row);}
+  if (cell !== '' || row.length) {
+    row.push(cell);
+    if (row.some(function (v) { return String(v).trim() !== ''; })) out.push(row);
+  }
   return out;
 }
-function cleanRowsFromObjects(value){
-  const arr=Array.isArray(value)?value:(value&&Array.isArray(value.data)?value.data:[value]);
-  if(!arr.length)return {headers:[],rows:[]};
-  if(Array.isArray(arr[0]))return {headers:arr[0].map((x,i)=>String(x??('column_'+(i+1)))),rows:arr.slice(1)};
-  const headers=[...new Set(arr.flatMap(x=>x&&typeof x==='object'?Object.keys(x):[]))];
-  return {headers,rows:arr.map(x=>headers.map(h=>x?.[h]??''))};
-}
-async function readCleanData(file){
-  const name=file.name.toLowerCase(),extension=name.includes('.')?name.split('.').pop():'';
-  if(['csv','tsv','txt'].includes(extension)){
-    const text=await file.text(),parsed=cleanCsv(text,extension==='tsv'?'\t':',');
-    return {headers:(parsed[0]||[]).map(String),rows:parsed.slice(1)};
+function cleanRowsFromObjects(value) {
+  const arr = Array.isArray(value)
+    ? value
+    : (value && Array.isArray(value.data) ? value.data : [value]);
+  if (!arr.length) return {headers: [], rows: []};
+  if (Array.isArray(arr[0])) {
+    return {
+      headers: arr[0].map(function (x, i) {
+        return String(x == null ? 'column_' + (i + 1) : x);
+      }),
+      rows: arr.slice(1)
+    };
   }
-  if(['json','jsonl','ndjson'].includes(extension)){
-    const text=await file.text();
-    if(extension==='jsonl'||extension==='ndjson')return cleanRowsFromObjects(text.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)));
+  const headers = Array.from(new Set(arr.flatMap(function (x) {
+    return x && typeof x === 'object' ? Object.keys(x) : [];
+  })));
+  return {
+    headers: headers,
+    rows: arr.map(function (x) {
+      return headers.map(function (h) {
+        return x && typeof x === 'object' && x[h] != null ? x[h] : '';
+      });
+    })
+  };
+}
+async function readCleanData(file) {
+  const extension = (file.name.split('.').pop() || '').toLowerCase();
+  if (['csv', 'tsv', 'txt'].includes(extension)) {
+    const text = await file.text();
+    const parsed = cleanCsv(text, extension === 'tsv' ? '\t' : ',');
+    return {headers: parsed[0] || [], rows: parsed.slice(1)};
+  }
+  if (['json', 'jsonl', 'ndjson'].includes(extension)) {
+    const text = await file.text();
+    if (extension === 'jsonl' || extension === 'ndjson') {
+      return cleanRowsFromObjects(text.split(/\r?\n/).filter(function (line) {
+        return line.trim() !== '';
+      }).map(function (line) {
+        return JSON.parse(line);
+      }));
+    }
     return cleanRowsFromObjects(JSON.parse(text));
   }
-  if(['xlsx','xls','xlsb','ods'].includes(extension)){
-    if(!window.XLSX)throw new Error('Spreadsheet engine is unavailable in browser.');
-    const wb=window.XLSX.read(await file.arrayBuffer(),{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    return cleanRowsFromObjects(window.XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));
+  if (['xlsx', 'xls', 'xlsb', 'ods'].includes(extension)) {
+    if (!window.XLSX) throw new Error('Spreadsheet engine is unavailable in browser.');
+    const wb = window.XLSX.read(await file.arrayBuffer(), {type: 'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    return cleanRowsFromObjects(window.XLSX.utils.sheet_to_json(ws, {header: 1, defval: ''}));
   }
   throw new Error('This format needs Local Engine. Browser mode supports CSV, TSV, JSON, JSONL, XLSX, XLS, XLSB and ODS.');
 }
-function cleanNormalizeHeaders(headers){
-  const used=new Map();
-  return headers.map((h,i)=>{
-    let x=String(h??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'column_'+(i+1);
-    const n=used.get(x)||0;used.set(x,n+1);return n?x+'_'+(n+1):x;
+function cleanNormalizeHeaders(headers) {
+  const used = new Map();
+  return headers.map(function (h, i) {
+    let x = String(h == null ? '' : h).trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'column_' + (i + 1);
+    const n = used.get(x) || 0;
+    used.set(x, n + 1);
+    return n ? x + '_' + (n + 1) : x;
   });
 }
-function cleanApply(data,actions){
-  let headers=[...data.headers],rows=data.rows.map(r=>headers.map((_,i)=>r?.[i]??''));
-  if(actions.includes('trim_strings'))rows=rows.map(r=>r.map(v=>typeof v==='string'?v.trim():v));
-  if(actions.includes('lower_columns'))headers=cleanNormalizeHeaders(headers);
-  if(actions.includes('drop_empty_rows'))rows=rows.filter(r=>r.some(v=>String(v??'').trim()!==''));
-  if(actions.includes('fill_numeric_zero')){
-    const numeric=headers.map((_,i)=>rows.filter(r=>String(r[i]??'').trim()!=='').every(v=>v!==''&&Number.isFinite(Number(v))));
-    rows=rows.map(r=>r.map((v,i)=>numeric[i]&&String(v??'').trim()===''?0:v));
+function cleanApply(data, actions) {
+  let headers = data.headers.slice();
+  let rows = data.rows.map(function (r) {
+    return headers.map(function (_, i) { return r && r[i] != null ? r[i] : ''; });
+  });
+  if (actions.includes('trim_strings')) {
+    rows = rows.map(function (r) {
+      return r.map(function (v) { return typeof v === 'string' ? v.trim() : v; });
+    });
   }
-  if(actions.includes('drop_duplicates')){
-    const seen=new Set();rows=rows.filter(r=>{const k=JSON.stringify(r);if(seen.has(k))return false;seen.add(k);return true;});
+  if (actions.includes('lower_columns')) headers = cleanNormalizeHeaders(headers);
+  if (actions.includes('drop_empty_rows')) {
+    rows = rows.filter(function (r) {
+      return r.some(function (v) { return String(v == null ? '' : v).trim() !== ''; });
+    });
   }
-  if(actions.includes('sort_columns')){
-    const order=headers.map((h,i)=>({h,i})).sort((a,b)=>a.h.localeCompare(b.h));
-    headers=order.map(x=>x.h);rows=rows.map(r=>order.map(x=>r[x.i]));
+  if (actions.includes('fill_numeric_zero')) {
+    const numeric = headers.map(function (_, i) {
+      const nonEmpty = rows.filter(function (r) { return String(r[i] == null ? '' : r[i]).trim() !== ''; });
+      return nonEmpty.length > 0 && nonEmpty.every(function (r) { return Number.isFinite(Number(r[i])); });
+    });
+    rows = rows.map(function (r) {
+      return r.map(function (v, i) {
+        return numeric[i] && String(v == null ? '' : v).trim() === '' ? 0 : v;
+      });
+    });
   }
-  return {headers,rows};
+  if (actions.includes('drop_duplicates')) {
+    const seen = new Set();
+    rows = rows.filter(function (r) {
+      const key = JSON.stringify(r);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+  if (actions.includes('sort_columns')) {
+    const order = headers.map(function (h, i) { return {h: h, i: i}; })
+      .sort(function (a, b) { return a.h.localeCompare(b.h); });
+    headers = order.map(function (x) { return x.h; });
+    rows = rows.map(function (r) {
+      return order.map(function (x) { return r[x.i]; });
+    });
+  }
+  return {headers: headers, rows: rows};
 }
-function cleanEscapeCsv(v){
-  const s=String(v??'');return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+function cleanEscapeCsv(value) {
+  const s = String(value == null ? '' : value);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
-function cleanExportBlob(data,format,base){
-  const {headers,rows}=data;
-  if(format==='csv')return {blob:new Blob([[headers, ...rows].map(r=>r.map(cleanEscapeCsv).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),name:base+'.csv'};
-  if(format==='json')return {blob:new Blob([JSON.stringify(rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))),null,2)],{type:'application/json'}),name:base+'.json'};
-  if(format==='jsonl')return {blob:new Blob([rows.map(r=>JSON.stringify(Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])))).join('\n')],{type:'application/jsonl'}),name:base+'.jsonl'};
-  if(format==='md')return {blob:new Blob(['| '+headers.map(String).join(' | ')+' |\n| '+headers.map(()=> '---').join(' | ')+' |\n'+rows.map(r=>'| '+r.map(v=>String(v??'').replace(/\|/g,'\\|')).join(' | ')+' |').join('\n')],{type:'text/markdown'}),name:base+'.md'};
-  if(format==='xlsx'){
-    if(!window.XLSX)throw new Error('Spreadsheet engine is unavailable in browser.');
-    const ws=window.XLSX.utils.aoa_to_sheet([headers,...rows]);const wb=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(wb,ws,'Cleaned');
-    return {blob:new Blob([window.XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),name:base+'.xlsx'};
+function cleanExportBlob(data, format, base) {
+  const headers = data.headers;
+  const rows = data.rows;
+  if (format === 'csv') {
+    return {
+      blob: new Blob([
+        [headers].concat(rows).map(function (r) {
+          return r.map(cleanEscapeCsv).join(',');
+        }).join('\r\n')
+      ], {type: 'text/csv;charset=utf-8'}),
+      name: base + '.csv'
+    };
+  }
+  if (format === 'json') {
+    return {
+      blob: new Blob([
+        JSON.stringify(rows.map(function (r) {
+          return Object.fromEntries(headers.map(function (h, i) { return [h, r[i] == null ? '' : r[i]]; }));
+        }), null, 2)
+      ], {type: 'application/json'}),
+      name: base + '.json'
+    };
+  }
+  if (format === 'jsonl') {
+    return {
+      blob: new Blob([
+        rows.map(function (r) {
+          return JSON.stringify(Object.fromEntries(headers.map(function (h, i) { return [h, r[i] == null ? '' : r[i]]; })));
+        }).join('\n')
+      ], {type: 'application/jsonl'}),
+      name: base + '.jsonl'
+    };
+  }
+  if (format === 'md') {
+    return {
+      blob: new Blob([
+        '| ' + headers.map(String).join(' | ') + ' |\n' +
+        '| ' + headers.map(function () { return '---'; }).join(' | ') + ' |\n' +
+        rows.map(function (r) {
+          return '| ' + r.map(function (v) {
+            return String(v == null ? '' : v).replace(/\|/g, '\\|');
+          }).join(' | ') + ' |';
+        }).join('\n')
+      ], {type: 'text/markdown'}),
+      name: base + '.md'
+    };
+  }
+  if (format === 'xlsx') {
+    if (!window.XLSX) throw new Error('Spreadsheet engine is unavailable in browser.');
+    const ws = window.XLSX.utils.aoa_to_sheet([headers].concat(rows));
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, 'Cleaned');
+    return {
+      blob: new Blob([
+        window.XLSX.write(wb, {bookType: 'xlsx', type: 'array'})
+      ], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+      name: base + '.xlsx'
+    };
   }
   throw new Error('Parquet export requires Local Engine.');
 }
-function privacyScanBrowser(data){
-  const patterns={
-    email:/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
-    phone:/\b(?:\+?\d[\d\s().-]{7,}\d)\b/,
-    aadhaar:/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/,
-    pan:/\b[A-Z]{5}\d{4}[A-Z]\b/i,
-    credit_card:/\b(?:\d[ -]?){13,19}\b/,
-    ipv4:/\b(?:\d{1,3}\.){3}\d{1,3}\b/
+function privacyScanBrowser(data) {
+  const patterns = {
+    email: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+    phone: /\b(?:\+?\d[\d\s().-]{7,}\d)\b/,
+    aadhaar: /\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/,
+    pan: /\b[A-Z]{5}\d{4}[A-Z]\b/i,
+    credit_card: /\b(?:\d[ -]?){13,19}\b/,
+    ipv4: /\b(?:\d{1,3}\.){3}\d{1,3}\b/
   };
-  const findings=[];
-  data.headers.forEach((h,i)=>{const values=data.rows.map(r=>String(r?.[i]??''));for(const [type,re] of Object.entries(patterns)){const count=values.filter(v=>re.test(v)).length;if(count)findings.push({column:h,pattern:type,matches:count});}});
-  return {browser:true,heuristic:true,rows:data.rows.length,columns:data.headers.length,findings,note:'Heuristic browser scan only; review findings before production use.'};
+  const findings = [];
+  data.headers.forEach(function (h, i) {
+    const values = data.rows.map(function (r) { return String(r && r[i] != null ? r[i] : ''); });
+    Object.entries(patterns).forEach(function (entry) {
+      const type = entry[0];
+      const re = entry[1];
+      const count = values.filter(function (v) { return re.test(v); }).length;
+      if (count) findings.push({column: h, pattern: type, matches: count});
+    });
+  });
+  return {
+    browser: true,
+    heuristic: true,
+    rows: data.rows.length,
+    columns: data.headers.length,
+    findings: findings,
+    note: 'Heuristic browser scan only; review findings before production use.'
+  };
 }
-$('cleanBtn')?.addEventListener('click',async()=>{
-  try{
-    if(!cleanFile)throw new Error('Choose a data file first.');
-    const actions=[...document.querySelectorAll('.clean-action:checked')].map(x=>x.value);
-    if(!actions.length)throw new Error('Select at least one cleaning action.');
-    show('cleanOutput','Reading and cleaning in your browser…');
-    const data=await readCleanData(cleanFile),cleaned=cleanApply(data,actions),format=$('cleanTarget')?.value||'csv';
-    if(format==='parquet'){show('cleanOutput','Parquet export requires Local Engine. Other cleaning work is browser-first.');await ensureLocal();const up=await upload(cleanFile);const result=await processJob({op:'data_clean',input:up.file_id,format,actions});save(await downloadFile(result.file_id),result.name||('cleaned.'+format));return;}
-    const out=cleanExportBlob(cleaned,format,(cleanFile.name.replace(/\.[^.]+$/,'')||'cleaned')+'_cleaned');
-    save(out.blob,out.name);
-    show('cleanOutput',{ok:true,mode:'browser',input:cleanFile.name,output:out.name,rowsBefore:data.rows.length,rowsAfter:cleaned.rows.length,actions});
-  }catch(e){show('cleanOutput','ERROR: '+e.message);}
+$('cleanBtn') && $('cleanBtn').addEventListener('click', async function () {
+  try {
+    if (!cleanFile) throw new Error('Choose a data file first.');
+    const actions = Array.from(document.querySelectorAll('.clean-action:checked')).map(function (x) { return x.value; });
+    if (!actions.length) throw new Error('Select at least one cleaning action.');
+    show('cleanOutput', 'Reading and cleaning in your browser…');
+    const data = await readCleanData(cleanFile);
+    const cleaned = cleanApply(data, actions);
+    const format = ($('cleanTarget') && $('cleanTarget').value) || 'csv';
+    if (format === 'parquet') {
+      show('cleanOutput', 'Parquet export requires Local Engine. Other cleaning work remains browser-first.');
+      await ensureLocal();
+      const up = await upload(cleanFile);
+      const result = await processJob({op: 'data_clean', input: up.file_id, format: format, actions: actions});
+      save(await downloadFile(result.file_id), result.name || ('cleaned.' + format));
+      return;
+    }
+    const out = cleanExportBlob(cleaned, format, (cleanFile.name.replace(/\.[^.]+$/, '') || 'cleaned') + '_cleaned');
+    save(out.blob, out.name);
+    show('cleanOutput', {
+      ok: true,
+      mode: 'browser',
+      input: cleanFile.name,
+      output: out.name,
+      rowsBefore: data.rows.length,
+      rowsAfter: cleaned.rows.length,
+      actions: actions
+    });
+  } catch (e) {
+    show('cleanOutput', 'ERROR: ' + (e && e.message ? e.message : String(e)));
+  }
 });
-$('privacyBtn')?.addEventListener('click',async()=>{
-  try{
-    if(!cleanFile)throw new Error('Choose a data file first.');
-    show('cleanOutput','Scanning locally in your browser…');
-    const data=await readCleanData(cleanFile);
-    show('cleanOutput',privacyScanBrowser(data));
-  }catch(e){show('cleanOutput','ERROR: '+e.message);}
+$('privacyBtn') && $('privacyBtn').addEventListener('click', async function () {
+  try {
+    if (!cleanFile) throw new Error('Choose a data file first.');
+    show('cleanOutput', 'Scanning locally in your browser…');
+    const data = await readCleanData(cleanFile);
+    show('cleanOutput', privacyScanBrowser(data));
+  } catch (e) {
+    show('cleanOutput', 'ERROR: ' + (e && e.message ? e.message : String(e)));
+  }
 });
-
 /* Batch Lab */
 const batchInput=$('batchInput');
 const batchDrop=$('batchDrop');
