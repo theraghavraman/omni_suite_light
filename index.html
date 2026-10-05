@@ -2782,6 +2782,7 @@ async function runBrowserTests(){
     ['Runtime','PDF.js library',()=>{if(!window.pdfjsLib)throw new Error('PDF.js missing');return 'PDF.js 3.11.174 loaded';}],
     ['Runtime','PDF.js worker configuration',()=>{if(!window.pdfjsLib||!pdfjsLib.GlobalWorkerOptions.workerSrc)throw new Error('PDF workerSrc missing');return pdfjsLib.GlobalWorkerOptions.workerSrc;}],
     ['Runtime','JSZip library',()=>{if(!window.JSZip)throw new Error('JSZip missing');return 'JSZip loaded';}],
+    ['Runtime','Omni Language Engine isolation',()=>{if(!window.OmniLanguageEngine)throw new Error('Omni Language Engine missing');return 'Separate translation/transliteration runtime loaded; Assistant/RAG model state is not imported';}],
     ['Runtime','PPTX browser engine',()=>{if(!window.OMNI_BROWSER_FIRST||typeof window.OMNI_BROWSER_FIRST.office!=='function')throw new Error('Browser Office engine is not registered');return 'Native browser PPTX package builder ready (no Poppler required)';}],
     ['Runtime','pdf-lib library',()=>{if(!window.PDFLib)throw new Error('pdf-lib missing');return 'pdf-lib loaded';}],
     ['Runtime','Tesseract.js library',()=>{if(!window.Tesseract)throw new Error('Tesseract.js missing');return 'Tesseract.js loaded';}],
@@ -2801,7 +2802,7 @@ async function runBrowserTests(){
   ];
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
-  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
+  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Language Engine','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Language Engine':'tabLanguageStudio','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
   await test('browser','PDF → PPTX browser conversion',async()=>{
     const pdf=await makePdfBlob();
     const out=await window.OMNI_BROWSER_FIRST.office(new File([pdf],'omni-browser-test.pdf',{type:'application/pdf'}),'pptx',{download:false});
