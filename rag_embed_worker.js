@@ -9,7 +9,7 @@ let extractor=null;
 async function init(){
   if(extractor)return;
   let device="wasm",dtype="q8";
-  try{if(self.navigator?.gpu){const adapter=await self.navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q8"}}}catch(_){}
+  try{if(self.navigator?.gpu){const adapter=await self.navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="fp16"}}}catch(_){}
   try{
     extractor=await pipeline("feature-extraction",MODEL,{device,dtype});
     self.postMessage({type:"ready",device});
