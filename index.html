@@ -686,24 +686,28 @@ header p,.card .sub,.omni-guide-item span{font-weight:400}
 
 
   <style id="omni-bricolage-final">
+    /* Bricolage Grotesque for the expressive/display layer; Figtree for readable UI copy. */
     :root{
       --omni-display:"Bricolage Grotesque",system-ui,sans-serif;
-      --omni-body:"Bricolage Grotesque",system-ui,sans-serif;
+      --omni-body:"Figtree",system-ui,sans-serif;
       --omni-mono:"Fira Code",ui-monospace,SFMono-Regular,monospace;
     }
-    html,body,body *,button,input,select,textarea,a{
-      font-family:"Bricolage Grotesque",system-ui,sans-serif !important;
-      font-optical-sizing:auto;
-    }
-    code,pre,kbd,.mono,.technical,.status-code{
-      font-family:"Fira Code",ui-monospace,SFMono-Regular,monospace !important;
+    body,button,input,select,textarea,a{
+      font-family:"Figtree",system-ui,sans-serif !important;
     }
     header h1,.omni-identity-v3,.omni-wordmark-v3,.omni-identity-name,.omni-brand-title,
-    .card h2,.dropzone h3,.omni-guide-item strong,.nav-btn,.metric-pill strong{
+    .card h2,.dropzone h3,.omni-guide-item strong,.nav-btn,.metric-pill strong,
+    .omni-brand-copy strong,.omni-command-copy b{
       font-family:"Bricolage Grotesque",system-ui,sans-serif !important;
       font-weight:800;
+      font-optical-sizing:auto;
       letter-spacing:-.035em;
     }
+    .eyebrow,.omni-identity-rule,.omni-wordmark-v3 small,.omni-brand-wordmark .omni-tagline,
+    .tag,.links,.window-bar b,.window-bar em,.float-chip,code,pre,kbd{
+      font-family:"Fira Code",ui-monospace,SFMono-Regular,monospace !important;
+    }
+    header h1{font-weight:800;letter-spacing:-.035em;line-height:.98}
   </style>
 
 </head>
