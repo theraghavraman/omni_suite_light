@@ -62,3 +62,24 @@ The multilingual AI stack is intentionally isolated from Omni Assistant and Priv
 | IndicTransToolkit | See upstream distribution | IndicTrans2 preprocessing/postprocessing |
 
 Model binaries are not committed to the normal source tree. Use `prepare_language_models.py` to materialize them under `language-models/` after reviewing the upstream model terms. The language engine uses local model files at inference time and has no online translation fallback.
+
+## Optional Omni Browser AI Engine
+
+The browser AI layer is isolated from Omni Assistant, Private RAG, and Omni Language Engine. Models are downloaded lazily from their respective public model repositories and cached by the browser; no model is loaded at page startup.
+
+Current browser-AI model registry includes:
+- SmolLM2 135M Instruct ONNX — Apache 2.0.
+- all-MiniLM-L6-v2 ONNX — Apache 2.0.
+- DistilBART CNN — Apache 2.0.
+- Whisper Tiny ONNX — Apache 2.0.
+- Supertonic TTS ONNX — OpenRAIL.
+- ViT-GPT2 image captioning ONNX — model repository is Transformers.js-compatible.
+- DETR ResNet-50 ONNX — model repository is Transformers.js-compatible.
+- MODNet — Apache 2.0.
+- TrOCR Small Printed — model repository is Transformers.js-compatible.
+- Donut DocVQA — model repository is Transformers.js-compatible.
+- Multilingual NER — model repository is Transformers.js-compatible.
+- Depth Anything V2 Small ONNX — Apache 2.0.
+- Qwen3 0.6B Instruct ONNX — Apache 2.0.
+
+Verify the upstream model repository/license before redistributing model weights. Omni Suite does not commit third-party model binaries to this repository.
