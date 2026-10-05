@@ -1,9 +1,13 @@
 {
-  "version": 2,
+  "version": 3,
   "files": [
     {
       "path": "omni-suite.md",
       "title": "Omni Suite Product Guide"
+    },
+    {
+      "path": "omniconverter-guide.md",
+      "title": "OmniConverter Architectural & Practical Guide"
     }
   ]
 }
