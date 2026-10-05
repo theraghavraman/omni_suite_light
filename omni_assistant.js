@@ -3,8 +3,8 @@
  * the Private RAG IndexedDB corpus when available.
  */
 (()=>{"use strict";
-const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
-const EMBED="Xenova/all-MiniLM-L6-v2", LLM="Xenova/Qwen1.5-0.5B-Chat";
+const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
+const EMBED="Xenova/all-MiniLM-L6-v2", LLM="onnx-community/gemma-3-1b-it-ONNX";
 let docs=[],busy=false,knowledgeLoaded=false,privateLoaded=false,currentStudio=null;
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function studioContext(){const n=document.querySelector(".nav-btn.active");if(!n)return null;return {tab:n.dataset.tab||"",name:(n.querySelector(".studio-label")?.textContent||n.textContent||"").trim()}}
@@ -38,7 +38,7 @@ async function loadKnowledge(includePrivate=false){
  if(includePrivate&&!privateLoaded){privateLoaded=true;try{const db=await new Promise((res,rej)=>{const r=indexedDB.open("omni-private-rag-v1",2);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});if(db.objectStoreNames.contains("chunks")){const rows=await new Promise((res,rej)=>{const q=db.transaction("chunks","readonly").objectStore("chunks").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)});for(const x of rows)docs.push({source:"Private RAG: "+x.source,text:x.text,vector:x.vector,repo:x.meta?.repository,blobSha:x.meta?.blobSha})}if(db.objectStoreNames.contains("meta")){const m=await new Promise((res,rej)=>{const q=db.transaction("meta","readonly").objectStore("meta").get("repository");q.onsuccess=()=>res(q.result?.value||null);q.onerror=()=>rej(q.error)});if(m?.commitSha){const s=document.getElementById("omniAsStatus");if(s)s.title=`Repository indexed at commit ${m.commitSha.slice(0,7)}`;}}}catch(e){}}
 }
 function needsPrivateKnowledge(q){return /my document|my file|indexed|index|repository|repo|source code|implementation|codebase|commit|private rag/i.test(q)}
-async function retrieve(q){if(!docs.length)await loadKnowledge();if(!docs.length)return[];const candidates=docs.map(d=>({...d,lexical:lex(q,d.text)})).sort((a,b)=>b.lexical-a.lexical).slice(0,12);const qv=await emb(q);return candidates.map(d=>({...d,score:d.vector?(0.78*cos(qv,d.vector)+0.22*d.lexical):0.22*d.lexical})).sort((a,b)=>b.score-a.score).slice(0,6)}
+async function retrieve(q){if(!docs.length)await loadKnowledge();if(!docs.length)return[];const candidates=docs.map(d=>({...d,lexical:lex(q,d.text)})).sort((a,b)=>b.lexical-a.lexical).slice(0,12);const strong=candidates.filter(x=>x.lexical>=0.12);if(strong.length>=3)return strong.slice(0,6);const qv=await emb(q);return candidates.map(d=>({...d,score:d.vector?(0.78*cos(qv,d.vector)+0.22*d.lexical):0.22*d.lexical})).sort((a,b)=>b.score-a.score).slice(0,6)}
 function intentAnswer(q){
  const s=q.toLowerCase().trim();
  const target=studioAction(s);
@@ -67,6 +67,7 @@ function intentAnswer(q){
 function fastAnswer(q){const s=q.toLowerCase().replace(/[?!.]/g,"").trim();const current=currentStudio?.name;
 if(/^(which studio|what studio|where should i start|help me choose)/.test(s))return "Tell me what you want to work with and I’ll point you to the right Studio. PDF → PowerPoint = Office Studio; OCR = Image to Text; CSV/JSON/data conversion = Data Studio; database queries = Database Studio; batch work = Batch Lab.";
 if(/pdf.*(powerpoint|ppt)|(?:powerpoint|ppt).*pdf/.test(s))return "For PDF ↔ PowerPoint, use Office Studio. Omni Suite is browser-first where practical; heavier or unsupported operations can fall back to the Local Engine.";
+if(/how.*(file|document).*conversion|how.*conversion.*work|file conversion/.test(s))return "Omni Suite uses a browser-first conversion pipeline: it first tries a supported in-browser converter, keeps processing local where possible, and uses the Local Engine only when the browser cannot reliably perform the operation. The exact path depends on the file format and Studio." ;
 if(/what can omni|what does omni|what is omni suite/.test(s))return "Omni Suite is a browser-first workspace for file conversion, document processing, data work, media tools, diagnostics, and local/private workflows.";
 if(/privacy|private|secure|api key/.test(s))return "Omni Suite is designed browser-first. Private RAG keeps indexed chunks and vectors in this browser’s IndexedDB, and its optional local LLM receives retrieved context rather than your whole document. Fresh-browser AI model assets may still need to download.";
 if(/troubleshoot|not working|error|broken|failed/.test(s))return current?"You’re currently in "+current+". Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.":"Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.";
