@@ -92,28 +92,30 @@ async function contextFor(panel){
  return {text:visibleText(panel),meta:"Using visible Studio context."};
 }
 function pdfChunks(text,size=5200){
- const clean=String(text||"").replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();
+ const NL=String.fromCharCode(10);
+ const clean=String(text||"").replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(new RegExp(NL+"{3,}","g"),NL+NL).trim();
  if(!clean)return [];
- const pages=clean.split(/(?=PAGE \d+\n)/g).filter(Boolean);
+ const pages=clean.split(new RegExp("(?=PAGE \\d+"+NL+")","g")).filter(Boolean);
  const chunks=[];
  pages.forEach(page=>{
    if(page.length<=size){chunks.push(page);return;}
-   const paras=page.split(/\n\n+/).filter(Boolean);let cur="";
-   paras.forEach(p=>{if((cur+"\n\n"+p).length>size&&cur){chunks.push(cur);cur=p}else cur=cur?cur+"\n\n"+p:p});
+   const paras=page.split(new RegExp(NL+NL+"+")).filter(Boolean);let cur="";
+   paras.forEach(p=>{if((cur+NL+NL+p).length>size&&cur){chunks.push(cur);cur=p}else cur=cur?cur+NL+NL+p:p});
    if(cur)chunks.push(cur);
  });
  return chunks.length?chunks:[clean.slice(0,size)];
 }
 async function pdfGenerate(text,instruction){
+ const NL=String.fromCharCode(10);
  const chunks=pdfChunks(text);
  if(!chunks.length)throw new Error("The PDF contains no usable text.");
  const perChunk=[];
  for(let i=0;i<chunks.length;i++){
-   perChunk.push(await A().generate(instruction+"\n\nDOCUMENT SECTION "+(i+1)+" OF "+chunks.length+":\n"+chunks[i],{model:"stronger",maxInput:6000,maxNewTokens:180}));
+   perChunk.push(await A().generate(instruction+NL+NL+"DOCUMENT SECTION "+(i+1)+" OF "+chunks.length+":"+NL+chunks[i],{model:"stronger",maxInput:6000,maxNewTokens:180}));
  }
  if(perChunk.length===1)return perChunk[0];
- const combined=perChunk.map((x,i)=>"SECTION "+(i+1)+" SUMMARY:\n"+x).join("\n\n");
- return await A().generate(instruction+"\n\nCombine these section summaries into one final answer. Remove duplicates and preserve concrete facts.\n\n"+combined,{model:"stronger",maxInput:6200,maxNewTokens:240});
+ const combined=perChunk.map((x,i)=>"SECTION "+(i+1)+" SUMMARY:"+NL+x).join(NL+NL);
+ return await A().generate(instruction+NL+NL+"Combine these section summaries into one final answer. Remove duplicates and preserve concrete facts."+NL+NL+combined,{model:"stronger",maxInput:6200,maxNewTokens:240});
 }
 function imageUrl(file){return URL.createObjectURL(file)}
 function downloadBlob(blob,name){
