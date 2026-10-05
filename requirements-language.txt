@@ -1,0 +1,8 @@
+# Optional and isolated Omni Language Engine dependencies.
+# This file is intentionally NOT included by requirements-local.txt.
+torch>=2.3
+transformers>=4.45,<5
+sentencepiece>=0.2
+safetensors>=0.4
+IndicTransToolkit
+git+https://github.com/AI4Bharat/IndicXlit.git#subdirectory=app
