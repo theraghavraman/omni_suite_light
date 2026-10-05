@@ -8,6 +8,7 @@ OmniConverter Local Engine
 - Heavy media/PDF/image/OCR work is delegated to native tools when installed.
 """
 from __future__ import annotations
+import urllib.request
 import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
