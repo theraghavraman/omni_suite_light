@@ -3780,7 +3780,70 @@ async function runLocalTests(){
   const download=async(fid)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
-  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p></body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p>
+<style id="omni-office-pure-red-final-v3">
+/* Office Studio: deterministic pure-red theme, independent of generic studio fallbacks. */
+body[data-active-studio="tabOfficeEditor"]{
+  --studio-live:#FF0000 !important;
+  --studio-live-2:#FF0000 !important;
+  --studio-live-soft:rgba(255,0,0,.14) !important;
+  --active-studio-accent:#FF0000 !important;
+  --active-studio-accent-2:#FF0000 !important;
+  --active-studio-soft:rgba(255,0,0,.14) !important;
+}
+body[data-active-studio="tabOfficeEditor"] .studio-workspace-head{
+  background:#FF0000 !important;
+  background-image:none !important;
+  box-shadow:0 24px 44px -22px #FF0000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] .studio-meta-chip.primary{color:#FF0000 !important}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-editor-toolbar button,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-word-tools button,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-sheet-bar button,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-pdf-toolbar button,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor #officeEditorSave,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor #officeEditorNew{
+  background:#FF0000 !important;
+  background-image:none !important;
+  border-color:#FF0000 !important;
+  color:#fff !important;
+  box-shadow:0 4px 0 #990000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-editor-toolbar button:hover:not(:disabled),
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-word-tools button:hover:not(:disabled),
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-sheet-bar button:hover:not(:disabled),
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-pdf-toolbar button:hover:not(:disabled){
+  background:#FF0000 !important;
+  border-color:#FF0000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-open-btn{
+  background:#FF0000 !important;
+  border-color:#FF0000 !important;
+  box-shadow:0 4px 0 #990000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-mode-btn.active{
+  background:#FF0000 !important;
+  border-color:#FF0000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-editor-badges span{
+  background:rgba(255,0,0,.10) !important;
+  color:#990000 !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-editor-toolbar,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-word-tools,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-sheet-bar,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-pdf-toolbar{
+  border-color:rgba(255,0,0,.22) !important;
+  background:rgba(255,0,0,.04) !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-status,
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-editor-status{
+  border-color:rgba(255,0,0,.22) !important;
+}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-sheet-tabs button{border-color:#FF0000 !important;color:#990000 !important}
+body[data-active-studio="tabOfficeEditor"] #tabOfficeEditor .office-sheet-tabs button.active{background:#FF0000 !important;color:#fff !important}
+</style>
+</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
   if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
@@ -5280,7 +5343,7 @@ body[data-active-studio] .module-panel.active .progress-bar-fill{
 .nav-bar .nav-btn[data-tab="tabRAGStudio"]{--c:#7C3AED;--c2:#C026D3;--cs:rgba(124,58,237,.14)}
 .nav-bar .nav-btn[data-tab="tabLanguageStudio"]{--c:#0F766E;--c2:#06B6D4;--cs:rgba(15,118,110,.14)}
 .nav-bar .nav-btn[data-tab="tabPdf"]{--c:#E11D48;--c2:#F97316;--cs:rgba(225,29,72,.14)}
-.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}nav-bar .nav-btn[data-tab="tabOfficeEditor"]{--c:#FF0000;--c2:#FF0000;--cs:rgba(255,0,0,.14)}
+.nav-bar .nav-btn[data-tab="tabWord"]{--c:#2563EB;--c2:#06B6D4;--cs:rgba(37,99,235,.14)}.nav-bar .nav-btn[data-tab="tabOfficeEditor"]{--c:#FF0000;--c2:#FF0000;--cs:rgba(255,0,0,.14)}
 .nav-bar .nav-btn[data-tab="tabEpub"]{--c:#8B5CF6;--c2:#EC4899;--cs:rgba(139,92,246,.14)}
 .nav-bar .nav-btn[data-tab="tabImages"]{--c:#F97316;--c2:#FACC15;--cs:rgba(249,115,22,.14)}
 .nav-bar .nav-btn[data-tab="tabOcr"]{--c:#059669;--c2:#84CC16;--cs:rgba(5,150,105,.14)}
