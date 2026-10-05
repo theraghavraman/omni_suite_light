@@ -6,7 +6,7 @@
 (()=>{"use strict";
 
 const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
-const VERSION="1.1.0";
+const VERSION="1.2.0";
 const MODEL_REGISTRY=Object.freeze({
   general:{label:"SmolLM2 135M",task:"text-generation",model:"onnx-community/SmolLM2-135M-Instruct-ONNX",dtype:"q4",role:"General browser AI"},
   embeddings:{label:"all-MiniLM-L6-v2",task:"feature-extraction",model:"Xenova/all-MiniLM-L6-v2",dtype:"q4",role:"Embeddings / semantic similarity"},
@@ -20,7 +20,7 @@ const MODEL_REGISTRY=Object.freeze({
   documentQa:{label:"Donut DocVQA",task:"document-question-answering",model:"Xenova/donut-base-finetuned-docvqa",dtype:"q4",role:"Document understanding"},
   ner:{label:"Multilingual NER",task:"token-classification",model:"Xenova/bert-base-multilingual-cased-ner-hrl",dtype:"q4",role:"Entity extraction"},
   depth:{label:"Depth Anything V2 Small",task:"depth-estimation",model:"onnx-community/depth-anything-v2-small",dtype:"q4",role:"Image depth"},
-  stronger:{label:"Qwen3 0.6B",task:"text-generation",model:"onnx-community/Qwen3-0.6B-Instruct-ONNX",dtype:"q4f16",role:"Stronger browser document AI"}
+  stronger:{label:"Qwen2.5 0.5B Instruct",task:"text-generation",model:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4",role:"Stronger browser document AI"}
 });
 const loaded=new Map(), loading=new Map();
 let transformers=null;
