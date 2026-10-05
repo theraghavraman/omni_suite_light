@@ -1619,6 +1619,15 @@
     const ocrOutputText = document.getElementById('ocrOutputText');
     const ocrCopyBtn = document.getElementById('ocrCopyBtn');
     const ocrDownloadTxtBtn = document.getElementById('ocrDownloadTxtBtn');
+    const ocrTranslatePanel = document.getElementById('ocrTranslatePanel');
+    const ocrTranslateSource = document.getElementById('ocrTranslateSource');
+    const ocrTranslateTarget = document.getElementById('ocrTranslateTarget');
+    const ocrTranslateBtn = document.getElementById('ocrTranslateBtn');
+    const ocrTranslateStatus = document.getElementById('ocrTranslateStatus');
+    const ocrTranslateOutput = document.getElementById('ocrTranslateOutput');
+    const ocrTranslateActions = document.getElementById('ocrTranslateActions');
+    const ocrTranslateCopyBtn = document.getElementById('ocrTranslateCopyBtn');
+    const ocrTranslateDownloadBtn = document.getElementById('ocrTranslateDownloadBtn');
 
     let currentOcrFile = null;
 
@@ -1633,6 +1642,10 @@
       ocrFileName.textContent = file.name;
       ocrFileMeta.textContent = formatFileSize(file.size);
       ocrOutputContainer.style.display = 'none';
+      if (ocrTranslatePanel) ocrTranslatePanel.style.display = 'none';
+      if (ocrTranslateOutput) { ocrTranslateOutput.value = ''; ocrTranslateOutput.style.display = 'none'; }
+      if (ocrTranslateActions) ocrTranslateActions.style.display = 'none';
+      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Run OCR first, then convert the extracted text language in the browser.';
     }
 
     ocrResetBtn.addEventListener('click', () => {
@@ -1641,6 +1654,9 @@
       ocrControls.style.display = 'none';
       ocrProgressWrapper.style.display = 'none';
       ocrOutputContainer.style.display = 'none';
+      if (ocrTranslatePanel) ocrTranslatePanel.style.display = 'none';
+      if (ocrTranslateOutput) { ocrTranslateOutput.value = ''; ocrTranslateOutput.style.display = 'none'; }
+      if (ocrTranslateActions) ocrTranslateActions.style.display = 'none';
       ocrInput.value = '';
     });
 
@@ -1666,6 +1682,13 @@
         ocrProgressWrapper.style.display = 'none';
         ocrOutputContainer.style.display = 'block';
         ocrOutputText.value = ret.data.text || 'No text recognized.';
+        if (ocrTranslatePanel && ocrOutputText.value.trim() && ocrOutputText.value !== 'No text recognized.') {
+          ocrTranslatePanel.style.display = 'block';
+          const ocrCode = document.getElementById('ocrLanguage')?.value || 'eng';
+          const sourceMap = {eng:'en',hin:'hi',deu:'de',fra:'fr',spa:'es',ita:'it',por:'pt',nld:'nl',tur:'tr',rus:'ru',ara:'ar',urd:'ur',jpn:'ja',kor:'ko',chi_sim:'zh',chi_tra:'zh',vie:'vi',ben:'bn',mar:'mr',nep:'ne',tam:'ta',tel:'te',mal:'ml',kan:'kn',guj:'gu',pan:'pa',ori:'or',sin:'si'};
+          if (sourceMap[ocrCode]) ocrTranslateSource.value = sourceMap[ocrCode];
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent = window.Translator ? 'Browser Translator detected. Choose a target language and convert.' : 'This browser does not expose the built-in Translator API. OCR remains fully browser-based; language conversion is unavailable here.';
+        }
       } catch (err) {
         alert('OCR error: ' + err.message);
         ocrProgressWrapper.style.display = 'none';
@@ -1684,6 +1707,78 @@
       }
       ocrCopyBtn.textContent = '✅ Copied!';
       setTimeout(() => ocrCopyBtn.textContent = '📋 Copy Text', 2000);
+    });
+
+    async function translateOcrText() {
+      if (!ocrOutputText?.value?.trim()) return;
+      if (!window.Translator || typeof window.Translator.create !== 'function') {
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Browser language conversion is not available in this browser. Try a current Chromium-based browser with the built-in Translator API enabled.';
+        return;
+      }
+      const source = ocrTranslateSource?.value || 'en';
+      const target = ocrTranslateTarget?.value || 'hi';
+      if (source === target) {
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Choose a different target language.';
+        return;
+      }
+      ocrTranslateBtn.disabled = true;
+      ocrTranslateOutput.style.display = 'none';
+      ocrTranslateActions.style.display = 'none';
+      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Checking browser translation support…';
+      let translator = null;
+      try {
+        if (typeof window.Translator.availability === 'function') {
+          const availability = await window.Translator.availability({sourceLanguage: source, targetLanguage: target});
+          if (availability === 'unavailable') {
+            throw new Error('This browser does not support translation for this language pair.');
+          }
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent =
+            availability === 'available' ? 'Translation model ready in browser.' : 'Browser is preparing the local translation model…';
+        }
+        translator = await window.Translator.create({
+          sourceLanguage: source,
+          targetLanguage: target,
+          monitor(monitor) {
+            if (!ocrTranslateStatus || !monitor?.addEventListener) return;
+            monitor.addEventListener('downloadprogress', e => {
+              const pct = Math.round((e.loaded || 0) * 100);
+              ocrTranslateStatus.textContent = 'Downloading browser translation model… ' + pct + '%';
+            });
+          }
+        });
+        const text = ocrOutputText.value.trim();
+        let translated = '';
+        if (typeof translator.translateStreaming === 'function' && text.length > 4000) {
+          const stream = translator.translateStreaming(text);
+          for await (const chunk of stream) translated += chunk;
+        } else {
+          translated = await translator.translate(text);
+        }
+        ocrTranslateOutput.value = translated || 'No translation returned.';
+        ocrTranslateOutput.style.display = 'block';
+        ocrTranslateActions.style.display = 'flex';
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Translated locally by the browser. The OCR text was not sent to a translation server.';
+      } catch (err) {
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Browser translation unavailable for this language pair: ' + (err?.message || err);
+      } finally {
+        try { if (translator?.destroy) translator.destroy(); } catch (e) {}
+        ocrTranslateBtn.disabled = false;
+      }
+    }
+
+    ocrTranslateBtn?.addEventListener('click', translateOcrText);
+    ocrTranslateCopyBtn?.addEventListener('click', async () => {
+      if (!ocrTranslateOutput?.value) return;
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(ocrTranslateOutput.value);
+      else { ocrTranslateOutput.focus(); ocrTranslateOutput.select(); document.execCommand('copy'); }
+      ocrTranslateCopyBtn.textContent = '✅ Copied!';
+      setTimeout(() => ocrTranslateCopyBtn.textContent = '📋 Copy Translation', 2000);
+    });
+    ocrTranslateDownloadBtn?.addEventListener('click', () => {
+      if (!ocrTranslateOutput?.value || !currentOcrFile) return;
+      const target = ocrTranslateTarget?.value || 'translated';
+      const blob = new Blob([ocrTranslateOutput.value], {type:'text/plain;charset=utf-8'});
+      downloadBlob(blob, `${currentOcrFile.name.replace(/\.[^/.]+$/, "")}_${target}_translated.txt`);
     });
 
     ocrDownloadTxtBtn.addEventListener('click', () => {
