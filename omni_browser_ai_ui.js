@@ -91,6 +91,30 @@ async function contextFor(panel){
  }
  return {text:visibleText(panel),meta:"Using visible Studio context."};
 }
+function pdfChunks(text,size=5200){
+ const clean=String(text||"").replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();
+ if(!clean)return [];
+ const pages=clean.split(/(?=PAGE \d+\n)/g).filter(Boolean);
+ const chunks=[];
+ pages.forEach(page=>{
+   if(page.length<=size){chunks.push(page);return;}
+   const paras=page.split(/\n\n+/).filter(Boolean);let cur="";
+   paras.forEach(p=>{if((cur+"\n\n"+p).length>size&&cur){chunks.push(cur);cur=p}else cur=cur?cur+"\n\n"+p:p});
+   if(cur)chunks.push(cur);
+ });
+ return chunks.length?chunks:[clean.slice(0,size)];
+}
+async function pdfGenerate(text,instruction){
+ const chunks=pdfChunks(text);
+ if(!chunks.length)throw new Error("The PDF contains no usable text.");
+ const perChunk=[];
+ for(let i=0;i<chunks.length;i++){
+   perChunk.push(await A().generate(instruction+"\n\nDOCUMENT SECTION "+(i+1)+" OF "+chunks.length+":\n"+chunks[i],{model:"stronger",maxInput:6000,maxNewTokens:180}));
+ }
+ if(perChunk.length===1)return perChunk[0];
+ const combined=perChunk.map((x,i)=>"SECTION "+(i+1)+" SUMMARY:\n"+x).join("\n\n");
+ return await A().generate(instruction+"\n\nCombine these section summaries into one final answer. Remove duplicates and preserve concrete facts.\n\n"+combined,{model:"stronger",maxInput:6200,maxNewTokens:240});
+}
 function imageUrl(file){return URL.createObjectURL(file)}
 function downloadBlob(blob,name){
  const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)
@@ -115,7 +139,7 @@ async function run(action,panel,ui){
    if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
    if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
    ui.status.textContent="Loading the isolated browser model… first use may take a moment.";
-   if(action.op==="summarize")result=await ai.summarize(text);
+   if(action.op==="summarize")result=await ai.summarize(text);\n   else if(action.op==="pdfGenerate")result=await pdfGenerate(text,action.prompt);
    else if(action.op==="generate")result=await ai.generate(action.prompt+"\n\nSTUDIO CONTEXT:\n"+text,{model:action.model||"general",maxNewTokens:220});
    else if(action.op==="embed"){const v=await ai.embed(text);result="Embedding generated locally.\nDimensions: "+v.length+"\nFirst values: "+v.slice(0,12).map(x=>x.toFixed(4)).join(", ")}
    else if(action.op==="caption"){const u=imageUrl(file);try{result=await ai.caption(u)}finally{URL.revokeObjectURL(u)}}
@@ -135,7 +159,7 @@ function actionDefs(panelId){
  const map={
   tabRAGStudio:[["Summarize","summarize"],["Explain","generate","Explain the following retrieved knowledge in clear, practical language."],["Semantic vector","embed"]],
   tabLanguageStudio:[["Explain task","generate","Explain this language task and suggest a clear next step."],["Rewrite","generate","Rewrite the following text clearly while preserving meaning."]],
-  tabPdf:[["Summarize PDF","summarize","","pdf"],["Explain","generate","Explain the following PDF content for a non-expert.","pdf"],["Key points","generate","Extract the most important facts from the following PDF content as a concise bullet list.","pdf"]],
+  tabPdf:[["Summarize PDF","pdfGenerate","Create a concise, factual summary of this PDF. Organize the answer with a short overview followed by the most important sections or facts. Use only information present in the PDF.","pdf"],["Explain","pdfGenerate","Explain this PDF content for a non-expert. Use short headings and bullets where useful. Do not invent information and do not repeat phrases.","pdf"],["Key points","pdfGenerate","Extract the most important facts from this PDF as concise bullet points. Include names, dates, roles, skills, numbers and other concrete details when present. Do not invent or repeat facts.","pdf"]],
   tabWord:[["Summarize","summarize"],["Rewrite","generate","Rewrite the following document text for clarity and professionalism."],["Key points","generate","Extract the key points from this document."]],
   tabEpub:[["Summarize","summarize"],["Themes","generate","Identify the major themes, ideas and recurring concepts in this book text."]],
   tabImages:[["Describe image","caption","image"],["Detect objects","detect","image"],["Remove background","background","image"],["Depth map","depth","image"]],
