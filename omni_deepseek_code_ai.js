@@ -87,7 +87,7 @@
     wrap.innerHTML='<div class="code-kicker">DEEPSEEK CODER • BROWSER AI</div>'+
       '<h3 style="margin:4px 0 6px">🤖 Explain with DeepSeek Coder 1.3B</h3>'+
       '<div class="sub">Optional browser-only AI. The model runs with WebGPU; your SQL/code is sent to the model runtime in this page, not to Omni Local Engine.</div>'+
-      '<div class="actions-bar" style="margin-top:12px"><button type="button" class="btn btn-primary omni-deepseek-run">✨ Explain in Browser</button><button type="button" class="btn btn-secondary omni-deepseek-clear">Clear</button></div>'+
+      '<div class="actions-bar" style="margin-top:12px"><button type="button" class="btn btn-primary omni-deepseek-run" data-omni-test="deepseek-explain">✨ Explain in Browser</button><button type="button" class="btn btn-secondary omni-deepseek-clear" data-omni-test="deepseek-clear">Clear</button></div>'+
       '<div class="omni-deepseek-status" aria-live="polite">Ready · model loads only when you click Explain</div>'+
       '<pre class="code-output omni-deepseek-output" style="white-space:pre-wrap;min-height:120px">AI explanation will appear here.</pre>';
     wrap.querySelector('.omni-deepseek-run').addEventListener('click',()=>{
