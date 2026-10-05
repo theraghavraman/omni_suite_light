@@ -117,7 +117,7 @@ async function pdfGenerate(text,instruction){
  const combined=perChunk.map((x,i)=>"SECTION "+(i+1)+" SUMMARY:"+NL+x).join(NL+NL);
  return await A().generate(instruction+NL+NL+"Combine these section summaries into one final answer. Remove duplicates and preserve concrete facts."+NL+NL+combined,{model:"summarizer",maxInput:2600,maxNewTokens:160});
 }
-function imageUrl(file){return URL.createObjectURL(file)}
+async function imageDataUrl(file){return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>reject(r.error||new Error("Could not read image"));r.readAsDataURL(file)})}
 function downloadBlob(blob,name){
  const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)
 }
@@ -140,21 +140,21 @@ async function run(action,panel,ui){
    if(action.kind==="image"&&!file)throw new Error("Choose an image in this Studio first.");
    if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
    if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
-   ui.status.textContent="Loading the isolated browser model… first use may take a moment.";
+   ui.status.textContent="Connecting to local AI…";
    if(action.op==="summarize")result=await ai.summarize(text);
    else if(action.op==="pdfGenerate")result=await pdfGenerate(text,action.prompt);
    else if(action.op==="generate")result=await ai.generate(action.prompt+"\n\nSTUDIO CONTEXT:\n"+text,{model:action.model||"general",maxNewTokens:220});
    else if(action.op==="embed"){const v=await ai.embed(text);result="Embedding generated locally.\nDimensions: "+v.length+"\nFirst values: "+v.slice(0,12).map(x=>x.toFixed(4)).join(", ")}
-   else if(action.op==="caption"){const u=imageUrl(file);try{result=await ai.caption(u)}finally{URL.revokeObjectURL(u)}}
-   else if(action.op==="detect"){const u=imageUrl(file);try{const d=await ai.detect(u);result=d.length?d.map(x=>x.label+" — "+(x.score*100).toFixed(1)+"%").join("\n"):"No confident objects detected."}finally{URL.revokeObjectURL(u)}}
+   else if(action.op==="caption"){const u=await imageDataUrl(file);result=await ai.caption(u)}
+   else if(action.op==="detect"){const u=await imageDataUrl(file);const d=await ai.detect(u);result=d.length?d.map(x=>x.label+" — "+(x.score*100).toFixed(1)+"%").join("\n"):"No confident objects detected."}
    else if(action.op==="background"){const u=imageUrl(file);try{const b=await ai.removeBackground(u);downloadBlob(b,"omni-background-removed.png");result="Background removed. PNG download started."}finally{URL.revokeObjectURL(u)}}
    else if(action.op==="depth"){const u=imageUrl(file);try{const d=await ai.depth(u);const b=d?.depth?.toBlob?await d.depth.toBlob():(d?.depth?.toCanvas?await new Promise(r=>d.depth.toCanvas().toBlob(r,"image/png")):null);if(b)downloadBlob(b,"omni-depth-map.png");result=b?"Depth map generated. PNG download started.":"Depth map generated, but this browser did not expose an image export method."}finally{URL.revokeObjectURL(u)}}
    else if(action.op==="asr"){const u=imageUrl(file);try{result=await ai.transcribe(u)}finally{URL.revokeObjectURL(u)}}
    else if(action.op==="tts"){const o=await ai.speak(text);const b=wavBlob(o.audio,o.sampling_rate||44100);downloadBlob(b,"omni-speech.wav");result="Speech generated. WAV download started."}
-   else if(action.op==="ocr"){const u=imageUrl(file);try{result=await ai.advancedOcr(u)}finally{URL.revokeObjectURL(u)}}
+   else if(action.op==="ocr"){const u=await imageDataUrl(file);result=await ai.advancedOcr(u)}
    else if(action.op==="ner"){const d=await ai.entities(text);result=d.length?d.map(x=>x.word+" — "+x.entity_group+" ("+(Number(x.score||0)*100).toFixed(1)+"%)").join("\n"):"No entities detected."}
-   else if(action.op==="docqa"){const q=window.prompt("Ask a question about the selected document image:","What is the main subject of this document?");if(!q)throw new Error("Document question cancelled.");const u=imageUrl(file);try{result=await ai.docQa(u,q)}finally{URL.revokeObjectURL(u)}}
-   ui.textarea.value=result;ui.status.className="omni-browser-ai-status ok";ui.status.textContent="Done · model cached in this browser. "+ctx.meta;
+   else if(action.op==="docqa"){const q=window.prompt("Ask a question about the selected document image:","What is the main subject of this document?");if(!q)throw new Error("Document question cancelled.");const u=await imageDataUrl(file);result=await ai.docQa(u,q)}
+   ui.textarea.value=result;ui.status.className="omni-browser-ai-status ok";const st=await ai.load();ui.status.textContent="Done · "+(st.provider||"local AI")+" / "+(st.model||"local model")+" · runs on this computer. "+ctx.meta;
  }catch(e){ui.textarea.value="";ui.status.className="omni-browser-ai-status err";ui.status.textContent="AI Assist failed: "+(e?.message||e)}
 }
 function actionDefs(panelId){
@@ -188,13 +188,13 @@ function add(panel){
  if(!panel||panel.querySelector(".omni-browser-ai"))return;
  const id=panel.id,actions=actionDefs(id);if(!actions.length)return;
  const card=document.createElement("section");card.className="omni-browser-ai";
- card.innerHTML=`<div class="omni-browser-ai-head"><div><div class="omni-browser-ai-title">✨ AI Assist <span>LAZY • BROWSER-LOCAL</span></div><div class="omni-browser-ai-sub">Models stay unloaded until you click an action. Loaded models are cached for reuse.</div></div><div class="omni-browser-ai-meta" id="omni-ai-meta-${id}">0 models loaded</div></div><div class="omni-browser-ai-actions"></div><div class="omni-browser-ai-output"><textarea readonly aria-label="Browser AI result"></textarea><div class="omni-browser-ai-status">Ready · no browser model loaded.</div></div>`;
+ card.innerHTML=`<div class="omni-browser-ai-head"><div><div class="omni-browser-ai-title">✨ AI Assist <span>LOCAL LLM • OLLAMA / LM STUDIO</span></div><div class="omni-browser-ai-sub">The browser never loads an AI model. Actions run through the local Python engine using Ollama or LM Studio.</div></div><div class="omni-browser-ai-meta" id="omni-ai-meta-${id}">0 models loaded</div></div><div class="omni-browser-ai-actions"></div><div class="omni-browser-ai-output"><textarea readonly aria-label="Browser AI result"></textarea><div class="omni-browser-ai-status">Ready · local AI is idle until you click an action.</div></div>`;
  const actionsEl=card.querySelector(".omni-browser-ai-actions"),out={out:card.querySelector(".omni-browser-ai-output"),textarea:card.querySelector("textarea"),status:card.querySelector(".omni-browser-ai-status")};
  actions.forEach(a=>{const b=document.createElement("button");b.type="button";b.textContent=a.label;b.onclick=async()=>{actionsEl.querySelectorAll("button").forEach(x=>x.disabled=true);try{await run(a,panel,out)}finally{actionsEl.querySelectorAll("button").forEach(x=>x.disabled=false);refreshMeta(card)}};actionsEl.appendChild(b)});
  panel.insertBefore(card,panel.firstElementChild);
 }
 function refreshMeta(card){
- const s=A()?.status?.();const m=card.querySelector(".omni-browser-ai-meta");if(m)m.textContent=(s?.runtime?.models_loaded||0)+" model"+((s?.runtime?.models_loaded||0)===1?"":"s")+" loaded";
+ const s=A()?.status?.();const m=card.querySelector(".omni-browser-ai-meta");if(m)m.textContent=s?.runtime?.provider&&s.runtime.provider!=="unknown"?(s.runtime.provider+" · "+(s.runtime.model||"local model")):"local AI not connected";
 }
 function init(){
  css();
