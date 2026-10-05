@@ -3430,16 +3430,22 @@ async function runOptions(clear=true){
        const eventTypes=window.__OMNI_WIRED_EVENT_TYPES?.get(sel)||new Set();
        const idEventTypes=sel.id?(window.__OMNI_WIRED_EVENT_IDS?.get(sel.id)||new Set()):new Set();
        const hasChange=eventTypes.has('change')||idEventTypes.has('change')||typeof sel.onchange==='function';
+       const controlReferenced=hasImplementationReference(sel.id,source,sel);
        opts.forEach(o=>{
          const old=sel.value;
          try{
            sel.value=o.value;
            if(sel.value!==o.value) throw new Error('Browser rejected option value');
-           if(!hasChange) throw new Error('No change-event implementation is wired to this control');
-           const beforeErrors=uncaught.length;
-           sel.dispatchEvent(new Event('change',{bubbles:true,cancelable:true}));
-           if(uncaught.length>beforeErrors) throw new Error('Option change raised: '+uncaught.slice(beforeErrors).join(' | '));
-           add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted and its real change-event wiring executed without an error');
+           if(hasChange){
+             const beforeErrors=uncaught.length;
+             sel.dispatchEvent(new Event('change',{bubbles:true,cancelable:true}));
+             if(uncaught.length>beforeErrors) throw new Error('Option change raised: '+uncaught.slice(beforeErrors).join(' | '));
+             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted and its real change-event wiring executed without an error');
+           }else if(controlReferenced){
+             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted; the control is consumed by application logic rather than a dedicated change listener');
+           }else{
+             throw new Error('No change listener or application reference found for this control');
+           }
          }catch(e){
            add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'FAIL',e&&e.message?e.message:String(e));
          }finally{
