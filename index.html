@@ -9,8 +9,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-  <script src="./omni_language_engine.js?v=2"></script>
-  <script src="./omni_language_studio.js?v=1"></script>
+  <script src="./omni_language_engine.js?v=3"></script>
+  <script src="./omni_language_browser.js?v=1"></script>
+  <script src="./omni_language_studio.js?v=2"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
   <script src="./vendor/sheetjs/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'"></script>
   <script src="./vendor/jsyaml/js-yaml.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js'"></script>
@@ -795,7 +796,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
         <div class="actions-bar">
           <button type="button" class="btn btn-primary" id="languageTranslateBtn">Translate</button>
         </div>
-        <div id="languageTranslateStatus" class="form-hint">Ready when the local language models are installed.</div>
+        <div id="languageTranslateStatus" class="form-hint">Browser Mini Model ready for Hindi ↔ English. First use downloads and caches the model in this browser; no translation API is used.</div>
         <textarea id="languageTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" readonly></textarea>
 
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid #e1e7f0;">
@@ -812,14 +813,14 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
           <div class="actions-bar">
             <button type="button" class="btn btn-secondary" id="languageTranslitBtn">Transliterate</button>
           </div>
-          <div id="languageTranslitStatus" class="form-hint">Ready when IndicXlit is installed locally.</div>
+          <div id="languageTranslitStatus" class="form-hint">IndicXlit transliteration remains an optional Local Engine feature.</div>
           <textarea id="languageTranslitOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" readonly></textarea>
         </div>
       </div>
 
       <div class="card">
         <h2>🛠️ Optional Model Setup</h2>
-        <div class="sub">The model files are intentionally not bundled into the normal GitHub source tree. Install the isolated language dependencies on the machine running Omni Local Engine, then materialize the model assets into <code>language-models/</code>.</div>
+        <div class="sub">Browser Mini Model: Hindi ↔ English is available directly in the GitHub Pages app through Transformers.js and is cached in the browser after the first download. Larger IndicTrans2 and IndicXlit models remain optional Local Engine assets.</div>
         <pre class="code-output">python -m venv .venv-language
 # Windows:
 .venv-language\Scripts\activate
