@@ -3381,7 +3381,7 @@ function hasImplementationReference(id,source,element){
  if(typeof element.onclick==='function')return true;
  if(window.__OMNI_WIRED_CONTROLS?.has(element))return true;
  if(id && window.__OMNI_WIRED_CONTROL_IDS?.has(id))return true;
- if(element.dataset.action || element.getAttribute('data-action'))return true;
+ if(element.dataset.action || element.getAttribute('data-action') || element.dataset.omniTest || element.getAttribute('data-omni-test'))return true;
  if(!id)return false;
  const direct=[
   'getElementById("'+id+'")',
