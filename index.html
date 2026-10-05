@@ -4336,6 +4336,13 @@ function setupPanel(p){
 function enter(id,button){
  document.body.classList.add('studio-mode');
  document.body.dataset.activeStudio=id;
+ const cs=getComputedStyle(button);
+ const accent=cs.getPropertyValue('--c').trim()||'#168C91';
+ const accent2=cs.getPropertyValue('--c2').trim()||accent;
+ const soft=cs.getPropertyValue('--cs').trim()||'rgba(22,140,145,.14)';
+ document.body.style.setProperty('--active-studio-accent',accent);
+ document.body.style.setProperty('--active-studio-accent-2',accent2);
+ document.body.style.setProperty('--active-studio-soft',soft);
  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b===button));
 }
 function init(){
@@ -4805,5 +4812,105 @@ header h1 span{
   header h1 span,.omni-wordmark-v3 strong,.omni-wordmark-v3 em,.omni-appbar-monogram{animation:none !important}
 }
 </style>
-</body>
+
+<style id="omni-active-studio-theme-v1">
+/* Active Studio Theme: every workspace inherits the selected studio's own accent. */
+body[data-active-studio]{
+  --studio-live:var(--active-studio-accent,#168C91);
+  --studio-live-2:var(--active-studio-accent-2,var(--studio-live));
+  --studio-live-soft:var(--active-studio-soft,rgba(22,140,145,.14));
+}
+body[data-active-studio] .studio-workspace-head{
+  background:linear-gradient(120deg,var(--studio-live),var(--studio-live-2)) !important;
+  box-shadow:0 24px 44px -22px var(--studio-live) !important;
+}
+body[data-active-studio] .studio-workspace-dot{background:#fff !important;box-shadow:0 0 0 5px rgba(255,255,255,.18) !important}
+body[data-active-studio] .studio-meta-chip.primary{
+  color:var(--studio-live) !important;
+}
+body[data-active-studio] .studio-overview,
+body[data-active-studio] .card{
+  border-top-color:color-mix(in srgb,var(--studio-live) 28%,transparent) !important;
+}
+body[data-active-studio] .card::before{
+  background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important;
+}
+body[data-active-studio] .card h2::before{
+  background:var(--studio-live) !important;
+}
+body[data-active-studio] .dropzone{
+  border-color:color-mix(in srgb,var(--studio-live) 42%,transparent) !important;
+  background:color-mix(in srgb,var(--studio-live) 5%,white) !important;
+}
+body[data-active-studio] .dropzone:hover,
+body[data-active-studio] .dropzone.dragover{
+  border-color:var(--studio-live) !important;
+  background:color-mix(in srgb,var(--studio-live) 10%,white) !important;
+  box-shadow:0 18px 36px color-mix(in srgb,var(--studio-live) 18%,transparent) !important;
+}
+body[data-active-studio] .dropzone-icon{
+  background:var(--studio-live) !important;
+  box-shadow:0 10px 22px color-mix(in srgb,var(--studio-live) 28%,transparent) !important;
+}
+body[data-active-studio] .btn,
+body[data-active-studio] .btn-primary,
+body[data-active-studio] .action-btn,
+body[data-active-studio] .omni-primary,
+body[data-active-studio] .omni-btn-primary,
+body[data-active-studio] .btn-success,
+body[data-active-studio] .clean-action{
+  background:var(--studio-live) !important;
+  border-color:var(--studio-live) !important;
+  color:#fff !important;
+  box-shadow:0 5px 0 color-mix(in srgb,var(--studio-live) 72%,#000) !important;
+}
+body[data-active-studio] .btn:hover,
+body[data-active-studio] .btn-primary:hover,
+body[data-active-studio] .action-btn:hover,
+body[data-active-studio] .omni-primary:hover,
+body[data-active-studio] .omni-btn-primary:hover,
+body[data-active-studio] .btn-success:hover,
+body[data-active-studio] .clean-action:hover{
+  background:var(--studio-live-2) !important;
+  border-color:var(--studio-live-2) !important;
+  box-shadow:0 2px 0 color-mix(in srgb,var(--studio-live-2) 72%,#000) !important;
+}
+body[data-active-studio] .btn-secondary,
+body[data-active-studio] .btn-reset{
+  color:var(--studio-live) !important;
+  border-color:color-mix(in srgb,var(--studio-live) 45%,transparent) !important;
+  background:color-mix(in srgb,var(--studio-live) 6%,white) !important;
+}
+body[data-active-studio] .btn-secondary:hover,
+body[data-active-studio] .btn-reset:hover{
+  background:var(--studio-live) !important;
+  border-color:var(--studio-live) !important;
+  color:#fff !important;
+}
+body[data-active-studio] .studio-tool-link{
+  border-color:color-mix(in srgb,var(--studio-live) 18%,transparent) !important;
+}
+body[data-active-studio] .studio-tool-link:hover{
+  background:color-mix(in srgb,var(--studio-live) 9%,white) !important;
+  color:var(--studio-live) !important;
+  border-color:color-mix(in srgb,var(--studio-live) 38%,transparent) !important;
+}
+body[data-active-studio] .module-panel.active .studio-overview{
+  box-shadow:0 16px 40px color-mix(in srgb,var(--studio-live) 10%,transparent) !important;
+}
+body[data-active-studio] .module-panel.active input:focus,
+body[data-active-studio] .module-panel.active select:focus,
+body[data-active-studio] .module-panel.active textarea:focus{
+  border-color:var(--studio-live) !important;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--studio-live) 14%,transparent) !important;
+}
+body[data-active-studio] .module-panel.active .progress-bar-fill{
+  background:linear-gradient(90deg,var(--studio-live),var(--studio-live-2)) !important;
+}
+@supports not (color:color-mix(in srgb,red,blue)){
+  body[data-active-studio] .dropzone{background:#fff !important}
+  body[data-active-studio] .btn-secondary{background:#fff !important}
+}
+</style>
+\n</body>
 </html>
