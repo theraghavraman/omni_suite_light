@@ -6,7 +6,7 @@
 const $=id=>document.getElementById(id);
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
 function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
-let db=null, embedder=null, generator=null, chunks=[], lastResults=[];
+let db=null, embedder=null, generator=null, chunks=[], lastResults=[], pendingFiles=[];
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
 const MODEL_LLM="onnx-community/gemma-3-270m-it-ONNX";
 const CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
@@ -93,7 +93,41 @@ async function extractFile(f){
 }
 async function indexText(text,source,meta={}){
  const parts=splitText(text);if(!parts.length)return 0;const out=[];for(let i=0;i<parts.length;i++){const c=parts[i];$("ragStatus").textContent=`Embedding ${i+1}/${parts.length} — ${source}`;out.push({id:source+"#"+i+"-"+hash(c),source,text:c,meta,index:i,vector:await embed(c)})}await putMany(out);chunks=await getAll();return out.length}
-async function addFiles(files){for(const f of files){try{const t=await extractFile(f);await indexText(t,f.name,{type:f.type,size:f.size});}catch(e){console.error(e);$("ragStatus").textContent="Could not index "+f.name+": "+e.message}}updateStats()}
+function renderPendingFiles(){
+ const box=$("ragSelectedFiles");if(!box)return;
+ if(!pendingFiles.length){box.innerHTML='<span>Nothing selected yet.</span>';return}
+ box.innerHTML=pendingFiles.map((f,i)=>'<div class="rag-item"><div><b>'+esc(f.name)+'</b><small>'+((f.size/1024/1024).toFixed(2))+' MB · '+(f.type||"unknown")+'</small></div><button type="button" class="btn btn-secondary" data-rag-remove="'+i+'" style="padding:5px 9px">Remove</button></div>').join("");
+ box.querySelectorAll("[data-rag-remove]").forEach(b=>b.onclick=()=>{pendingFiles.splice(Number(b.dataset.ragRemove),1);renderPendingFiles();updatePendingStatus()});
+}
+function updatePendingStatus(){
+ const el=$("ragFileStatus");if(!el)return;
+ el.textContent=pendingFiles.length?pendingFiles.length+" file"+(pendingFiles.length===1?"":"s")+" selected · ready to save or index":"Nothing selected yet.";
+}
+function queueFiles(files){
+ const existing=new Set(pendingFiles.map(f=>f.name+"|"+f.size+"|"+f.lastModified));
+ for(const f of files){const k=f.name+"|"+f.size+"|"+f.lastModified;if(!existing.has(k)){pendingFiles.push(f);existing.add(k)}}
+ renderPendingFiles();updatePendingStatus();
+ $("ragStatus").textContent=pendingFiles.length?"Files selected. Save to GitHub now, or click Prepare Semantic Search to index them locally.":"Ready — choose documents.";
+}
+async function indexPendingFiles(){
+ if(!pendingFiles.length){$("ragStatus").textContent="Choose files first.";return}
+ const files=[...pendingFiles];$("ragEmbed").disabled=true;
+ try{
+  await loadEmbedder();
+  for(let n=0;n<files.length;n++){
+   const f=files[n];
+   $("ragStatus").textContent="Reading "+(n+1)+"/"+files.length+" · "+f.name;
+   await new Promise(r=>requestAnimationFrame(r));
+   const t=await extractFile(f);
+   await new Promise(r=>requestAnimationFrame(r));
+   await indexText(t,f.name,{type:f.type,size:f.size});
+   await new Promise(r=>requestAnimationFrame(r));
+  }
+  chunks=await getAll();updateStats();
+  $("ragStatus").textContent="✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally.";
+ }catch(e){console.error(e);$("ragStatus").textContent="Could not index selected files: "+e.message}
+ finally{$("ragEmbed").disabled=false}
+}
 async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}
 function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
@@ -169,11 +203,11 @@ async function updateRepoStatus(){
 }
 function updateStats(){$("ragChunks").textContent=chunks.length;$("ragDocs").textContent=new Set(chunks.map(x=>x.source)).size;$("ragIndex").textContent=chunks.length?"Local IndexedDB":"Empty";updateRepoStatus()}
 function bind(){
- css();initRuntimeStatus();$("ragFiles").onchange=e=>addFiles([...e.target.files]);
- const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");addFiles([...e.dataTransfer.files])});
+ css();initRuntimeStatus();$("ragFiles").onchange=e=>queueFiles([...e.target.files]);
+ const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");queueFiles([...e.dataTransfer.files])});
  $("ragAsk").onclick=answer;$("ragQuery").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")answer()});
- $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{if(!e.target.checked)localStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
- $("ragEmbed").onclick=async()=>{try{await loadEmbedder();$("ragStatus").textContent="Semantic embedding model ready in this browser."}catch(e){$("ragStatus").textContent="Embedding model could not load: "+e.message}};
+ $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{if(!e.target.checked)localStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
+ $("ragEmbed").onclick=indexPendingFiles;
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }
 async function start(){await initDB();chunks=await getAll();updateStats();bind();$("ragStatus").textContent=chunks.length?"Local RAG index ready.":"Ready — add documents to create a private knowledge base."}
