@@ -42,8 +42,9 @@ async function load(key){
   if(!spec)throw new Error("Unknown browser AI model: "+key);
   const p=(async()=>{
     const m=await runtime();
-    const options={dtype:dtypeFor(spec)};
-    if(gpu() && ["general","caption","objects","depth","advancedOcr","stronger"].includes(key))options.device="webgpu";
+    const useGpu=gpu() && ["general","caption","objects","depth","advancedOcr","stronger"].includes(key);
+    const options={dtype:(key==="stronger" ? (useGpu?"q4f16":"q4") : dtypeFor(spec))};
+    if(useGpu)options.device="webgpu";
     const pipe=await m.pipeline(spec.task,spec.model,options);
     loaded.set(key,pipe);
     return pipe;
