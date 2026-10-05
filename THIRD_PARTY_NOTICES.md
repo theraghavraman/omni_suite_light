@@ -80,6 +80,6 @@ Current browser-AI model registry includes:
 - Donut DocVQA — model repository is Transformers.js-compatible.
 - Multilingual NER — model repository is Transformers.js-compatible.
 - Depth Anything V2 Small ONNX — Apache 2.0.
-- Qwen3 0.6B Instruct ONNX — Apache 2.0.
+- Qwen2.5 0.5B Instruct ONNX — Apache 2.0.
 
 Verify the upstream model repository/license before redistributing model weights. Omni Suite does not commit third-party model binaries to this repository.
