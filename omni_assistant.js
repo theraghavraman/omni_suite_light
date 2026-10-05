@@ -37,7 +37,31 @@ async function loadKnowledge(includePrivate=false){
  if(includePrivate&&!privateLoaded){privateLoaded=true;try{const db=await new Promise((res,rej)=>{const r=indexedDB.open("omni-private-rag-v1",2);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});if(db.objectStoreNames.contains("chunks")){const rows=await new Promise((res,rej)=>{const q=db.transaction("chunks","readonly").objectStore("chunks").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)});for(const x of rows)docs.push({source:"Private RAG: "+x.source,text:x.text,vector:x.vector,repo:x.meta?.repository,blobSha:x.meta?.blobSha})}if(db.objectStoreNames.contains("meta")){const m=await new Promise((res,rej)=>{const q=db.transaction("meta","readonly").objectStore("meta").get("repository");q.onsuccess=()=>res(q.result?.value||null);q.onerror=()=>rej(q.error)});if(m?.commitSha){const s=document.getElementById("omniAsStatus");if(s)s.title=`Repository indexed at commit ${m.commitSha.slice(0,7)}`;}}}catch(e){}}
 }
 function needsPrivateKnowledge(q){return /my document|my file|indexed|index|repository|repo|source code|implementation|codebase|commit|private rag/i.test(q)}
-async function retrieve(q){if(!docs.length)await loadKnowledge();if(!docs.length)return[];const candidates=docs.map(d=>({...d,lexical:lex(q,d.text)})).sort((a,b)=>b.lexical-a.lexical).slice(0,12);const strong=candidates.filter(x=>x.lexical>=0.12);if(candidates[0]?.lexical>=0.22||strong.length>=3)return strong.slice(0,6);const qv=await emb(q);return candidates.map(d=>({...d,score:d.vector?(0.78*cos(qv,d.vector)+0.22*d.lexical):0.22*d.lexical})).sort((a,b)=>b.score-a.score).slice(0,6)}
+async function retrieve(q){
+ if(!docs.length)await loadKnowledge();
+ if(!docs.length)return[];
+ const terms=(q.toLowerCase().match(/[a-z0-9_-]{2,}/g)||[]);
+ const topicBoost=d=>{
+   const t=String(d.text||"").toLowerCase(),s=String(d.source||"").toLowerCase();
+   let b=0;
+   if(/sql|database|query/.test(q.toLowerCase())&&(/database|sql|query|table|schema/.test(t+" "+s)))b+=0.18;
+   if(/program|coding|code|javascript|python/.test(q.toLowerCase())&&(/code|program|javascript|python|developer/.test(t+" "+s)))b+=0.18;
+   if(/universal data/.test(q.toLowerCase())&&/universal data|structured|semi-structured|unstructured/.test(t+" "+s))b+=0.22;
+   if(/pdf|powerpoint|ppt|word|excel/.test(q.toLowerCase())&&/office|pdf|powerpoint|word|excel/.test(t+" "+s))b+=0.15;
+   return b;
+ };
+ const lexicalRank=docs.map(d=>({...d,lexical:lex(q,d.text),topic:topicBoost(d)}))
+   .map(d=>({...d,score:d.lexical+d.topic}))
+   .sort((a,b)=>b.score-a.score);
+ const lexicalCandidates=lexicalRank.slice(0,48);
+ const qv=await emb(q);
+ const scored=lexicalCandidates.map(d=>{
+   const semantic=d.vector?cos(qv,d.vector):0;
+   return {...d,score:(0.62*d.score)+(0.38*semantic)};
+ }).sort((a,b)=>b.score-a.score);
+ const relevant=scored.filter(x=>x.lexical>=0.08||x.topic>0||x.score>=0.14);
+ return (relevant.length?relevant:scored).slice(0,8);
+}
 function intentAnswer(q){
  const s=q.toLowerCase().trim();
  const target=studioAction(s);
@@ -72,6 +96,8 @@ if(/pdf.*(powerpoint|ppt)|(?:powerpoint|ppt).*pdf/.test(s))return "For PDF ↔ P
 if(/how.*(file|document).*conversion|how.*conversion.*work|file conversion/.test(s))return "Omni Suite uses a browser-first conversion pipeline: it first tries a supported in-browser converter, keeps processing local where possible, and uses the Local Engine only when the browser cannot reliably perform the operation. The exact path depends on the file format and Studio." ;
 if(/what can omni|what does omni|what is omni suite/.test(s))return "Omni Suite is a browser-first workspace for file conversion, document processing, data work, media tools, diagnostics, and local/private workflows.";
 if(/what can (we|i) do with universal data|what.*universal data|universal data.*(do|support|handle)/.test(s))return "Universal Data Studio is for structured, semi-structured, unstructured and signal-style data. It can normalize CSV/TSV, JSON/NDJSON, GeoJSON, GPX and KML, inspect records and numeric fields, preview geospatial data and audio, visualize numeric series, export normalized data, and use the Local Engine when native or binary formats need heavier decoding.";
+if(/where can i (test|run)|where.*test.*sql|where.*run.*sql|test.*sql|sql.*test/.test(s))return "For SQL and database-related work, open Database Studio. It is the Omni Suite area intended for SQL/database workflows; use it for the SQL functionality exposed by the current browser/local implementation rather than assuming a connection to an external database.";
+if(/^(how to use programming|how.*programming|i want to do programming|i want.*program|need.*program|want.*code|how.*code)/.test(s))return "Use Code Studio for programming and code-oriented work. Open Code Studio to work with code utilities and supported programming/data-format workflows.";
 if(/privacy|private|secure|api key/.test(s))return "Omni Suite is designed browser-first. Private RAG keeps indexed chunks and vectors in this browser’s IndexedDB, and its optional local LLM receives retrieved context rather than your whole document. Fresh-browser AI model assets may still need to download.";
 if(/troubleshoot|not working|error|broken|failed/.test(s))return current?"You’re currently in "+current+". Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.":"Start with Diagnostics or System Doctor to check browser/engine capabilities; All Tests can run integrated checks and filter failed tests.";
 if(/current studio|where am i/.test(s))return current?"You are currently in "+current+".":"You’re currently at the Omni Suite overview.";return null}
