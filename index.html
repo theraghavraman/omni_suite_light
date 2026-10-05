@@ -40,7 +40,7 @@ button,input,select,textarea,a{-webkit-tap-highlight-color:transparent}
 button,.btn,.nav-btn{touch-action:manipulation}
 .container{width:100%;max-width:1220px;position:relative;z-index:2}
 /* ---------- OMNI SUITE cup-eye identity ---------- */
-.omni-brand-mark{display:flex;align-items:center;gap:18px;margin-bottom:18px;min-height:118px}
+.omni-cup-brand-mark{display:flex;align-items:center;gap:18px;margin-bottom:18px;min-height:118px}
 .omni-cup-eyes{display:flex;align-items:center;gap:12px;padding:8px 12px 4px;filter:drop-shadow(0 16px 18px rgba(116,72,18,.18))}
 .omni-cup{position:relative;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 50% 48%,#a95b20 0 54%,#c87932 55% 62%,#f7eee0 63% 75%,#fff 76% 100%);box-shadow:inset 0 3px 5px rgba(255,255,255,.8),inset 0 -5px 8px rgba(107,55,16,.2),0 7px 10px rgba(83,51,21,.18);border:3px solid #f7f2e9;transform:rotate(-7deg);}
 .omni-cup.right{transform:rotate(7deg)}
@@ -56,7 +56,7 @@ button,.btn,.nav-btn{touch-action:manipulation}
 .omni-brand-wordmark h1 .omni-word{color:var(--ink)}
 .omni-brand-wordmark h1 .suite-word{background:linear-gradient(110deg,#ff8a3d,#ffb51b 48%,#ff4f9a);-webkit-background-clip:text;background-clip:text;color:transparent}
 .omni-brand-wordmark .omni-tagline{font-size:.86rem;font-weight:850;letter-spacing:.055em;color:#7a5534;text-transform:uppercase}
-@media(max-width:760px){.omni-brand-mark{gap:10px;align-items:flex-start}.omni-cup-eyes{gap:7px;padding-left:0;transform:scale(.78);transform-origin:left center;width:128px}.omni-brand-wordmark h1{font-size:clamp(2.2rem,12vw,3.4rem)}.omni-brand-wordmark .omni-tagline{font-size:.68rem}.omni-face-smile{bottom:-25px}}
+@media(max-width:760px){.omni-cup-brand-mark{gap:10px;align-items:flex-start}.omni-cup-eyes{gap:7px;padding-left:0;transform:scale(.78);transform-origin:left center;width:128px}.omni-brand-wordmark h1{font-size:clamp(2.2rem,12vw,3.4rem)}.omni-brand-wordmark .omni-tagline{font-size:.68rem}.omni-face-smile{bottom:-25px}}
 
 
 /* ---------- ambient background ---------- */
@@ -326,8 +326,8 @@ footer{margin-top:44px;padding:20px;text-align:center;color:var(--mute);font-siz
 /* --- top app bar (kept, restyled) --- */
 .omni-appbar{position:sticky;top:0;z-index:200;width:100%;display:flex;align-items:center;gap:18px;padding:10px clamp(14px,2.4vw,34px);background:rgba(255,255,255,.82);border-bottom:1px solid #fff;box-shadow:0 14px 34px -22px rgba(88,70,200,.5);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);box-sizing:border-box}
 .omni-brand,.omni-brand-button{display:flex;align-items:center;gap:11px;background:none;border:0;cursor:pointer;text-align:left;color:inherit;padding:0}
-.omni-brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:1.05rem;background:var(--grad);box-shadow:0 10px 20px -8px rgba(255,79,154,.7);transition:transform .45s var(--spring)}
-.omni-brand-button:hover .omni-brand-mark{transform:rotate(-12deg) scale(1.08)}
+.omni-cup-brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:1.05rem;background:var(--grad);box-shadow:0 10px 20px -8px rgba(255,79,154,.7);transition:transform .45s var(--spring)}
+.omni-brand-button:hover .omni-cup-brand-mark{transform:rotate(-12deg) scale(1.08)}
 .omni-brand-copy{display:flex;flex-direction:column;line-height:1.15}
 .omni-brand-copy strong{font-size:.92rem;font-weight:900;letter-spacing:.06em;color:var(--ink)}
 .omni-brand-copy span{font-size:.62rem;font-weight:700;letter-spacing:.08em;color:var(--mute)}
@@ -508,10 +508,19 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
 .omni-command-footer span{display:inline-flex;align-items:center;gap:5px}.omni-command-footer kbd{padding:2px 5px;border:1px solid #dcd9ef;border-radius:5px;background:#fff;font:700 .6rem ui-monospace,Menlo,monospace;color:#626681}
 @media(max-width:920px){.omni-command{display:flex;max-width:none}.omni-top-actions{display:none}}
 @media(max-width:640px){.omni-appbar{gap:9px;padding:9px 12px}.omni-command{padding:6px 9px}.omni-command-copy span,.omni-command kbd{display:none}.omni-command-copy b{font-size:.72rem}.omni-command-backdrop{padding:64px 10px 16px}.omni-command-panel{border-radius:19px}}
+
+<style id="omni-appbar-cup-eyes-style">
+.omni-appbar-cup-eyes{display:inline-flex;align-items:center;gap:3px;width:43px;height:29px;flex:0 0 43px}
+.omni-mini-cup{position:relative;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 50% 50%,#b96422 0 55%,#f7eee0 57% 72%,#fff 74%);border:1px solid rgba(99,53,22,.18);box-shadow:inset 0 1px 2px rgba(255,255,255,.9),0 3px 5px rgba(72,42,18,.16);transform:rotate(-8deg)}
+.omni-mini-cup.right{transform:rotate(8deg)}
+.omni-mini-cup::after{content:"";position:absolute;width:8px;height:8px;border:2px solid #f5eee2;border-left-color:transparent;border-radius:50%;top:5px;right:-6px;z-index:-1}
+.omni-mini-cup.right::after{left:-6px;right:auto}
+@media(max-width:640px){.omni-appbar-cup-eyes{width:38px;flex-basis:38px;gap:2px}.omni-mini-cup{width:18px;height:18px}}
+</style>
 </style>
 </head>
 <body>
-<div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-brand-mark">O</span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
+<div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-appbar-cup-eyes" aria-hidden="true"><span class="omni-mini-cup"></span><span class="omni-mini-cup right"></span></span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
   
 <div class="omni-command-backdrop" id="omniCommandBackdrop" aria-hidden="true">
   <div class="omni-command-panel" role="dialog" aria-modal="true" aria-labelledby="omniCommandTitle">
@@ -529,7 +538,7 @@ body{padding:0 0 56px}.container{max-width:1320px;padding:22px 16px 0}
   <div class="container">
     <header class="hero-header">
       <div class="hero-copy">
-        <div class="omni-brand-mark" aria-label="Omni Suite logo">
+        <div class="omni-cup-brand-mark" aria-label="Omni Suite logo">
           <div class="omni-cup-eyes" aria-hidden="true">
             <div class="omni-cup"><span class="omni-face-brow"></span><span class="omni-cup-highlight"></span></div>
             <div class="omni-cup right"><span class="omni-face-brow"></span><span class="omni-cup-highlight"></span></div>
