@@ -1628,6 +1628,12 @@
     const ocrTranslateActions = document.getElementById('ocrTranslateActions');
     const ocrTranslateCopyBtn = document.getElementById('ocrTranslateCopyBtn');
     const ocrTranslateDownloadBtn = document.getElementById('ocrTranslateDownloadBtn');
+    const ocrTranslitBtn = document.getElementById('ocrTranslitBtn');
+    const ocrTranslitStatus = document.getElementById('ocrTranslitStatus');
+    const ocrTranslitOutput = document.getElementById('ocrTranslitOutput');
+    const ocrTranslitActions = document.getElementById('ocrTranslitActions');
+    const ocrTranslitCopyBtn = document.getElementById('ocrTranslitCopyBtn');
+    const ocrTranslitDownloadBtn = document.getElementById('ocrTranslitDownloadBtn');
 
     let currentOcrFile = null;
 
@@ -1645,7 +1651,10 @@
       if (ocrTranslatePanel) ocrTranslatePanel.style.display = 'none';
       if (ocrTranslateOutput) { ocrTranslateOutput.value = ''; ocrTranslateOutput.style.display = 'none'; }
       if (ocrTranslateActions) ocrTranslateActions.style.display = 'none';
-      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Run OCR first, then convert the extracted text language in the browser.';
+      if (ocrTranslitOutput) { ocrTranslitOutput.value = ''; ocrTranslitOutput.style.display = 'none'; }
+      if (ocrTranslitActions) ocrTranslitActions.style.display = 'none';
+      if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Run OCR first, then use the isolated language model.';
+      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Run OCR first, then use the isolated Omni Language Engine.';
     }
 
     ocrResetBtn.addEventListener('click', () => {
@@ -1657,6 +1666,8 @@
       if (ocrTranslatePanel) ocrTranslatePanel.style.display = 'none';
       if (ocrTranslateOutput) { ocrTranslateOutput.value = ''; ocrTranslateOutput.style.display = 'none'; }
       if (ocrTranslateActions) ocrTranslateActions.style.display = 'none';
+      if (ocrTranslitOutput) { ocrTranslitOutput.value = ''; ocrTranslitOutput.style.display = 'none'; }
+      if (ocrTranslitActions) ocrTranslitActions.style.display = 'none';
       ocrInput.value = '';
     });
 
@@ -1685,9 +1696,10 @@
         if (ocrTranslatePanel && ocrOutputText.value.trim() && ocrOutputText.value !== 'No text recognized.') {
           ocrTranslatePanel.style.display = 'block';
           const ocrCode = document.getElementById('ocrLanguage')?.value || 'eng';
-          const sourceMap = {eng:'en',hin:'hi',deu:'de',fra:'fr',spa:'es',ita:'it',por:'pt',nld:'nl',tur:'tr',rus:'ru',ara:'ar',urd:'ur',jpn:'ja',kor:'ko',chi_sim:'zh',chi_tra:'zh',vie:'vi',ben:'bn',mar:'mr',nep:'ne',tam:'ta',tel:'te',mal:'ml',kan:'kn',guj:'gu',pan:'pa',ori:'or',sin:'si'};
-          if (sourceMap[ocrCode]) ocrTranslateSource.value = sourceMap[ocrCode];
-          if (ocrTranslateStatus) ocrTranslateStatus.textContent = window.Translator ? 'Browser Translator detected. Choose a target language and convert.' : 'This browser does not expose the built-in Translator API. OCR remains fully browser-based; language conversion is unavailable here.';
+          const sourceMap = {eng:'en',hin:'hi',ben:'bn',mar:'mr',tam:'ta',tel:'te',mal:'ml',kan:'kn',guj:'gu',pan:'pa',ori:'or',sin:'si',nep:'ne',urd:'ur',asm:'asm',brx:'brx'};
+          if (sourceMap[ocrCode] && ocrTranslateSource) ocrTranslateSource.value = sourceMap[ocrCode];
+          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Ready. Translation uses the separate Omni Language Engine; no web fallback is enabled.';
+          if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Ready. Transliteration uses the separate Omni Language Engine.';
         }
       } catch (err) {
         alert('OCR error: ' + err.message);
@@ -1709,142 +1721,68 @@
       setTimeout(() => ocrCopyBtn.textContent = '📋 Copy Text', 2000);
     });
 
-    function splitWebTranslationText(text, maxLen=450) {
-      const normalized = String(text || '').replace(/\\r\\n/g, '\\n').trim();
-      if (!normalized) return [];
-      const parts = normalized.split(/(?<=[.!?।॥！？])\\s+|\\n+/).map(x => x.trim()).filter(Boolean);
-      const chunks = [];
-      let current = '';
-      for (const part of parts) {
-        if (part.length > maxLen) {
-          if (current) { chunks.push(current); current = ''; }
-          for (let i = 0; i < part.length; i += maxLen) chunks.push(part.slice(i, i + maxLen));
-        } else if (!current) {
-          current = part;
-        } else if ((current.length + 1 + part.length) <= maxLen) {
-          current += ' ' + part;
-        } else {
-          chunks.push(current);
-          current = part;
-        }
-      }
-      if (current) chunks.push(current);
-      return chunks;
-    }
-
-    async function translateOcrViaWebFallback(text, source, target) {
-      const chunks = splitWebTranslationText(text);
-      if (!chunks.length) return '';
-      const translated = [];
-      for (let i = 0; i < chunks.length; i++) {
-        if (ocrTranslateStatus) ocrTranslateStatus.textContent =
-          'Using web fallback… translating part ' + (i + 1) + ' of ' + chunks.length + '…';
-        const url = 'https://api.mymemory.translated.net/get?q=' +
-          encodeURIComponent(chunks[i]) + '&langpair=' + encodeURIComponent(source + '|' + target);
-        const response = await fetch(url, {method:'GET', mode:'cors', cache:'no-store'});
-        if (!response.ok) throw new Error('Web translation service returned HTTP ' + response.status + '.');
-        const data = await response.json();
-        const result = data?.responseData?.translatedText ||
-          data?.matches?.find(m => m?.translation)?.translation || '';
-        if (!result || /MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(result)) {
-          throw new Error(data?.responseDetails || 'The web translation service returned no usable translation.');
-        }
-        translated.push(result);
-      }
-      return translated.join('\\n');
-    }
-
     async function translateOcrText() {
       if (!ocrOutputText?.value?.trim()) return;
-      if (!window.Translator || typeof window.Translator.create !== 'function') {
-        const useWebFallback = window.confirm(
-          'This browser does not expose the built-in local Translator API.\\n\\nUse the optional web translation fallback? Your extracted OCR text will be sent to the translation service.\\n\\nChoose Cancel to keep the text entirely local.'
-        );
-        if (!useWebFallback) {
-          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Local browser translation is unavailable here. No text was uploaded.';
-          return;
-        }
-        ocrTranslateBtn.disabled = true;
-        ocrTranslateOutput.style.display = 'none';
-        ocrTranslateActions.style.display = 'none';
-        try {
-          const translated = await translateOcrViaWebFallback(ocrOutputText.value.trim(), ocrTranslateSource?.value || 'en', ocrTranslateTarget?.value || 'hi');
-          ocrTranslateOutput.value = translated || 'No translation returned.';
-          ocrTranslateOutput.style.display = 'block';
-          ocrTranslateActions.style.display = 'flex';
-          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Translated using the optional web fallback. The OCR text left this browser for translation.';
-        } catch (err) {
-          if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Web translation failed: ' + (err?.message || err);
-        } finally {
-          ocrTranslateBtn.disabled = false;
-        }
-        return;
-      }
       const source = ocrTranslateSource?.value || 'en';
       const target = ocrTranslateTarget?.value || 'hi';
       if (source === target) {
         if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Choose a different target language.';
         return;
       }
+      if (!window.OmniLanguageEngine) {
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Omni Language Engine is not loaded.';
+        return;
+      }
       ocrTranslateBtn.disabled = true;
       ocrTranslateOutput.style.display = 'none';
       ocrTranslateActions.style.display = 'none';
-      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Checking browser translation support…';
-      let translator = null;
+      if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Loading the isolated language model…';
       try {
-        if (typeof window.Translator.availability === 'function') {
-          const availability = await window.Translator.availability({sourceLanguage: source, targetLanguage: target});
-          if (availability === 'unavailable') {
-            const useWebFallback = window.confirm(
-              'This browser does not provide a local Translator model for ' +
-              source.toUpperCase() + ' → ' + target.toUpperCase() +
-              '.\\n\\nUse the optional web translation fallback? Your extracted OCR text will be sent to the translation service.\\n\\nChoose Cancel to keep the text entirely local.'
-            );
-            if (useWebFallback) {
-              const translated = await translateOcrViaWebFallback(ocrOutputText.value.trim(), source, target);
-              ocrTranslateOutput.value = translated || 'No translation returned.';
-              ocrTranslateOutput.style.display = 'block';
-              ocrTranslateActions.style.display = 'flex';
-              if (ocrTranslateStatus) ocrTranslateStatus.textContent =
-                'Translated using the optional web fallback. The OCR text left this browser for translation.';
-            }
-            return;
-          }
-          if (ocrTranslateStatus) ocrTranslateStatus.textContent =
-            availability === 'available' ? 'Translation model ready in browser.' : 'Browser is preparing the local translation model…';
-        }
-        translator = await window.Translator.create({
-          sourceLanguage: source,
-          targetLanguage: target,
-          monitor(monitor) {
-            if (!ocrTranslateStatus || !monitor?.addEventListener) return;
-            monitor.addEventListener('downloadprogress', e => {
-              const pct = Math.round((e.loaded || 0) * 100);
-              ocrTranslateStatus.textContent = 'Downloading browser translation model… ' + pct + '%';
-            });
-          }
-        });
-        const text = ocrOutputText.value.trim();
-        let translated = '';
-        if (typeof translator.translateStreaming === 'function' && text.length > 4000) {
-          const stream = translator.translateStreaming(text);
-          for await (const chunk of stream) translated += chunk;
-        } else {
-          translated = await translator.translate(text);
-        }
-        ocrTranslateOutput.value = translated || 'No translation returned.';
+        const result = await window.OmniLanguageEngine.translate(ocrOutputText.value.trim(), source, target, {max_new_tokens:512});
+        ocrTranslateOutput.value = result?.text || 'No translation returned.';
         ocrTranslateOutput.style.display = 'block';
         ocrTranslateActions.style.display = 'flex';
-        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Translated locally by the browser. The OCR text was not sent to a translation server.';
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Translated by ' + (result?.model || 'Omni Language Engine') + ' • provider: ' + (result?.provider || 'local') + ' • isolated from Assistant/RAG.';
       } catch (err) {
-        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Browser translation unavailable for this language pair: ' + (err?.message || err);
-      } finally {
-        try { if (translator?.destroy) translator.destroy(); } catch (e) {}
-        ocrTranslateBtn.disabled = false;
+        if (ocrTranslateStatus) ocrTranslateStatus.textContent = 'Language model unavailable: ' + (err?.message || err);
+      } finally { ocrTranslateBtn.disabled = false; }
+    }
+
+    async function transliterateOcrText() {
+      if (!ocrOutputText?.value?.trim()) return;
+      if (!window.OmniLanguageEngine) {
+        if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Omni Language Engine is not loaded.';
+        return;
       }
+      const source = ocrTranslateSource?.value || 'hi';
+      const target = document.getElementById('ocrTranslitTarget')?.value || 'Latn';
+      ocrTranslitBtn.disabled = true;
+      ocrTranslitOutput.style.display = 'none';
+      ocrTranslitActions.style.display = 'none';
+      if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Loading the isolated transliteration model…';
+      try {
+        const result = await window.OmniLanguageEngine.transliterate(ocrOutputText.value.trim(), source, target, {topk:4});
+        ocrTranslitOutput.value = result?.text || 'No transliteration returned.';
+        ocrTranslitOutput.style.display = 'block';
+        ocrTranslitActions.style.display = 'flex';
+        if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Transliterated by ' + (result?.model || 'Omni Language Engine') + ' • provider: ' + (result?.provider || 'local') + ' • isolated from Assistant/RAG.';
+      } catch (err) {
+        if (ocrTranslitStatus) ocrTranslitStatus.textContent = 'Transliteration model unavailable: ' + (err?.message || err);
+      } finally { ocrTranslitBtn.disabled = false; }
     }
 
     ocrTranslateBtn?.addEventListener('click', translateOcrText);
+    ocrTranslitBtn?.addEventListener('click', transliterateOcrText);
+    ocrTranslitCopyBtn?.addEventListener('click', async () => {
+      if (!ocrTranslitOutput?.value) return;
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(ocrTranslitOutput.value);
+      else { ocrTranslitOutput.focus(); ocrTranslitOutput.select(); document.execCommand('copy'); }
+      ocrTranslitCopyBtn.textContent = '✅ Copied!';
+      setTimeout(() => ocrTranslitCopyBtn.textContent = '📋 Copy Transliteration', 2000);
+    });
+    ocrTranslitDownloadBtn?.addEventListener('click', () => {
+      omniDownload(new Blob([ocrTranslitOutput?.value || ''], {type:'text/plain;charset=utf-8'}), 'ocr-transliteration.txt');
+    });
     ocrTranslateCopyBtn?.addEventListener('click', async () => {
       if (!ocrTranslateOutput?.value) return;
       if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(ocrTranslateOutput.value);
