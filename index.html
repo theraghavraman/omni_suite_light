@@ -8,6 +8,29 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <title>OmniConverter Studio - Universal File & Data Engineering Suite</title>
+<script id="omni-boot-guard-early">
+(function(){
+  window.__OMNI_BUILD_ID='pages-redeploy-20261006-01';
+  window.__OMNI_BOOT_ERROR=null;
+  window.__OMNI_BOOT_ERRORS=[];
+  function capture(msg,filename,lineno,colno,stack){
+    var detail=String(msg||'Unknown JavaScript error');
+    if(filename) detail+=' @ '+filename+':'+(lineno||'?')+':'+(colno||'?');
+    if(stack && !detail.includes(stack)) detail+='\n'+stack;
+    window.__OMNI_BOOT_ERROR=detail;
+    window.__OMNI_BOOT_ERRORS.push(detail);
+    if(window.__OMNI_BOOT_ERRORS.length>8) window.__OMNI_BOOT_ERRORS.shift();
+    console.error('[Omni boot]',detail);
+  }
+  window.addEventListener('error',function(e){
+    capture((e&&e.error&&e.error.stack)|| (e&&e.message),e&&e.filename,e&&e.lineno,e&&e.colno,e&&e.error&&e.error.stack);
+  },true);
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e&&e.reason;
+    capture(r&&(r.stack||r.message)||String(r||'Unhandled promise rejection'),'promise',0,0,r&&r.stack);
+  });
+})();
+</script>
   <!-- Core Engines with Offline Fallbacks -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -2943,27 +2966,6 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
     </footer>
   </div>
 
-  <script id="omni-boot-guard">
-    /* Captures failures that happen before the main core can mark itself ready. */
-    window.__OMNI_BUILD_ID = 'pages-redeploy-20261006-01';
-    window.__OMNI_BOOT_ERROR = null;
-    window.__OMNI_BOOT_ERRORS = [];
-    window.addEventListener('error', function (e) {
-      var msg = (e && (e.error && e.error.stack || e.message)) || 'Unknown JavaScript error';
-      window.__OMNI_BOOT_ERROR = String(msg);
-      window.__OMNI_BOOT_ERRORS.push(String(msg));
-      if (window.__OMNI_BOOT_ERRORS.length > 5) window.__OMNI_BOOT_ERRORS.shift();
-      console.error('[Omni boot]', msg, e && e.filename, e && e.lineno);
-    });
-    window.addEventListener('unhandledrejection', function (e) {
-      var reason = e && e.reason;
-      var msg = reason && (reason.stack || reason.message) || String(reason || 'Unhandled promise rejection');
-      window.__OMNI_BOOT_ERROR = String(msg);
-      window.__OMNI_BOOT_ERRORS.push(String(msg));
-      if (window.__OMNI_BOOT_ERRORS.length > 5) window.__OMNI_BOOT_ERRORS.shift();
-      console.error('[Omni boot rejection]', msg);
-    });
-  </script>
 
   <script id="omni-event-wiring-probe">
 (function(){
