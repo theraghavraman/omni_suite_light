@@ -13,8 +13,9 @@
         'Local Engine: '+(s.local?'detected':'not running'),
         'Translation models: '+(caps.translation?.join(', ')||'not installed'),
         'Transliteration model: '+(caps.transliteration?.join(', ')||'not installed'),
-        'Browser adapter: '+(s.browser_adapter?'available':'not configured'),
-        'Network translation fallback: disabled'
+        'Browser mini model: '+(s.browser?.supported_pairs?.join(', ')||'not configured'),
+        'Browser cache: '+(s.browser?.cache||'not configured'),
+        'Network translation API: disabled'
       ].join('\n'));
     }catch(e){setStatus('languageEngineStatus','Status error: '+(e.message||e));}
   }
@@ -23,7 +24,7 @@
     if(!input){setStatus('languageTranslateStatus','Enter text first.');return;}
     const btn=$('languageTranslateBtn');btn.disabled=true;
     $('languageTranslateOutput').style.display='none';
-    setStatus('languageTranslateStatus','Running the isolated translation model locally…');
+    setStatus('languageTranslateStatus','Loading the isolated browser mini model… first use may take a moment while it is cached.');
     try{
       const r=await window.OmniLanguageEngine.translate(input,$('languageSource').value,$('languageTarget').value,{max_new_tokens:512});
       $('languageTranslateOutput').value=r.text||'';
@@ -50,6 +51,15 @@
     $('languageRefreshStatus')?.addEventListener('click',refresh);
     $('languageTranslateBtn')?.addEventListener('click',translate);
     $('languageTranslitBtn')?.addEventListener('click',transliterate);
+    const supported = new Set(['en','hi']);
+    ['languageSource','languageTarget'].forEach(id=>{
+      const select=$(id);
+      if(!select)return;
+      [...select.options].forEach(o=>{
+        o.disabled=!supported.has(o.value);
+        if(o.disabled)o.title='Browser Mini Model supports Hindi ↔ English. Use Local Engine for this language.';
+      });
+    });
     refresh();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
