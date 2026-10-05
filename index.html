@@ -4236,17 +4236,17 @@ function cleanRowsFromObjects(value){
   return {headers,rows:arr.map(x=>headers.map(h=>x?.[h]??''))};
 }
 async function readCleanData(file){
-  const name=file.name.toLowerCase(),ext=ext(name);
-  if(['csv','tsv','txt'].includes(ext)){
-    const text=await file.text(),parsed=cleanCsv(text,ext==='tsv'?'\t':',');
+  const name=file.name.toLowerCase(),extension=name.includes('.')?name.split('.').pop():'';
+  if(['csv','tsv','txt'].includes(extension)){
+    const text=await file.text(),parsed=cleanCsv(text,extension==='tsv'?'\t':',');
     return {headers:(parsed[0]||[]).map(String),rows:parsed.slice(1)};
   }
-  if(['json','jsonl','ndjson'].includes(ext)){
+  if(['json','jsonl','ndjson'].includes(extension)){
     const text=await file.text();
-    if(ext==='jsonl'||ext==='ndjson')return cleanRowsFromObjects(text.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)));
+    if(extension==='jsonl'||extension==='ndjson')return cleanRowsFromObjects(text.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)));
     return cleanRowsFromObjects(JSON.parse(text));
   }
-  if(['xlsx','xls','xlsb','ods'].includes(ext)){
+  if(['xlsx','xls','xlsb','ods'].includes(extension)){
     if(!window.XLSX)throw new Error('Spreadsheet engine is unavailable in browser.');
     const wb=window.XLSX.read(await file.arrayBuffer(),{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
