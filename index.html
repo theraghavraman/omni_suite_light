@@ -1093,6 +1093,54 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 @media(prefers-reduced-motion:reduce){
   .hero-render,.render-grid,.render-orbit,.render-glow,.render-window,.float-chip,.hero-metrics .metric-pill{animation:none!important}
 }
+</style><style id="omni-hero-visibility-hotfix">
+/* Keep the hero visual present even when browser motion policies suppress animations. */
+.hero-render{
+  opacity:1 !important;
+  visibility:visible !important;
+  transform:translate3d(0,0,0) !important;
+  isolation:isolate !important;
+  display:block !important;
+  position:relative !important;
+}
+.hero-render::after{
+  content:"OMNI  •  LOCAL-FIRST";
+  position:absolute;
+  top:18px;
+  right:20px;
+  z-index:4;
+  padding:7px 10px;
+  border:1px solid rgba(27,42,73,.12);
+  border-radius:999px;
+  background:rgba(255,255,255,.82);
+  color:#1B2A49;
+  font:700 .58rem/1 "Fira Code",ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+.hero-render .render-window{
+  opacity:1 !important;
+  visibility:visible !important;
+  z-index:3 !important;
+}
+.hero-render .render-grid,.hero-render .render-orbit,.hero-render .render-glow,
+.hero-render .render-window,.hero-render .float-chip{
+  will-change:transform;
+}
+.hero-render .render-window{
+  border:1px solid rgba(27,42,73,.16) !important;
+  background:#fffdf8 !important;
+}
+.hero-render .window-body{
+  background:linear-gradient(135deg,#fffdf8,#fff4e6) !important;
+}
+.hero-render .render-status{
+  background:#1B2A49 !important;
+  color:#fff !important;
+}
+.hero-render .status-light{background:#F0651A !important;box-shadow:0 0 0 5px rgba(240,101,26,.14)!important}
+@media(max-width:900px){
+  .hero-render{margin-top:8px!important}
+}
 </style>
 </head>
 <body>
