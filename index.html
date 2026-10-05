@@ -3416,6 +3416,7 @@ async function runStructure(clear=true){
 }
 async function runOptions(clear=true){
  if(clear) reset();
+ const source=await sourceText();
  const uncaught=[];
  const onError=e=>{uncaught.push(e&&e.message?e.message:String(e));};
  const onReject=e=>{uncaught.push(e&&e.reason&&e.reason.message?e.reason.message:String(e&&e.reason||e));};
