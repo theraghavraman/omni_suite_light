@@ -1184,8 +1184,41 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
   box-shadow:0 14px 28px -16px var(--c), inset 0 -3px 0 var(--c) !important;
 }
 </style>
+<style id="omni-static-studios-button">
+/* Persistent navigation back to the studio selector. */
+#omniStaticStudios{
+  position:fixed !important;
+  right:18px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  z-index:9999 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  padding:12px 15px !important;
+  border:1px solid rgba(27,42,73,.16) !important;
+  border-radius:999px !important;
+  background:#fff !important;
+  color:#1B2A49 !important;
+  box-shadow:0 12px 28px -16px rgba(27,42,73,.4),0 2px 8px rgba(27,42,73,.08) !important;
+  font:700 .78rem/1 "Figtree",system-ui,sans-serif !important;
+  cursor:pointer !important;
+  transition:transform .22s ease,box-shadow .22s ease !important;
+}
+#omniStaticStudios:hover{
+  transform:translateY(-50%) translateX(-3px) !important;
+  box-shadow:0 16px 32px -16px rgba(240,101,26,.38),0 3px 10px rgba(27,42,73,.1) !important;
+}
+#omniStaticStudios span:first-child{font-size:1rem !important;color:#F0651A !important}
+@media(max-width:700px){
+  #omniStaticStudios{right:10px !important;padding:11px 12px !important}
+  #omniStaticStudios .studio-back-label{display:none !important}
+}
+</style>
 </head>
 <body>
+  <button type="button" id="omniStaticStudios" aria-label="Back to Studios"><span>←</span><span class="studio-back-label">Studios</span></button>
+
 <div class="omni-appbar" aria-label="Omni Suite application bar"><button class="omni-brand omni-brand-button" type="button" aria-label="Return to Omni Suite overview"><span class="omni-appbar-cup-eyes omni-appbar-monogram" aria-hidden="true">OM</span><span class="omni-brand-copy"><strong>OMNI SUITE</strong><span>UNIVERSAL CONVERSION WORKSPACE</span></span></button><div class="omni-command"><span class="omni-command-icon">⌘</span><div class="omni-command-copy"><b>Find a studio or tool</b><span>Jump between conversion workspaces</span></div><kbd>Ctrl K</kbd></div><div class="omni-top-actions"><span class="omni-cap">BROWSER FIRST</span><span class="omni-cap omni-cap-local">LOCAL FALLBACK</span><span class="omni-ready"><i></i>READY</span></div></div>
   
 <div class="omni-command-backdrop" id="omniCommandBackdrop" aria-hidden="true">
@@ -3483,6 +3516,7 @@ $('omniRunStructure')?.addEventListener('click',()=>{runStructure().catch(e=>{re
 $('omniRunOptions')?.addEventListener('click',runOptions);
 $('omniAllFilter')?.addEventListener('change',e=>{resultFilter=e.target.value==='failed'?'failed':'all';render();});
 $('omniBackToStudios')?.addEventListener('click',()=>document.querySelector('.nav-bar')?.scrollIntoView({behavior:'smooth',block:'start'}));
+$('omniStaticStudios')?.addEventListener('click',()=>document.querySelector('.nav-bar')?.scrollIntoView({behavior:'smooth',block:'start'}));
 $('omniExportResult')?.addEventListener('click',()=>{
  const report={
    generatedAt:new Date().toISOString(),
