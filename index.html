@@ -3394,6 +3394,8 @@ function hasImplementationReference(id,source,element){
   "'"+id+"'.onclick"
  ];
  if(direct.some(x=>source.includes(x)))return true;
+ const valueRef = new RegExp("(?:getElementById|\\$)\\s*\\(\\s*['\\\"]"+escapedId+"['\\\"]\\s*\\)\\s*\\.?\\s*(?:value|selectedIndex|selectedOptions)");
+ if(valueRef.test(source))return true;
  const escapedId=String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  return (source.match(new RegExp('\\b'+escapedId+'\\b','g'))||[]).length>=2;
 }
