@@ -60,11 +60,12 @@ function visibleText(panel){
  return txt.slice(0,9000);
 }
 function firstFile(panel,kind){
- const inputs=[...panel.querySelectorAll('input[type="file"]')].filter(x=>x.offsetParent!==null);
- if(kind==="image")return inputs.find(x=>String(x.accept||"").includes("image"))?.files?.[0]||inputs.find(x=>x.files?.[0])?.files?.[0]||null;
- if(kind==="audio")return inputs.find(x=>String(x.accept||"").includes("audio"))?.files?.[0]||inputs.find(x=>x.files?.[0])?.files?.[0]||null;
- if(kind==="pdf")return inputs.find(x=>String(x.accept||"").includes("pdf"))?.files?.[0]||inputs.find(x=>/\.pdf$/i.test(x.files?.[0]?.name||""))?.files?.[0]||null;
- return inputs.find(x=>x.files?.[0])?.files?.[0]||null;
+ const inputs=[...panel.querySelectorAll('input[type="file"]')];
+ const withFile=inputs.filter(x=>x.files&&x.files.length);
+ if(kind==="image")return withFile.find(x=>String(x.accept||"").includes("image"))?.files?.[0]||withFile.find(x=>x.files[0]?.type?.startsWith("image/"))?.files?.[0]||null;
+ if(kind==="audio")return withFile.find(x=>String(x.accept||"").includes("audio"))?.files?.[0]||withFile.find(x=>/^audio\//.test(x.files[0]?.type||""))?.files?.[0]||null;
+ if(kind==="pdf")return withFile.find(x=>String(x.accept||"").includes("pdf"))?.files?.[0]||withFile.find(x=>/\.pdf$/i.test(x.files[0]?.name||"")||x.files[0]?.type==="application/pdf")?.files?.[0]||null;
+ return withFile[0]?.files?.[0]||null;
 }
 async function extractPdfText(file){
  if(!file)throw new Error("Choose a PDF in PDF Suite first.");
@@ -104,15 +105,16 @@ function wavBlob(audio,sr){
 }
 async function run(action,panel,ui){
  const ai=A();if(!ai)throw new Error("Browser AI Engine has not loaded yet.");
- const ctx=await contextFor(panel);
- const text=ctx.text;
- const file=firstFile(panel,action.kind);
- if(action.kind==="image"&&!file)throw new Error("Choose an image in this Studio first.");
- if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
- if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
- ui.out.classList.add("open");ui.status.className="omni-browser-ai-status busy";ui.status.textContent="Loading the isolated browser model… first use may take a moment.";
- let result="";
+ ui.out.classList.add("open");ui.status.className="omni-browser-ai-status busy";ui.status.textContent="Reading the selected Studio input…";
+ let result="",ctx={text:"",meta:""},text="",file=null;
  try{
+   ctx=await contextFor(panel);
+   text=ctx.text;
+   file=firstFile(panel,action.kind);
+   if(action.kind==="image"&&!file)throw new Error("Choose an image in this Studio first.");
+   if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
+   if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
+   ui.status.textContent="Loading the isolated browser model… first use may take a moment.";
    if(action.op==="summarize")result=await ai.summarize(text);
    else if(action.op==="generate")result=await ai.generate(action.prompt+"\n\nSTUDIO CONTEXT:\n"+text,{model:action.model||"general",maxNewTokens:220});
    else if(action.op==="embed"){const v=await ai.embed(text);result="Embedding generated locally.\nDimensions: "+v.length+"\nFirst values: "+v.slice(0,12).map(x=>x.toFixed(4)).join(", ")}
