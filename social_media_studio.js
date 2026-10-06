@@ -26,10 +26,19 @@
   }
   async function hostedResolve(url){
     if(!RESOLVER)throw new Error('Hosted resolver is not configured.');
-    const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store'});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
-    return j;
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),90000);
+    try{
+      const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
+      return j;
+    }catch(e){
+      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 90 seconds');
+      throw e;
+    }finally{
+      clearTimeout(timer);
+    }
   }
   function renderHosted(info,sourceUrl){
     currentInfo=info;currentUrl=sourceUrl;
