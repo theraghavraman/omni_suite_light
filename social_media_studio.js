@@ -1,5 +1,5 @@
 /* Omni Suite — Social Media Download Studio
- * Browser-first direct media + Local Engine (yt-dlp) fallback.
+ * Browser-first public-page resolver + direct media + optional Local Engine fallback.
  * The Local Engine does not use DRM bypass, credential harvesting or
  * platform-login automation.
  */
