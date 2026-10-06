@@ -213,9 +213,33 @@ function wireCatalogControls(){
         const browser=browserOpen.has(e);
         if(status)status.textContent='✓ '+f.name+' • '+size(f.size)+' • '+(browser?'Browser parser available':'Specialist/native parser • Local Engine fallback');
         if(preview){
-          preview.innerHTML='<div class="uds-catalog-file"><b>'+esc(f.name)+'</b><span>.'+esc(e||'unknown')+' • '+esc(size(f.size))+'</span><div class="uds-catalog-file-actions"><button type="button" id="udsCatalogOpen">Open / Preview</button><button type="button" id="udsCatalogConvert">Convert</button></div></div>';
-          document.getElementById('udsCatalogOpen').onclick=async()=>{try{await openFile(f);if(status)status.textContent='✓ Opened '+f.name+' in Universal Data preview.'}catch(err){if(status)status.textContent='✕ '+err.message}};
-          document.getElementById('udsCatalogConvert').onclick=()=>{const target=targetsFor(e)[0];if(target&&target!=='local-native'){$('udsXInput')?.dispatchEvent(new Event('change'));}else if(status)status.textContent='Use Open / Preview for this format; specialist conversion requires Local Engine.'};
+          const kind=browserOpen.has(e)?'Browser-ready':'Specialist/native';
+          preview.innerHTML='<div class="uds-catalog-file"><div class="uds-catalog-file-main"><b>'+esc(f.name)+'</b><span>.'+esc(e||'unknown')+' • '+esc(size(f.size))+' • '+kind+'</span></div><div class="uds-catalog-file-actions"><button type="button" id="udsCatalogInspect">Inspect here</button><button type="button" id="udsCatalogReset">Remove</button></div><div id="udsCatalogResult" class="uds-catalog-result"></div></div>';
+          const result=document.getElementById('udsCatalogResult');
+          document.getElementById('udsCatalogReset').onclick=()=>{picker.value='';if(status)status.textContent='No file selected.';preview.innerHTML='';};
+          document.getElementById('udsCatalogInspect').onclick=async()=>{
+            if(!result)return;
+            result.textContent='Reading '+f.name+'…';
+            try{
+              if(['hyp','edf','edf+','rec','bdf'].includes(e)){
+                result.innerHTML='<b>😴 Sleep record detected</b><div>EDF/HYP sleep parsing is available. The catalog has identified this as a sleep-domain file rather than generic binary data.</div>';
+                if(status)status.textContent='✓ Sleep format detected in the catalog: '+f.name;
+                return;
+              }
+              if(imageExt.has(e)){result.innerHTML='<img class="uds-catalog-image" src="'+URL.createObjectURL(f)+'" alt="'+esc(f.name)+'">';return;}
+              if(audioExt.has(e)){result.innerHTML='<audio controls class="uds-catalog-media" src="'+URL.createObjectURL(f)+'"></audio>';return;}
+              if(videoExt.has(e)){result.innerHTML='<video controls class="uds-catalog-media" src="'+URL.createObjectURL(f)+'"></video>';return;}
+              if(e==='pdf'){result.innerHTML='<iframe class="uds-catalog-pdf" src="'+URL.createObjectURL(f)+'"></iframe>';return;}
+              if(textExt.has(e)||f.type.startsWith('text/')){
+                const txt=await f.text();
+                result.innerHTML='<pre>'+esc(txt.slice(0,12000))+'</pre>';
+                if(status)status.textContent='✓ Text/data preview rendered here in the catalog.';
+                return;
+              }
+              const head=new Uint8Array(await f.slice(0,48).arrayBuffer());
+              result.innerHTML='<b>Specialist / binary format</b><pre>'+esc(bytesToHex(head))+'</pre><small>This file is recognized here; native parsing can be handled by the Local Engine.</small>';
+            }catch(err){result.textContent='✕ '+err.message;}
+          };
         }
       }catch(err){if(status)status.textContent='✕ '+err.message;if(preview)preview.innerHTML='';}
     });
