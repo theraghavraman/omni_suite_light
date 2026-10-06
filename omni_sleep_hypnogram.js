@@ -145,7 +145,7 @@ function makeCard(){
   const el=document.createElement('section');el.id='omniSleepWorkspace';el.innerHTML=`
     <div class="sleep-head"><div><div class="uds-kicker">SLEEP SEMANTIC WORKSPACE</div><h2>😴 Sleep Hypnogram Lab</h2><div class="sleep-sub">Content-aware EDF/HYP detection → normalized sleep model → interactive hypnogram → sleep statistics → transitions → browser exports. Metrics are descriptive, not medical conclusions.</div></div><div class="sleep-actions"><button id="sleepLoad">Choose .HYP / .EDF</button><button class="secondary" id="sleepLocal">Open with Local Engine</button></div></div>
     <div class="sleep-pills"><span class="sleep-pill">① Detect</span><span class="sleep-pill">② Normalize</span><span class="sleep-pill">③ Visualize</span><span class="sleep-pill">④ Analyze</span><span class="sleep-pill">⑤ Export</span><span class="sleep-pill">Browser-first</span></div>
-    <input id="sleepFile" type="file" accept=".hyp,.edf,.edf+,.rec,.bdf" hidden>
+    <input id="sleepFile" type="file" accept=".hyp,.edf,.edf+,.rec,.bdf" multiple hidden>
     <div id="sleepStatus" class="sleep-status">Waiting for a Sleep-EDF/HYP file. A .hyp file is treated as a semantic hypnogram when its content identifies an EDF-compatible sleep-stage record.</div>
     <div id="sleepMetrics" class="sleep-metrics"></div>
     <div class="sleep-chart"><canvas id="sleepCanvas" width="1400" height="390"></canvas></div>
@@ -153,7 +153,7 @@ function makeCard(){
     <div class="sleep-actions" style="margin-top:12px"><button id="sleepCsv">Export epochs CSV</button><button id="sleepJson">Export semantic JSON</button><button id="sleepSvg">Export SVG</button><button id="sleepHtml">Export HTML report</button></div>`;
   host.appendChild(el);
   document.getElementById('sleepLoad').onclick=()=>document.getElementById('sleepFile').click();
-  document.getElementById('sleepFile').onchange=e=>{const f=e.target.files?.[0];if(f)load(f)};
+  document.getElementById('sleepFile').onchange=e=>{const fs=[...(e.target.files||[])];const hyp=fs.find(f=>/\\.hyp$/i.test(f.name));const rec=fs.find(f=>/\\.(edf|edf\\+|rec|bdf)$/i.test(f.name));window.__OMNI_SLEEP_PAIR={hyp:hyp||null,recording:rec||null,files:fs};if(hyp&&rec)setStatus('Paired workflow: '+hyp.name+' + '+rec.name+' selected. Rendering the hypnogram now; the recording is retained as the paired source.');const f=hyp||rec;if(f)load(f)};
   document.getElementById('sleepLocal').onclick=()=>{const f=document.getElementById('sleepFile').files?.[0]||window.__OMNI_UDS_CURRENT_FILE;if(f){setStatus('Local Engine fallback selected for '+f.name+'. Use the Local Engine Studio for vendor-specific HYP parsing.')}else{setStatus('Choose a sleep file first; Local Engine fallback is available for vendor-specific HYP.')}};
   document.getElementById('sleepCsv').onclick=()=>{if(window.__OMNI_SLEEP_MODEL)downloadText(stageCsv(window.__OMNI_SLEEP_MODEL),'sleep-hypnogram.csv','text/csv')};
   document.getElementById('sleepJson').onclick=()=>{if(window.__OMNI_SLEEP_MODEL)downloadText(stageJson(window.__OMNI_SLEEP_MODEL,window.__OMNI_SLEEP_METRICS),'sleep-semantic-model.json','application/json')};
