@@ -59,6 +59,7 @@ def authorize(handler):
 TOOLS = {
     "ffmpeg": ["ffmpeg", "-version"],
     "ffprobe": ["ffprobe", "-version"],
+    "yt-dlp": ["yt-dlp", "--version"],
     "qpdf": ["qpdf", "--version"],
     "pdftoppm": ["pdftoppm", "-v"],
     "pdftotext": ["pdftotext", "-v"],
@@ -455,6 +456,88 @@ def process_job(payload):
         result=omni_platform.database_query(str(payload["url"]),str(payload["query"]),payload.get("params"))
         out=output_path("database_query","json"); out.write_text(json.dumps(result,indent=2,default=str),encoding="utf-8")
         return file_result(out,out.name,"application/json")
+
+    if op == "social_download":
+        url = str(payload.get("url", "")).strip()
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("Only HTTP/HTTPS media URLs are supported")
+        try:
+            import yt_dlp
+        except Exception as exc:
+            raise RuntimeError("yt-dlp is not installed. Relaunch the Omni Suite Local Engine setup to install the Social Media Downloader.") from exc
+
+        mode = str(payload.get("mode", "best")).lower()
+        quality = str(payload.get("quality", "best")).lower()
+        info_only = bool(payload.get("info_only", False))
+        work = ROOT / new_id("social")
+        work.mkdir(parents=True, exist_ok=True)
+        try:
+            common = {
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True,
+                "restrictfilenames": True,
+                "outtmpl": str(work / "%(title).180B [%(id)s].%(ext)s"),
+            }
+            if info_only:
+                common.update({"skip_download": True})
+                with yt_dlp.YoutubeDL(common) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                if info.get("_type") == "playlist":
+                    entries = [e for e in (info.get("entries") or []) if e]
+                    info = entries[0] if entries else info
+                formats = []
+                for f in (info.get("formats") or []):
+                    if f.get("vcodec") != "none" or f.get("acodec") != "none":
+                        formats.append({
+                            "format_id": f.get("format_id"),
+                            "ext": f.get("ext"),
+                            "height": f.get("height"),
+                            "fps": f.get("fps"),
+                            "filesize": f.get("filesize") or f.get("filesize_approx"),
+                            "has_video": f.get("vcodec") not in (None, "none"),
+                            "has_audio": f.get("acodec") not in (None, "none"),
+                        })
+                return {
+                    "ok": True,
+                    "title": info.get("title") or "Untitled media",
+                    "uploader": info.get("uploader") or info.get("channel") or "",
+                    "thumbnail": info.get("thumbnail") or "",
+                    "duration": info.get("duration"),
+                    "webpage_url": info.get("webpage_url") or url,
+                    "extractor": info.get("extractor_key") or info.get("extractor") or "generic",
+                    "is_live": bool(info.get("is_live")),
+                    "formats": formats[-80:],
+                }
+
+            if mode == "audio":
+                common["format"] = "bestaudio/best"
+                common["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
+            elif quality in {"1080", "720", "480", "360"}:
+                common["format"] = f"bv*[height<={quality}]+ba/b[height<={quality}]/b"
+                common["merge_output_format"] = "mp4"
+            else:
+                common["format"] = "bv*+ba/b"
+                common["merge_output_format"] = "mp4"
+
+            with yt_dlp.YoutubeDL(common) as ydl:
+                ydl.extract_info(url, download=True)
+
+            candidates = [p for p in work.rglob("*") if p.is_file()]
+            if not candidates:
+                raise RuntimeError("The extractor found no downloadable media for this URL.")
+            # Prefer the largest completed media file and ignore transient partial files.
+            candidates = [p for p in candidates if not p.name.endswith((".part", ".ytdl"))]
+            if not candidates:
+                raise RuntimeError("Download did not complete.")
+            out = max(candidates, key=lambda p: p.stat().st_size)
+            final = output_path(out.stem, out.suffix.lstrip(".") or "bin")
+            shutil.copy2(out, final)
+            return file_result(final, final.name)
+        except Exception as exc:
+            raise RuntimeError(f"Social Media Downloader: {exc}") from exc
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
     if op == "media":
         require_tool("ffmpeg")
