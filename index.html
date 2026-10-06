@@ -2759,9 +2759,9 @@ console.log("sum =", values.reduce((a,b)=>a+b,0));</textarea>
         <div class="uds-catalog-actions">
           <div class="uds-catalog-search">
             <input id="udsCatalogSearch" class="form-input" placeholder="Search formats: EDF, HYP, Parquet, FITS, PCAP, FASTA…">
-            <button type="button" class="btn btn-primary" id="udsCatalogChoose">📂 Choose file</button>
+            <label class="uds-catalog-choose" for="udsInput">📂 Choose file</label>
           </div>
-          <div class="uds-catalog-quick">
+          <div class="uds-catalog-quick" role="toolbar" aria-label="Format families">
             <button type="button" data-uds-filter="brain">😴 Sleep / EDF / HYP</button>
             <button type="button" data-uds-filter="bio">🧬 Bio / genomics</button>
             <button type="button" data-uds-filter="geo">🌍 Geospatial</button>
