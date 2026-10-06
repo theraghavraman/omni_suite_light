@@ -4,12 +4,14 @@ import tempfile
 import shutil
 import ipaddress
 from pathlib import Path
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse, quote, unquote
+import html as html_lib
+import urllib.request
 
 import yt_dlp
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
 
 APP_NAME = "Omni Social Resolver"
@@ -97,6 +99,106 @@ def extract_info(url: str) -> dict:
     return info
 
 
+MEDIA_HOST_SUFFIXES = (
+    "cdninstagram.com",
+    "fbcdn.net",
+    "instagram.com",
+)
+
+def is_allowed_media_url(raw: str) -> bool:
+    try:
+        p = urlparse(raw)
+        host = (p.hostname or "").lower().rstrip(".")
+        return p.scheme in ("http", "https") and any(
+            host == suffix or host.endswith("." + suffix)
+            for suffix in MEDIA_HOST_SUFFIXES
+        )
+    except Exception:
+        return False
+
+
+def extract_urls_from_html(raw_html: str) -> list[str]:
+    text = html_lib.unescape(raw_html or "")
+    patterns = [
+        r'<(?:video|source|audio)[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
+        r'<img[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
+        r'<meta[^>]+property=["\\\']og:(?:video|image)(?::secure_url)?["\\\'][^>]+content=["\\\']([^"\\\']+)["\\\']',
+        r'https://[^"\\\'<>\\s]+(?:cdninstagram\\.com|fbcdn\\.net)[^"\\\'<>\\s]*',
+    ]
+    found = []
+    for pattern in patterns:
+        for value in re.findall(pattern, text, flags=re.I):
+            if isinstance(value, tuple):
+                value = value[0]
+            value = html_lib.unescape(str(value)).replace("\\\\/", "/").strip()
+            if is_allowed_media_url(value) and value not in found:
+                found.append(value)
+    return found
+
+
+def jina_instagram_media(source: str) -> dict | None:
+    """Fallback for public Instagram pages when Instagram rate-limits the Render IP.
+
+    Jina fetches the public page using its browser reader and preserves media URLs.
+    No Instagram credentials or cookies are used.
+    """
+    if not is_instagram_url(source):
+        return None
+    try:
+        endpoint = "https://r.jina.ai/" + source
+        req = urllib.request.Request(
+            endpoint,
+            headers={
+                "Accept": "text/html",
+                "X-Respond-With": "html",
+                "X-Retain-Media": "html",
+                "X-Retain-Images": "all",
+                "X-Retain-Links": "all",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            raw = response.read().decode("utf-8", "replace")
+        urls = extract_urls_from_html(raw)
+        if not urls:
+            return None
+
+        video = next((u for u in urls if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)), None)
+        images = [u for u in urls if re.search(r"\\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
+        if not video and not images:
+            return None
+
+        thumb = images[0] if images else ""
+        media = video or thumb
+        media_type = "video" if video else "image_or_media"
+        return {
+            "success": True,
+            "platform": "Instagram",
+            "title": "Public Instagram media",
+            "uploader": "",
+            "duration": None,
+            "thumbnail": thumb,
+            "webpage_url": source,
+            "type": media_type,
+            "downloads": [{
+                "quality": "Best",
+                "format_id": None,
+                "has_audio": bool(video),
+                "url": "/api/media-proxy?url=" + quote(media, safe=""),
+            }],
+        }
+    except Exception:
+        return None
+
+
+def is_instagram_url(raw: str) -> bool:
+    try:
+        host = (urlparse(raw).hostname or "").lower().rstrip(".")
+        return host == "instagram.com" or host.endswith(".instagram.com")
+    except Exception:
+        return False
+
+
 def choose_formats(info: dict) -> list[dict]:
     formats = info.get("formats") or []
     candidates = []
@@ -164,7 +266,14 @@ def health():
 @app.post("/api/resolve")
 def resolve(body: ResolveRequest):
     url = validate_public_url(str(body.url))
-    info = extract_info(url)
+    try:
+        info = extract_info(url)
+    except HTTPException as exc:
+        if is_instagram_url(url):
+            fallback = jina_instagram_media(url)
+            if fallback:
+                return JSONResponse(fallback)
+        raise exc
     formats = choose_formats(info)
 
     if not formats:
@@ -191,6 +300,43 @@ def resolve(body: ResolveRequest):
         })
 
     return JSONResponse(base)
+
+
+@app.get("/api/media-proxy")
+def media_proxy(url: str = Query(...)):
+    """Proxy a short-lived public CDN media URL so browser CORS does not block downloads."""
+    target = unquote(url)
+    if not is_allowed_media_url(target):
+        raise HTTPException(400, "Media URL is not an allowed public CDN URL.")
+    req = urllib.request.Request(
+        target,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.instagram.com/",
+        },
+        method="GET",
+    )
+    try:
+        upstream = urllib.request.urlopen(req, timeout=30)
+    except Exception as exc:
+        raise HTTPException(502, f"Media CDN request failed: {str(exc)[:200]}")
+    content_type = upstream.headers.get("Content-Type", "application/octet-stream")
+    content_length = upstream.headers.get("Content-Length")
+    headers = {}
+    if content_length:
+        headers["Content-Length"] = content_length
+
+    def stream():
+        try:
+            while True:
+                chunk = upstream.read(1024 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            upstream.close()
+
+    return StreamingResponse(stream(), media_type=content_type, headers=headers)
 
 
 @app.get("/api/download")
