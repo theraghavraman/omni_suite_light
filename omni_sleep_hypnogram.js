@@ -67,7 +67,6 @@ function parseEDF(buf){
 }
 function decodeHypnogram(parsed){
   const labels=parsed.labels.map(x=>x.toLowerCase());
-  const stages=[];
   let epoch=Number(parsed.recordDuration)||30;
   const stageSignalCandidates=[];
   parsed.signals.forEach((a,i)=>{
