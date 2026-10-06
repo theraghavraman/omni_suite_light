@@ -266,40 +266,63 @@ def _shortcode_to_media_pk(shortcode: str) -> int | None:
         return None
 
 
-def instagram_private_media_info(source: str) -> list[str]:
-    """Fetch exact public post media from Instagram's media-info endpoint."""
+def instagram_private_media_info(source: str, media_ids: list[str] | None = None) -> list[str]:
+    """Fetch exact public post media from Instagram's media-info endpoint.
+
+    Prefer the numeric media id exposed by the post itself when available.
+    The shortcode-to-id conversion is a useful fallback, but Instagram's
+    public HTML can also expose the canonical numeric id via al:ios:url.
+    """
+    ids = []
+    for value in media_ids or []:
+        value = str(value or "").strip()
+        if value.isdigit() and value not in ids:
+            ids.append(value)
+
     shortcode = _instagram_shortcode(source)
-    if not shortcode:
-        return []
-    media_pk = _shortcode_to_media_pk(shortcode)
-    if media_pk is None:
+    if shortcode:
+        decoded = _shortcode_to_media_pk(shortcode)
+        if decoded is not None and str(decoded) not in ids:
+            ids.append(str(decoded))
+
+    if not ids:
         return []
 
-    endpoint = f"https://i.instagram.com/api/v1/media/{media_pk}/info/"
-    req = urllib.request.Request(
-        endpoint,
-        headers={
-            "User-Agent": "Instagram 296.0.0.24.109 Android",
-            "Accept": "*/*",
-            "X-IG-App-ID": "936619743392459",
-            "Referer": "https://www.instagram.com/",
-        },
-        method="GET",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as response:
-            raw = response.read().decode("utf-8", "replace")
-        payload = json.loads(raw)
-        items = payload.get("items") or []
-        if not items:
-            return []
-        item = items[0]
-        # This endpoint is media-specific, so carousel_media belongs to the
-        # exact post rather than the surrounding Instagram page.
-        return _post_media_from_node(item)
-    except Exception:
-        return []
+    endpoints = [
+        f"https://i.instagram.com/api/v1/media/{media_id}/info/"
+        for media_id in ids
+    ]
 
+    # Instagram can reject a generic desktop UA with "useragent mismatch".
+    # Use a complete mobile Instagram UA plus the official web app id.
+    headers = {
+        "User-Agent": (
+            "Instagram 296.0.0.24.109 Android "
+            "(28/9; 420dpi; 1080x2260; OnePlus; GM1903; OnePlus7; qcom; en_US)"
+        ),
+        "Accept": "*/*",
+        "X-IG-App-ID": "936619743392459",
+        "Referer": "https://www.instagram.com/",
+    }
+
+    for endpoint in endpoints:
+        req = urllib.request.Request(endpoint, headers=headers, method="GET")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as response:
+                raw = response.read().decode("utf-8", "replace")
+            payload = json.loads(raw)
+            items = payload.get("items") or []
+            if not items:
+                continue
+
+            item = items[0]
+            media = _post_media_from_node(item)
+            if media:
+                return media
+        except Exception:
+            continue
+
+    return []
 
 def jina_instagram_structured(source: str) -> list[str]:
     """Fetch only post-specific Instagram JSON/HTML through Jina.
@@ -437,79 +460,100 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
 
 
 def jina_instagram_media(source: str) -> dict | None:
-    """Fallback for public Instagram pages when Instagram rate-limits the Render IP.
+    """Resolve only media that belongs to the exact public Instagram post.
 
-    Jina fetches the public page using its browser reader and preserves media URLs.
-    No Instagram credentials or cookies are used.
+    Important: do not use the page's OpenGraph image as a fallback. Instagram
+    may serve a cropped preview there, which is not equivalent to the actual
+    carousel media.
     """
     if not is_instagram_url(source):
         return None
+
     try:
-        endpoint = "https://r.jina.ai/" + source
-        req = urllib.request.Request(
-            endpoint,
-            headers={
-                "Accept": "text/html",
-                "X-Respond-With": "html",
-                "X-Retain-Media": "html",
-                "X-Retain-Images": "all",
-                "X-Retain-Links": "all",
-            },
-            method="GET",
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            raw = response.read().decode("utf-8", "replace")
-        # First try Instagram's media-info endpoint. It is keyed by the
-        # exact shortcode/media id and returns the post's own carousel_media.
+        # First try the exact shortcode-derived media id. This avoids fetching
+        # unrelated profile/feed assets entirely.
         urls = instagram_private_media_info(source)
 
-        # If Instagram rejects that endpoint, use the structured Jina routes.
+        raw = ""
         if not urls:
+            endpoint = "https://r.jina.ai/" + source
+            req = urllib.request.Request(
+                endpoint,
+                headers={
+                    "Accept": "text/html",
+                    "X-Respond-With": "html",
+                    "X-Retain-Media": "html",
+                    "X-Retain-Images": "all",
+                    "X-Retain-Links": "all",
+                },
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                raw = response.read().decode("utf-8", "replace")
+
+            # The canonical numeric id is sometimes present as:
+            # instagram://media?id=123...
+            media_ids = re.findall(
+                r"instagram://media\\?id=(\\d+)",
+                html_lib.unescape(raw),
+                flags=re.I,
+            )
+            urls = instagram_private_media_info(source, media_ids)
+
+        # If the media-info API is unavailable, use only post-specific
+        # structured JSON. Never fall back to arbitrary page CDN assets.
+        if not urls and raw:
             urls = jina_instagram_structured(source)
 
-        # Jina may also return the original HTML with embedded post JSON.
-        # Parse that before considering any generic page media.
-        if not urls:
+        if not urls and raw:
             urls = extract_instagram_post_media(raw)
-
-        # Do NOT fall back to arbitrary CDN URLs on an Instagram post page.
-        # Those URLs include Instagram's logo, profile assets, recommendations,
-        # and other page chrome — exactly the false positives this resolver must
-        # never show. A safe metadata fallback can return only the page's own
-        # og:image/og:video.
-        if not urls:
-            urls = extract_instagram_og_media(raw)
 
         if not urls:
             return None
 
-        # The structured extractor already preserves carousel order.
         media_urls = []
         for u in urls:
             if u not in media_urls:
                 media_urls.append(u)
 
-        videos = [u for u in media_urls if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)]
-        images = [u for u in media_urls if re.search(r"\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)", u, re.I)]
+        videos = [
+            u for u in media_urls
+            if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)
+        ]
+        images = [
+            u for u in media_urls
+            if re.search(r"\\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)", u, re.I)
+        ]
 
         if not videos and not images:
-            return None
+            # Instagram CDN URLs do not always expose a conventional file
+            # extension in the path. If the extractor gave us valid Instagram
+            # media URLs, keep them and infer image unless the node says video.
+            images = list(media_urls)
 
-        # Preserve discovery order. Instagram carousels can mix photos and videos,
-        # so grouping all videos before all images would change the post order.
         ordered = media_urls
         thumb = images[0] if images else (videos[0] if videos else "")
-        media_type = "video" if videos and not images and len(ordered) == 1 else ("carousel" if len(ordered) > 1 else "image_or_media")
+        media_type = (
+            "video" if videos and not images and len(ordered) == 1
+            else ("carousel" if len(ordered) > 1 else "image_or_media")
+        )
+
         downloads = []
         for index, media in enumerate(ordered, 1):
             path = urlparse(media).path.lower()
-            match = re.search(r"\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$", path)
+            match = re.search(
+                r"\\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$",
+                path,
+            )
             ext = match.group(1) if match else ""
             downloads.append({
                 "quality": f"Item {index}" if len(ordered) > 1 else "Best",
                 "format_id": None,
                 "ext": ext,
-                "media_type": "video" if ext in {"mp4","webm","mov","m4v","m3u8"} else ("image" if ext in {"jpg","jpeg","png","webp","avif","gif"} else "media"),
+                "media_type": (
+                    "video" if ext in {"mp4","webm","mov","m4v","m3u8"}
+                    else ("image" if ext in {"jpg","jpeg","png","webp","avif","gif"} else "image")
+                ),
                 "has_audio": ext in {"mp4","webm","mov","m4v","m3u8","mp3","m4a","aac","ogg"},
                 "url": "/api/media-proxy?url=" + quote(media, safe=""),
             })
@@ -524,10 +568,10 @@ def jina_instagram_media(source: str) -> dict | None:
             "webpage_url": source,
             "type": media_type,
             "downloads": downloads,
+            "instagram_media_count": len(downloads),
         }
     except Exception:
         return None
-
 
 def is_instagram_url(raw: str) -> bool:
     try:
