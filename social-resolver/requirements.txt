@@ -1,3 +1,4 @@
 fastapi>=0.115
 uvicorn[standard]>=0.34
 yt-dlp==2026.8.19
+instagrapi[curl]==3.0.20
