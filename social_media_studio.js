@@ -11,7 +11,7 @@
   let currentUrl='';
   let currentInfo=null;
 
-  const input=$('socialMediaUrl'), analyze=$('socialMediaAnalyze'), reset=$('socialMediaReset');
+  const input=$('socialMediaUrl'), runAnalyze=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const result=$('socialMediaResult'), status=$('socialMediaStatus'), preview=$('socialMediaPreview');
   const platform=$('socialMediaPlatform'), kind=$('socialMediaKind'), meta=$('socialMediaMeta');
   const download=$('socialMediaDownload'), open=$('socialMediaOpen'), hint=$('socialMediaDirectHint');
@@ -108,7 +108,7 @@
     }catch(e){msg('Browser download failed: '+e.message+'. Use Local Engine if available.','error');}
     finally{download.disabled=false;download.textContent='⬇ Download Media';}
   }
-  async function analyze(){
+  async function runAnalyze(){
     const url=input.value.trim();
     if(!url){msg('Paste a URL first.','error');return;}
     try{new URL(url);}catch(_){msg('That is not a valid URL.','error');return;}
@@ -146,10 +146,10 @@
     }catch(e){msg(e.message||String(e),'error');}
     finally{download.disabled=false;download.textContent='⬇ Download Best';}
   }
-  analyze?.addEventListener('click',analyze);
+  runAnalyze?.addEventListener('click',runAnalyze);
   reset?.addEventListener('click',resetUI);
-  input?.addEventListener('keydown',e=>{if(e.key==='Enter')analyze();});
+  input?.addEventListener('keydown',e=>{if(e.key==='Enter')runAnalyze();});
   // Expose a small test hook for Validation Lab.
-  window.OMNI_SOCIAL_MEDIA_DOWNLOADER={analyze,detect,downloadWithMode};
+  window.OMNI_SOCIAL_MEDIA_DOWNLOADER={runAnalyze,detect,downloadWithMode};
   resetUI();
 })();
