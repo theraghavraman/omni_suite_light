@@ -12,6 +12,28 @@
   let currentInfo=null;
 
   const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
+  const REMOTE_READER='https://r.jina.ai/';
+  function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
+  function findMediaUrls(text,base){
+    const out=[]; const addUrl=v=>{v=cleanMediaUrl(v);if(v.startsWith('http')&&!out.includes(v))out.push(v);};
+    const doc=new DOMParser().parseFromString(String(text||''),'text/html');
+    doc.querySelectorAll('meta[property="og:video"],meta[property="og:video:secure_url"],meta[name="twitter:player:stream"],meta[property="og:image"],meta[name="twitter:image"]').forEach(e=>addUrl(e.getAttribute('content')));
+    doc.querySelectorAll('video source,video,audio source,audio').forEach(e=>addUrl(e.getAttribute('src')));
+    const raw=String(text||'');
+    [/["']video_url["']\\s*:\\s*["']([^"']+)/i,/["']display_url["']\\s*:\\s*["']([^"']+)/i,/["']url["']\\s*:\\s*["'](https?:\\/\\/[^"']+)/i].forEach(re=>{const m=raw.match(re);if(m)addUrl(m[1]);});
+    return out.map(v=>{try{return new URL(v,base).href}catch(_){return v;}});
+  }
+  async function browserResolve(url){
+    const target=url.split('#')[0];
+    const r=await fetch(REMOTE_READER+target,{cache:'no-store'});
+    if(!r.ok)throw new Error('Browser resolver HTTP '+r.status);
+    const text=await r.text(); const urls=findMediaUrls(text,target);
+    if(!urls.length)throw new Error('No public media URL found');
+    const media=urls.find(u=>/\\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
+    const thumb=urls.find(u=>/\\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
+    return {mediaUrl:media,thumbnail:thumb};
+  }
+
   const result=$('socialMediaResult'), status=$('socialMediaStatus'), preview=$('socialMediaPreview');
   const platform=$('socialMediaPlatform'), kind=$('socialMediaKind'), meta=$('socialMediaMeta');
   const download=$('socialMediaDownload'), open=$('socialMediaOpen'), hint=$('socialMediaDirectHint');
@@ -113,25 +135,26 @@
     if(!url){msg('Paste a URL first.','error');return;}
     try{new URL(url);}catch(_){msg('That is not a valid URL.','error');return;}
     currentUrl=url;platform.textContent=detect(url);result.style.display='block';open.href=url;setButtons(false);
-    msg('Analyzing media…','working');preview.innerHTML='<div style="padding:28px">Checking source…</div>';preview.className='social-preview empty';
-    // First try the Local Engine. This is the path that makes social URLs work from GitHub Pages.
+    msg('Resolving public media…','working');preview.innerHTML='<div style="padding:28px">Finding public media…</div>';preview.className='social-preview empty';
     try{
-      await localHealth();
-      const info=await localJob({op:'social_download',url,info_only:true});
-      renderInfo(info);
-      msg('Media detected by Local Engine. Choose a download mode below.','ok');
-      setButtons(true);
-      download.textContent='⬇ Download Best';
-      download.onclick=()=>downloadWithMode('best','best');
-      return;
-    }catch(e){
-      console.warn('[Social Media Studio] Local Engine unavailable:',e);
-    }
+      const x=await browserResolve(url); currentUrl=x.mediaUrl;
+      kind.textContent=/\\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
+      meta.textContent='Public media • Browser Resolver'; preview.innerHTML='';
+      if(x.thumbnail){const img=document.createElement('img');img.src=x.thumbnail;img.alt='Media preview';img.loading='lazy';preview.appendChild(img);}else preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Public media found</strong><br><span style="font-size:.78rem;color:#7b8795">Ready for browser download.</span></div>';
+      preview.className='social-preview';hint.style.display='block';hint.innerHTML='<b>Browser mode active.</b> Public media resolved without the Local Engine. Private, login-only and DRM content is not supported.';
+      setButtons(true);download.textContent='⬇ Download Media';download.onclick=()=>downloadDirectResolved(x.mediaUrl);msg('Public media found. Ready to download.','ok');return;
+    }catch(e){console.warn('[Social Media Studio] Browser resolver:',e);}
+    try{
+      await localHealth(); const info=await localJob({op:'social_download',url,info_only:true}); currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
+    }catch(e){console.warn('[Social Media Studio] Local Engine unavailable:',e);}
     if(await analyzeDirect(url))return;
-    kind.textContent='Social / page URL';meta.textContent='Local Engine unavailable';
-    hint.style.display='block';
-    hint.innerHTML='<b>Local Engine is required for social-page URLs.</b> Start/restart the current Omni Suite Local Engine, then Analyze again. Direct media URLs can still work browser-only when the source permits CORS.';
-    msg('This social page cannot be extracted by GitHub Pages alone. Start the Local Engine and try again.','warn');
+    currentUrl=url;kind.textContent='Social / page URL';meta.textContent='No public media link found';hint.style.display='block';hint.innerHTML='<b>Could not resolve this public page.</b> It may be private, login-gated, blocked, or temporarily unsupported.';msg('No public media URL could be resolved in browser mode.','warn');
+  }
+  async function downloadDirectResolved(url){
+    download.disabled=true;download.textContent='Downloading…';msg('Downloading through the browser…','working');
+    try{const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();const ext=(b.type.split('/')[1]||'bin').split(';')[0];const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='omni-social-media.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);msg('Download started.','ok');}
+    catch(e){window.open(url,'_blank','noopener,noreferrer');msg('The CDN blocked browser file access. Opened the resolved media URL; use the browser Save/Download control.','warn');}
+    finally{download.disabled=false;download.textContent='⬇ Download Media';}
   }
   async function downloadWithMode(mode,quality){
     download.disabled=true;download.textContent='Downloading…';msg('Local Engine is downloading the media…','working');
