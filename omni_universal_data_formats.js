@@ -128,40 +128,6 @@ function build(){
  card.innerHTML='<h2>🧰 Universal Format Workbench</h2><div class="sub"><b>One file in → semantic understanding → browser preview → conversion.</b> Browser-safe formats stay local; specialist/scientific formats are explicitly routed to the Local Engine instead of being misread as generic text.</div><div class="uds-xbar"><input id="udsXInput" type="file" class="file-input" accept="*/*"><button type="button" class="btn btn-primary" id="udsXOpen">Open / Render</button><select id="udsXTarget" class="form-select"><option>Choose output…</option></select><button type="button" class="btn btn-success" id="udsXConvert">Convert</button><button type="button" class="btn btn-secondary" id="udsXLocal">Open with Local Engine</button></div><div class="uds-xcap" id="udsXCatalog"></div><div class="uds-xstatus" id="udsXStatus">Choose a file to begin.</div><div id="udsXPreview" class="uds-xpreview"><div class="uds-xempty">Browser render area.</div></div>';
  const hero=panel.querySelector('.uds-hero');if(hero&&hero.nextElementSibling)panel.insertBefore(card,hero.nextElementSibling);else panel.appendChild(card);$('udsXCatalog').innerHTML=REGISTRY.map(x=>'<span><b>'+esc(x.category)+'</b> '+esc(x.exts.map(e=>'.'+e).join(' • '))+'</span>').join('');
  }
-  // Wire the static Universal Format Catalog controls to the real Bring Data In workflow.
-  const cat=document.querySelector('#tabUniversalData .uds-format-catalog-card');
-  if(cat&&!cat.dataset.udsActions){
-    cat.dataset.udsActions='1';
-    const grid=cat.querySelector('.uds-format-grid');
-    const search=document.getElementById('udsCatalogSearch');
-    const hint=cat.querySelector('.uds-catalog-hint');
-    if(grid){
-      [...grid.children].forEach(card=>{
-        const text=(card.textContent||'').toLowerCase();
-        card.dataset.udsText=text;
-        if(!card.querySelector('.uds-format-use')){
-          const b=document.createElement('button');
-          b.type='button'; b.className='uds-format-use'; b.textContent='Use these formats →';
-          b.onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';document.querySelector('.uds-drop')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input.click(),250);}};
-          card.appendChild(b);
-        }
-      });
-      const apply=q=>{
-        q=(q||'').toLowerCase().trim();
-        [...grid.children].forEach(x=>x.hidden=!!q&&!x.dataset.udsText.includes(q));
-        const n=[...grid.children].filter(x=>!x.hidden).length;
-        if(hint)hint.textContent=q?(n+' format groups match "'+q+'". Click "Use these formats" or Choose file to start.'):'Pick a category to narrow the catalog, or choose a file now.';
-      };
-      if(search)search.addEventListener('input',()=>apply(search.value));
-      const choose=document.getElementById('udsCatalogChoose');
-      if(choose)choose.onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';input.click();}};
-      cat.querySelectorAll('[data-uds-filter]').forEach(btn=>btn.onclick=()=>{
-        const f=btn.dataset.udsFilter;
-        const q={brain:'brain medical edf hyp sleep',bio:'bio genomics fasta fastq vcf',geo:'geospatial geojson gpx kml',science:'science earth space fits netcdf hdf5',columnar:'big-data containers parquet arrow avro orc','3d':'3d imaging cad ply stl obj'}[f]||'';
-        if(search){search.value=q;apply(q);}
-      });
-    }
-  }
  const input=$('udsXInput'),target=$('udsXTarget');
  function refresh(){const f=input.files?.[0];if(!f)return;const e=ext(f.name);target.innerHTML=targetsFor(e).map(x=>'<option value="'+esc(x)+'">'+esc(x==='local-native'?'LOCAL NATIVE':x.toUpperCase())+'</option>').join('');$('udsXStatus').textContent=f.name+' • '+size(f.size)+' • '+(browserOpen.has(e)?'browser-openable':'specialist/native format');}
  input.addEventListener('change',()=>{refresh();const f=input.files?.[0];if(f)openFile(f).catch(err=>$('udsXPreview').innerHTML='<div class="uds-xerror">'+esc(err.message)+'</div>')});
@@ -171,85 +137,9 @@ function build(){
  const main=$('udsInput');if(main){main.setAttribute('accept','*/*');main.addEventListener('change',()=>{const f=main.files?.[0];if(f)openFile(f).catch(()=>{})})}
 }
 
-// Self-contained Universal Format Catalog interaction.
-function wireCatalogControls(){
-  const panel=document.getElementById('tabUniversalData'); if(!panel) return;
-  const cat=panel.querySelector('.uds-format-catalog-card'); if(!cat) return;
-  const grid=cat.querySelector('.uds-format-grid');
-  const search=document.getElementById('udsCatalogSearch');
-  const hint=cat.querySelector('.uds-catalog-hint');
-  const picker=document.getElementById('udsCatalogInput');
-  const status=document.getElementById('udsCatalogStatus');
-  const preview=document.getElementById('udsCatalogPreview');
-  const apply=q=>{
-    q=(q||'').trim().toLowerCase();
-    [...(grid?.children||[])].forEach(x=>x.hidden=!!q&&!x.dataset.udsText.includes(q));
-    const n=[...(grid?.children||[])].filter(x=>!x.hidden).length;
-    if(hint) hint.textContent=q?(n+' format group'+(n===1?'':'s')+' match “'+q+'”.'):'Choose a format family to filter the catalog, or choose a file here.';
-  };
-  if(grid){
-    [...grid.children].forEach(x=>x.dataset.udsText=(x.textContent||'').toLowerCase());
-    if(search&&!search.dataset.udsBound){search.dataset.udsBound='1';search.addEventListener('input',()=>apply(search.value));}
-    if(!cat.dataset.udsClickBound){
-      cat.dataset.udsClickBound='1';
-      cat.addEventListener('click',e=>{
-        const btn=e.target.closest('[data-uds-filter]');
-        if(!btn)return;
-        const f=btn.dataset.udsFilter;
-        const q={brain:'brain medical edf hyp sleep',bio:'bio genomics fasta fastq vcf',geo:'geospatial geojson gpx kml',science:'science earth space fits netcdf hdf5',columnar:'big-data containers parquet arrow avro orc','3d':'3d imaging cad ply stl obj'}[f]||'';
-        if(search){search.value=q;apply(q);}
-        cat.querySelectorAll('[data-uds-filter]').forEach(b=>b.classList.toggle('active',b===btn));
-      });
-    }
-  }
-  if(picker&&!picker.dataset.udsBound){
-    picker.dataset.udsBound='1';
-    picker.addEventListener('change',async()=>{
-      const f=picker.files?.[0]; if(!f)return;
-      if(status)status.textContent='Reading '+f.name+'…';
-      if(preview)preview.innerHTML='<div class="uds-catalog-loading">Detecting format and preparing preview…</div>';
-      try{
-        const e=ext(f.name);
-        const browser=browserOpen.has(e);
-        if(status)status.textContent='✓ '+f.name+' • '+size(f.size)+' • '+(browser?'Browser parser available':'Specialist/native parser • Local Engine fallback');
-        if(preview){
-          const kind=browserOpen.has(e)?'Browser-ready':'Specialist/native';
-          preview.innerHTML='<div class="uds-catalog-file"><div class="uds-catalog-file-main"><b>'+esc(f.name)+'</b><span>.'+esc(e||'unknown')+' • '+esc(size(f.size))+' • '+kind+'</span></div><div class="uds-catalog-file-actions"><button type="button" id="udsCatalogInspect">Inspect here</button><button type="button" id="udsCatalogReset">Remove</button></div><div id="udsCatalogResult" class="uds-catalog-result"></div></div>';
-          const result=document.getElementById('udsCatalogResult');
-          document.getElementById('udsCatalogReset').onclick=()=>{picker.value='';if(status)status.textContent='No file selected.';preview.innerHTML='';};
-          document.getElementById('udsCatalogInspect').onclick=async()=>{
-            if(!result)return;
-            result.textContent='Reading '+f.name+'…';
-            try{
-              if(['hyp','edf','edf+','rec','bdf'].includes(e)){
-                result.innerHTML='<b>😴 Sleep record detected</b><div>EDF/HYP sleep parsing is available. The catalog has identified this as a sleep-domain file rather than generic binary data.</div>';
-                if(status)status.textContent='✓ Sleep format detected in the catalog: '+f.name;
-                return;
-              }
-              if(imageExt.has(e)){result.innerHTML='<img class="uds-catalog-image" src="'+URL.createObjectURL(f)+'" alt="'+esc(f.name)+'">';return;}
-              if(audioExt.has(e)){result.innerHTML='<audio controls class="uds-catalog-media" src="'+URL.createObjectURL(f)+'"></audio>';return;}
-              if(videoExt.has(e)){result.innerHTML='<video controls class="uds-catalog-media" src="'+URL.createObjectURL(f)+'"></video>';return;}
-              if(e==='pdf'){result.innerHTML='<iframe class="uds-catalog-pdf" src="'+URL.createObjectURL(f)+'"></iframe>';return;}
-              if(textExt.has(e)||f.type.startsWith('text/')){
-                const txt=await f.text();
-                result.innerHTML='<pre>'+esc(txt.slice(0,12000))+'</pre>';
-                if(status)status.textContent='✓ Text/data preview rendered here in the catalog.';
-                return;
-              }
-              const head=new Uint8Array(await f.slice(0,48).arrayBuffer());
-              result.innerHTML='<b>Specialist / binary format</b><pre>'+esc(bytesToHex(head))+'</pre><small>This file is recognized here; native parsing can be handled by the Local Engine.</small>';
-            }catch(err){result.textContent='✕ '+err.message;}
-          };
-        }
-      }catch(err){if(status)status.textContent='✕ '+err.message;if(preview)preview.innerHTML='';}
-    });
-  }
-}
-wireCatalogControls();
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wireCatalogControls);
-const style=document.createElement('style');style.textContent='.uds-xbar{display:grid;grid-template-columns:1.5fr auto 1fr auto auto;gap:10px;align-items:center;margin-top:14px} .uds-catalog-actions{margin:14px 0 4px;padding:12px;border:1px solid #dce6f0;border-radius:15px;background:#f8fcff}.uds-catalog-search{display:grid;grid-template-columns:1fr auto;gap:8px}.uds-catalog-quick{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.uds-catalog-quick button,.uds-format-use{border:1px solid #b9dbe2;background:#fff;color:#176474;border-radius:10px;padding:7px 10px;font-size:.72rem;font-weight:700;cursor:pointer}.uds-catalog-quick button:hover,.uds-format-use:hover{background:#e9faff}.uds-catalog-hint{margin-top:8px;color:#65778a;font-size:.72rem}.uds-format-grid>div{position:relative}.uds-format-use{display:block;margin-top:9px}@media(max-width:700px){.uds-catalog-search{grid-template-columns:1fr}.uds-catalog-quick{display:grid;grid-template-columns:1fr 1fr}.uds-format-use{width:100%}}.uds-xcap{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:14px}.uds-xcap span{display:block;padding:9px 11px;border:1px solid #dce6f0;border-radius:12px;background:#f9fcff;font-size:.72rem;line-height:1.45;color:#52617a}.uds-xstatus{margin-top:12px;padding:10px 12px;border-radius:11px;background:#eef9fb;color:#236274;font-size:.8rem}.uds-xpreview{margin-top:12px;min-height:220px;border:1px solid #dce6f0;border-radius:16px;background:#fff;overflow:hidden;padding:12px}.uds-xempty{display:grid;place-items:center;min-height:190px;color:#7a8799;font-size:.85rem}.uds-xscroll{max-height:460px;overflow:auto}.uds-x{width:100%;border-collapse:collapse;font-size:.72rem}.uds-x th,.uds-x td{padding:7px 8px;border-bottom:1px solid #edf1f5;text-align:left;white-space:nowrap}.uds-x th{position:sticky;top:0;background:#f1f7fa;color:#334155}.uds-xcount{padding-top:8px;color:#718096;font-size:.7rem}.uds-xpre{margin:0;max-height:480px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#26364b}.uds-xmap{display:block;width:100%;max-height:460px}.uds-xmedia{display:block;max-width:100%;max-height:560px;margin:auto;border-radius:12px}.uds-xaudio{width:100%;margin-top:80px}.uds-xvideo{display:block;width:100%;max-height:560px;border-radius:12px;background:#111}.uds-xpdf{width:100%;height:600px;border:0}.uds-xbinary{padding:18px;border-radius:12px;background:#f7fafc;color:#52617a}.uds-xbinary pre{overflow:auto;background:#111827;color:#dbeafe;padding:12px;border-radius:10px;font-size:11px}.uds-xerror{padding:14px;background:#fff2f2;color:#a33}@media(max-width:800px){.uds-xbar{grid-template-columns:1fr 1fr}.uds-xbar .file-input{grid-column:1/-1}.uds-xpdf{height:460px}} .uds-catalog-actions{margin:18px 0 6px;padding:14px 16px;border:1px solid #d9e5ec;border-radius:18px;background:linear-gradient(180deg,#fbfdff,#f5fafc);box-shadow:0 8px 24px rgba(30,70,90,.06)}.uds-catalog-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}.uds-catalog-search input{height:44px;border:1px solid #cbd9e2;border-radius:13px;padding:0 14px;background:#fff;box-sizing:border-box}.uds-catalog-choose{height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 17px;border-radius:13px;background:#0b7285;color:#fff;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 5px 12px rgba(11,114,133,.18);white-space:nowrap}.uds-catalog-choose:hover{transform:translateY(-1px);background:#095d6d}.uds-catalog-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.uds-catalog-quick button{appearance:none!important;border:1px solid #cfdee6!important;background:#fff!important;color:#345261!important;border-radius:999px!important;padding:8px 12px!important;font:700 .72rem/1.1 system-ui,sans-serif!important;cursor:pointer!important;box-shadow:none!important}.uds-catalog-quick button:hover{border-color:#79b8c4!important;background:#f0fbfd!important;color:#0b6676!important}.uds-catalog-quick button.active{background:#e2f5f7!important;border-color:#51a7b5!important;color:#075e6e!important}.uds-catalog-hint{margin-top:10px;color:#667887;font-size:.73rem;line-height:1.4}.uds-format-grid>div{transition:opacity .15s,transform .15s}.uds-format-grid>div[hidden]{display:none!important}@media(max-width:700px){.uds-catalog-search{grid-template-columns:1fr}.uds-catalog-choose{width:100%}.uds-catalog-quick{display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.uds-catalog-quick button{flex:0 0 auto}} .uds-catalog-status{margin-top:9px;padding:9px 12px;border-radius:10px;background:#f2f7f9;color:#5f7280;font-size:.74rem}.uds-catalog-preview{margin-top:9px}.uds-catalog-loading{padding:12px;border-radius:12px;background:#f7fafc;color:#64748b;font-size:.75rem}.uds-catalog-file{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid #d9e5ec;border-radius:13px;background:#fff}.uds-catalog-file span{color:#70808d;font-size:.72rem}.uds-catalog-file-actions{display:flex;gap:7px;margin-left:auto}.uds-catalog-file-actions button{border:1px solid #bcd6dd;background:#eef9fb;color:#0b6575;border-radius:9px;padding:7px 10px;font-weight:700;font-size:.72rem;cursor:pointer}';document.head.appendChild(style);
+const style=document.createElement('style');style.textContent='.uds-xbar{display:grid;grid-template-columns:1.5fr auto 1fr auto auto;gap:10px;align-items:center;margin-top:14px} .file-input{grid-column:1/-1}.uds-xpdf{height:460px}} .uds-catalog-actions{margin:18px 0 6px;padding:14px 16px;border:1px solid #d9e5ec;border-radius:18px;background:linear-gradient(180deg,#fbfdff,#f5fafc);box-shadow:0 8px 24px rgba(30,70,90,.06)}.uds-catalog-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}.uds-catalog-search input{height:44px;border:1px solid #cbd9e2;border-radius:13px;padding:0 14px;background:#fff;box-sizing:border-box}.uds-catalog-choose{height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 17px;border-radius:13px;background:#0b7285;color:#fff;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 5px 12px rgba(11,114,133,.18);white-space:nowrap}.uds-catalog-choose:hover{transform:translateY(-1px);background:#095d6d}.uds-catalog-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.uds-catalog-quick button{appearance:none!important;border:1px solid #cfdee6!important;background:#fff!important;color:#345261!important;border-radius:999px!important;padding:8px 12px!important;font:700 .72rem/1.1 system-ui,sans-serif!important;cursor:pointer!important;box-shadow:none!important}.uds-catalog-quick button:hover{border-color:#79b8c4!important;background:#f0fbfd!important;color:#0b6676!important}.uds-catalog-quick button.active{background:#e2f5f7!important;border-color:#51a7b5!important;color:#075e6e!important}.uds-catalog-hint{margin-top:10px;color:#667887;font-size:.73rem;line-height:1.4}.uds-format-grid>div{transition:opacity .15s,transform .15s}.uds-format-grid>div[hidden]{display:none!important}@media(max-width:700px){.uds-catalog-search{grid-template-columns:1fr}.uds-catalog-choose{width:100%}.uds-catalog-quick{display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.uds-catalog-quick button{flex:0 0 auto}} .uds-catalog-status{margin-top:9px;padding:9px 12px;border-radius:10px;background:#f2f7f9;color:#5f7280;font-size:.74rem}.uds-catalog-preview{margin-top:9px}.uds-catalog-loading{padding:12px;border-radius:12px;background:#f7fafc;color:#64748b;font-size:.75rem}.uds-catalog-file{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid #d9e5ec;border-radius:13px;background:#fff}.uds-catalog-file span{color:#70808d;font-size:.72rem}.uds-catalog-file-actions{display:flex;gap:7px;margin-left:auto}.uds-catalog-file-actions button{border:1px solid #bcd6dd;background:#eef9fb;color:#0b6575;border-radius:9px;padding:7px 10px;font-weight:700;font-size:.72rem;cursor:pointer}';document.head.appendChild(style);
  build();
- wireCatalogControls();
+
 window.OMNI_UDS_FORMATS={registry:REGISTRY,allExtensions:allExts,browserOpen:[...browserOpen],browserConvert:[...browserConvert]};
 window.OMNI_UNIVERSAL_DATA=window.OMNI_UNIVERSAL_DATA||{};
 window.OMNI_UNIVERSAL_DATA.formats=REGISTRY;
