@@ -123,7 +123,7 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
         r'<(?:video|source|audio)[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
         r'<img[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
         r'<meta[^>]+property=["\\\']og:(?:video|image)(?::secure_url)?["\\\'][^>]+content=["\\\']([^"\\\']+)["\\\']',
-        r'https://[^"\\\'<>\\s]+(?:cdninstagram\\.com|fbcdn\\.net)[^"\\\'<>\\s]*',
+        r'https://[^"\\\'<>\\s]+(?:cdninstagram\.com|fbcdn\.net)[^"\\\'<>\\s]*',
     ]
     found = []
     for pattern in patterns:
@@ -163,8 +163,8 @@ def jina_instagram_media(source: str) -> dict | None:
         if not urls:
             return None
 
-        video = next((u for u in urls if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)), None)
-        images = [u for u in urls if re.search(r"\\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
+        video = next((u for u in urls if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)), None)
+        images = [u for u in urls if re.search(r"\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
         if not video and not images:
             return None
 
