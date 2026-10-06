@@ -239,48 +239,63 @@ def extract_instagram_media_from_json(value) -> list[str]:
     return []
 
 
+def _instagram_shortcode(source: str) -> str:
+    match = re.search(r"/(?:p|reel|tv)/([^/?#]+)/?", source)
+    return match.group(1) if match else ""
+
+
 def jina_instagram_structured(source: str) -> list[str]:
-    """Ask Jina for Instagram's post JSON, avoiding surrounding page/feed media."""
+    """Fetch only post-specific Instagram JSON/HTML through Jina.
+
+    The normal Instagram page can contain profile/recommendation assets. We
+    therefore try the post JSON endpoint and the post's embed document, both
+    keyed to the exact shortcode, before any metadata fallback is considered.
+    """
     if not is_instagram_url(source):
         return []
-    try:
-        separator = "&" if "?" in source else "?"
-        target = source + separator + "__a=1&__d=dis"
-        endpoint = "https://r.jina.ai/" + target
-        req = urllib.request.Request(
-            endpoint,
-            headers={
-                "Accept": "application/json",
-                "X-Respond-With": "json",
-            },
-            method="GET",
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            raw = response.read().decode("utf-8", "replace")
-        raw = html_lib.unescape(raw).strip()
-        try:
-            payload = json.loads(raw)
-        except Exception:
-            # Jina can wrap JSON in a small response envelope; locate the first
-            # JSON object containing Instagram's media keys.
-            payload = None
-            for marker in ('"xdt_shortcode_media"', '"shortcode_media"'):
-                pos = raw.find(marker)
-                if pos >= 0:
-                    start = raw.rfind("{", 0, pos)
-                    if start >= 0:
-                        blob = _balanced_json_object(raw, start)
-                        if blob:
-                            try:
-                                payload = json.loads(blob)
-                                break
-                            except Exception:
-                                pass
-        if payload is None:
-            return []
-        return extract_instagram_media_from_json(payload)
-    except Exception:
+
+    shortcode = _instagram_shortcode(source)
+    if not shortcode:
         return []
+
+    targets = [
+        f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis",
+        f"https://www.instagram.com/p/{shortcode}/embed/captioned/",
+        f"https://www.instagram.com/p/{shortcode}/embed/",
+    ]
+
+    for target in targets:
+        try:
+            endpoint = "https://r.jina.ai/" + target
+            req = urllib.request.Request(
+                endpoint,
+                headers={
+                    "Accept": "text/html, application/json",
+                    "X-Respond-With": "html",
+                    "X-Retain-Media": "html",
+                },
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                raw = html_lib.unescape(response.read().decode("utf-8", "replace")).strip()
+
+            # Direct JSON response.
+            try:
+                payload = json.loads(raw)
+                media = extract_instagram_media_from_json(payload)
+                if media:
+                    return media
+            except Exception:
+                pass
+
+            # Embedded/HTML JSON.
+            media = extract_instagram_post_media(raw)
+            if media:
+                return media
+        except Exception:
+            continue
+
+    return []
 
 
 def extract_instagram_post_media(raw_html: str) -> list[str]:
@@ -314,6 +329,23 @@ def extract_instagram_post_media(raw_html: str) -> list[str]:
             pos = hit + len(marker)
 
     return candidates
+
+
+def extract_instagram_og_media(raw_html: str) -> list[str]:
+    """Return only OpenGraph media explicitly declared for the post page."""
+    text = html_lib.unescape(raw_html or "")
+    found: list[str] = []
+
+    for pattern in (
+        r"""<meta[^>]+property=["']og:(?:video|image)(?::secure_url)?["'][^>]+content=["']([^"']+)["']""",
+        r"""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:(?:video|image)(?::secure_url)?["']""",
+    ):
+        for value in re.findall(pattern, text, flags=re.I):
+            value = normalize_media_url(value)
+            if is_allowed_media_url(value) and value not in found:
+                found.append(value)
+
+    return found
 
 
 def extract_urls_from_html(raw_html: str) -> list[str]:
@@ -380,10 +412,13 @@ def jina_instagram_media(source: str) -> dict | None:
         if not urls:
             urls = extract_instagram_post_media(raw)
 
-        # Last resort: page metadata only. Never collect arbitrary <img> tags,
-        # because those can be profile/recommended/feed media unrelated to post.
+        # Do NOT fall back to arbitrary CDN URLs on an Instagram post page.
+        # Those URLs include Instagram's logo, profile assets, recommendations,
+        # and other page chrome — exactly the false positives this resolver must
+        # never show. A safe metadata fallback can return only the page's own
+        # og:image/og:video.
         if not urls:
-            urls = extract_urls_from_html(raw)
+            urls = extract_instagram_og_media(raw)
 
         if not urls:
             return None
