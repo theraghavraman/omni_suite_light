@@ -40,24 +40,49 @@
     const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
      const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>u.startsWith('http')?u:RESOLVER+u);
+     const mediaKind=(d)=>{
+       const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
+       if(ext)return ext;
+       const u=String(d.url||'').split('?')[0].toLowerCase();
+       const m=u.match(/\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$/);
+       return m?m[1]:'media';
+     };
+     const mediaLabel=(d)=>{
+       const ext=mediaKind(d);
+       return ext==='jpg'||ext==='jpeg'?'JPG':ext==='png'?'PNG':ext==='webp'?'WEBP':ext==='avif'?'AVIF':ext==='gif'?'GIF':ext==='mp4'?'MP4':ext==='webm'?'WEBM':ext==='mov'?'MOV':ext==='m4v'?'M4V':ext==='m3u8'?'HLS':ext==='mp3'?'MP3':ext==='m4a'?'M4A':ext==='aac'?'AAC':ext==='ogg'?'OGG':'MEDIA';
+     };
+     const isVideo=(d)=>{
+       const ext=mediaKind(d);
+       return /^(mp4|webm|mov|m4v|m3u8)$/.test(ext)||d.has_audio===true;
+     };
      if(info.type==='carousel' && itemUrls.length>1){
        preview.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;width:100%">'+
-         itemUrls.map((u,i)=>'<div style="border:1px solid rgba(108,92,255,.14);border-radius:12px;overflow:hidden;background:#fff"><img src="'+String(u).replace(/"/g,'&quot;')+'" alt="Post item '+(i+1)+'" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover"><div style="padding:7px 9px;font-size:.7rem;font-weight:800;color:#4b466f">Item '+(i+1)+'</div></div>').join('')+
+         downloads.map((d,i)=>{
+           const u=itemUrls[i]; const esc=String(u).replace(/"/g,'&quot;');
+           const label=mediaLabel(d);
+           const media=isVideo(d)
+             ? '<video src="'+esc+'" controls playsinline preload="metadata" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#111"></video>'
+             : '<img src="'+esc+'" alt="Post item '+(i+1)+'" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover">';
+           return '<div style="border:1px solid rgba(108,92,255,.14);border-radius:12px;overflow:hidden;background:#fff">'+media+'<div style="padding:7px 9px;font-size:.7rem;font-weight:800;color:#4b466f">Item '+(i+1)+' · '+label+'</div></div>';
+         }).join('')+
        '</div>';
      }else{
-       preview.innerHTML=info.thumbnail?'<img src="'+String(info.thumbnail).replace(/"/g,'&quot;')+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">':'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
+       const first=downloads[0]; const firstUrl=itemUrls[0]||info.thumbnail; const esc=String(firstUrl||'').replace(/"/g,'&quot;');
+       preview.innerHTML=firstUrl?(first&&isVideo(first)?'<video src="'+esc+'" controls playsinline preload="metadata" style="max-width:100%;max-height:430px"></video>':'<img src="'+esc+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">'):'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
      }
      preview.className='social-preview';
     const buttons=(info.downloads||[]).map(d=>{
       const href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;
-      return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">MP4 • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
+      const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
+      const label=ext==='jpg'||ext==='jpeg'?'JPG':ext==='png'?'PNG':ext==='webp'?'WEBP':ext==='avif'?'AVIF':ext==='gif'?'GIF':ext==='mp4'?'MP4':ext==='webm'?'WEBM':ext==='mov'?'MOV':ext==='m4v'?'M4V':ext==='m3u8'?'HLS':ext==='mp3'?'MP3':ext==='m4a'?'M4A':ext==='aac'?'AAC':ext==='ogg'?'OGG':'MEDIA';
+      return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">'+label+' • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
     }).join('');
     hint.style.display='block';hint.className='social-direct-hint social-direct-ok';
     hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download'+
       '<div style="margin-top:12px;font-weight:800;color:#1c1b3a">Available downloads</div>'+
       (buttons||'<div style="margin-top:6px">No downloadable public format was returned.</div>')+
       '<div style="margin-top:10px;color:#7b8795">Creator: '+String(info.uploader||'Public creator')+' • Duration: '+dur+'</div>';
-    setButtons(false);msg('Public media found. Choose a quality to download.','ok');
+    setButtons(false);msg('Public media found. Choose a download below.','ok');
   }
 
   async function browserResolve(url){
