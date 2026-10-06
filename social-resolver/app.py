@@ -117,23 +117,59 @@ def is_allowed_media_url(raw: str) -> bool:
         return False
 
 
+def normalize_media_url(value: str) -> str:
+    value = html_lib.unescape(str(value or "")).strip()
+    for _ in range(2):
+        value = value.replace("\\\\/","/").replace("\\u0026","&").replace("\\u003d","=").replace("\\u003D","=")
+    return value
+
+
 def extract_urls_from_html(raw_html: str) -> list[str]:
     text = html_lib.unescape(raw_html or "")
-    patterns = [
-        r'<(?:video|source|audio)[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
-        r'<img[^>]+(?:src|data-src)=["\\\']([^"\\\']+)["\\\']',
-        r'<meta[^>]+property=["\\\']og:(?:video|image)(?::secure_url)?["\\\'][^>]+content=["\\\']([^"\\\']+)["\\\']',
-        r'https://[^"\\\'<>\\s]+(?:cdninstagram\.com|fbcdn\.net)[^"\\\'<>\\s]*',
+    found: list[str] = []
+
+    def add(value: str):
+        value = normalize_media_url(value)
+        if is_allowed_media_url(value) and value not in found:
+            found.append(value)
+
+    # Instagram's embedded post data uses these fields for the actual post
+    # media. Prefer them over arbitrary <img> elements such as the profile avatar.
+    structured_patterns = [
+        r'["\\']display_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
+        r'["\\']video_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
+        r'["\\']media_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
     ]
-    found = []
-    for pattern in patterns:
+    structured = []
+    for pattern in structured_patterns:
         for value in re.findall(pattern, text, flags=re.I):
-            if isinstance(value, tuple):
-                value = value[0]
-            value = html_lib.unescape(str(value)).replace("\\\\/", "/").strip()
-            if is_allowed_media_url(value) and value not in found:
-                found.append(value)
-    return found
+            value = normalize_media_url(value)
+            if is_allowed_media_url(value) and value not in structured:
+                structured.append(value)
+
+    # HTML metadata is the next-best source and normally points at the post
+    # cover rather than the account avatar.
+    html_patterns = [
+        r'<meta[^>]+property=["\\']og:(?:video|image)(?::secure_url)?["\\'][^>]+content=["\\']([^"\\']+)["\\']',
+        r'<(?:video|source|audio)[^>]+(?:src|data-src)=["\\']([^"\\']+)["\\']',
+        r'<img[^>]+(?:src|data-src)=["\\']([^"\\']+)["\\']',
+    ]
+    html_urls = []
+    for pattern in html_patterns:
+        for value in re.findall(pattern, text, flags=re.I):
+            value = normalize_media_url(value)
+            if is_allowed_media_url(value) and value not in html_urls:
+                html_urls.append(value)
+
+    # Generic CDN URLs are only a final fallback.
+    generic = re.findall(r'https://[^"\\'<>\\s]+(?:cdninstagram\\.com|fbcdn\\.net)[^"\\'<>\\s]*', text, flags=re.I)
+    generic_urls = []
+    for value in generic:
+        value = normalize_media_url(value)
+        if is_allowed_media_url(value) and value not in generic_urls:
+            generic_urls.append(value)
+
+    return structured or html_urls or generic_urls
 
 
 def jina_instagram_media(source: str) -> dict | None:
@@ -163,14 +199,32 @@ def jina_instagram_media(source: str) -> dict | None:
         if not urls:
             return None
 
-        video = next((u for u in urls if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)), None)
-        images = [u for u in urls if re.search(r"\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
-        if not video and not images:
+        # Keep all media items in the order exposed by Instagram's embedded
+        # post data. This is important for carousel posts: the first image is
+        # only the cover, not the complete post.
+        media_urls = []
+        for u in urls:
+            if u not in media_urls:
+                media_urls.append(u)
+
+        videos = [u for u in media_urls if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)]
+        images = [u for u in media_urls if re.search(r"\\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
+
+        if not videos and not images:
             return None
 
-        thumb = images[0] if images else ""
-        media = video or thumb
-        media_type = "video" if video else "image_or_media"
+        ordered = videos + images if videos else images
+        thumb = images[0] if images else (videos[0] if videos else "")
+        media_type = "video" if videos and not images else ("carousel" if len(ordered) > 1 else "image_or_media")
+        downloads = []
+        for index, media in enumerate(ordered, 1):
+            downloads.append({
+                "quality": f"Item {index}" if len(ordered) > 1 else "Best",
+                "format_id": None,
+                "has_audio": bool(re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", media, re.I)),
+                "url": "/api/media-proxy?url=" + quote(media, safe=""),
+            })
+
         return {
             "success": True,
             "platform": "Instagram",
@@ -180,12 +234,7 @@ def jina_instagram_media(source: str) -> dict | None:
             "thumbnail": thumb,
             "webpage_url": source,
             "type": media_type,
-            "downloads": [{
-                "quality": "Best",
-                "format_id": None,
-                "has_audio": bool(video),
-                "url": "/api/media-proxy?url=" + quote(media, safe=""),
-            }],
+            "downloads": downloads,
         }
     except Exception:
         return None
