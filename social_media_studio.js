@@ -36,22 +36,19 @@
     platform.textContent=detect(sourceUrl);
     kind.textContent=info.type==='video'?'Video':'Media';
     meta.textContent=info.title||'Public media';
-    const creator=$('socialMediaCreator'),dur=$('socialMediaDuration'),list=$('socialMediaDownloads');
-    if(creator)creator.textContent=info.uploader||'Public creator';
-    if(dur){const s=Math.round(Number(info.duration)||0);dur.textContent=s?new Date(s*1000).toISOString().substr(11,8):'—';}
+    const seconds=Math.round(Number(info.duration)||0);
+    const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
     preview.innerHTML=info.thumbnail?'<img src="'+String(info.thumbnail).replace(/"/g,'&quot;')+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">':'<div style="padding:28px;text-align:center"><strong>Video ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a quality below.</span></div>';
     preview.className='social-preview';
-    if(list){
-      list.innerHTML='';
-      (info.downloads||[]).forEach(d=>{
-        const row=document.createElement('div');row.className='social-download-row';
-        const label=document.createElement('span');label.innerHTML='<b>'+String(d.quality||'Best')+'</b><small>MP4 • Browser download</small>';
-        const a=document.createElement('a');a.className='social-quality-btn';a.href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Download';
-        row.append(label,a);list.appendChild(row);
-      });
-    }
+    const buttons=(info.downloads||[]).map(d=>{
+      const href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;
+      return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">MP4 • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
+    }).join('');
     hint.style.display='block';hint.className='social-direct-hint social-direct-ok';
-    hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download';
+    hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download'+
+      '<div style="margin-top:12px;font-weight:800;color:#1c1b3a">Available downloads</div>'+
+      (buttons||'<div style="margin-top:6px">No downloadable public format was returned.</div>')+
+      '<div style="margin-top:10px;color:#7b8795">Creator: '+String(info.uploader||'Public creator')+' • Duration: '+dur+'</div>';
     setButtons(false);msg('Public media found. Choose a quality to download.','ok');
   }
 
