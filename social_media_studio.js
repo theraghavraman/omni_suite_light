@@ -13,7 +13,7 @@
 
   const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const REMOTE_READER='https://r.jina.ai/';
-  let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'').replace(/\/+$/,'');
+  let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function findMediaUrls(text,base){
     const out=[]; const addUrl=v=>{v=cleanMediaUrl(v);if(v.startsWith('http')&&!out.includes(v))out.push(v);};
