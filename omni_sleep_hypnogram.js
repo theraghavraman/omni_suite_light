@@ -150,7 +150,8 @@ function makeCard(){
     <div class="sleep-chart"><canvas id="sleepCanvas" width="1400" height="390"></canvas></div>
     <div class="sleep-grid"><div class="sleep-panel"><h3>Stage distribution</h3><div id="sleepStages"></div></div><div class="sleep-panel"><h3>Stage transitions</h3><div id="sleepTransitions"></div></div></div>
     <div class="sleep-actions" style="margin-top:12px"><button id="sleepCsv">Export epochs CSV</button><button id="sleepJson">Export semantic JSON</button><button id="sleepSvg">Export SVG</button><button id="sleepHtml">Export HTML report</button></div>`;
-  host.appendChild(el);
+  const anchor=[...host.querySelectorAll('.card')].find(x=>/Inspect & Visualize/i.test(x.textContent||'')); 
+  if(anchor) host.insertBefore(el,anchor); else host.appendChild(el);
   document.getElementById('sleepLoad').onclick=()=>document.getElementById('sleepFile').click();
   document.getElementById('sleepFile').onchange=e=>{const fs=[...(e.target.files||[])];const hyp=fs.find(f=>/\\.hyp$/i.test(f.name));const rec=fs.find(f=>/\\.(edf|edf\\+|rec|bdf)$/i.test(f.name));window.__OMNI_SLEEP_PAIR={hyp:hyp||null,recording:rec||null,files:fs};if(hyp&&rec)setStatus('Paired workflow: '+hyp.name+' + '+rec.name+' selected. Rendering the hypnogram now; the recording is retained as the paired source.');const f=hyp||rec;if(f)load(f)};
   document.getElementById('sleepLocal').onclick=()=>{const f=document.getElementById('sleepFile').files?.[0]||window.__OMNI_UDS_CURRENT_FILE;if(f){setStatus('Local Engine fallback selected for '+f.name+'. Use the Local Engine Studio for vendor-specific HYP parsing.')}else{setStatus('Choose a sleep file first; Local Engine fallback is available for vendor-specific HYP.')}};
