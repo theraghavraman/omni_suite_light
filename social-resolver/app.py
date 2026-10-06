@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse, quote, unquote
 import html as html_lib
 import urllib.request
+import json
 
 import yt_dlp
 from fastapi import FastAPI, HTTPException, Query
@@ -124,6 +125,94 @@ def normalize_media_url(value: str) -> str:
     return value
 
 
+def _balanced_json_object(text: str, start: int) -> str | None:
+    """Return one JSON object beginning at *start*, respecting quoted strings."""
+    if start < 0 or start >= len(text) or text[start] != "{":
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
+def _post_media_from_node(node: dict) -> list[str]:
+    """Extract only the media belonging to one Instagram post node."""
+    if not isinstance(node, dict):
+        return []
+
+    children = ((node.get("edge_sidecar_to_children") or {}).get("edges") or [])
+    if children:
+        ordered = [edge.get("node") or {} for edge in children]
+    else:
+        # Some Instagram responses use carousel_media instead of the GraphQL
+        # edge_sidecar representation.
+        carousel = node.get("carousel_media") or []
+        ordered = carousel if carousel else [node]
+
+    found: list[str] = []
+    for item in ordered:
+        if not isinstance(item, dict):
+            continue
+        value = item.get("video_url") if item.get("is_video") else item.get("display_url")
+        if not value:
+            value = item.get("video_url") or item.get("display_url") or item.get("media_url")
+        value = normalize_media_url(value)
+        if is_allowed_media_url(value) and value not in found:
+            found.append(value)
+    return found
+
+
+def extract_instagram_post_media(raw_html: str) -> list[str]:
+    """Extract media from the specific Instagram post, never the surrounding profile/feed."""
+    text = html_lib.unescape(raw_html or "")
+    candidates = []
+
+    # Instagram has used both shortcode_media and xdt_shortcode_media. Parse
+    # the complete JSON object so profile/feed images elsewhere on the page
+    # cannot leak into the result.
+    for marker in ('"xdt_shortcode_media"', '"shortcode_media"'):
+        pos = 0
+        while True:
+            hit = text.find(marker, pos)
+            if hit < 0:
+                break
+            colon = text.find(":", hit + len(marker))
+            if colon >= 0:
+                start = text.find("{", colon + 1)
+                if start >= 0:
+                    blob = _balanced_json_object(text, start)
+                    if blob:
+                        try:
+                            node = json.loads(blob)
+                            media = _post_media_from_node(node)
+                            for value in media:
+                                if value not in candidates:
+                                    candidates.append(value)
+                        except Exception:
+                            pass
+            pos = hit + len(marker)
+
+    return candidates
+
+
 def extract_urls_from_html(raw_html: str) -> list[str]:
     text = html_lib.unescape(raw_html or "")
     found: list[str] = []
@@ -133,45 +222,26 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
         if is_allowed_media_url(value) and value not in found:
             found.append(value)
 
-    # Instagram's embedded post data uses these fields for the actual post
-    # media. Prefer them over arbitrary <img> elements such as the profile avatar.
-    structured_patterns = [
-        r"""["']display_url["']\s*:\s*["']([^"']+)["']""",
-        r"""["']video_url["']\s*:\s*["']([^"']+)["']""",
-        r"""["']media_url["']\s*:\s*["']([^"']+)["']""",
-    ]
-    structured = []
-    for pattern in structured_patterns:
-        for value in re.findall(pattern, text, flags=re.I):
-            value = normalize_media_url(value)
-            if is_allowed_media_url(value) and value not in structured:
-                structured.append(value)
-
-    # HTML metadata is the next-best source and normally points at the post
-    # cover rather than the account avatar.
+    # This generic helper is deliberately conservative. It is only a fallback
+    # for direct media discovery; Instagram post pages are handled separately
+    # by extract_instagram_post_media().
     html_patterns = [
         r"""<meta[^>]+property=["']og:(?:video|image)(?::secure_url)?["'][^>]+content=["']([^"']+)["']""",
         r"""<(?:video|source|audio)[^>]+(?:src|data-src)=["']([^"']+)["']""",
-        r"""<img[^>]+(?:src|data-src)=["']([^"']+)["']""",
     ]
-    html_urls = []
     for pattern in html_patterns:
         for value in re.findall(pattern, text, flags=re.I):
-            value = normalize_media_url(value)
-            if is_allowed_media_url(value) and value not in html_urls:
-                html_urls.append(value)
+            add(value)
 
-    # Generic CDN URLs are only a final fallback.
+    # Generic CDN URLs are the final fallback. They are not used when a
+    # post-specific Instagram structure was successfully parsed.
     generic = re.findall(r'''https://[^"'<>
 \s]+(?:cdninstagram\.com|fbcdn\.net)[^"'<>
 \s]*'''.replace("\n", ""), text, flags=re.I)
-    generic_urls = []
     for value in generic:
-        value = normalize_media_url(value)
-        if is_allowed_media_url(value) and value not in generic_urls:
-            generic_urls.append(value)
+        add(value)
 
-    return structured or html_urls or generic_urls
+    return found
 
 
 def jina_instagram_media(source: str) -> dict | None:
@@ -197,13 +267,21 @@ def jina_instagram_media(source: str) -> dict | None:
         )
         with urllib.request.urlopen(req, timeout=30) as response:
             raw = response.read().decode("utf-8", "replace")
-        urls = extract_urls_from_html(raw)
+        # First try the post's own structured media node. This is the
+        # critical distinction between a carousel and the surrounding profile:
+        # never collect every display_url found on the page.
+        urls = extract_instagram_post_media(raw)
+
+        # If Instagram/Jina did not expose structured post JSON, fall back to
+        # page metadata only. Do not use arbitrary <img> URLs here because they
+        # can belong to the profile, recommendations, or feed around the post.
+        if not urls:
+            urls = extract_urls_from_html(raw)
+
         if not urls:
             return None
 
-        # Keep all media items in the order exposed by Instagram's embedded
-        # post data. This is important for carousel posts: the first image is
-        # only the cover, not the complete post.
+        # The structured extractor already preserves carousel order.
         media_urls = []
         for u in urls:
             if u not in media_urls:
