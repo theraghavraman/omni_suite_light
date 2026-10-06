@@ -125,28 +125,39 @@ function build(){
  const card=document.createElement('div');card.className='card';card.id='udsFormatExplorer';
  card.innerHTML='<h2>🧰 Universal Format Workbench</h2><div class="sub"><b>One file in → semantic understanding → browser preview → conversion.</b> Browser-safe formats stay local; specialist/scientific formats are explicitly routed to the Local Engine instead of being misread as generic text.</div><div class="uds-xbar"><input id="udsXInput" type="file" class="file-input" accept="*/*"><button type="button" class="btn btn-primary" id="udsXOpen">Open / Render</button><select id="udsXTarget" class="form-select"><option>Choose output…</option></select><button type="button" class="btn btn-success" id="udsXConvert">Convert</button><button type="button" class="btn btn-secondary" id="udsXLocal">Open with Local Engine</button></div><div class="uds-xcap" id="udsXCatalog"></div><div class="uds-xstatus" id="udsXStatus">Choose a file to begin.</div><div id="udsXPreview" class="uds-xpreview"><div class="uds-xempty">Browser render area.</div></div>';
  const hero=panel.querySelector('.uds-hero');if(hero&&hero.nextElementSibling)panel.insertBefore(card,hero.nextElementSibling);else panel.appendChild(card);$('udsXCatalog').innerHTML=REGISTRY.map(x=>'<span><b>'+esc(x.category)+'</b> '+esc(x.exts.map(e=>'.'+e).join(' • '))+'</span>').join('');
-  // Make the always-visible catalog actionable too: it can drive the existing Bring Data In controls.
+  // Wire the static Universal Format Catalog controls to the real Bring Data In workflow.
   const cat=document.querySelector('#tabUniversalData .uds-format-catalog-card');
   if(cat&&!cat.dataset.udsActions){
     cat.dataset.udsActions='1';
-    const action=document.createElement('div');
-    action.className='uds-catalog-actions';
-    action.innerHTML='<div class="uds-catalog-search"><input id="udsCatalogSearch" class="form-input" placeholder="Search formats: EDF, HYP, Parquet, FITS, PCAP, FASTA…"><button type="button" class="btn btn-primary" id="udsCatalogChoose">📂 Choose file</button></div><div class="uds-catalog-quick"><button type="button" data-uds-filter="brain">😴 Sleep / EDF / HYP</button><button type="button" data-uds-filter="bio">🧬 Bio / genomics</button><button type="button" data-uds-filter="geo">🌍 Geospatial</button><button type="button" data-uds-filter="science">🚀 Science / space</button><button type="button" data-uds-filter="columnar">🗃 Big data</button><button type="button" data-uds-filter="3d">🧊 3D / imaging</button><button type="button" data-uds-filter="all">Show all</button></div><div class="uds-catalog-hint" id="udsCatalogHint">Pick a category to narrow the catalog, or choose a file now. The same file is then routed through the Universal Data workflow below.</div>';
-    cat.insertBefore(action,cat.querySelector('.uds-format-grid'));
     const grid=cat.querySelector('.uds-format-grid');
-    [...grid.children].forEach(card=>{
-      const text=(card.textContent||'').toLowerCase();
-      card.dataset.udsText=text;
-      const b=document.createElement('button');
-      b.type='button'; b.className='uds-format-use'; b.textContent='Use these formats →';
-      b.onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';document.querySelector('.uds-drop')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input.click(),250);}};
-      card.appendChild(b);
-    });
     const search=document.getElementById('udsCatalogSearch');
-    const apply=q=>{q=(q||'').toLowerCase().trim();[...grid.children].forEach(x=>x.hidden=!!q&&!x.dataset.udsText.includes(q));const n=[...grid.children].filter(x=>!x.hidden).length;document.getElementById('udsCatalogHint').textContent=q?(n+' format groups match "'+q+'". Click "Use these formats" or Choose file to start.'): 'Pick a category to narrow the catalog, or choose a file now. The same file is then routed through the Universal Data workflow below.'};
-    search.addEventListener('input',()=>apply(search.value));
-    document.getElementById('udsCatalogChoose').onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';input.click();}};
-    cat.querySelectorAll('[data-uds-filter]').forEach(btn=>btn.onclick=()=>{const f=btn.dataset.udsFilter;const q={brain:'brain medical edf hyp sleep',bio:'bio genomics fasta fastq vcf',geo:'geospatial geojson gpx kml',science:'science earth space fits netcdf hdf5',columnar:'big-data containers parquet arrow avro orc', '3d':'3d imaging cad ply stl obj'}[f]||'';search.value=q;apply(q);});
+    const hint=cat.querySelector('.uds-catalog-hint');
+    if(grid){
+      [...grid.children].forEach(card=>{
+        const text=(card.textContent||'').toLowerCase();
+        card.dataset.udsText=text;
+        if(!card.querySelector('.uds-format-use')){
+          const b=document.createElement('button');
+          b.type='button'; b.className='uds-format-use'; b.textContent='Use these formats →';
+          b.onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';document.querySelector('.uds-drop')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input.click(),250);}};
+          card.appendChild(b);
+        }
+      });
+      const apply=q=>{
+        q=(q||'').toLowerCase().trim();
+        [...grid.children].forEach(x=>x.hidden=!!q&&!x.dataset.udsText.includes(q));
+        const n=[...grid.children].filter(x=>!x.hidden).length;
+        if(hint)hint.textContent=q?(n+' format groups match "'+q+'". Click "Use these formats" or Choose file to start.'):'Pick a category to narrow the catalog, or choose a file now.';
+      };
+      if(search)search.addEventListener('input',()=>apply(search.value));
+      const choose=document.getElementById('udsCatalogChoose');
+      if(choose)choose.onclick=()=>{const input=document.getElementById('udsInput');if(input){input.accept='*/*';input.click();}};
+      cat.querySelectorAll('[data-uds-filter]').forEach(btn=>btn.onclick=()=>{
+        const f=btn.dataset.udsFilter;
+        const q={brain:'brain medical edf hyp sleep',bio:'bio genomics fasta fastq vcf',geo:'geospatial geojson gpx kml',science:'science earth space fits netcdf hdf5',columnar:'big-data containers parquet arrow avro orc','3d':'3d imaging cad ply stl obj'}[f]||'';
+        if(search){search.value=q;apply(q);}
+      });
+    }
   }
  const input=$('udsXInput'),target=$('udsXTarget');
  function refresh(){const f=input.files?.[0];if(!f)return;const e=ext(f.name);target.innerHTML=targetsFor(e).map(x=>'<option value="'+esc(x)+'">'+esc(x==='local-native'?'LOCAL NATIVE':x.toUpperCase())+'</option>').join('');$('udsXStatus').textContent=f.name+' • '+size(f.size)+' • '+(browserOpen.has(e)?'browser-openable':'specialist/native format');}
