@@ -121,10 +121,13 @@ function wireLegacy(){
  if(encDl&&!encDl.dataset.udsWired){encDl.dataset.udsWired='1';encDl.addEventListener('click',()=>{const v=$('udsEncodedOutput')?.value||'';if(v)download(new Blob([v],{type:'text/plain'}),'omni-encoded-output.txt')})}
 }
 function build(){
- const panel=$('tabUniversalData');if(!panel||$('udsFormatExplorer'))return;
- const card=document.createElement('div');card.className='card';card.id='udsFormatExplorer';
+ const panel=$('tabUniversalData');if(!panel)return;
+ let card=$('udsFormatExplorer');
+ if(!card){
+ card=document.createElement('div');card.className='card';card.id='udsFormatExplorer';
  card.innerHTML='<h2>🧰 Universal Format Workbench</h2><div class="sub"><b>One file in → semantic understanding → browser preview → conversion.</b> Browser-safe formats stay local; specialist/scientific formats are explicitly routed to the Local Engine instead of being misread as generic text.</div><div class="uds-xbar"><input id="udsXInput" type="file" class="file-input" accept="*/*"><button type="button" class="btn btn-primary" id="udsXOpen">Open / Render</button><select id="udsXTarget" class="form-select"><option>Choose output…</option></select><button type="button" class="btn btn-success" id="udsXConvert">Convert</button><button type="button" class="btn btn-secondary" id="udsXLocal">Open with Local Engine</button></div><div class="uds-xcap" id="udsXCatalog"></div><div class="uds-xstatus" id="udsXStatus">Choose a file to begin.</div><div id="udsXPreview" class="uds-xpreview"><div class="uds-xempty">Browser render area.</div></div>';
  const hero=panel.querySelector('.uds-hero');if(hero&&hero.nextElementSibling)panel.insertBefore(card,hero.nextElementSibling);else panel.appendChild(card);$('udsXCatalog').innerHTML=REGISTRY.map(x=>'<span><b>'+esc(x.category)+'</b> '+esc(x.exts.map(e=>'.'+e).join(' • '))+'</span>').join('');
+ }
   // Wire the static Universal Format Catalog controls to the real Bring Data In workflow.
   const cat=document.querySelector('#tabUniversalData .uds-format-catalog-card');
   if(cat&&!cat.dataset.udsActions){
