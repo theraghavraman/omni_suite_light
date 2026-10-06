@@ -325,39 +325,121 @@ def instagram_private_media_info(source: str, media_ids: list[str] | None = None
     return []
 
 def instagram_public_graphql_media(source: str) -> list[str]:
-    """Resolve a public Instagram post through the current anonymous web GraphQL client."""
+    """Resolve exact public Instagram media without falling back to OG previews.
+
+    instagrapi's anonymous web GraphQL path can expose the post's resources.
+    Prefer the largest image/video candidate available on each resource and
+    preserve carousel order.
+    """
     shortcode = _instagram_shortcode(source)
     if not shortcode:
         return []
+
+    def best_candidate(value):
+        if not isinstance(value, dict):
+            return ""
+        candidates = value.get("candidates") if isinstance(value, dict) else None
+        if not isinstance(candidates, list):
+            return ""
+        candidates = [x for x in candidates if isinstance(x, dict) and x.get("url")]
+        if not candidates:
+            return ""
+        best = max(
+            candidates,
+            key=lambda x: (
+                int(x.get("width") or 0),
+                int(x.get("height") or 0),
+            ),
+        )
+        return str(best.get("url") or "")
+
+    def resource_url(resource):
+        if isinstance(resource, dict):
+            video_versions = resource.get("video_versions") or []
+            if isinstance(video_versions, list):
+                video_versions = [x for x in video_versions if isinstance(x, dict) and x.get("url")]
+                if video_versions:
+                    best = max(
+                        video_versions,
+                        key=lambda x: (
+                            int(x.get("width") or 0),
+                            int(x.get("height") or 0),
+                        ),
+                    )
+                    return str(best.get("url") or "")
+            image = best_candidate(resource.get("image_versions2") or {})
+            if image:
+                return image
+            for key in ("video_url", "display_url", "media_url", "thumbnail_url"):
+                value = resource.get(key)
+                if value:
+                    return str(value)
+            return ""
+
+        for key in ("video_url", "display_url", "media_url", "thumbnail_url"):
+            value = getattr(resource, key, None)
+            if value:
+                return str(value)
+
+        image_versions = getattr(resource, "image_versions2", None)
+        if image_versions:
+            image = best_candidate(image_versions if isinstance(image_versions, dict) else getattr(image_versions, "__dict__", {}))
+            if image:
+                return image
+        return ""
+
     try:
         from instagrapi import Client
         client = Client(
             public_transport="curl",
             public_transport_impersonate="chrome136",
-            request_timeout=0,
+            request_timeout=20,
         )
         media_pk = _shortcode_to_media_pk(shortcode)
         if media_pk is None:
             return []
+
         media = client.media_info_gql(str(media_pk))
         found: list[str] = []
+
         resources = getattr(media, "resources", None) or []
         for resource in resources:
-            video_url = str(getattr(resource, "video_url", "") or "")
-            image_url = str(getattr(resource, "thumbnail_url", "") or "")
-            value = normalize_media_url(video_url or image_url)
+            value = normalize_media_url(resource_url(resource))
             if is_allowed_media_url(value) and value not in found:
                 found.append(value)
+
+        # Some instagrapi versions expose the exact web-info JSON on the model.
         if not found:
-            video_url = str(getattr(media, "video_url", "") or "")
-            image_url = str(getattr(media, "thumbnail_url", "") or "")
-            value = normalize_media_url(video_url or image_url)
-            if is_allowed_media_url(value):
-                found.append(value)
-        print(f"[Instagram] public GraphQL extractor: shortcode={shortcode} media_count={len(found)}", flush=True)
+            raw = None
+            try:
+                if hasattr(media, "model_dump"):
+                    raw = media.model_dump()
+                elif hasattr(media, "dict"):
+                    raw = media.dict()
+                elif hasattr(media, "__dict__"):
+                    raw = media.__dict__
+            except Exception:
+                raw = None
+            if raw:
+                found = extract_instagram_media_from_json(raw)
+
+        if not found:
+            video_url = normalize_media_url(str(getattr(media, "video_url", "") or ""))
+            image_url = normalize_media_url(str(getattr(media, "thumbnail_url", "") or ""))
+            for value in (video_url, image_url):
+                if is_allowed_media_url(value) and value not in found:
+                    found.append(value)
+
+        print(
+            f"[Instagram] public GraphQL extractor: shortcode={shortcode} media_count={len(found)}",
+            flush=True,
+        )
         return found
     except Exception as exc:
-        print(f"[Instagram] public GraphQL extractor failed: shortcode={shortcode} error={str(exc)[:240]}", flush=True)
+        print(
+            f"[Instagram] public GraphQL extractor failed: shortcode={shortcode} error={str(exc)[:240]}",
+            flush=True,
+        )
         return []
 
 def jina_instagram_structured(source: str) -> list[str]:
@@ -558,11 +640,11 @@ def jina_instagram_media(source: str) -> dict | None:
 
         videos = [
             u for u in media_urls
-            if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)
+            if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)
         ]
         images = [
             u for u in media_urls
-            if re.search(r"\\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)", u, re.I)
+            if re.search(r"\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)", u, re.I)
         ]
 
         if not videos and not images:
@@ -582,7 +664,7 @@ def jina_instagram_media(source: str) -> dict | None:
         for index, media in enumerate(ordered, 1):
             path = urlparse(media).path.lower()
             match = re.search(
-                r"\\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$",
+                r"\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$",
                 path,
             )
             ext = match.group(1) if match else ""
@@ -609,6 +691,7 @@ def jina_instagram_media(source: str) -> dict | None:
             "type": media_type,
             "downloads": downloads,
             "instagram_media_count": len(downloads),
+            "instagram_extractor": "public-post-media",
         }
     except Exception:
         return None
