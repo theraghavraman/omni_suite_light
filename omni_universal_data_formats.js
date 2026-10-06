@@ -62,6 +62,7 @@ function renderGeo(v){const p=geoPoints(v).slice(0,2000);if(!p.length)return'<di
 async function openFile(file){
  currentFile=file;if(currentObjectUrl)URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=URL.createObjectURL(file);
  const e=ext(file.name),box=$('udsXPreview');$('udsXStatus').textContent=file.name+' • '+size(file.size)+' • '+(browserOpen.has(e)?'browser-openable':'specialist/native format');
+ if(['hyp','edf','edf+','rec','bdf'].includes(e)&&window.OMNI_SLEEP_HYPNOGRAM?.load){currentParsed={kind:'sleep-hypnogram'};await window.OMNI_SLEEP_HYPNOGRAM.load(file);box.innerHTML='<div class="uds-xbinary"><b>Sleep semantic workspace active</b><p>This sleep record is handled by Omni\'s dedicated Hypnogram Lab rather than the generic binary/text inspector.</p></div>';return;}
  if(imageExt.has(e)){box.innerHTML='<img class="uds-xmedia" src="'+currentObjectUrl+'" alt="'+esc(file.name)+'">';currentParsed={kind:'media'};return}
  if(audioExt.has(e)){box.innerHTML='<audio class="uds-xaudio" controls src="'+currentObjectUrl+'"></audio>';currentParsed={kind:'media'};return}
  if(videoExt.has(e)){box.innerHTML='<video class="uds-xvideo" controls playsinline src="'+currentObjectUrl+'"></video>';currentParsed={kind:'media'};return}
