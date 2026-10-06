@@ -136,9 +136,9 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
     # Instagram's embedded post data uses these fields for the actual post
     # media. Prefer them over arbitrary <img> elements such as the profile avatar.
     structured_patterns = [
-        r'["\\']display_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
-        r'["\\']video_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
-        r'["\\']media_url["\\']\\s*:\\s*["\\']([^"\\']+)["\\']',
+        r"""["']display_url["']\s*:\s*["']([^"']+)["']""",
+        r"""["']video_url["']\s*:\s*["']([^"']+)["']""",
+        r"""["']media_url["']\s*:\s*["']([^"']+)["']""",
     ]
     structured = []
     for pattern in structured_patterns:
@@ -150,9 +150,9 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
     # HTML metadata is the next-best source and normally points at the post
     # cover rather than the account avatar.
     html_patterns = [
-        r'<meta[^>]+property=["\\']og:(?:video|image)(?::secure_url)?["\\'][^>]+content=["\\']([^"\\']+)["\\']',
-        r'<(?:video|source|audio)[^>]+(?:src|data-src)=["\\']([^"\\']+)["\\']',
-        r'<img[^>]+(?:src|data-src)=["\\']([^"\\']+)["\\']',
+        r"""<meta[^>]+property=["']og:(?:video|image)(?::secure_url)?["'][^>]+content=["']([^"']+)["']""",
+        r"""<(?:video|source|audio)[^>]+(?:src|data-src)=["']([^"']+)["']""",
+        r"""<img[^>]+(?:src|data-src)=["']([^"']+)["']""",
     ]
     html_urls = []
     for pattern in html_patterns:
@@ -162,7 +162,9 @@ def extract_urls_from_html(raw_html: str) -> list[str]:
                 html_urls.append(value)
 
     # Generic CDN URLs are only a final fallback.
-    generic = re.findall(r'https://[^"\\'<>\\s]+(?:cdninstagram\\.com|fbcdn\\.net)[^"\\'<>\\s]*', text, flags=re.I)
+    generic = re.findall(r'''https://[^"'<>
+\s]+(?:cdninstagram\.com|fbcdn\.net)[^"'<>
+\s]*'''.replace("\n", ""), text, flags=re.I)
     generic_urls = []
     for value in generic:
         value = normalize_media_url(value)
@@ -207,8 +209,8 @@ def jina_instagram_media(source: str) -> dict | None:
             if u not in media_urls:
                 media_urls.append(u)
 
-        videos = [u for u in media_urls if re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)]
-        images = [u for u in media_urls if re.search(r"\\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
+        videos = [u for u in media_urls if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)]
+        images = [u for u in media_urls if re.search(r"\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
 
         if not videos and not images:
             return None
@@ -221,7 +223,7 @@ def jina_instagram_media(source: str) -> dict | None:
             downloads.append({
                 "quality": f"Item {index}" if len(ordered) > 1 else "Best",
                 "format_id": None,
-                "has_audio": bool(re.search(r"\\.(?:mp4|m3u8)(?:[?#]|$)", media, re.I)),
+                "has_audio": bool(re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", media, re.I)),
                 "url": "/api/media-proxy?url=" + quote(media, safe=""),
             })
 
