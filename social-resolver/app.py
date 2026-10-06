@@ -177,12 +177,21 @@ def _post_media_from_node(node: dict) -> list[str]:
         # New Instagram JSON: video_versions for video, image_versions2 for image.
         if is_video:
             versions = item.get("video_versions") or []
-            if versions and isinstance(versions[0], dict):
-                return versions[0].get("url") or ""
+            versions = [v for v in versions if isinstance(v, dict) and v.get("url")]
+            if versions:
+                best = max(versions, key=lambda v: (int(v.get("width") or 0), int(v.get("height") or 0)))
+                return best.get("url") or ""
         versions = item.get("image_versions2") or {}
         candidates = versions.get("candidates") if isinstance(versions, dict) else []
-        if candidates and isinstance(candidates[0], dict):
-            return candidates[0].get("url") or ""
+        candidates = [v for v in candidates if isinstance(v, dict) and v.get("url")]
+        if candidates:
+            best = max(candidates, key=lambda v: (int(v.get("width") or 0), int(v.get("height") or 0)))
+            return best.get("url") or ""
+        resources = item.get("display_resources") or []
+        resources = [v for v in resources if isinstance(v, dict) and v.get("src")]
+        if resources:
+            best = max(resources, key=lambda v: (int(v.get("config_width") or v.get("width") or 0)))
+            return best.get("src") or ""
         # Older GraphQL / normalized shapes.
         return item.get("video_url") or item.get("display_url") or item.get("media_url") or ""
 
@@ -242,6 +251,54 @@ def extract_instagram_media_from_json(value) -> list[str]:
 def _instagram_shortcode(source: str) -> str:
     match = re.search(r"/(?:p|reel|tv)/([^/?#]+)/?", source)
     return match.group(1) if match else ""
+
+
+def _shortcode_to_media_pk(shortcode: str) -> int | None:
+    """Convert Instagram's base64url shortcode to the numeric media id."""
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    try:
+        value = 0
+        for char in shortcode:
+            idx = alphabet.index(char)
+            value = value * 64 + idx
+        return value
+    except ValueError:
+        return None
+
+
+def instagram_private_media_info(source: str) -> list[str]:
+    """Fetch exact public post media from Instagram's media-info endpoint."""
+    shortcode = _instagram_shortcode(source)
+    if not shortcode:
+        return []
+    media_pk = _shortcode_to_media_pk(shortcode)
+    if media_pk is None:
+        return []
+
+    endpoint = f"https://i.instagram.com/api/v1/media/{media_pk}/info/"
+    req = urllib.request.Request(
+        endpoint,
+        headers={
+            "User-Agent": "Instagram 296.0.0.24.109 Android",
+            "Accept": "*/*",
+            "X-IG-App-ID": "936619743392459",
+            "Referer": "https://www.instagram.com/",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            raw = response.read().decode("utf-8", "replace")
+        payload = json.loads(raw)
+        items = payload.get("items") or []
+        if not items:
+            return []
+        item = items[0]
+        # This endpoint is media-specific, so carousel_media belongs to the
+        # exact post rather than the surrounding Instagram page.
+        return _post_media_from_node(item)
+    except Exception:
+        return []
 
 
 def jina_instagram_structured(source: str) -> list[str]:
@@ -402,10 +459,13 @@ def jina_instagram_media(source: str) -> dict | None:
         )
         with urllib.request.urlopen(req, timeout=30) as response:
             raw = response.read().decode("utf-8", "replace")
-        # First try Instagram's structured JSON through Jina. This is the
-        # most reliable route because it gives us the exact post container and
-        # its ordered carousel children.
-        urls = jina_instagram_structured(source)
+        # First try Instagram's media-info endpoint. It is keyed by the
+        # exact shortcode/media id and returns the post's own carousel_media.
+        urls = instagram_private_media_info(source)
+
+        # If Instagram rejects that endpoint, use the structured Jina routes.
+        if not urls:
+            urls = jina_instagram_structured(source)
 
         # Jina may also return the original HTML with embedded post JSON.
         # Parse that before considering any generic page media.
