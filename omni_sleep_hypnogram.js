@@ -154,7 +154,7 @@ function makeCard(){
   host.appendChild(el);
   document.getElementById('sleepLoad').onclick=()=>document.getElementById('sleepFile').click();
   document.getElementById('sleepFile').onchange=e=>{const f=e.target.files?.[0];if(f)load(f)};
-  document.getElementById('sleepLocal').onclick=()=>{const f=document.getElementById('sleepFile').files?.[0]||window.__OMNI_UDS_CURRENT_FILE;if(f&&window.OMNI_UDS_LOCAL_CONVERT)window.OMNI_UDS_LOCAL_CONVERT(f,'edf').catch(x=>setStatus('Local Engine: '+x.message));else setStatus('Choose a sleep file first; Local Engine fallback is available for vendor-specific HYP.')};
+  document.getElementById('sleepLocal').onclick=()=>{const f=document.getElementById('sleepFile').files?.[0]||window.__OMNI_UDS_CURRENT_FILE;if(f){setStatus('Local Engine fallback selected for '+f.name+'. Use the Local Engine Studio for vendor-specific HYP parsing.')}else{setStatus('Choose a sleep file first; Local Engine fallback is available for vendor-specific HYP.')}};
   document.getElementById('sleepCsv').onclick=()=>{if(window.__OMNI_SLEEP_MODEL)downloadText(stageCsv(window.__OMNI_SLEEP_MODEL),'sleep-hypnogram.csv','text/csv')};
   document.getElementById('sleepJson').onclick=()=>{if(window.__OMNI_SLEEP_MODEL)downloadText(stageJson(window.__OMNI_SLEEP_MODEL,window.__OMNI_SLEEP_METRICS),'sleep-semantic-model.json','application/json')};
   document.getElementById('sleepSvg').onclick=()=>{if(window.__OMNI_SLEEP_MODEL)downloadText(stageSvg(window.__OMNI_SLEEP_MODEL),'sleep-hypnogram.svg','image/svg+xml')};
