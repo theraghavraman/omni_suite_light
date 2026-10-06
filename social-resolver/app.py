@@ -210,20 +210,27 @@ def jina_instagram_media(source: str) -> dict | None:
                 media_urls.append(u)
 
         videos = [u for u in media_urls if re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", u, re.I)]
-        images = [u for u in media_urls if re.search(r"\.(?:jpe?g|png|webp|avif)(?:[?#]|$)", u, re.I)]
+        images = [u for u in media_urls if re.search(r"\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)", u, re.I)]
 
         if not videos and not images:
             return None
 
-        ordered = videos + images if videos else images
+        # Preserve discovery order. Instagram carousels can mix photos and videos,
+        # so grouping all videos before all images would change the post order.
+        ordered = media_urls
         thumb = images[0] if images else (videos[0] if videos else "")
-        media_type = "video" if videos and not images else ("carousel" if len(ordered) > 1 else "image_or_media")
+        media_type = "video" if videos and not images and len(ordered) == 1 else ("carousel" if len(ordered) > 1 else "image_or_media")
         downloads = []
         for index, media in enumerate(ordered, 1):
+            path = urlparse(media).path.lower()
+            match = re.search(r"\.(jpe?g|png|webp|avif|gif|mp4|webm|mov|m4v|m3u8|mp3|m4a|aac|ogg)$", path)
+            ext = match.group(1) if match else ""
             downloads.append({
                 "quality": f"Item {index}" if len(ordered) > 1 else "Best",
                 "format_id": None,
-                "has_audio": bool(re.search(r"\.(?:mp4|m3u8)(?:[?#]|$)", media, re.I)),
+                "ext": ext,
+                "media_type": "video" if ext in {"mp4","webm","mov","m4v","m3u8"} else ("image" if ext in {"jpg","jpeg","png","webp","avif","gif"} else "media"),
+                "has_audio": ext in {"mp4","webm","mov","m4v","m3u8","mp3","m4a","aac","ogg"},
                 "url": "/api/media-proxy?url=" + quote(media, safe=""),
             })
 
