@@ -154,7 +154,12 @@ def _balanced_json_object(text: str, start: int) -> str | None:
 
 
 def _post_media_from_node(node: dict) -> list[str]:
-    """Extract only the media belonging to one Instagram post node."""
+    """Extract only the media belonging to one Instagram post node.
+
+    Instagram currently exposes carousel items in more than one public JSON
+    shape. Support both the older GraphQL edge_sidecar form and the newer
+    carousel_media/image_versions2/video_versions form.
+    """
     if not isinstance(node, dict):
         return []
 
@@ -162,19 +167,29 @@ def _post_media_from_node(node: dict) -> list[str]:
     if children:
         ordered = [edge.get("node") or {} for edge in children]
     else:
-        # Some Instagram responses use carousel_media instead of the GraphQL
-        # edge_sidecar representation.
         carousel = node.get("carousel_media") or []
         ordered = carousel if carousel else [node]
 
     found: list[str] = []
+
+    def candidate_url(item: dict) -> str:
+        is_video = bool(item.get("is_video")) or item.get("media_type") in (2, "2", "VIDEO")
+        # New Instagram JSON: video_versions for video, image_versions2 for image.
+        if is_video:
+            versions = item.get("video_versions") or []
+            if versions and isinstance(versions[0], dict):
+                return versions[0].get("url") or ""
+        versions = item.get("image_versions2") or {}
+        candidates = versions.get("candidates") if isinstance(versions, dict) else []
+        if candidates and isinstance(candidates[0], dict):
+            return candidates[0].get("url") or ""
+        # Older GraphQL / normalized shapes.
+        return item.get("video_url") or item.get("display_url") or item.get("media_url") or ""
+
     for item in ordered:
         if not isinstance(item, dict):
             continue
-        value = item.get("video_url") if item.get("is_video") else item.get("display_url")
-        if not value:
-            value = item.get("video_url") or item.get("display_url") or item.get("media_url")
-        value = normalize_media_url(value)
+        value = normalize_media_url(candidate_url(item))
         if is_allowed_media_url(value) and value not in found:
             found.append(value)
     return found
@@ -194,6 +209,18 @@ def extract_instagram_media_from_json(value) -> list[str]:
             media = extract_instagram_media_from_json(child)
             if media:
                 return media
+
+        # Current Instagram web-info responses commonly look like:
+        # data.xdt_api__v1__media__shortcode__web_info.items[0].carousel_media
+        # (or the same object without carousel_media for a single post).
+        for key, child in value.items():
+            if key.endswith("media__shortcode__web_info") and isinstance(child, dict):
+                items = child.get("items") or []
+                for item in items:
+                    if isinstance(item, dict):
+                        media = _post_media_from_node(item)
+                        if media:
+                            return media
         # Some responses wrap the node directly under data without a stable key.
         if value.get("__typename") in {"XDTGraphSidecar", "GraphSidecar", "XDTGraphImage", "XDTGraphVideo"}:
             media = _post_media_from_node(value)
