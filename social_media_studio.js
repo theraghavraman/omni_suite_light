@@ -38,8 +38,16 @@
     meta.textContent=info.title||'Public media';
     const seconds=Math.round(Number(info.duration)||0);
     const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
-    preview.innerHTML=info.thumbnail?'<img src="'+String(info.thumbnail).replace(/"/g,'&quot;')+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">':'<div style="padding:28px;text-align:center"><strong>Video ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a quality below.</span></div>';
-    preview.className='social-preview';
+     const downloads=Array.isArray(info.downloads)?info.downloads:[];
+     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>u.startsWith('http')?u:RESOLVER+u);
+     if(info.type==='carousel' && itemUrls.length>1){
+       preview.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;width:100%">'+
+         itemUrls.map((u,i)=>'<div style="border:1px solid rgba(108,92,255,.14);border-radius:12px;overflow:hidden;background:#fff"><img src="'+String(u).replace(/"/g,'&quot;')+'" alt="Post item '+(i+1)+'" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover"><div style="padding:7px 9px;font-size:.7rem;font-weight:800;color:#4b466f">Item '+(i+1)+'</div></div>').join('')+
+       '</div>';
+     }else{
+       preview.innerHTML=info.thumbnail?'<img src="'+String(info.thumbnail).replace(/"/g,'&quot;')+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">':'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
+     }
+     preview.className='social-preview';
     const buttons=(info.downloads||[]).map(d=>{
       const href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;
       return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">MP4 • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
