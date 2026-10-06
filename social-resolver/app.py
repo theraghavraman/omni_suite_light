@@ -771,6 +771,16 @@ def health():
 @app.post("/api/resolve")
 def resolve(body: ResolveRequest):
     url = validate_public_url(str(body.url))
+
+    # Instagram needs its post-specific public resolver first. yt-dlp can be
+    # rate-limited by Instagram even when the public post itself is available,
+    # and the resolver can return the exact carousel CDN assets without waiting
+    # for that failure path.
+    if is_instagram_url(url):
+        fallback = jina_instagram_media(url)
+        if fallback:
+            return JSONResponse(fallback)
+
     try:
         info = extract_info(url)
     except HTTPException as exc:
