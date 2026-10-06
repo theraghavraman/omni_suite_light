@@ -61,8 +61,8 @@
            const u=itemUrls[i]; const esc=String(u).replace(/"/g,'&quot;');
            const label=mediaLabel(d);
            const media=isVideo(d)
-             ? '<video src="'+esc+'" controls playsinline preload="metadata" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#111"></video>'
-             : '<img src="'+esc+'" alt="Post item '+(i+1)+'" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover">';
+             ? '<video src="'+esc+'" controls playsinline preload="metadata" style="display:block;width:100%;aspect-ratio:4/5;object-fit:contain;background:#111"></video>'
+             : '<img src="'+esc+'" alt="Post item '+(i+1)+'" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:100%;aspect-ratio:4/5;object-fit:contain;background:#f6f3ff">';
            return '<div style="border:1px solid rgba(108,92,255,.14);border-radius:12px;overflow:hidden;background:#fff">'+media+'<div style="padding:7px 9px;font-size:.7rem;font-weight:800;color:#4b466f">Item '+(i+1)+' · '+label+'</div></div>';
          }).join('')+
        '</div>';
