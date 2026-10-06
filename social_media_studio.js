@@ -11,7 +11,7 @@
   let currentUrl='';
   let currentInfo=null;
 
-  const input=$('socialMediaUrl'), runAnalyze=$('socialMediaAnalyze'), reset=$('socialMediaReset');
+  const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const result=$('socialMediaResult'), status=$('socialMediaStatus'), preview=$('socialMediaPreview');
   const platform=$('socialMediaPlatform'), kind=$('socialMediaKind'), meta=$('socialMediaMeta');
   const download=$('socialMediaDownload'), open=$('socialMediaOpen'), hint=$('socialMediaDirectHint');
@@ -146,10 +146,10 @@
     }catch(e){msg(e.message||String(e),'error');}
     finally{download.disabled=false;download.textContent='⬇ Download Best';}
   }
-  runAnalyze?.addEventListener('click',runAnalyze);
+  analyzeBtn?.addEventListener('click',runAnalyze);
   reset?.addEventListener('click',resetUI);
   input?.addEventListener('keydown',e=>{if(e.key==='Enter')runAnalyze();});
   // Expose a small test hook for Validation Lab.
-  window.OMNI_SOCIAL_MEDIA_DOWNLOADER={runAnalyze,detect,downloadWithMode};
+  window.OMNI_SOCIAL_MEDIA_DOWNLOADER={analyze:runAnalyze,detect,downloadWithMode};
   resetUI();
 })();
