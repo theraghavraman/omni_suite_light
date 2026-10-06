@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: omni-social-resolver
+    runtime: docker
+    plan: free
+    rootDir: social-resolver
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ALLOWED_ORIGIN
+        value: https://theraghavraman.github.io
+      - key: MAX_DURATION
+        value: "900"
+      - key: MAX_DOWNLOAD_MB
+        value: "300"
