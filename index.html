@@ -2756,6 +2756,22 @@ console.log("sum =", values.reduce((a,b)=>a+b,0));</textarea>
       <div class="card uds-format-catalog-card">
         <h2>🧰 Universal Format Catalog</h2>
         <div class="sub">These formats are now registered in Universal Data Studio. <b>Browser</b> formats open/render directly; <b>Local Engine</b> formats are routed to native/WASM-capable processing rather than pretending they are browser-native.</div>
+        <div class="uds-catalog-actions">
+          <div class="uds-catalog-search">
+            <input id="udsCatalogSearch" class="form-input" placeholder="Search formats: EDF, HYP, Parquet, FITS, PCAP, FASTA…">
+            <button type="button" class="btn btn-primary" id="udsCatalogChoose">📂 Choose file</button>
+          </div>
+          <div class="uds-catalog-quick">
+            <button type="button" data-uds-filter="brain">😴 Sleep / EDF / HYP</button>
+            <button type="button" data-uds-filter="bio">🧬 Bio / genomics</button>
+            <button type="button" data-uds-filter="geo">🌍 Geospatial</button>
+            <button type="button" data-uds-filter="science">🚀 Science / space</button>
+            <button type="button" data-uds-filter="columnar">🗃 Big data</button>
+            <button type="button" data-uds-filter="3d">🧊 3D / imaging</button>
+            <button type="button" data-uds-filter="all">Show all</button>
+          </div>
+          <div class="uds-catalog-hint">Choose a format family to filter the catalog, or choose a file to send it directly into Universal Data.</div>
+        </div>
         <div class="uds-format-grid">
           <div><b>📊 Tabular &amp; text</b><span>CSV • TSV • JSON • JSONL • NDJSON • YAML • TOML • XML • HTML • Markdown • SQL • logs</span></div>
           <div><b>🌍 Geospatial</b><span>GeoJSON • GPX • KML • TopoJSON • Shapefile • FlatGeobuf • GeoPackage • MBTiles • PMTiles • OSM PBF • NMEA • IGC • HGT</span></div>
@@ -3796,7 +3812,7 @@ async function runLocalTests(){
   const download=async(fid)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/download/'+encodeURIComponent(fid),{headers:headersToken()});if(!rr.ok)throw new Error('Download HTTP '+rr.status);return await rr.blob();
   };
-  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p><script src="./omni_universal_data_formats.js?v=1"><\/script>\n<script src="./omni_sleep_hypnogram.js?v=1"><\/script>\n</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
+  const image=await canvasBlob('OMNI LOCAL'),pdf=await makePdfBlob(),wav=wavBlob(),html=new Blob(['<html><body><h1>Omni Local</h1><p>Browser-safe local diagnostic fixture.</p><script src="./omni_universal_data_formats.js?v=2"><\/script>\n<script src="./omni_sleep_hypnogram.js?v=1"><\/script>\n</body></html>'],{type:'text/html'}),txt=new Blob(['Omni local diagnostic'],{type:'text/plain'});
   const ids={};
   await test('local','Upload / authenticated API',async()=>{ids.image=await upload(image,'omni-diagnostic.png');ids.pdf=await upload(pdf,'omni-diagnostic.pdf');return 'Two test files uploaded';});
   if(tool('magick')) await test('local','ImageMagick image conversion',async()=>{const o=await process({op:'image',input:ids.image,format:'jpg',quality:80});const b=await download(o.file_id);if(!b.size)throw new Error('Empty output');return o.name+' • '+b.size+' bytes';}); else skip('local','ImageMagick image conversion','ImageMagick unavailable');
