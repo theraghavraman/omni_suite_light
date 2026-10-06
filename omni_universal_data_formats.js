@@ -7,7 +7,7 @@ const REGISTRY=[
 ['Tabular & text','csv,tsv,txt,text,log,out,md,markdown,json,jsonl,ndjson,yaml,yml,toml,xml,html,htm,sql,ddl,dml'],
 ['Geospatial','geojson,gpx,kml,topojson,fgb,flatgeobuf,shp,dbf,prj,gpkg,mbtiles,pmtiles,pbf,nmea,igc,hgt,tif,tiff'],
 ['Bio / genomics','fasta,fa,fna,fastq,fq,vcf,gff,gff3,gtf,bed,sam,bam,newick,nwk,pdb,ent,cif,mmcif,xyz,sdf,mol,smiles,jdx,jcamp'],
-['Brain / medical / signals','edf,bdf,nii,nwb,fif,wfdb,hea,scp,ecg,set,vhdr,vmrk,eeg,dcm,dicom,ome.tif,ome.tiff'],
+['Brain / medical / signals','edf,edf+,hyp,rec,bdf,nii,nwb,fif,wfdb,hea,scp,ecg,set,vhdr,vmrk,eeg,dcm,dicom,ome.tif,ome.tiff'],
 ['Science / Earth / space','fits,cdf,nc,netcdf,h5,hdf,hdf5,grib,grib2,bufr,metar,taf,mseed,segy,las,laz,tle'],
 ['Audio / radio / music','wav,flac,ogg,oga,mp3,m4a,aac,webm,mid,midi,musicxml,abc,mod,xm,it,sf2,sigmf,iq'],
 ['Machine / vehicle / fitness','bag,mcap,asc,blf,can,fit,tcx,gcode,hex,srec,s19,s28,s37'],
@@ -19,7 +19,7 @@ const REGISTRY=[
 ].map(x=>({category:x[0],exts:x[1].split(',')}));
 
 const allExts=[...new Set(REGISTRY.flatMap(x=>x.exts))];
-const browserOpen=new Set('csv tsv txt text log out md markdown json jsonl ndjson yaml yml toml xml html htm sql geojson gpx kml topojson fasta fa fna fastq fq vcf gff gff3 gtf bed newick nwk pdb ent cif mmcif xyz sdf mol smiles srt vtt ass ics vcard gedcom bib ris tei conllu png jpg jpeg webp gif bmp svg tif tiff wav mp3 ogg oga flac m4a aac webm zip hex base64 bin dat'.split(' '));
+const browserOpen=new Set('csv tsv txt text log out md markdown json jsonl ndjson yaml yml toml xml html htm sql geojson gpx kml topojson fasta fa fna fastq fq vcf gff gff3 gtf bed newick nwk pdb ent cif mmcif xyz sdf mol smiles srt vtt ass ics vcard gedcom bib ris tei conllu png jpg jpeg webp gif bmp svg tif tiff wav mp3 ogg oga flac m4a aac webm zip hex base64 bin dat hyp edf edf+ rec'.split(' '));
 const browserConvert=new Set('csv tsv json jsonl ndjson yaml yml xml html md txt geojson gpx kml fasta fa fna fastq fq vcf gff gff3 gtf bed newick nwk pdb cif mmcif xyz smiles hex base64 bin png jpg jpeg webp bmp'.split(' '));
 const imageExt=new Set('png jpg jpeg webp bmp gif tif tiff'.split(' '));
 const audioExt=new Set('wav mp3 ogg oga flac m4a aac webm'.split(' '));
