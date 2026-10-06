@@ -324,6 +324,42 @@ def instagram_private_media_info(source: str, media_ids: list[str] | None = None
 
     return []
 
+def instagram_public_graphql_media(source: str) -> list[str]:
+    """Resolve a public Instagram post through the current anonymous web GraphQL client."""
+    shortcode = _instagram_shortcode(source)
+    if not shortcode:
+        return []
+    try:
+        from instagrapi import Client
+        client = Client(
+            public_transport="curl",
+            public_transport_impersonate="chrome136",
+            request_timeout=0,
+        )
+        media_pk = _shortcode_to_media_pk(shortcode)
+        if media_pk is None:
+            return []
+        media = client.media_info_gql(str(media_pk))
+        found: list[str] = []
+        resources = getattr(media, "resources", None) or []
+        for resource in resources:
+            video_url = str(getattr(resource, "video_url", "") or "")
+            image_url = str(getattr(resource, "thumbnail_url", "") or "")
+            value = normalize_media_url(video_url or image_url)
+            if is_allowed_media_url(value) and value not in found:
+                found.append(value)
+        if not found:
+            video_url = str(getattr(media, "video_url", "") or "")
+            image_url = str(getattr(media, "thumbnail_url", "") or "")
+            value = normalize_media_url(video_url or image_url)
+            if is_allowed_media_url(value):
+                found.append(value)
+        print(f"[Instagram] public GraphQL extractor: shortcode={shortcode} media_count={len(found)}", flush=True)
+        return found
+    except Exception as exc:
+        print(f"[Instagram] public GraphQL extractor failed: shortcode={shortcode} error={str(exc)[:240]}", flush=True)
+        return []
+
 def jina_instagram_structured(source: str) -> list[str]:
     """Fetch only post-specific Instagram JSON/HTML through Jina.
 
@@ -470,9 +506,13 @@ def jina_instagram_media(source: str) -> dict | None:
         return None
 
     try:
-        # First try the exact shortcode-derived media id. This avoids fetching
-        # unrelated profile/feed assets entirely.
-        urls = instagram_private_media_info(source)
+        # First use the current anonymous public GraphQL implementation.
+        # It is post-specific and returns carousel resources directly.
+        urls = instagram_public_graphql_media(source)
+
+        # Then try the exact shortcode-derived media-info endpoint.
+        if not urls:
+            urls = instagram_private_media_info(source)
 
         raw = ""
         if not urls:
