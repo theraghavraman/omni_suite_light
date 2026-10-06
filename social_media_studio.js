@@ -20,7 +20,7 @@
     doc.querySelectorAll('meta[property="og:video"],meta[property="og:video:secure_url"],meta[name="twitter:player:stream"],meta[property="og:image"],meta[name="twitter:image"]').forEach(e=>addUrl(e.getAttribute('content')));
     doc.querySelectorAll('video source,video,audio source,audio').forEach(e=>addUrl(e.getAttribute('src')));
     const raw=String(text||'');
-    [/["']video_url["']\\s*:\\s*["']([^"']+)/i,/["']display_url["']\\s*:\\s*["']([^"']+)/i,/["']url["']\\s*:\\s*["'](https?:\\/\\/[^"']+)/i].forEach(re=>{const m=raw.match(re);if(m)addUrl(m[1]);});
+    [/["']video_url["']\s*:\s*["']([^"']+)/i,/["']display_url["']\s*:\s*["']([^"']+)/i,/["']url["']\s*:\s*["'](https?:\/\/[^"']+)/i].forEach(re=>{const m=raw.match(re);if(m)addUrl(m[1]);});
     return out.map(v=>{try{return new URL(v,base).href}catch(_){return v;}});
   }
   async function browserResolve(url){
@@ -29,8 +29,8 @@
     if(!r.ok)throw new Error('Browser resolver HTTP '+r.status);
     const text=await r.text(); const urls=findMediaUrls(text,target);
     if(!urls.length)throw new Error('No public media URL found');
-    const media=urls.find(u=>/\\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
-    const thumb=urls.find(u=>/\\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
+    const media=urls.find(u=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
+    const thumb=urls.find(u=/\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
     return {mediaUrl:media,thumbnail:thumb};
   }
 
@@ -138,7 +138,7 @@
     msg('Resolving public media…','working');preview.innerHTML='<div style="padding:28px">Finding public media…</div>';preview.className='social-preview empty';
     try{
       const x=await browserResolve(url); currentUrl=x.mediaUrl;
-      kind.textContent=/\\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
+      kind.textContent=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
       meta.textContent='Public media • Browser Resolver'; preview.innerHTML='';
       if(x.thumbnail){const img=document.createElement('img');img.src=x.thumbnail;img.alt='Media preview';img.loading='lazy';preview.appendChild(img);}else preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Public media found</strong><br><span style="font-size:.78rem;color:#7b8795">Ready for browser download.</span></div>';
       preview.className='social-preview';hint.style.display='block';hint.innerHTML='<b>Browser mode active.</b> Public media resolved without the Local Engine. Private, login-only and DRM content is not supported.';
