@@ -180,6 +180,82 @@ def _post_media_from_node(node: dict) -> list[str]:
     return found
 
 
+def extract_instagram_media_from_json(value) -> list[str]:
+    """Walk Instagram's JSON response and extract only the target post's media."""
+    if isinstance(value, dict):
+        for key in ("xdt_shortcode_media", "shortcode_media"):
+            node = value.get(key)
+            if isinstance(node, dict):
+                media = _post_media_from_node(node)
+                if media:
+                    return media
+        for key in ("data", "graphql", "items"):
+            child = value.get(key)
+            media = extract_instagram_media_from_json(child)
+            if media:
+                return media
+        # Some responses wrap the node directly under data without a stable key.
+        if value.get("__typename") in {"XDTGraphSidecar", "GraphSidecar", "XDTGraphImage", "XDTGraphVideo"}:
+            media = _post_media_from_node(value)
+            if media:
+                return media
+        for child in value.values():
+            if isinstance(child, (dict, list)):
+                media = extract_instagram_media_from_json(child)
+                if media:
+                    return media
+    elif isinstance(value, list):
+        for child in value:
+            media = extract_instagram_media_from_json(child)
+            if media:
+                return media
+    return []
+
+
+def jina_instagram_structured(source: str) -> list[str]:
+    """Ask Jina for Instagram's post JSON, avoiding surrounding page/feed media."""
+    if not is_instagram_url(source):
+        return []
+    try:
+        separator = "&" if "?" in source else "?"
+        target = source + separator + "__a=1&__d=dis"
+        endpoint = "https://r.jina.ai/" + target
+        req = urllib.request.Request(
+            endpoint,
+            headers={
+                "Accept": "application/json",
+                "X-Respond-With": "json",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            raw = response.read().decode("utf-8", "replace")
+        raw = html_lib.unescape(raw).strip()
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            # Jina can wrap JSON in a small response envelope; locate the first
+            # JSON object containing Instagram's media keys.
+            payload = None
+            for marker in ('"xdt_shortcode_media"', '"shortcode_media"'):
+                pos = raw.find(marker)
+                if pos >= 0:
+                    start = raw.rfind("{", 0, pos)
+                    if start >= 0:
+                        blob = _balanced_json_object(raw, start)
+                        if blob:
+                            try:
+                                payload = json.loads(blob)
+                                break
+                            except Exception:
+                                pass
+        if payload is None:
+            return []
+        return extract_instagram_media_from_json(payload)
+    except Exception:
+        return []
+
+
 def extract_instagram_post_media(raw_html: str) -> list[str]:
     """Extract media from the specific Instagram post, never the surrounding profile/feed."""
     text = html_lib.unescape(raw_html or "")
@@ -267,14 +343,18 @@ def jina_instagram_media(source: str) -> dict | None:
         )
         with urllib.request.urlopen(req, timeout=30) as response:
             raw = response.read().decode("utf-8", "replace")
-        # First try the post's own structured media node. This is the
-        # critical distinction between a carousel and the surrounding profile:
-        # never collect every display_url found on the page.
-        urls = extract_instagram_post_media(raw)
+        # First try Instagram's structured JSON through Jina. This is the
+        # most reliable route because it gives us the exact post container and
+        # its ordered carousel children.
+        urls = jina_instagram_structured(source)
 
-        # If Instagram/Jina did not expose structured post JSON, fall back to
-        # page metadata only. Do not use arbitrary <img> URLs here because they
-        # can belong to the profile, recommendations, or feed around the post.
+        # Jina may also return the original HTML with embedded post JSON.
+        # Parse that before considering any generic page media.
+        if not urls:
+            urls = extract_instagram_post_media(raw)
+
+        # Last resort: page metadata only. Never collect arbitrary <img> tags,
+        # because those can be profile/recommended/feed media unrelated to post.
         if not urls:
             urls = extract_urls_from_html(raw)
 
