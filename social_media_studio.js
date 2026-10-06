@@ -13,6 +13,7 @@
 
   const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const REMOTE_READER='https://r.jina.ai/';
+  const RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'').replace(/\/+$/,'');
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function findMediaUrls(text,base){
     const out=[]; const addUrl=v=>{v=cleanMediaUrl(v);if(v.startsWith('http')&&!out.includes(v))out.push(v);};
@@ -23,6 +24,37 @@
     [/["']video_url["']\s*:\s*["']([^"']+)/i,/["']display_url["']\s*:\s*["']([^"']+)/i,/["']url["']\s*:\s*["'](https?:\/\/[^"']+)/i].forEach(re=>{const m=raw.match(re);if(m)addUrl(m[1]);});
     return out.map(v=>{try{return new URL(v,base).href}catch(_){return v;}});
   }
+  async function hostedResolve(url){
+    if(!RESOLVER)throw new Error('Hosted resolver is not configured.');
+    const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store'});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
+    return j;
+  }
+  function renderHosted(info,sourceUrl){
+    currentInfo=info;currentUrl=sourceUrl;
+    platform.textContent=detect(sourceUrl);
+    kind.textContent=info.type==='video'?'Video':'Media';
+    meta.textContent=info.title||'Public media';
+    const creator=$('socialMediaCreator'),dur=$('socialMediaDuration'),list=$('socialMediaDownloads');
+    if(creator)creator.textContent=info.uploader||'Public creator';
+    if(dur){const s=Math.round(Number(info.duration)||0);dur.textContent=s?new Date(s*1000).toISOString().substr(11,8):'—';}
+    preview.innerHTML=info.thumbnail?'<img src="'+String(info.thumbnail).replace(/"/g,'&quot;')+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">':'<div style="padding:28px;text-align:center"><strong>Video ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a quality below.</span></div>';
+    preview.className='social-preview';
+    if(list){
+      list.innerHTML='';
+      (info.downloads||[]).forEach(d=>{
+        const row=document.createElement('div');row.className='social-download-row';
+        const label=document.createElement('span');label.innerHTML='<b>'+String(d.quality||'Best')+'</b><small>MP4 • Browser download</small>';
+        const a=document.createElement('a');a.className='social-quality-btn';a.href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Download';
+        row.append(label,a);list.appendChild(row);
+      });
+    }
+    hint.style.display='block';hint.className='social-direct-hint social-direct-ok';
+    hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download';
+    setButtons(false);msg('Public media found. Choose a quality to download.','ok');
+  }
+
   async function browserResolve(url){
     const target=url.split('#')[0];
     const r=await fetch(REMOTE_READER+target,{cache:'no-store'});
@@ -137,13 +169,16 @@
     currentUrl=url;platform.textContent=detect(url);result.style.display='block';open.href=url;setButtons(false);
     msg('Resolving public media…','working');preview.innerHTML='<div style="padding:28px">Finding public media…</div>';preview.className='social-preview empty';
     try{
+      const info=await hostedResolve(url); renderHosted(info,url); return;
+    }catch(e){console.warn('[Social Media Studio] Hosted resolver:',e);}
+    try{
       const x=await browserResolve(url); currentUrl=x.mediaUrl;
       kind.textContent=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
       meta.textContent='Public media • Browser Resolver'; preview.innerHTML='';
       if(x.thumbnail){const img=document.createElement('img');img.src=x.thumbnail;img.alt='Media preview';img.loading='lazy';preview.appendChild(img);}else preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Public media found</strong><br><span style="font-size:.78rem;color:#7b8795">Ready for browser download.</span></div>';
       preview.className='social-preview';hint.style.display='block';hint.innerHTML='<b>Browser mode active.</b> Public media resolved without the Local Engine. Private, login-only and DRM content is not supported.';
       setButtons(true);download.textContent='⬇ Download Media';download.onclick=()=>downloadDirectResolved(x.mediaUrl);msg('Public media found. Ready to download.','ok');return;
-    }catch(e){console.warn('[Social Media Studio] Browser resolver:',e);}
+    }catch(e){console.warn('[Social Media Studio] Direct browser resolver:',e);}
     try{
       await localHealth(); const info=await localJob({op:'social_download',url,info_only:true}); currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
     }catch(e){console.warn('[Social Media Studio] Local Engine unavailable:',e);}
