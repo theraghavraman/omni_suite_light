@@ -37,7 +37,7 @@
       <div id="${id}Files"><input id="${id}Input" type="file" multiple></div>
       <div id="${id}Actions"><button id="${id}Close">Cancel</button><button id="${id}Run">Run on Render</button></div>
       <div id="${id}Status">Ready — nothing is sent until you press Run on Render.</div>
-      <div id="${id}Result"><strong>✓ Cloud job completed</strong><div id="${id}ResultMeta"></div><div id="${id}ResultActions"><button id="${id}Download">Download Output</button><button id="${id}Preview">Preview / Open</button></div></div>
+      <div id="${id}Result"><strong id="${id}ResultTitle">Cloud output</strong><div id="${id}ResultMeta">No output yet — run a cloud job to generate one.</div><div id="${id}ResultActions"><button id="${id}Download">Download Output</button><button id="${id}Preview">Preview / Open</button></div></div>
     </div>`;
   document.body.appendChild(modal);
   const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
