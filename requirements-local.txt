@@ -1,4 +1,6 @@
 # OmniConverter — complete Local Engine Python environment
+# Also provides the HTTP server used when the same image runs Omni Cloud on Render.
+gunicorn>=23.0
 #
 # This is the single Python dependency entry point used by the one-click local installers.
 # It intentionally includes the Data, Scientific, Database, Archive, Media and connector
