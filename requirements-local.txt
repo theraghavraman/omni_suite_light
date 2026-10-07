@@ -39,4 +39,4 @@ certifi>=2026.1.4
 
 # Social Media Download Studio — public media URL extraction/downloading
 # No DRM/login bypass or cookie harvesting is enabled by Omni.
-yt-dlp>=2026.10
+yt-dlp>=2024.10
