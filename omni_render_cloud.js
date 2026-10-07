@@ -42,10 +42,10 @@
   document.body.appendChild(modal);
   const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
   const op=document.getElementById(id+'Op'),input=document.getElementById(id+'Input'),fmt=document.getElementById(id+'Format'),status=document.getElementById(id+'Status');
-  const result=document.getElementById(id+'Result'),resultMeta=document.getElementById(id+'ResultMeta'),downloadBtn=document.getElementById(id+'Download'),previewBtn=document.getElementById(id+'Preview');
+  const result=document.getElementById(id+'Result'),resultTitle=document.getElementById(id+'ResultTitle'),resultMeta=document.getElementById(id+'ResultMeta'),downloadBtn=document.getElementById(id+'Download'),previewBtn=document.getElementById(id+'Preview');
   let lastBlob=null,lastName='omni-render-output',lastUrl=null;
-  function clearResult(){result.style.display='none';lastBlob=null;lastName='omni-render-output';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}}
-  function showResult(blob,name){lastBlob=blob;lastName=name||'omni-render-output';if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(blob);resultMeta.textContent=lastName+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';result.style.display='block'}
+  function clearResult(){lastBlob=null;lastName='omni-render-output';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}resultTitle.textContent='Cloud output';resultMeta.textContent='No output yet — run a cloud job to generate one.';downloadBtn.disabled=true;previewBtn.disabled=true}
+  function showResult(blob,name){lastBlob=blob;lastName=name||'omni-render-output';if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(blob);resultTitle.textContent='✓ Cloud job completed';resultMeta.textContent=lastName+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';downloadBtn.disabled=false;previewBtn.disabled=false;result.style.display='block'}
   downloadBtn.onclick=()=>{if(lastBlob)downloadBlob(lastBlob,lastName)};
   previewBtn.onclick=()=>{if(lastUrl)window.open(lastUrl,'_blank','noopener')};
   function open(){modal.style.display='flex';clearResult();status.textContent='Ready — nothing is sent until you press Run on Render.'} function close(){modal.style.display='none'}
@@ -67,6 +67,6 @@
       clearResult();status.textContent='Uploading to Render…';
       await run(input.files,op.value,options);
       status.textContent='✓ Render completed the cloud job. Your output is ready below.';
-    }catch(e){result.style.display='none';status.textContent='✕ Render job failed: '+e.message}
+    }catch(e){resultTitle.textContent='Cloud output';resultMeta.textContent='No output generated.';downloadBtn.disabled=true;previewBtn.disabled=true;status.textContent='✕ Render job failed: '+e.message}
   };
 })();
