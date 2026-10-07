@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: omni-cloud-engine
+    runtime: docker
+    dockerfilePath: ./omni-cloud-engine/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: MAX_UPLOAD_MB
+        value: "500"
