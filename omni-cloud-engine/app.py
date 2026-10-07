@@ -40,7 +40,7 @@ def capabilities():
       "studios":["Social Media","PDF","Doc/Office","Universal Data","Data Cleaning","Database","RAG","Vector Search","Code","Image","Video","Compressor","Batch Processing","Diagnostics","Scheduled Automation","Cloud Jobs"],
       "operations":[
         "ffmpeg","media-transcode","image-batch","pdf-batch","ocr","office-convert","data-profile","data-clean","sql-simulate",
-        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","metadata","file-convert","social-batch","scheduled-pipeline"
+        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","code-clean","metadata","file-convert","social-batch","scheduled-pipeline"
       ]
     })
 
@@ -132,6 +132,18 @@ def process():
             data={"service":"omni-cloud-engine","tools":{}}
             for t in ["ffmpeg","libreoffice","pandoc","tesseract","qpdf","zip","7z"]: data["tools"][t]=bool(shutil.which(t))
             out.write_text(json.dumps(data,indent=2)); return output(jid,out)
+        if op=="code-clean":
+            p=src[0]; text=p.read_text(errors="replace").replace("\r\n","\n").replace("\r","\n")
+            ext=p.suffix.lower()
+            if ext==".json":
+                text=json.dumps(json.loads(text),indent=2,ensure_ascii=False)+"\n"
+            else:
+                lines=text.split("\n")
+                lines=[re.sub(r"[ \t]+$","",line) for line in lines]
+                while lines and not lines[-1].strip(): lines.pop()
+                text="\n".join(lines)+"\n"
+            out=d/(p.stem+".cleaned"+p.suffix); out.write_text(text,encoding="utf-8"); return output(jid,out)
+
         if op=="code-format":
             p=src[0]; text=p.read_text(errors="replace")
             if p.suffix.lower()==".json": text=json.dumps(json.loads(text),indent=2,ensure_ascii=False)
