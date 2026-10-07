@@ -26,7 +26,8 @@ COPY requirements-local.txt requirements-data.txt requirements-extended.txt ./
 COPY omni-cloud-engine/requirements.txt /tmp/omni-cloud-requirements.txt
 RUN python -m pip install --upgrade pip && \
     python -m pip install -r requirements-local.txt && \
-    python -m pip install -r /tmp/omni-cloud-requirements.txt --no-deps && \
+    sed '/^yt-dlp[=<>]/d' /tmp/omni-cloud-requirements.txt > /tmp/omni-cloud-requirements-resolved.txt && \
+    python -m pip install -r /tmp/omni-cloud-requirements-resolved.txt && \
     python -m pip install yt-dlp
 
 COPY . .
