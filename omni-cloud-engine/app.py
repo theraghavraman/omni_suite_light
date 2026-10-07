@@ -1,10 +1,12 @@
-import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes
+import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3
 from pathlib import Path
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 from PIL import Image
 from pypdf import PdfReader, PdfWriter
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 app=Flask(__name__)
 CORS(app, resources={r"/api/*":{"origins":"*"}})
@@ -29,7 +31,7 @@ def health():
     ff=shutil.which("ffmpeg")
     lo=shutil.which("libreoffice")
     pd=shutil.which("pandoc")
-    return jsonify(ok=True,service="omni-cloud-engine",version="1.0",tools={"ffmpeg":bool(ff),"libreoffice":bool(lo),"pandoc":bool(pd)})
+    return jsonify(ok=True,service="omni-cloud-engine",version="1.0",tools={"ffmpeg":bool(ff),"libreoffice":bool(lo),"pandoc":bool(pd),"yt-dlp":bool(shutil.which("yt-dlp"))})
 
 @app.get("/api/capabilities")
 def capabilities():
@@ -38,7 +40,7 @@ def capabilities():
       "studios":["Social Media","PDF","Doc/Office","Universal Data","Data Cleaning","Database","RAG","Vector Search","Code","Image","Video","Compressor","Batch Processing","Diagnostics","Scheduled Automation","Cloud Jobs"],
       "operations":[
         "ffmpeg","media-transcode","image-batch","pdf-batch","ocr","office-convert","data-profile","data-clean","sql-simulate",
-        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","metadata","file-convert"
+        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","metadata","file-convert","social-batch","scheduled-pipeline"
       ]
     })
 
@@ -138,28 +140,40 @@ def process():
         if op=="metadata":
             out=d/"metadata.json"; out.write_text(json.dumps([{"name":p.name,"size":p.stat().st_size,"suffix":p.suffix} for p in src],indent=2)); return output(jid,out)
         if op=="sql-simulate":
-            p=src[0]; df=pd.read_csv(p) if p.suffix.lower() not in [".xlsx",".xls"] else pd.read_excel(p)
-            query=opts.get("query","SELECT * FROM data LIMIT 100")
-            # Safe educational subset: SELECT columns, WHERE equality, LIMIT.
-            m=re.match(r"\s*select\s+(.+?)\s+from\s+data(?:\s+where\s+(.+?))?(?:\s+limit\s+(\d+))?\s*$",query,re.I)
-            if not m: raise RuntimeError("Only SELECT ... FROM data [WHERE ...] [LIMIT n] is supported in cloud SQL simulation.")
-            cols=m.group(1).strip(); sub=df
-            if m.group(2):
-                wm=re.match(r"([\w ]+)\s*=\s*['\"]?([^'\"]+)['\"]?",m.group(2).strip())
-                if wm: sub=sub[sub[wm.group(1).strip()].astype(str)==wm.group(2).strip()]
-            if cols!="*": sub=sub[[c.strip() for c in cols.split(",")]]
-            if m.group(3): sub=sub.head(int(m.group(3)))
-            out=d/"sql-result.csv"; sub.to_csv(out,index=False); return output(jid,out)
+            db=sqlite3.connect(d/"omni.sqlite")
+            for p in src:
+                table=re.sub(r"\\W+","_",p.stem).strip("_") or "data"
+                if p.suffix.lower() in [".xlsx",".xls"]: df=pd.read_excel(p)
+                elif p.suffix.lower() in [".jsonl",".ndjson"]: df=pd.read_json(p,lines=True)
+                else: df=pd.read_csv(p)
+                df.to_sql(table,db,index=False,if_exists="replace")
+            query=opts.get("query","SELECT * FROM "+re.sub(r"\\W+","_",src[0].stem)+" LIMIT 100")
+            if not re.match(r"\\s*select\\b",query,re.I): raise RuntimeError("Cloud SQL simulation only permits SELECT statements.")
+            df=pd.read_sql_query(query,db); db.close()
+            out=d/"sql-result.csv"; df.to_csv(out,index=False); return output(jid,out)
         if op in ("rag-ingest","vector-search"):
-            # Lightweight, dependency-free cloud knowledge index. For production pgvector,
-            # configure a datastore later without changing this API.
             records=[]
             for p in src:
-                text=p.read_text(errors="ignore") if p.suffix.lower() in [".txt",".md",".html",".json",".csv"] else ""
-                chunks=[text[i:i+1200] for i in range(0,len(text),1000)] or [p.name]
+                text=p.read_text(errors="ignore") if p.suffix.lower() in [".txt",".md",".html",".json",".csv",".jsonl",".ndjson"] else ""
+                chunks=[text[i:i+1400] for i in range(0,len(text),1100)] or [p.name]
                 for i,ch in enumerate(chunks): records.append({"file":p.name,"chunk":i,"text":ch})
-            out=d/"omni-knowledge.json"; out.write_text(json.dumps(records,ensure_ascii=False,indent=2))
-            return output(jid,out)
+            if op=="vector-search" and opts.get("query"):
+                corpus=[r["text"] for r in records]; q=str(opts["query"])
+                vec=TfidfVectorizer(stop_words="english"); mat=vec.fit_transform(corpus+[q]); scores=cosine_similarity(mat[-1],mat[:-1]).ravel()
+                for r,score in zip(records,scores): r["score"]=round(float(score),6)
+                records=sorted(records,key=lambda x:x.get("score",0),reverse=True)[:int(opts.get("top_k",10))]
+            out=d/"omni-knowledge.json"; out.write_text(json.dumps(records,ensure_ascii=False,indent=2)); return output(jid,out)
+        if op=="social-batch":
+            out=d/"social-results.json"; results=[]
+            for i,p in enumerate(src):
+                u=p.read_text(errors="ignore").strip() if p.suffix.lower()==".txt" else str(opts.get("url",""))
+                if not u: continue
+                try: results.append(json.loads(run(["yt-dlp","--dump-single-json","--skip-download",u],timeout=180).stdout))
+                except Exception as ex: results.append({"url":u,"error":str(ex)})
+                JOBS[jid]["progress"]=20+int(70*(i+1)/len(src))
+            out.write_text(json.dumps(results,ensure_ascii=False,indent=2)); return output(jid,out)
+        if op=="scheduled-pipeline":
+            out=d/"scheduled-report.json"; out.write_text(json.dumps({"status":"ready","inputs":[p.name for p in src]},indent=2)); return output(jid,out)
         # generic file conversion / packaging
         out=d/"omni-output.zip"
         with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as z:
