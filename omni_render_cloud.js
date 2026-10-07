@@ -30,7 +30,7 @@
           <option value="ocr">OCR</option><option value="office-convert">Office conversion</option><option value="data-profile">Data profiling</option>
           <option value="data-clean">Data cleaning</option><option value="sql-simulate">Temporary SQL simulation</option><option value="rag-ingest">RAG ingestion</option>
           <option value="vector-search">Vector / semantic index</option><option value="archive">Compression / archive</option><option value="batch-pipeline">Batch pipeline</option>
-          <option value="diagnostics">Cloud diagnostics</option><option value="code-format">Code formatting</option><option value="metadata">Metadata</option>
+          <option value="diagnostics">Cloud diagnostics</option><option value="code-format">Code formatting</option><option value="code-clean">Code cleaning</option><option value="metadata">Metadata</option>
         </select></label>
         <label>Output / format<input id="${id}Format" placeholder="e.g. mp4, pdf, docx, webp"></label>
       </div>
@@ -41,7 +41,13 @@
   document.body.appendChild(modal);
   const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
   const op=document.getElementById(id+'Op'),input=document.getElementById(id+'Input'),fmt=document.getElementById(id+'Format'),status=document.getElementById(id+'Status');
-  function open(){modal.style.display='flex'} function close(){modal.style.display='none'}
+  const result=document.getElementById(id+'Result'),resultMeta=document.getElementById(id+'ResultMeta'),downloadBtn=document.getElementById(id+'Download'),previewBtn=document.getElementById(id+'Preview');
+  let lastBlob=null,lastName='omni-render-output',lastUrl=null;
+  function clearResult(){result.style.display='none';lastBlob=null;lastName='omni-render-output';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}}
+  function showResult(blob,name){lastBlob=blob;lastName=name||'omni-render-output';if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(blob);resultMeta.textContent=lastName+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';result.style.display='block'}
+  downloadBtn.onclick=()=>{if(lastBlob)downloadBlob(lastBlob,lastName)};
+  previewBtn.onclick=()=>{if(lastUrl)window.open(lastUrl,'_blank','noopener')};
+  function open(){modal.style.display='flex';clearResult();status.textContent='Ready — nothing is sent until you press Run on Render.'} function close(){modal.style.display='none'}
   btn.onclick=open;document.getElementById(id+'Close').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close()});
   function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name||'omni-render-output';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
   async function run(files,operation,options){
@@ -50,16 +56,16 @@
     const fd=new FormData();fd.append('operation',operation||op.value);fd.append('options',JSON.stringify(options||{}));files.forEach(f=>fd.append('files',f,f.name));
     const r=await fetch(CLOUD+'/api/process',{method:'POST',body:fd});const ct=r.headers.get('content-type')||'';
     if(!r.ok){let e={};try{e=await r.json()}catch(_){}throw new Error(e.error||('Render HTTP '+r.status))}
-    const blob=await r.blob();downloadBlob(blob,r.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]||'omni-render-output');
-    return true;
+    const blob=await r.blob();const name=r.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]||'omni-render-output';showResult(blob,name);
+    return {blob,name};
   }
   window.OmniRenderCloud={url:CLOUD,run};
   document.getElementById(id+'Run').onclick=async()=>{
     try{
       const options={format:fmt.value.trim()||undefined};
-      status.textContent='Uploading to Render…';
+      clearResult();status.textContent='Uploading to Render…';
       await run(input.files,op.value,options);
-      status.textContent='✓ Render completed the cloud job. Download started.';
-    }catch(e){status.textContent='Render job failed: '+e.message}
+      status.textContent='✓ Render completed the cloud job. Your output is ready below.';
+    }catch(e){result.style.display='none';status.textContent='✕ Render job failed: '+e.message}
   };
 })();
