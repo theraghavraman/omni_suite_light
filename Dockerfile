@@ -37,4 +37,4 @@ EXPOSE 8765
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=3)" || exit 1
 
-CMD ["sh", "-c", "if [ \"$SERVICE_MODE\" = \"cloud\" ]; then exec gunicorn -w 2 --threads 4 --timeout 900 -b 0.0.0.0:${PORT:-10000} omni-cloud-engine.app:app; else exec python omni_local_server.py; fi"]
+CMD ["sh", "-c", "if [ \"$SERVICE_MODE\" = \"cloud\" ]; then exec gunicorn -w 2 --threads 4 --timeout 900 -b 0.0.0.0:${PORT:-10000} --chdir omni-cloud-engine app:app; else exec python omni_local_server.py; fi"]
