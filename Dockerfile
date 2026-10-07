@@ -25,11 +25,8 @@ WORKDIR /app
 COPY requirements-local.txt requirements-data.txt requirements-extended.txt ./
 COPY omni-cloud-engine/requirements.txt /tmp/omni-cloud-requirements.txt
 RUN python -m pip install --upgrade pip && \
-    if [ "$SERVICE_MODE" = "cloud" ]; then \
-      python -m pip install -r /tmp/omni-cloud-requirements.txt; \
-    else \
-      python -m pip install -r requirements-local.txt; \
-    fi
+    python -m pip install -r requirements-local.txt && \
+    python -m pip install -r /tmp/omni-cloud-requirements.txt
 
 COPY . .
 
