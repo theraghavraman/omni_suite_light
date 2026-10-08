@@ -1,6 +1,7 @@
-import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time
+import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time, base64, hashlib, hmac, urllib.request, urllib.parse
 from pathlib import Path
 from urllib.parse import urlparse
+from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_file
 from secrets import compare_digest
 from flask_cors import CORS
@@ -25,6 +26,93 @@ RATE_LIMIT=int(os.getenv("RATE_LIMIT_PER_MINUTE","12"))
 RATE_WINDOW=60
 RATE_BUCKET={}
 CLOUD_TOKEN=os.getenv("OMNI_CLOUD_TOKEN","").strip()
+ONLYOFFICE_URL=os.getenv("ONLYOFFICE_URL","").strip().rstrip("/")
+OFFICE_JWT_SECRET=os.getenv("OFFICE_JWT_SECRET","").strip()
+OFFICE_STORAGE_SECRET=os.getenv("OFFICE_STORAGE_SECRET","").strip() or CLOUD_TOKEN
+OFFICE_SESSION_TTL=int(os.getenv("OFFICE_SESSION_TTL","7200"))
+OFFICE_ROOT=ROOT/"office"; OFFICE_ROOT.mkdir(exist_ok=True)
+OFFICE_FILES={}
+
+def _b64url(data):
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+def _jwt(payload, secret):
+    header={"alg":"HS256","typ":"JWT"}
+    h=_b64url(json.dumps(header,separators=(",",":"),sort_keys=True).encode())
+    p=_b64url(json.dumps(payload,separators=(",",":"),sort_keys=True).encode())
+    sig=hmac.new(secret.encode(),(h+"."+p).encode(),hashlib.sha256).digest()
+    return h+"."+p+"."+_b64url(sig)
+
+def _office_sig(file_id, expires):
+    msg=f"{file_id}:{int(expires)}".encode()
+    return _b64url(hmac.new(OFFICE_STORAGE_SECRET.encode(),msg,hashlib.sha256).digest())
+
+def _office_signed_url(file_id, path, ttl=None):
+    exp=int(time.time())+int(ttl or OFFICE_SESSION_TTL)
+    sig=_office_sig(file_id,exp)
+    return f"{path}?expires={exp}&token={urllib.parse.quote(sig)}"
+
+def _office_verify(file_id, expires, token):
+    try: exp=int(expires)
+    except Exception: return False
+    if exp < int(time.time()) or not OFFICE_STORAGE_SECRET: return False
+    return compare_digest(str(token),_office_sig(file_id,exp))
+
+def _office_ext(name): return Path(name or "document.docx").suffix.lower().lstrip(".")
+def _office_type(ext):
+    ext=ext.lower()
+    if ext in {"xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv"}: return "cell"
+    if ext in {"ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp"}: return "slide"
+    if ext=="pdf": return "pdf"
+    return "word"
+
+def _office_prune():
+    cutoff=time.time()-OFFICE_SESSION_TTL
+    for fid,meta in list(OFFICE_FILES.items()):
+        if float(meta.get("updated_at",0)) < cutoff:
+            OFFICE_FILES.pop(fid,None); shutil.rmtree(OFFICE_ROOT/fid,ignore_errors=True)
+
+def _office_meta(fid):
+    _office_prune()
+    meta=OFFICE_FILES.get(fid)
+    if not meta: raise ValueError("Office file session not found or expired.")
+    return meta
+
+CLOUD_PUBLIC_BASE=os.getenv("CLOUD_PUBLIC_BASE","https://omni-cloud-engine.onrender.com").rstrip("/")
+
+def _office_config(meta):
+    if not ONLYOFFICE_URL: raise RuntimeError("ONLYOFFICE_URL is not configured on the cloud service.")
+    if not OFFICE_JWT_SECRET: raise RuntimeError("OFFICE_JWT_SECRET is not configured on the cloud service.")
+    fid=meta["id"]; name=meta["name"]; ext=meta["ext"]; dtype=meta["document_type"]
+    key=f"{fid}-{int(meta.get('version',0))}"
+    file_url=_office_signed_url(fid,f"{CLOUD_PUBLIC_BASE}/api/office/file/{fid}")
+    callback_url=_office_signed_url(fid,f"{CLOUD_PUBLIC_BASE}/api/office/callback/{fid}")
+    config={"document":{"fileType":ext,"key":key,"title":name,"url":file_url,
+      "permissions":{"edit":True,"download":True,"print":True,"copy":True,"comment":True,"review":True,"fillForms":True,"modifyContentControl":True,"modifyFilter":True,"protect":True}},
+      "documentType":dtype,
+      "editorConfig":{"mode":"edit","callbackUrl":callback_url,"lang":"en","region":"en-US",
+        "coEditing":{"mode":"fast","change":True},
+        "customization":{"autosave":True,"forcesave":True,"compactHeader":False,"compactToolbar":False,"hideRightMenu":False,"toolbarNoTabs":False,"feedback":False,"close":{"visible":True,"text":"Close file"}},
+        "user":{"id":"redmark-"+fid[:12],"name":"Redmark Forge User"}},
+      "type":"desktop"}
+    config["token"]=_jwt(config,OFFICE_JWT_SECRET)
+    return {"config":config,"documentServer":ONLYOFFICE_URL,"fileId":fid,"version":meta.get("version",0),"filename":name,"documentType":dtype}
+
+def _office_download_url(url):
+    req=urllib.request.Request(url,headers={"User-Agent":"Redmark-Forge-Office/1.0"})
+    with urllib.request.urlopen(req,timeout=120) as r: return r.read()
+
+def _office_save_new(meta,data,filetype=None):
+    directory=OFFICE_ROOT/meta["id"]; directory.mkdir(parents=True,exist_ok=True)
+    ext=(filetype or meta["ext"]).lower().lstrip(".") or meta["ext"]
+    target=directory/((Path(meta["name"]).stem or "document")+"."+ext)
+    tmp=directory/((Path(meta["name"]).stem or "document")+".saving."+uuid.uuid4().hex+"."+ext)
+    tmp.write_bytes(data); tmp.replace(target)
+    old=Path(meta["path"])
+    if old.exists() and old != target: old.unlink()
+    meta.update(name=target.name,ext=ext,path=str(target),updated_at=time.time(),version=int(meta.get("version",0))+1)
+    return target
+
 
 SOCIAL_HOSTS={
     "youtube.com","youtu.be","instagram.com","facebook.com","fb.watch","tiktok.com",
@@ -113,6 +201,101 @@ def health():
     lo=shutil.which("libreoffice")
     pd=shutil.which("pandoc")
     return jsonify(ok=True,service="omni-cloud-engine",version="1.0",tools={"ffmpeg":bool(ff),"libreoffice":bool(lo),"pandoc":bool(pd),"yt-dlp":bool(shutil.which("yt-dlp"))})
+
+@app.get("/api/office/health")
+def office_health():
+    return jsonify(ok=bool(ONLYOFFICE_URL and OFFICE_JWT_SECRET),configured=bool(ONLYOFFICE_URL and OFFICE_JWT_SECRET),document_server=ONLYOFFICE_URL or None)
+
+@app.post("/api/office/upload")
+def office_upload():
+    _office_prune()
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    if not rate_allowed(): return jsonify(ok=False,error="Rate limit exceeded. Retry shortly."),429
+    f=request.files.get("file")
+    if not f: return jsonify(ok=False,error="No office file supplied."),400
+    name=Path(f.filename or "document.docx").name; ext=_office_ext(name)
+    supported={"doc","docx","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","markdown","html","htm","xhtml","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","pdf"}
+    if ext not in supported: return jsonify(ok=False,error=f"Unsupported Office Tools format: .{ext}"),400
+    fid=uuid.uuid4().hex; d=OFFICE_ROOT/fid; d.mkdir(parents=True,exist_ok=True); path=d/name; f.save(path)
+    meta={"id":fid,"name":name,"ext":ext,"document_type":_office_type(ext),"path":str(path),"version":0,"created_at":time.time(),"updated_at":time.time()}; OFFICE_FILES[fid]=meta
+    try: payload=_office_config(meta)
+    except Exception:
+        OFFICE_FILES.pop(fid,None); shutil.rmtree(d,ignore_errors=True); raise
+    return jsonify(ok=True,**payload)
+
+@app.post("/api/office/new")
+def office_new():
+    _office_prune()
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    if not rate_allowed(): return jsonify(ok=False,error="Rate limit exceeded. Retry shortly."),429
+    body=request.get_json(silent=True) or {}; kind=str(body.get("kind","word")).lower()
+    defaults={"word":"Untitled.docx","excel":"Book1.xlsx","powerpoint":"Presentation.pptx"}
+    name=Path(str(body.get("name") or defaults.get(kind,"Untitled.docx"))).name
+    if kind=="word":
+        from docx import Document
+        doc=Document(); fid=uuid.uuid4().hex; d=OFFICE_ROOT/fid; d.mkdir(parents=True,exist_ok=True); path=d/name; doc.save(path)
+    elif kind=="excel":
+        from openpyxl import Workbook
+        wb=Workbook(); fid=uuid.uuid4().hex; d=OFFICE_ROOT/fid; d.mkdir(parents=True,exist_ok=True); path=d/name; wb.save(path)
+    elif kind=="powerpoint":
+        from pptx import Presentation
+        prs=Presentation(); fid=uuid.uuid4().hex; d=OFFICE_ROOT/fid; d.mkdir(parents=True,exist_ok=True); path=d/name; prs.save(path)
+    else: return jsonify(ok=False,error="New blank PDF creation is not enabled; open an existing PDF for the PDF editor."),400
+    ext=_office_ext(name); meta={"id":fid,"name":name,"ext":ext,"document_type":_office_type(ext),"path":str(path),"version":0,"created_at":time.time(),"updated_at":time.time()}; OFFICE_FILES[fid]=meta
+    try: payload=_office_config(meta)
+    except Exception:
+        OFFICE_FILES.pop(fid,None); shutil.rmtree(d,ignore_errors=True); raise
+    return jsonify(ok=True,**payload)
+
+@app.get("/api/office/file/<fid>")
+def office_file(fid):
+    meta=_office_meta(fid)
+    if not _office_verify(fid,request.args.get("expires"),request.args.get("token")): return jsonify(ok=False,error="Invalid or expired office file link."),403
+    path=Path(meta["path"])
+    if not path.exists(): return jsonify(ok=False,error="Office file no longer exists."),404
+    return send_file(path,as_attachment=False,download_name=meta["name"],mimetype=mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+
+@app.get("/api/office/download/<fid>")
+def office_download(fid):
+    meta=_office_meta(fid)
+    if not _office_verify(fid,request.args.get("expires"),request.args.get("token")): return jsonify(ok=False,error="Invalid or expired office download link."),403
+    path=Path(meta["path"])
+    if not path.exists(): return jsonify(ok=False,error="Office file no longer exists."),404
+    return send_file(path,as_attachment=True,download_name=meta["name"],mimetype=mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+
+@app.post("/api/office/callback/<fid>")
+def office_callback(fid):
+    try: meta=_office_meta(fid)
+    except Exception as exc: return jsonify(error=str(exc)),404
+    if not _office_verify(fid,request.args.get("expires"),request.args.get("token")): return jsonify(error="Invalid callback signature."),403
+    data=request.get_json(silent=True) or {}; status=int(data.get("status",0) or 0)
+    if status in {2,6} and data.get("url"):
+        try: _office_save_new(meta,_office_download_url(str(data["url"])),data.get("filetype"))
+        except Exception as exc: return jsonify(error=str(exc)),500
+    else: meta["updated_at"]=time.time()
+    return jsonify(error=0)
+
+@app.post("/api/office/force-save/<fid>")
+def office_force_save(fid):
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    meta=_office_meta(fid)
+    if not ONLYOFFICE_URL or not OFFICE_JWT_SECRET: return jsonify(ok=False,error="ONLYOFFICE integration is not configured."),503
+    key=f"{fid}-{int(meta.get('version',0))}"; payload={"c":"forcesave","key":key,"userdata":"redmark-forge"}
+    payload["token"]=_jwt(payload,OFFICE_JWT_SECRET)
+    req=urllib.request.Request(ONLYOFFICE_URL+"/command?shardkey="+urllib.parse.quote(key),data=json.dumps(payload).encode(),headers={"Content-Type":"application/json"},method="POST")
+    try:
+        with urllib.request.urlopen(req,timeout=60) as r: result=json.loads(r.read().decode())
+    except Exception as exc: return jsonify(ok=False,error=f"ONLYOFFICE force-save failed: {exc}"),502
+    return jsonify(ok=True,result=result,version=meta.get("version",0))
+
+@app.get("/api/office/config/<fid>")
+def office_config(fid):
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    return jsonify(ok=True,**_office_config(_office_meta(fid)))
 
 @app.get("/api/capabilities")
 def capabilities():
