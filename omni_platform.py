@@ -148,6 +148,7 @@ def database_query(url, query, params=None):
 
 def database_tables(url):
     from sqlalchemy import create_engine, inspect
+    _validate_database_url(url)
     engine=create_engine(url, pool_pre_ping=True)
     try:
         ins=inspect(engine)
