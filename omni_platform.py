@@ -104,11 +104,39 @@ def clean_dataframe(df, actions):
         elif name=="sort_columns": out=out.reindex(sorted(out.columns),axis=1)
     return out
 
+def _validate_database_url(url):
+    from urllib.parse import urlsplit
+    import ipaddress, socket, os
+    parts=urlsplit(str(url or ""))
+    scheme=(parts.scheme or "").lower()
+    allowed={"sqlite","postgresql","postgres","mysql","mariadb","mssql","oracle","snowflake","bigquery","databricks","duckdb","trino","clickhouse","redshift"}
+    if scheme not in allowed:
+        raise ValueError(f"Unsupported database scheme: {scheme or 'missing'}")
+    if scheme=="sqlite":
+        return
+    host=(parts.hostname or "").lower().rstrip(".")
+    if not host:
+        raise ValueError("Database URL must include a host.")
+    allowed_hosts={x.strip().lower().rstrip(".") for x in os.getenv("OMNI_ALLOWED_DB_HOSTS","").split(",") if x.strip()}
+    if allowed_hosts and not any(host==x or host.endswith("."+x) for x in allowed_hosts):
+        raise ValueError("Database host is not in OMNI_ALLOWED_DB_HOSTS.")
+    if host in {"localhost","127.0.0.1","::1"}:
+        if os.getenv("OMNI_ALLOW_LOCAL_DB","1")!="1":
+            raise ValueError("Local database connections are disabled.")
+        return
+    try:
+        infos=socket.getaddrinfo(host, parts.port or 443, type=socket.SOCK_STREAM)
+        if any(not ipaddress.ip_address(item[4][0]).is_global for item in infos):
+            raise ValueError("Database host resolves to a private, loopback or link-local address.")
+    except socket.gaierror as exc:
+        raise ValueError("Database host could not be resolved.") from exc
+
 def database_query(url, query, params=None):
     from sqlalchemy import create_engine, text
     normalized=re.sub(r"^\s*--[^\n]*\n","",query or "").strip().lower()
     if not re.match(r"^(select|with|show|describe|desc|explain|pragma)\b",normalized):
         raise ValueError("Database Studio is read-only: only SELECT/WITH/SHOW/DESCRIBE/EXPLAIN/PRAGMA queries are allowed.")
+    _validate_database_url(url)
     engine=create_engine(url, pool_pre_ping=True)
     try:
         with engine.connect() as con:
