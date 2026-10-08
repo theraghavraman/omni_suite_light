@@ -15,6 +15,10 @@
   const REMOTE_READER='https://r.jina.ai/';
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
+  function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function safeHttpUrl(v){
+    try{const u=new URL(String(v||''));return /^https?:$/i.test(u.protocol)?u.href:'';}catch(_){return '';}
+  }
   function findMediaUrls(text,base){
     const out=[]; const addUrl=v=>{v=cleanMediaUrl(v);if(v.startsWith('http')&&!out.includes(v))out.push(v);};
     const doc=new DOMParser().parseFromString(String(text||''),'text/html');
@@ -90,7 +94,7 @@
     hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download'+
       '<div style="margin-top:12px;font-weight:800;color:#1c1b3a">Available downloads</div>'+
       (buttons||'<div style="margin-top:6px">No downloadable public format was returned.</div>')+
-      '<div style="margin-top:10px;color:#7b8795">Creator: '+String(info.uploader||'Public creator')+' • Duration: '+dur+'</div>';
+      '<div style="margin-top:10px;color:#7b8795">Creator: '+escHtml(info.uploader||'Public creator')+' • Duration: '+escHtml(dur)+'</div>';
     setButtons(false);msg('Public media found. Choose a download below.','ok');
   }
 
