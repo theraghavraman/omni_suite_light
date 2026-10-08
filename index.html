@@ -1307,7 +1307,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 </style><style id="omni-file-sharing-style">
 #tabFileSharing{--fs:#0F766E;--fs2:#14B8A6;--fssoft:rgba(15,118,110,.12)}
 #tabFileSharing .fs-head{background:linear-gradient(120deg,#0F766E,#14B8A6)!important;box-shadow:0 24px 44px -22px #0F766E!important}
-#tabFileSharing .fs-modebar{display:flex;gap:8px;margin:0 0 16px;padding:7px;background:#fffdf8;border:1px solid rgba(23,43,77,.12);border-radius:16px}
+#tabFileSharing .fs-modebar{display:flex;gap:8px;margin:0 0 16px;padding:7px;background:#fffdf8;border:1px solid rgba(23,43,77,.12);border-radius:16px}#tabFileSharing .fs-share-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 16px}#tabFileSharing .fs-share-option{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:13px;padding:17px 18px;border:1px solid rgba(23,43,77,.12);border-radius:18px;background:#fffdf8;box-shadow:0 10px 24px rgba(23,43,77,.06);cursor:pointer;transition:.18s ease}#tabFileSharing .fs-share-option:hover,#tabFileSharing .fs-share-option.selected{transform:translateY(-1px);border-color:var(--fs);box-shadow:0 14px 28px rgba(15,118,110,.12)}#tabFileSharing .fs-share-option-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;font-weight:900;background:var(--fssoft);color:var(--fs)}#tabFileSharing .fs-share-option strong{display:block;font-size:1rem;color:#172b4d}#tabFileSharing .fs-share-option span{display:block;margin-top:3px;color:#697687;font-size:.75rem;line-height:1.4}#tabFileSharing .fs-share-option-transfer .fs-share-option-icon{background:rgba(217,87,31,.12);color:#D9571F}#tabFileSharing .fs-share-option-transfer:hover,#tabFileSharing .fs-share-option-transfer.selected{border-color:#D9571F;box-shadow:0 14px 28px rgba(217,87,31,.11)}
 #tabFileSharing .fs-mode{border:0;background:transparent;color:#536275;padding:10px 14px;border-radius:11px;font-weight:800;cursor:pointer}
 #tabFileSharing .fs-mode.active{background:#172B4D;color:#fff}
 #tabFileSharing .fs-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
@@ -1346,7 +1346,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabFileSharing .fs-security-list{display:grid;gap:8px;margin-top:16px;color:#536275;font-size:.78rem}
 #tabFileSharing code{display:block;margin-top:12px;max-width:100%;overflow:auto;color:#536275;font-size:.7rem}
 .nav-bar .nav-btn[data-tab="tabFileSharing"]{--c:#0F766E;--c2:#14B8A6;--cs:rgba(15,118,110,.14)}
-@media(max-width:850px){#tabFileSharing .fs-grid,#tabFileSharing .fs-transfer-hero,#tabFileSharing .fs-transfer-grid,#tabFileSharing .fs-qr-result{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{min-height:330px}.fs-special{grid-template-columns:1fr!important}}
+@media(max-width:850px){#tabFileSharing .fs-share-options{grid-template-columns:1fr}#tabFileSharing .fs-share-option{grid-template-columns:42px 1fr}.fs-share-option .fs-open-mode{grid-column:1/-1;width:100%}#tabFileSharing .fs-grid,#tabFileSharing .fs-transfer-hero,#tabFileSharing .fs-transfer-grid,#tabFileSharing .fs-qr-result{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{min-height:330px}.fs-special{grid-template-columns:1fr!important}}
 </style></head>
 <body>
   <button type="button" id="omniStaticStudios" aria-label="Back to Studios"><span>←</span><span class="studio-back-label">Studios</span></button>
