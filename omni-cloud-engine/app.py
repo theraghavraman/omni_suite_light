@@ -1,5 +1,6 @@
 import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time
 from pathlib import Path
+from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_file
 from secrets import compare_digest
 from flask_cors import CORS
@@ -14,7 +15,7 @@ ALLOWED_ORIGINS={x.strip().rstrip("/") for x in os.getenv(
     "CLOUD_ALLOWED_ORIGINS",
     "https://theraghavraman.github.io,http://127.0.0.1:8765,http://localhost:8765"
 ).split(",") if x.strip()}
-CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS)}})
+CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS),"allow_headers":["Content-Type","X-Omni-Cloud-Token"]}})
 app.config["MAX_CONTENT_LENGTH"]=int(os.getenv("MAX_UPLOAD_MB","500"))*1024*1024
 ROOT=Path(tempfile.gettempdir())/"omni-cloud-jobs"; ROOT.mkdir(exist_ok=True)
 JOBS={}
@@ -76,10 +77,6 @@ def job_new(kind):
     JOBS[jid]={"id":jid,"status":"processing","kind":kind,"progress":5,"created_at":time.time()}
     return jid
 
-def job_new(kind):
-    jid=uuid.uuid4().hex
-    JOBS[jid]={"id":jid,"status":"processing","kind":kind,"progress":5}
-    return jid
 def run(cmd, cwd=None, timeout=900):
     p=subprocess.run(cmd,cwd=cwd,capture_output=True,text=True,timeout=timeout)
     if p.returncode: raise RuntimeError((p.stderr or p.stdout or "command failed")[-4000:])
@@ -90,7 +87,7 @@ def save_upload(f, d):
 
 def public_social_url(value):
     try:
-        parsed=__import__("urllib.parse").parse.urlparse(value)
+        parsed=urlparse(value)
         if parsed.scheme not in {"http","https"} or not parsed.hostname:
             raise ValueError("Only HTTP(S) public social URLs are supported.")
         host=parsed.hostname.lower().rstrip(".")
@@ -286,6 +283,7 @@ def process():
         return output(jid,out)
     except Exception as e:
         JOBS[jid].update(status="failed",progress=100,error=str(e))
+        shutil.rmtree(d,ignore_errors=True)
         return jsonify(ok=False,job_id=jid,status="failed",error=str(e)),500
 
 @app.get("/api/jobs/<jid>")
