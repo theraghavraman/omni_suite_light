@@ -93,12 +93,96 @@ function csvOut(rows){
  const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';};return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\n');
 }
 function draw(){
- const c=$('udsCanvas');if(!c)return;const dpr=devicePixelRatio||1,w=c.clientWidth||800,h=380;c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);x.fillStyle='#f7f9ff';x.fillRect(0,0,w,h);
+ const c=$('udsCanvas');if(!c)return;
+ const dpr=devicePixelRatio||1,w=c.clientWidth||800,h=380;
+ c.width=w*dpr;c.height=h*dpr;
+ const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+ x.fillStyle='#f7f9ff';x.fillRect(0,0,w,h);
+
  const rows=state.records,field=$('udsField')?.value||numericFields(rows)[0];
+ const chartLeft=76,chartRight=24,chartTop=44,chartBottom=58;
+ const plotW=Math.max(1,w-chartLeft-chartRight),plotH=Math.max(1,h-chartTop-chartBottom);
+ const fmtNum=v=>{const n=Number(v);if(!Number.isFinite(n))return '';return Math.abs(n)>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toLocaleString(undefined,{maximumFractionDigits:2});};
+ const niceField=v=>String(v||'').replace(/_/g,' ').replace(/\\b\\w/g,m=>m.toUpperCase());
+ const unitForField=k=>{
+   const s=String(k||'').toLowerCase();
+   if(/temperature|temp/.test(s))return '°C';
+   if(/relative[_ ]?humidity|humidity/.test(s))return '%';
+   if(/precip|rain/.test(s))return 'mm';
+   if(/wind[_ ]?speed/.test(s))return 'km/h';
+   if(/pressure|press/.test(s))return 'hPa';
+   if(/elevation|altitude/.test(s))return 'm';
+   if(/latitude|^lat$|longitude|^lon$|^lng$/.test(s))return '°';
+   return '';
+ };
+ const fieldTitle=niceField(field)+(unitForField(field)?' ('+unitForField(field)+')':'');
+ const findXField=()=>{
+   const candidates=['time','datetime','date','timestamp','created_at','recorded_at','_time'];
+   const keys=rows.length?Object.keys(rows[0]):[];
+   return candidates.find(k=>keys.includes(k))||keys.find(k=>/time|date/i.test(k));
+ };
+ const xField=findXField();
+ const xTitle=xField?niceField(xField):'Record / Index';
+ const formatX=v=>{
+   if(v==null)return '';
+   const d=new Date(v);
+   if(xField&&Number.isFinite(d.getTime())){
+     if(/date/i.test(xField)&&!String(v).includes('T'))return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+     return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+   }
+   return String(v);
+ };
+
  if(state.audio){drawWave(x,w,h);return;}
+
  const pts=rows.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));
- if($('udsVizType')?.value==='map'||pts.length){const minx=Math.min(...pts.map(r=>r.lon)),maxx=Math.max(...pts.map(r=>r.lon)),miny=Math.min(...pts.map(r=>r.lat)),maxy=Math.max(...pts.map(r=>r.lat));const sx=Math.max(maxx-minx,1e-9),sy=Math.max(maxy-miny,1e-9);x.strokeStyle='#dce3ef';for(let i=1;i<8;i++){x.beginPath();x.moveTo(i*w/8,0);x.lineTo(i*w/8,h);x.stroke();x.beginPath();x.moveTo(0,i*h/8);x.lineTo(w,i*h/8);x.stroke();}pts.slice(0,10000).forEach(r=>{const px=20+(r.lon-minx)/sx*(w-40),py=h-20-(r.lat-miny)/sy*(h-40);x.beginPath();x.arc(px,py,Math.max(2,Math.min(7,4)),0,Math.PI*2);x.fillStyle='#635bff';x.fill();});return;}
- const vals=rows.map(r=>Number(r[field])).filter(Number.isFinite);if(!vals.length){x.fillStyle='#65718a';x.font='16px sans-serif';x.fillText('No numeric field available for visualization',24,40);return;}const min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;x.strokeStyle='#dce3ef';for(let i=1;i<6;i++){x.beginPath();x.moveTo(0,i*h/6);x.lineTo(w,i*h/6);x.stroke();}x.strokeStyle='#635bff';x.lineWidth=2; x.beginPath();vals.slice(0,5000).forEach((v,i)=>{const px=20+i/(Math.max(1,Math.min(vals.length,5000)-1))*(w-40),py=h-20-(v-min)/span*(h-40);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();x.lineWidth=1;
+ if($('udsVizType')?.value==='map'||pts.length){
+   const minx=Math.min(...pts.map(r=>r.lon)),maxx=Math.max(...pts.map(r=>r.lon)),miny=Math.min(...pts.map(r=>r.lat)),maxy=Math.max(...pts.map(r=>r.lat));
+   const sx=Math.max(maxx-minx,1e-9),sy=Math.max(maxy-miny,1e-9);
+   x.strokeStyle='#dce3ef';x.lineWidth=1;
+   for(let i=1;i<8;i++){const px=chartLeft+i*plotW/8,py=chartTop+i*plotH/8;x.beginPath();x.moveTo(px,chartTop);x.lineTo(px,chartTop+plotH);x.stroke();x.beginPath();x.moveTo(chartLeft,py);x.lineTo(chartLeft+plotW,py);x.stroke();}
+   x.strokeStyle='#7c879d';x.beginPath();x.moveTo(chartLeft,chartTop);x.lineTo(chartLeft,chartTop+plotH);x.lineTo(chartLeft+plotW,chartTop+plotH);x.stroke();
+   x.fillStyle='#65718a';x.font='12px system-ui,sans-serif';x.textAlign='center';
+   for(let i=0;i<5;i++){const v=minx+(maxx-minx)*i/4,px=chartLeft+plotW*i/4;x.fillText(fmtNum(v),px,chartTop+plotH+20);}
+   x.textAlign='right';for(let i=0;i<5;i++){const v=miny+(maxy-miny)*i/4,py=chartTop+plotH-plotH*i/4;x.fillText(fmtNum(v),chartLeft-10,py+4);}
+   x.textAlign='center';x.font='600 13px system-ui,sans-serif';x.fillText('X: Longitude (°)',chartLeft+plotW/2,h-12);
+   x.save();x.translate(18,chartTop+plotH/2);x.rotate(-Math.PI/2);x.fillText('Y: Latitude (°)',0,0);x.restore();
+   pts.slice(0,10000).forEach(r=>{const px=chartLeft+(r.lon-minx)/sx*plotW,py=chartTop+plotH-(r.lat-miny)/sy*plotH;x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fillStyle='#635bff';x.fill();});
+   x.fillStyle='#182033';x.font='600 14px system-ui,sans-serif';x.textAlign='left';x.fillText('Coordinate map',chartLeft,20);
+   return;
+ }
+
+ const vals=rows.map(r=>Number(r[field]));
+ const pairs=rows.map((r,i)=>({r,v:vals[i]})).filter(p=>Number.isFinite(p.v));
+ if(!pairs.length){
+   x.fillStyle='#65718a';x.font='16px sans-serif';x.fillText('No numeric field available for visualization',24,40);return;
+ }
+ const visible=pairs.slice(0,5000),vlist=visible.map(p=>p.v);
+ const min=Math.min(...vlist),max=Math.max(...vlist),span=max-min||1;
+ x.strokeStyle='#dce3ef';x.lineWidth=1;
+ for(let i=0;i<6;i++){const py=chartTop+plotH*i/5;x.beginPath();x.moveTo(chartLeft,py);x.lineTo(chartLeft+plotW,py);x.stroke();}
+ x.strokeStyle='#7c879d';x.beginPath();x.moveTo(chartLeft,chartTop);x.lineTo(chartLeft,chartTop+plotH);x.lineTo(chartLeft+plotW,chartTop+plotH);x.stroke();
+
+ x.fillStyle='#65718a';x.font='12px system-ui,sans-serif';x.textAlign='right';
+ for(let i=0;i<6;i++){const v=max-span*i/5,py=chartTop+plotH*i/5;x.fillText(fmtNum(v),chartLeft-10,py+4);}
+ x.textAlign='center';
+ const xCount=Math.min(5,visible.length);
+ for(let i=0;i<xCount;i++){
+   const idx=xCount===1?0:Math.round(i*(visible.length-1)/(xCount-1));
+   const px=chartLeft+idx/(Math.max(1,visible.length-1))*plotW;
+   x.fillText(formatX(visible[idx].r[xField]),px,chartTop+plotH+20);
+ }
+ x.font='600 13px system-ui,sans-serif';
+ x.fillText('X: '+xTitle,chartLeft+plotW/2,h-12);
+ x.save();x.translate(18,chartTop+plotH/2);x.rotate(-Math.PI/2);x.fillText('Y: '+fieldTitle,0,0);x.restore();
+
+ x.strokeStyle='#635bff';x.lineWidth=2;x.beginPath();
+ visible.forEach((p,i)=>{const px=chartLeft+i/(Math.max(1,visible.length-1))*plotW,py=chartTop+plotH-(p.v-min)/span*plotH;i?x.lineTo(px,py):x.moveTo(px,py);});
+ x.stroke();x.lineWidth=1;
+
+ x.fillStyle='#182033';x.textAlign='left';x.font='600 14px system-ui,sans-serif';
+ x.fillText('Y: '+fieldTitle,chartLeft,20);
+ if(xField){x.fillStyle='#65718a';x.font='12px system-ui,sans-serif';x.fillText('X values from '+niceField(xField),chartLeft+190,20);}
 }
 function drawWave(x,w,h){const u=state.audio;if(!u)return;const a=new Uint8Array(u);let step=Math.max(1,Math.floor(a.length/(w*2)));x.strokeStyle='#ec4899';x.beginPath();for(let i=0;i<w;i++){let lo=255,hi=0;for(let j=0;j<step&&i*step+j<a.length;j++){const v=a[i*step+j];lo=Math.min(lo,v);hi=Math.max(hi,v);}const y1=h/2+(lo-128)/128*(h*.42),y2=h/2+(hi-128)/128*(h*.42);x.moveTo(i,y1);x.lineTo(i,y2);}x.stroke();}
 function sonify(duration=8){
