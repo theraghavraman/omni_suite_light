@@ -373,7 +373,7 @@ function bootDFX2(){
   function canvasDown(e){
     if(e.button===1||tool==='pan'||e.code==='Space'){drag={mode:'pan',sx:e.clientX,sy:e.clientY,px:model.pan.x,py:model.pan.y};return;}
     const p=world(e);
-    if(tool==='pen'){checkpoint();const n={id:uid('n'),x:p.x,y:p.y,w:1,h:1,label:'',shape:'pen',fill:'transparent',stroke:'#0f172a',color:'#0f172a,fontSize:16,points:[p],strokeWidth:3};model.nodes.push(n);selected=[n.id];drag={mode:'pen',id:n.id};render();return;}
+    if(tool==='pen'){checkpoint();const n={id:uid('n'),x:p.x,y:p.y,w:1,h:1,label:'',shape:'pen',fill:'transparent',stroke:'#0f172a',color:'#0f172a',fontSize:16,points:[p],strokeWidth:3};model.nodes.push(n);selected=[n.id];drag={mode:'pen',id:n.id};render();return;}
     if(tool==='text'){const v=prompt('Text');if(v!==null)addNode(p.x,p.y,v,'text');setTool('select');return;}
     if(tool==='sticky'){const v=prompt('Sticky note');if(v!==null)addNode(p.x,p.y,v,'sticky');setTool('select');return;}
     if(tool==='rect'||tool==='ellipse'||tool==='diamond'){addNode(p.x,p.y,tool==='diamond'?'Decision':'New '+tool,tool==='ellipse'?'circle':tool);setTool('select');return;}
