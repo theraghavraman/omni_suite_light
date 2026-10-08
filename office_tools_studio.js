@@ -110,7 +110,7 @@
   async function openFile(file){
     if(!file)return;
     const e=ext(file.name);
-    if(!officeExt.has(e)){setMode("notepad");$("ot-note-editor").value=await file.text();current=null;setStatus("✓ Opened as Notepad text","ok");return;}
+    if(!officeExt.has(e)){setMode("notepad");$("ot-note-name").value=file.name;$("ot-note-editor").value=await file.text();current=null;setStatus("✓ Opened as Notepad text","ok");return;}
     try{
       if(!token())throw new Error("Render cloud token is required for full Office editing.");
       setStatus("Uploading "+file.name+" to Office Engine…");
@@ -144,8 +144,8 @@
     catch(err){notify("Download failed: "+err.message,true);}
   }
 
-  function newNote(){current=null;setMode("notepad");$("ot-note-editor").value="";$("ot-note-editor").focus();setStatus("✓ New Notepad file","ok");}
-  function saveNote(asName){const name=asName||"Untitled.txt";const blob=new Blob([$("ot-note-editor").value],{type:"text/plain;charset=utf-8"});const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000);setStatus("✓ Saved "+name,"ok");}
+  function newNote(){current=null;setMode("notepad");$("ot-note-name").value="Untitled.txt";$("ot-note-editor").value="";$("ot-note-editor").focus();setStatus("✓ New Notepad file","ok");}
+  function saveNote(asName){const name=asName||$("ot-note-name")?.value||"Untitled.txt";const blob=new Blob([$("ot-note-editor").value],{type:"text/plain;charset=utf-8"});const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000);setStatus("✓ Saved "+name,"ok");}
 
   function wire(){
     injectCss();
@@ -159,8 +159,8 @@
     $("ot-close")?.addEventListener("click",()=>destroy(true));
     $("ot-note-new")?.addEventListener("click",newNote);
     $("ot-note-open")?.addEventListener("click",openPicker);
-    $("ot-note-save")?.addEventListener("click",()=>saveNote());
-    $("ot-note-saveas")?.addEventListener("click",()=>saveNote(prompt("Save text file as — any extension is allowed","Untitled.txt")));
+    $("ot-note-save")?.addEventListener("click",()=>saveNote($("ot-note-name")?.value||"Untitled.txt"));
+    $("ot-note-saveas")?.addEventListener("click",()=>{const n=prompt("Save text file as — any extension is allowed",$("ot-note-name")?.value||"Untitled.txt");if(n){$("ot-note-name").value=n;saveNote(n);}});
     $("ot-note-editor")?.addEventListener("input",()=>setStatus("● Unsaved Notepad changes","dirty"));
     setMode("word");landing();
   }
