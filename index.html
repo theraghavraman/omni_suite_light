@@ -29,33 +29,8 @@
   <script src="./vendor/jsyaml/js-yaml.min.js"></script>
   <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
-<style id="redmark-diagram-forge-css">
-#tabDiagramForge{--df-a:#f97316;--df-b:#ec4899}
-#tabDiagramForge>.df-shell{margin:18px;border:1px solid rgba(15,23,42,.09);border-radius:24px;overflow:hidden;background:#f8fafc;box-shadow:0 24px 60px -34px rgba(15,23,42,.35)}
-.df-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 24px;background:linear-gradient(120deg,#fff,#fff1f2)}
-.df-kicker{font-size:.7rem;font-weight:900;letter-spacing:.16em;color:var(--df-a)}
-.df-head h2{margin:4px 0;font-size:1.8rem}.df-head p{margin:0;color:#64748b}
-.df-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}.df-btn{border:1px solid #dbe2ea;background:#fff;color:#26334a;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.df-btn.primary{background:linear-gradient(120deg,var(--df-a),var(--df-b));border:0;color:#fff}
-.df-ribbon{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:9px 12px;background:#0f172a;color:#fff}.df-ribbon select,.df-ribbon button{border:0;border-radius:8px;padding:8px 10px;font-weight:750}.df-ribbon select{background:#fff;color:#0f172a}
-.df-work{display:grid;grid-template-columns:minmax(0,1fr) 330px;min-height:650px}.df-main{min-width:0;background:#e2e8f0}.df-canvas-wrap{position:relative;height:480px;overflow:hidden;background:#fff;border-bottom:1px solid #cbd5e1}.df-canvas{width:100%;height:100%;touch-action:none}
-.df-canvas-tools{position:absolute;top:12px;left:12px;display:flex;gap:5px;background:rgba(255,255,255,.92);padding:6px;border:1px solid #dbe2ea;border-radius:10px;box-shadow:0 8px 20px rgba(15,23,42,.1)}
-.df-side{background:#fff;border-left:1px solid #dbe2ea;padding:16px;overflow:auto}.df-side h3{margin:0 0 10px}.df-inspector{display:grid;gap:9px}.df-inspector label{font-size:.75rem;font-weight:800;color:#475569}.df-inspector input,.df-inspector select,.df-code{width:100%;box-sizing:border-box;border:1px solid #dbe2ea;border-radius:8px;padding:9px;background:#fff}
-.df-mermaid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr);gap:12px;padding:14px;background:#fff}.df-codebox{min-width:0}.df-code{min-height:300px;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}.df-preview{min-height:300px;border:1px solid #e2e8f0;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:auto;background:#fff}.df-preview svg{max-width:100%;height:auto}.df-empty{padding:30px;color:#94a3b8}.df-error{padding:14px;color:#b91c1c;background:#fff1f2;white-space:pre-wrap}.df-status{font-size:.75rem;color:#64748b;margin-top:7px}
-.df-library{display:flex;flex-wrap:wrap;gap:7px;padding:14px;background:#f8fafc;border-top:1px solid #e2e8f0}.df-chip{border:1px solid #fecdd3;background:#fff;color:#be185d;border-radius:999px;padding:7px 10px;font-size:.75rem;font-weight:800;cursor:pointer}
-@media(max-width:900px){.df-work{grid-template-columns:1fr}.df-side{border-left:0;border-top:1px solid #dbe2ea}.df-mermaid{grid-template-columns:1fr}.df-canvas-wrap{height:400px}}
-@media(max-width:600px){#tabDiagramForge>.df-shell{margin:10px;border-radius:18px}.df-head{padding:17px}.df-head h2{font-size:1.4rem}.df-work{min-height:0}.df-canvas-wrap{height:360px}.df-actions{justify-content:flex-start}}
-</style>
-<style id="redmark-office-tools-css">
-#tabOfficeTools{--ot-accent:#2563eb;--ot-blue:#2563eb;--ot-green:#06b6d4;--ot-gold:#38bdf8}
-.ot-shell{background:rgba(255,255,255,.92);border:1px solid rgba(15,23,42,.08);border-radius:24px;box-shadow:0 26px 70px -30px rgba(15,23,42,.28);overflow:hidden}
-.ot-topline{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:22px 24px;background:linear-gradient(120deg,#fff,#eff6ff)}
-.ot-kicker{font-size:.72rem;font-weight:900;letter-spacing:.14em;color:#2563eb}.ot-topline h2{margin:4px 0 5px;font-size:1.8rem}.ot-filebar{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}.ot-btn,.ot-icon,.ot-menu>button,.ot-menu>div button{border:1px solid #dbe2ea;background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:700;color:#26334a}.ot-btn.primary{background:linear-gradient(120deg,#2563eb,#06b6d4);color:#fff;border-color:#2563eb}
-.ot-tabs{display:flex;gap:4px;padding:8px 12px;background:#1e293b;align-items:center;overflow:auto}.ot-tab{border:0;background:transparent;color:#cbd5e1;padding:10px 13px;border-radius:8px;white-space:nowrap;font-weight:800;cursor:pointer}.ot-tab.active{background:#fff;color:#1e293b}.ot-save-state{margin-left:auto;color:#94a3b8;font-size:.78rem;white-space:nowrap}.ot-save-state.dirty{color:#fbbf24}
-.ot-panel{display:none;background:#f1f5f9}.ot-panel.active{display:block}.ot-ribbon{min-height:58px;display:flex;gap:6px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #dbe2ea;overflow:auto}.ot-menu{position:relative}.ot-menu>button{border:0;background:#fff}.ot-menu>div{display:none;position:absolute;top:100%;left:0;z-index:20;min-width:180px;padding:6px;background:#fff;border:1px solid #dbe2ea;border-radius:10px;box-shadow:0 14px 30px rgba(15,23,42,.18)}.ot-menu:hover>div{display:grid}.ot-menu>div button{text-align:left;border:0;border-radius:6px;background:#fff}.ot-menu>div button:hover{background:#f1f5f9}.ot-tool-sep{width:1px;height:30px;background:#dbe2ea;margin:0 4px}.ot-ribbon select,.ot-formula{border:1px solid #dbe2ea;border-radius:7px;padding:7px;background:#fff}.ot-icon{min-width:34px;padding:7px}.ot-paper-wrap{padding:28px;min-height:720px;background:#e8edf3;overflow:auto}.ot-word-editor{width:min(850px,100%);min-height:1050px;margin:0 auto;padding:72px 76px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.15);outline:0;color:#172033;font-family:Arial,sans-serif;font-size:16px;line-height:1.6}.ot-word-editor h1,.ot-word-editor h2,.ot-word-editor h3{line-height:1.2}.ot-word-editor table{border-collapse:collapse;width:100%;margin:14px 0}.ot-word-editor td,.ot-word-editor th{border:1px solid #9ca3af;padding:7px}.ot-word-editor blockquote{border-left:4px solid #06b6d4;padding-left:14px;color:#475569}.ot-sheet-head{display:flex;gap:18px;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #dbe2ea;font-size:.8rem}.ot-sheet-head span{color:#64748b}.ot-sheet-grid{padding:0;overflow:auto;max-height:720px;background:#fff}.ot-sheet-grid table{border-collapse:collapse;min-width:1100px;font:13px Arial,sans-serif}.ot-sheet-grid th,.ot-sheet-grid td{border:1px solid #d7dee7;height:28px;min-width:92px;padding:4px 7px;white-space:nowrap}.ot-sheet-grid thead th{position:sticky;top:0;background:#eef2f7;z-index:3;text-align:center}.ot-sheet-grid .corner{left:0;z-index:5}.ot-sheet-grid .rowhead{position:sticky;left:0;background:#eef2f7;text-align:center;z-index:2;min-width:44px}.ot-sheet-grid td:focus{outline:2px solid #2563eb;outline-offset:-2px}.ot-cell-label{font:700 12px ui-monospace,monospace;padding:7px 9px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:7px}.ot-formula{min-width:260px}.ot-slides{padding:24px;display:grid;gap:20px}.ot-slide{max-width:1000px;margin:0 auto;width:100%;background:#fff;aspect-ratio:16/9;border-radius:14px;box-shadow:0 14px 32px rgba(15,23,42,.14);padding:28px 38px;display:flex;flex-direction:column;gap:16px}.ot-slide-head{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;font-weight:900;color:#64748b;letter-spacing:.12em}.ot-slide-head button{border:1px solid #dbe2ea;background:#fff;border-radius:6px;margin-left:4px}.ot-slide-title{font-size:2rem;font-weight:900;border:0;border-bottom:2px solid #e2e8f0;padding:8px 0;outline:0}.ot-slide-body{flex:1;border:0;resize:none;font:20px/1.6 Arial,sans-serif;outline:0;white-space:pre-wrap}.ot-slide-notes{border:1px dashed #cbd5e1;border-radius:7px;padding:7px}.ot-note-editor{display:block;width:100%;min-height:720px;border:0;resize:vertical;padding:28px;font:15px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;outline:0;background:#fff;color:#0f172a}.ot-ribbon-note{font-size:.78rem;color:#64748b}.ot-footer{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;background:#fff;border-top:1px solid #dbe2ea;color:#64748b;font-size:.72rem}
-.nav-btn[data-tab="tabOfficeTools"]{--c:#2563eb;--c2:#06b6d4;--cs:rgba(37,99,235,.14)}#tabOfficeTools{--studio-accent:#2563eb;--studio-accent-2:#06b6d4}
-@media(max-width:850px){.ot-topline{align-items:flex-start;flex-direction:column}.ot-filebar{justify-content:flex-start}.ot-paper-wrap{padding:10px}.ot-word-editor{padding:34px 24px;min-height:800px}.ot-footer{flex-direction:column}.ot-formula{min-width:160px}.ot-slide{padding:18px 22px}.ot-slide-title{font-size:1.4rem}.ot-slide-body{font-size:15px}}
-@media(max-width:600px){.ot-tabs{padding:6px}.ot-tab{font-size:.75rem;padding:9px}.ot-ribbon{flex-wrap:wrap}.ot-topline{padding:16px}.ot-filebar .ot-btn{flex:1}.ot-shell{border-radius:16px}}
-</style>
+<link rel="stylesheet" href="./diagram_forge_studio.css?v=2">
+<link rel="stylesheet" href="./office_tools_studio.css?v=2">
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
@@ -1862,17 +1837,227 @@ python prepare_language_models.py --transliteration</pre>
       </div>
     </div>
 
-    <!-- OFFICE TOOLS: browser-only Office workspace -->
-    <div class="module-panel" id="tabOfficeTools">
-      <div class="ot-shell">
-        <div class="ot-topline"><div><div class="ot-kicker">REDMARK OFFICE TOOLS</div><h2 id="ot-mode-label">Word / Writer</h2><div class="sub">100% browser-side Office editing. No Render, no cloud Office server and no paid service required.</div></div><div class="ot-filebar"><button class="ot-btn primary" id="ot-new">＋ New</button><button class="ot-btn" id="ot-open">📂 Open</button><button class="ot-btn" id="ot-save">💾 Save</button><button class="ot-btn" id="ot-saveas">Save As…</button><button class="ot-btn" id="ot-print">🖨 Print</button><input id="ot-file" type="file" hidden accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.pdf,*/*"></div></div>
-        <div class="ot-tabs"><button id="ot-word" class="ot-tab active">📝 Word / Writer</button><button id="ot-excel" class="ot-tab">📊 Excel / Calc</button><button id="ot-powerpoint" class="ot-tab">📽 PowerPoint / Impress</button><button id="ot-notepad" class="ot-tab">▤ Notepad</button><span class="ot-save-state" id="ot-save-state">✓ Saved / ready</span></div>
-        <section class="ot-panel active" id="ot-panel-word"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-menu-open">Open</button><button id="ot-menu-save">Save</button><button id="ot-menu-saveas">Save As…</button><button id="ot-menu-export">Export</button><button id="ot-menu-print">Print</button></div></div><div class="ot-menu"><button>Edit</button><div><button id="ot-menu-undo">Undo</button><button id="ot-menu-redo">Redo</button><button onclick="document.execCommand('selectAll')">Select All</button></div></div><div class="ot-menu"><button>Insert</button><div><button id="ot-menu-image">Image</button><button id="ot-menu-link">Link</button><button id="ot-menu-table">Table</button><button onclick="document.execCommand('insertHorizontalRule')">Horizontal Rule</button></div></div><select id="ot-font"><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Times New Roman</option><option>Verdana</option><option>Courier New</option></select><select id="ot-size"><option value="1">10</option><option value="2">12</option><option value="3" selected>14</option><option value="4">18</option><option value="5">24</option><option value="6">32</option><option value="7">48</option></select><button class="ot-icon" id="ot-bold"><b>B</b></button><button class="ot-icon" id="ot-italic"><i>I</i></button><button class="ot-icon" id="ot-underline"><u>U</u></button><button class="ot-icon" id="ot-strike"><s>S</s></button><button class="ot-icon" id="ot-ul">•≡</button><button class="ot-icon" id="ot-ol">1≡</button><button class="ot-icon" id="ot-align-left">≡</button><button class="ot-icon" id="ot-align-center">≡</button><button class="ot-icon" id="ot-align-right">≡</button><button class="ot-icon" id="ot-link">🔗</button><button class="ot-icon" id="ot-image">🖼</button><button class="ot-icon" id="ot-undo">↶</button><button class="ot-icon" id="ot-redo">↷</button></div><div class="ot-paper-wrap"><article id="ot-word-editor" class="ot-word-editor" contenteditable="true" spellcheck="true"><h1>Untitled Document</h1><p>Start writing here…</p></article></div></section>
-        <section class="ot-panel" id="ot-panel-excel"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-excel-open">Open</button><button id="ot-excel-save">Save</button><button id="ot-excel-saveas">Save As…</button></div></div><div class="ot-menu"><button>Home</button><div><button id="ot-excel-bold">Bold</button><button id="ot-excel-italic">Italic</button><button id="ot-excel-center">Center</button></div></div><div class="ot-menu"><button>Insert</button><div><button id="ot-add-sheet">New Sheet</button><button id="ot-del-sheet">Delete Sheet</button></div></div><div class="ot-menu"><button>Data</button><div><button id="ot-sort-help">Sort / Filter</button><button id="ot-freeze-help">Freeze Panes</button></div></div><span class="ot-cell-label" id="ot-cell-name">A1</span><input class="ot-formula" id="ot-formula" placeholder="Formula or value"><button class="ot-icon" id="ot-formula-apply">✓</button></div><div class="ot-sheet-head"><strong id="ot-sheet-name">Sheet1</strong><span>Browser spreadsheet • formulas + multi-sheet import/export</span></div><div class="ot-sheet-grid" id="ot-sheet-grid"></div></section>
-        <section class="ot-panel" id="ot-panel-powerpoint"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-ppt-open">Open</button><button id="ot-ppt-save">Save</button><button id="ot-ppt-saveas">Save As…</button></div></div><div class="ot-menu"><button>Home</button><div><button id="ot-add-slide">New Slide</button><button id="ot-add-slide-2">Duplicate Slide</button></div></div><div class="ot-menu"><button>Slide</button><div><button id="ot-add-slide-image">Add Image</button><button id="ot-add-slide-shape">Add Shape</button></div></div><span class="ot-ribbon-note">Browser-native presentation builder • PPTX export</span></div><div class="ot-slides" id="ot-slides"></div></section>
-        <section class="ot-panel" id="ot-panel-notepad"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-note-new">New</button><button id="ot-note-open">Open</button><button id="ot-note-save">Save</button><button id="ot-note-saveas">Save As…</button></div></div><div class="ot-menu"><button>Edit</button><div><button onclick="document.getElementById('ot-note-editor').select()">Select All</button><button onclick="document.execCommand('copy')">Copy</button></div></div><span class="ot-ribbon-note">Any filename + extension: .txt, .bat, .cmd, .json, .sql, .py, .html, .md, etc.</span></div><div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid #dbe2ea"><input id="ot-note-name" class="ot-formula" value="Untitled.txt" style="width:min(320px,100%)"></div><textarea id="ot-note-editor" class="ot-note-editor" spellcheck="false" placeholder="Type anything…"></textarea></section>
-        <div class="ot-footer"><span>🔒 Browser-only • files remain on this device until you download</span><span>No Render • no paid service</span></div>
+    <!-- OFFICE TOOLS: browser-only Office workspace (office_tools_studio.js / office_tools_studio.css) -->
+    <div class="module-panel" id="tabOfficeTools" data-tool-count="4">
+      <div class="ot-shell" id="ot-root">
+        <header class="ot-topline">
+          <div>
+            <div class="ot-kicker">REDMARK OFFICE TOOLS</div>
+            <h2 id="ot-mode-label">Word / Writer</h2>
+            <div class="sub">Edit documents, spreadsheets, presentations and plain text entirely in your browser. Files stay on this device.</div>
+          </div>
+          <div class="ot-filebar">
+            <button type="button" class="ot-btn primary" id="ot-new" title="New (current editor)">＋ New</button>
+            <button type="button" class="ot-btn" id="ot-open" title="Open (Ctrl+O)">📂 Open</button>
+            <button type="button" class="ot-btn" id="ot-save" title="Save (Ctrl+S)">💾 Save</button>
+            <button type="button" class="ot-btn" id="ot-saveas" title="Save As (Ctrl+Shift+S)">Save As…</button>
+            <button type="button" class="ot-btn" id="ot-print" title="Print or save as PDF">🖨 Print</button>
+            <input id="ot-file" type="file" hidden>
+          </div>
+        </header>
+
+        <nav class="ot-tabs" role="tablist" aria-label="Office editors">
+          <button type="button" id="ot-word" class="ot-tab active" role="tab" aria-selected="true">📝 Word / Writer</button>
+          <button type="button" id="ot-excel" class="ot-tab" role="tab" aria-selected="false">📊 Excel / Calc</button>
+          <button type="button" id="ot-powerpoint" class="ot-tab" role="tab" aria-selected="false">📽 PowerPoint / Impress</button>
+          <button type="button" id="ot-notepad" class="ot-tab" role="tab" aria-selected="false">▤ Notepad</button>
+          <span class="ot-docname" id="ot-docname" title="Current file name">Untitled.docx</span>
+          <span class="ot-save-state" id="ot-save-state" aria-live="polite">✓ Saved / ready</span>
+        </nav>
+
+        <!-- WORD -->
+        <section class="ot-panel active" id="ot-panel-word" role="tabpanel">
+          <div class="ot-ribbon" role="toolbar" aria-label="Formatting">
+            <div class="ot-group">
+              <select id="ot-block" title="Paragraph style" aria-label="Paragraph style">
+                <option value="p">Normal</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option><option value="pre">Code</option>
+              </select>
+              <select id="ot-font" title="Font" aria-label="Font">
+                <option>Arial</option><option>Calibri</option><option>Cambria</option><option>Georgia</option><option>Garamond</option><option>Helvetica</option><option>Segoe UI</option><option>Tahoma</option><option>Times New Roman</option><option>Trebuchet MS</option><option>Verdana</option><option>Courier New</option><option>Nirmala UI</option><option>Mangal</option>
+              </select>
+              <select id="ot-size" title="Font size (pt)" aria-label="Font size">
+                <option>8</option><option>9</option><option>10</option><option>11</option><option selected>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>24</option><option>28</option><option>32</option><option>36</option><option>48</option><option>72</option>
+              </select>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-icon" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button type="button" class="ot-icon" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button type="button" class="ot-icon" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+              <button type="button" class="ot-icon" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+              <button type="button" class="ot-icon" data-cmd="subscript" title="Subscript">x₂</button>
+              <button type="button" class="ot-icon" data-cmd="superscript" title="Superscript">x²</button>
+              <label class="ot-color" title="Text colour"><span>A</span><input type="color" id="ot-forecolor" value="#c81e1e" aria-label="Text colour"></label>
+              <label class="ot-color hl" title="Highlight"><span>▮</span><input type="color" id="ot-hilite" value="#fde047" aria-label="Highlight colour"></label>
+              <button type="button" class="ot-icon" data-cmd="removeFormat" title="Clear formatting">⌫</button>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-icon" data-cmd="justifyLeft" title="Align left">⫷</button>
+              <button type="button" class="ot-icon" data-cmd="justifyCenter" title="Center">≡</button>
+              <button type="button" class="ot-icon" data-cmd="justifyRight" title="Align right">⫸</button>
+              <button type="button" class="ot-icon" data-cmd="justifyFull" title="Justify">☰</button>
+              <button type="button" class="ot-icon" data-cmd="insertUnorderedList" title="Bulleted list">•≡</button>
+              <button type="button" class="ot-icon" data-cmd="insertOrderedList" title="Numbered list">1≡</button>
+              <button type="button" class="ot-icon" data-cmd="outdent" title="Decrease indent">⇤</button>
+              <button type="button" class="ot-icon" data-cmd="indent" title="Increase indent">⇥</button>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-icon" id="ot-link" title="Insert link (Ctrl+K)">🔗</button>
+              <button type="button" class="ot-icon" id="ot-image" title="Insert image">🖼</button>
+              <button type="button" class="ot-icon" id="ot-table" title="Insert table">▦</button>
+              <select id="ot-table-op" title="Table tools" aria-label="Table tools">
+                <option value="">Table…</option><option value="row-above">Insert row above</option><option value="row-below">Insert row below</option><option value="col-left">Insert column left</option><option value="col-right">Insert column right</option><option value="del-row">Delete row</option><option value="del-col">Delete column</option><option value="del-table">Delete table</option>
+              </select>
+              <button type="button" class="ot-icon" id="ot-hr" title="Horizontal line">―</button>
+              <button type="button" class="ot-icon" id="ot-pagebreak" title="Page break">⤓</button>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-icon" data-cmd="undo" title="Undo (Ctrl+Z)">↶</button>
+              <button type="button" class="ot-icon" data-cmd="redo" title="Redo (Ctrl+Y)">↷</button>
+              <button type="button" class="ot-icon" id="ot-find-toggle" title="Find &amp; replace (Ctrl+F)">🔍</button>
+            </div>
+          </div>
+          <div class="ot-findbar" id="ot-word-find" hidden>
+            <input id="ot-word-find-q" placeholder="Find" aria-label="Find">
+            <input id="ot-word-find-r" placeholder="Replace with" aria-label="Replace with">
+            <label><input type="checkbox" id="ot-word-find-case"> Match case</label>
+            <button type="button" class="ot-btn" id="ot-word-find-next">Find next</button>
+            <button type="button" class="ot-btn" id="ot-word-find-rep">Replace</button>
+            <button type="button" class="ot-btn" id="ot-word-find-all">Replace all</button>
+            <span class="ot-find-msg" id="ot-word-find-msg"></span>
+            <button type="button" class="ot-icon" id="ot-word-find-close" title="Close">×</button>
+          </div>
+          <div class="ot-paper-wrap" id="ot-paper-wrap">
+            <article id="ot-word-editor" class="ot-word-editor" contenteditable="true" spellcheck="true" aria-label="Document editor"><h1>Untitled Document</h1><p>Start writing here…</p></article>
+          </div>
+          <div class="ot-statusbar">
+            <span id="ot-word-count">0 words</span>
+            <label>Zoom <select id="ot-word-zoom" aria-label="Zoom"><option value="0.75">75%</option><option value="0.9">90%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></label>
+          </div>
+        </section>
+
+        <!-- EXCEL -->
+        <section class="ot-panel" id="ot-panel-excel" role="tabpanel">
+          <div class="ot-ribbon" role="toolbar" aria-label="Spreadsheet tools">
+            <div class="ot-group">
+              <button type="button" class="ot-icon" data-xs="b" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button type="button" class="ot-icon" data-xs="i" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button type="button" class="ot-icon" data-xs="u" title="Underline (Ctrl+U)"><u>U</u></button>
+              <button type="button" class="ot-icon" data-xal="left" title="Align left">⫷</button>
+              <button type="button" class="ot-icon" data-xal="center" title="Center">≡</button>
+              <button type="button" class="ot-icon" data-xal="right" title="Align right">⫸</button>
+              <label class="ot-color" title="Text colour"><span>A</span><input type="color" id="ot-x-color" value="#c81e1e" aria-label="Cell text colour"></label>
+              <label class="ot-color hl" title="Fill colour"><span>▮</span><input type="color" id="ot-x-fill" value="#fef08a" aria-label="Cell fill colour"></label>
+              <button type="button" class="ot-icon" id="ot-x-clearfmt" title="Clear formatting">⌫</button>
+              <select id="ot-x-numfmt" title="Number format" aria-label="Number format">
+                <option value="">General</option><option value="0">Number 0</option><option value="0.00">Number 0.00</option><option value="#,##0.00">1,234.56</option><option value="&quot;₹&quot;#,##0.00">₹ Rupee</option><option value="&quot;$&quot;#,##0.00">$ Dollar</option><option value="0%">Percent</option><option value="0.00%">Percent 0.00</option><option value="yyyy-mm-dd">Date yyyy-mm-dd</option><option value="dd-mm-yyyy">Date dd-mm-yyyy</option><option value="hh:mm">Time hh:mm</option><option value="@">Text</option>
+              </select>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-btn sm" id="ot-x-row-add" title="Insert row above">＋ Row</button>
+              <button type="button" class="ot-btn sm" id="ot-x-col-add" title="Insert column left">＋ Col</button>
+              <button type="button" class="ot-btn sm" id="ot-x-row-del" title="Delete selected rows">− Row</button>
+              <button type="button" class="ot-btn sm" id="ot-x-col-del" title="Delete selected columns">− Col</button>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-btn sm" id="ot-x-sort-asc" title="Sort ascending by active column">A→Z</button>
+              <button type="button" class="ot-btn sm" id="ot-x-sort-desc" title="Sort descending by active column">Z→A</button>
+              <input id="ot-x-filter" class="ot-input" placeholder="Filter active column…" aria-label="Filter rows by the active column">
+              <label class="ot-check"><input type="checkbox" id="ot-x-freeze"> Freeze top row &amp; first column</label>
+              <button type="button" class="ot-icon" id="ot-x-undo" title="Undo (Ctrl+Z)">↶</button>
+              <button type="button" class="ot-icon" id="ot-x-redo" title="Redo (Ctrl+Y)">↷</button>
+            </div>
+          </div>
+          <div class="ot-formulabar">
+            <input class="ot-cell-label" id="ot-cell-name" value="A1" aria-label="Cell reference — type a reference and press Enter to jump">
+            <span class="ot-fx">fx</span>
+            <input class="ot-formula" id="ot-formula" placeholder="Value or formula, e.g. =SUM(A1:A10)" aria-label="Formula bar" autocomplete="off" spellcheck="false">
+            <button type="button" class="ot-icon" id="ot-formula-apply" title="Enter">✓</button>
+            <button type="button" class="ot-icon" id="ot-formula-cancel" title="Cancel">✕</button>
+          </div>
+          <div class="ot-sheet-grid" id="ot-sheet-grid" tabindex="0" aria-label="Spreadsheet grid"></div>
+          <div class="ot-sheet-tabs">
+            <div class="ot-sheet-tablist" id="ot-sheet-tablist"></div>
+            <button type="button" class="ot-icon" id="ot-add-sheet" title="Add sheet">＋</button>
+            <button type="button" class="ot-btn sm" id="ot-rename-sheet" title="Rename sheet">Rename</button>
+            <button type="button" class="ot-btn sm" id="ot-del-sheet" title="Delete sheet">Delete</button>
+            <span class="ot-sheet-stats" id="ot-sheet-stats"></span>
+          </div>
+        </section>
+
+        <!-- POWERPOINT -->
+        <section class="ot-panel" id="ot-panel-powerpoint" role="tabpanel">
+          <div class="ot-ribbon" role="toolbar" aria-label="Presentation tools">
+            <div class="ot-group">
+              <button type="button" class="ot-btn sm" id="ot-add-slide" title="New slide">＋ Slide</button>
+              <button type="button" class="ot-btn sm" id="ot-dup-slide" title="Duplicate slide">⧉ Duplicate</button>
+              <button type="button" class="ot-btn sm" id="ot-del-slide" title="Delete slide">🗑 Delete</button>
+              <button type="button" class="ot-icon" id="ot-slide-up" title="Move slide up">↑</button>
+              <button type="button" class="ot-icon" id="ot-slide-down" title="Move slide down">↓</button>
+            </div>
+            <div class="ot-group">
+              <select id="ot-slide-layout" title="Slide layout" aria-label="Slide layout">
+                <option value="title">Title slide</option><option value="content">Title &amp; content</option><option value="two">Two columns</option><option value="image">Title &amp; image</option><option value="section">Section header</option><option value="blank">Blank / image only</option>
+              </select>
+              <select id="ot-deck-theme" title="Theme" aria-label="Theme">
+                <option value="light">Light</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="forest">Forest</option><option value="dark">Dark</option><option value="mono">Monochrome</option>
+              </select>
+              <button type="button" class="ot-btn sm" id="ot-slide-image" title="Add or replace slide image">🖼 Image</button>
+              <button type="button" class="ot-btn sm" id="ot-slide-image-del" title="Remove slide image">Remove image</button>
+            </div>
+            <div class="ot-group">
+              <button type="button" class="ot-btn sm primary" id="ot-present" title="Present from current slide (F5)">▶ Present</button>
+            </div>
+          </div>
+          <div class="ot-deck">
+            <ol class="ot-thumbs" id="ot-thumbs" aria-label="Slides"></ol>
+            <div class="ot-stage-wrap">
+              <div class="ot-stage" id="ot-stage"></div>
+              <label class="ot-notes-label">Speaker notes<textarea id="ot-slide-notes" class="ot-notes" placeholder="Notes for the presenter (exported to PPTX)"></textarea></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTEPAD -->
+        <section class="ot-panel" id="ot-panel-notepad" role="tabpanel">
+          <div class="ot-ribbon" role="toolbar" aria-label="Text tools">
+            <div class="ot-group">
+              <input id="ot-note-name" class="ot-input" value="Untitled.txt" aria-label="File name (any extension)" title="File name — any extension, e.g. .txt .bat .sql .py .json">
+              <select id="ot-note-eol" title="Line endings" aria-label="Line endings"><option value="lf">LF (Unix/macOS)</option><option value="crlf">CRLF (Windows)</option></select>
+              <select id="ot-note-enc" title="Encoding used when saving" aria-label="Encoding"><option value="utf8">UTF-8</option><option value="utf8bom">UTF-8 with BOM</option><option value="utf16le">UTF-16 LE</option></select>
+            </div>
+            <div class="ot-group">
+              <label class="ot-check"><input type="checkbox" id="ot-note-wrap" checked> Word wrap</label>
+              <select id="ot-note-size" title="Font size" aria-label="Font size"><option>12</option><option>13</option><option selected>15</option><option>17</option><option>20</option><option>24</option></select>
+              <button type="button" class="ot-icon" id="ot-note-find-toggle" title="Find &amp; replace (Ctrl+F)">🔍</button>
+            </div>
+          </div>
+          <div class="ot-findbar" id="ot-note-find" hidden>
+            <input id="ot-note-find-q" placeholder="Find" aria-label="Find">
+            <input id="ot-note-find-r" placeholder="Replace with" aria-label="Replace with">
+            <label><input type="checkbox" id="ot-note-find-case"> Match case</label>
+            <button type="button" class="ot-btn" id="ot-note-find-next">Find next</button>
+            <button type="button" class="ot-btn" id="ot-note-find-rep">Replace</button>
+            <button type="button" class="ot-btn" id="ot-note-find-all">Replace all</button>
+            <span class="ot-find-msg" id="ot-note-find-msg"></span>
+            <button type="button" class="ot-icon" id="ot-note-find-close" title="Close">×</button>
+          </div>
+          <textarea id="ot-note-editor" class="ot-note-editor" spellcheck="false" placeholder="Type anything…" aria-label="Text editor"></textarea>
+          <div class="ot-statusbar"><span id="ot-note-pos">Ln 1, Col 1</span><span id="ot-note-stats">0 characters</span></div>
+        </section>
+
+        <div class="ot-footer"><span>🔒 Browser-only • nothing is uploaded</span><span>Drafts auto-recover on this device • Ctrl+S to save</span></div>
+
+        <dialog class="ot-dialog" id="ot-saveas-dialog">
+          <form method="dialog">
+            <h3>Save as</h3>
+            <label>File name<input id="ot-saveas-name" class="ot-input" autocomplete="off"></label>
+            <label>Format<select id="ot-saveas-format"></select></label>
+            <p class="ot-dialog-note" id="ot-saveas-note"></p>
+            <div class="ot-dialog-actions"><button type="submit" value="cancel" class="ot-btn">Cancel</button><button type="submit" value="ok" class="ot-btn primary">Save</button></div>
+          </form>
+        </dialog>
       </div>
+      <div class="ot-present" id="ot-present-view" hidden tabindex="-1" aria-label="Slide show"><div class="ot-present-slide" id="ot-present-slide"></div><div class="ot-present-hud" id="ot-present-hud"></div></div>
     </div>
 
     <!-- 2. WORD & DOCUMENTS -->
@@ -2920,24 +3105,161 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 </div></div>
 <div class="module-panel" id="tabDataClean"><div class="card"><div class="code-kicker">OMNI DATA QUALITY & PRIVACY</div><h2>🧹 Data Cleaning & Privacy Studio</h2><div class="sub">Clean tabular files locally and inspect likely sensitive patterns. Detection is heuristic and should be reviewed before production use.</div></div><div class="card"><div class="dropzone"><input type="file" id="cleanInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.orc,.avro,.sqlite,.db,.duckdb,.dta,.sas,.sav"><h3>Select data file</h3><p id="cleanName">No file selected</p></div><div class="options-grid"><label><input type="checkbox" class="clean-action" value="drop_duplicates"> Remove duplicates</label><label><input type="checkbox" class="clean-action" value="trim_strings"> Trim text</label><label><input type="checkbox" class="clean-action" value="lower_columns"> Normalize column names</label><label><input type="checkbox" class="clean-action" value="drop_empty_rows"> Drop empty rows</label><label><input type="checkbox" class="clean-action" value="fill_numeric_zero"> Fill numeric nulls with 0</label><label><input type="checkbox" class="clean-action" value="sort_columns"> Sort columns</label></div><div class="form-group"><label>Output format</label><select id="cleanTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option></select></div><div class="actions-bar"><button class="btn btn-primary" id="cleanBtn" type="button">Clean & Export</button><button class="btn btn-secondary" id="privacyBtn" type="button">Scan Privacy</button></div><pre id="cleanOutput" class="code-output">Cleaning/privacy results will appear here.</pre></div></div>
 <div class="module-panel" id="tabBatchLab"><div class="card"><div class="code-kicker">OMNI BATCH ENGINE</div><h2>⚡ Batch Lab</h2><div class="sub">Process many files with one operation. Failures are isolated so you can retry only failed files.</div></div><div class="card"><div class="dropzone" id="batchDrop"><input type="file" id="batchInput" class="file-input" multiple><div class="dropzone-icon" aria-hidden="true">⇶</div><h3>Choose files for batch processing</h3><p>Click to select multiple files or drag & drop them here.</p><div id="batchList" class="sub" style="margin-top:10px;margin-bottom:0;">No files selected.</div></div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option><option value="yaml">YAML</option><option value="xml">XML</option><option value="html">HTML</option><option value="avro">Avro</option><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option><option value="sql">SQL</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
-<div class="module-panel" id="tabDiagramForge">
-<div class="df-shell">
-  <div class="df-head"><div><div class="df-kicker">REDMARK DIAGRAM ENGINE</div><h2>◇ Diagram Forge</h2><p>Flowcharts, ERDs, UML, architecture, mind maps, BPMN-style workflows and text-defined diagrams — locally in your browser.</p></div>
-  <div class="df-actions"><button class="df-btn" id="df-new">New</button><button class="df-btn" id="df-open">Open</button><input id="df-file" type="file" accept=".json,.diagram,.redmarkdiagram" hidden><button class="df-btn" id="df-save">Save Project</button><button class="df-btn" id="df-export-svg">SVG</button><button class="df-btn" id="df-export-png">PNG</button><button class="df-btn" id="df-copy-svg">Copy SVG</button><button class="df-btn" id="df-print">Print</button></div></div>
-  <div class="df-ribbon"><select id="df-type" title="Diagram type"><option value="flowchart">Flowchart</option><option value="sequence">Sequence</option><option value="class">Class UML</option><option value="state">State</option><option value="er">ER Diagram</option><option value="mindmap">Mind Map</option><option value="architecture">Architecture</option><option value="gantt">Gantt</option><option value="timeline">Timeline</option><option value="git">Git Graph</option><option value="pie">Pie</option><option value="flowchartTD">System Flow</option><option value="journey">User Journey</option><option value="requirement">Requirements</option><option value="c4">C4 Architecture</option><option value="sankey">Sankey</option><option value="quadrant">Quadrant</option><option value="xychart">XY Chart</option><option value="packet">Packet</option><option value="block">Block Diagram</option><option value="eventmodeling">Event Modeling</option></select>
-    <select id="df-template"><option value="">Templates…</option><option value="flowchart">Process Flow</option><option value="sequence">API Sequence</option><option value="class">Class Model</option><option value="state">State Machine</option><option value="er">Database ERD</option><option value="mindmap">Mind Map</option><option value="architecture">Cloud Architecture</option><option value="gantt">Project Gantt</option><option value="timeline">Timeline</option><option value="git">Git Workflow</option></select>
-    <button class="df-btn primary" id="df-render">Render Mermaid</button><button class="df-btn" id="df-canvas-to-mermaid">Canvas → Mermaid</button><button class="df-btn" id="df-mermaid-to-canvas">Mermaid → Canvas</button><button class="df-btn" id="df-add-node">＋ Node</button><button class="df-btn" id="df-delete">Delete</button><button class="df-btn" id="df-undo">↶</button><button class="df-btn" id="df-redo">↷</button><span style="margin-left:auto;font-size:.74rem;opacity:.8">Shift-click two nodes = connector</span>
-  </div>
-  <div class="df-work">
-    <div class="df-main">
-      <div class="df-canvas-wrap"><svg id="df-canvas" class="df-canvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet"></svg><div class="df-canvas-tools"><button class="df-btn" id="df-zoom-out">−</button><button class="df-btn" id="df-fit">100%</button><button class="df-btn" id="df-zoom-in">＋</button><label class="df-btn"><input id="df-grid-toggle" type="checkbox" checked> Grid</label></div></div>
-      <div class="df-mermaid"><div class="df-codebox"><h3 style="margin:0 0 7px">Text Diagram Editor</h3><textarea id="df-code" class="df-code" spellcheck="false"></textarea><div class="df-actions" style="justify-content:flex-start;margin-top:8px"><button class="df-btn primary" id="df-render-2">Render</button><button class="df-btn" id="df-clear">Clear Canvas</button></div></div><div><h3 style="margin:0 0 7px">Live Preview</h3><div id="df-mermaid-output" class="df-preview"><div class="df-empty">Mermaid preview will appear here.</div></div><div id="df-mermaid-status" class="df-status">Ready</div></div></div>
+<div class="module-panel" id="tabDiagramForge" data-tool-count="2">
+<div class="df-shell" id="df-root">
+  <header class="df-head">
+    <div>
+      <div class="df-kicker">REDMARK DIAGRAM ENGINE</div>
+      <h2>◇ Diagram Forge</h2>
+      <p>Flowcharts, ERDs, UML, architecture, mind maps and text-defined diagrams — drawn and exported entirely in your browser.</p>
     </div>
-    <aside class="df-side"><h3>Inspector</h3><div id="df-selected" class="df-status">No node selected</div><div class="df-inspector">
-      <label>Label<input id="df-node-label" placeholder="Select a node"></label><label>Shape<select id="df-node-shape"><option value="rect">Rectangle</option><option value="round">Rounded</option><option value="circle">Ellipse</option><option value="diamond">Diamond</option></select></label><label>Fill<input id="df-node-fill" type="color" value="#ffffff"></label><label>Border<input id="df-node-stroke" type="color" value="#475569"></label><label>Font size<input id="df-node-size" type="number" min="8" max="48" value="16"></label><button class="df-btn primary" id="df-apply">Apply</button>
-    </div><hr style="border:0;border-top:1px solid #e2e8f0;margin:18px 0"><h3>Formats & capabilities</h3><p class="df-status">Mermaid 12.x supports flowcharts, sequence, class, state, ER, Gantt, pie, Git graphs, mind maps, timelines and architecture diagrams. The canvas supports free placement, shapes, arrows, labels, undo/redo, zoom and local project files.</p></aside>
+    <div class="df-actions">
+      <button type="button" class="df-btn" id="df-new" title="New diagram">＋ New</button>
+      <button type="button" class="df-btn" id="df-open" title="Open .json, .drawio, .xml, .mmd or .svg (Ctrl+O)">📂 Open</button>
+      <button type="button" class="df-btn" id="df-save" title="Save project (Ctrl+S)">💾 Save</button>
+      <select id="df-export" class="df-select" title="Export" aria-label="Export">
+        <option value="">⤓ Export…</option>
+        <option value="svg">SVG image</option>
+        <option value="png">PNG image (2×)</option>
+        <option value="png-t">PNG, transparent</option>
+        <option value="drawio">draw.io / diagrams.net (.drawio)</option>
+        <option value="mmd">Mermaid text (.mmd)</option>
+        <option value="copy-svg">Copy SVG to clipboard</option>
+        <option value="print">Print / PDF</option>
+      </select>
+      <input id="df-file" type="file" accept=".json,.diagram,.redmarkdiagram,.drawio,.xml,.mmd,.mermaid,.md,.txt" hidden>
+    </div>
+  </header>
+
+  <nav class="df-modes" role="tablist" aria-label="Diagram editors">
+    <button type="button" class="df-mode active" id="df-mode-canvas" role="tab" aria-selected="true">✎ Visual canvas</button>
+    <button type="button" class="df-mode" id="df-mode-text" role="tab" aria-selected="false">⌨ Text diagrams (Mermaid)</button>
+    <span class="df-docname" id="df-docname">Untitled diagram</span>
+    <span class="df-state" id="df-state" aria-live="polite">✓ Saved locally</span>
+  </nav>
+
+  <!-- CANVAS -->
+  <section class="df-pane active" id="df-pane-canvas" role="tabpanel">
+    <div class="df-ribbon" role="toolbar" aria-label="Canvas tools">
+      <div class="df-group" id="df-tools">
+        <button type="button" class="df-tool active" data-tool="select" title="Select / move (V)">↖</button>
+        <button type="button" class="df-tool" data-tool="pan" title="Pan (H, or hold Space)">✋</button>
+        <button type="button" class="df-tool" data-tool="rect" title="Rectangle (R)">▭</button>
+        <button type="button" class="df-tool" data-tool="round" title="Rounded rectangle">▢</button>
+        <button type="button" class="df-tool" data-tool="ellipse" title="Ellipse (O)">◯</button>
+        <button type="button" class="df-tool" data-tool="diamond" title="Decision diamond (D)">◇</button>
+        <button type="button" class="df-tool" data-tool="parallelogram" title="Input / output">▱</button>
+        <button type="button" class="df-tool" data-tool="cylinder" title="Database">⛁</button>
+        <button type="button" class="df-tool" data-tool="hexagon" title="Preparation">⬡</button>
+        <button type="button" class="df-tool" data-tool="document" title="Document">🗎</button>
+        <button type="button" class="df-tool" data-tool="sticky" title="Sticky note (N)">🗒</button>
+        <button type="button" class="df-tool" data-tool="text" title="Text (T)">T</button>
+        <button type="button" class="df-tool" data-tool="pen" title="Freehand pen (P)">✎</button>
+        <button type="button" class="df-tool" data-tool="connector" title="Connector — drag from one shape to another (C)">➜</button>
+        <button type="button" class="df-tool" data-tool="image" title="Insert image">🖼</button>
+      </div>
+      <div class="df-group">
+        <button type="button" class="df-icon" id="df-undo" title="Undo (Ctrl+Z)">↶</button>
+        <button type="button" class="df-icon" id="df-redo" title="Redo (Ctrl+Y)">↷</button>
+        <button type="button" class="df-icon" id="df-delete" title="Delete (Del)">🗑</button>
+        <button type="button" class="df-icon" id="df-duplicate" title="Duplicate (Ctrl+D)">⧉</button>
+      </div>
+      <div class="df-group">
+        <button type="button" class="df-icon" id="df-group" title="Group (Ctrl+G)">⊞</button>
+        <button type="button" class="df-icon" id="df-ungroup" title="Ungroup (Ctrl+Shift+G)">⊟</button>
+        <button type="button" class="df-icon" id="df-front" title="Bring to front">⤒</button>
+        <button type="button" class="df-icon" id="df-back" title="Send to back">⤓</button>
+        <select id="df-align" class="df-select" title="Align / distribute" aria-label="Align and distribute">
+          <option value="">Align…</option><option value="left">Align left</option><option value="center">Align centre</option><option value="right">Align right</option><option value="top">Align top</option><option value="middle">Align middle</option><option value="bottom">Align bottom</option><option value="distx">Distribute horizontally</option><option value="disty">Distribute vertically</option><option value="samesize">Same size</option>
+        </select>
+      </div>
+      <div class="df-group">
+        <select id="df-layout-dir" class="df-select" title="Auto-layout direction" aria-label="Auto-layout direction"><option value="LR">Left → right</option><option value="TB">Top → bottom</option><option value="RL">Right → left</option><option value="BT">Bottom → top</option></select>
+        <button type="button" class="df-btn sm" id="df-autolayout" title="Arrange shapes automatically (dagre)">⚙ Auto-layout</button>
+        <button type="button" class="df-btn sm" id="df-to-mermaid" title="Generate Mermaid flowchart text from the canvas">Canvas → Mermaid</button>
+      </div>
+      <div class="df-group">
+        <label class="df-check"><input type="checkbox" id="df-snap" checked> Snap</label>
+        <label class="df-check"><input type="checkbox" id="df-grid" checked> Grid</label>
+        <button type="button" class="df-icon" id="df-zoom-out" title="Zoom out (−)">−</button>
+        <button type="button" class="df-btn sm" id="df-zoom-label" title="Reset zoom to 100%">100%</button>
+        <button type="button" class="df-icon" id="df-zoom-in" title="Zoom in (+)">＋</button>
+        <button type="button" class="df-btn sm" id="df-fit" title="Fit diagram (Shift+1)">Fit</button>
+      </div>
+    </div>
+    <div class="df-work">
+      <div class="df-canvas-wrap" id="df-canvas-wrap">
+        <svg id="df-canvas" class="df-canvas" role="application" aria-label="Diagram canvas" tabindex="0"></svg>
+        <div class="df-hint" id="df-hint">Double-click empty space to add a shape • drag from a shape’s blue dot to connect • scroll to pan, Ctrl+scroll to zoom</div>
+        <input id="df-image-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" hidden>
+      </div>
+      <aside class="df-side" id="df-inspector" aria-label="Inspector">
+        <h3>Inspector</h3>
+        <div class="df-status" id="df-selected">Nothing selected</div>
+        <div class="df-insp" id="df-insp-node" hidden>
+          <label>Text<textarea id="df-n-label" rows="3"></textarea></label>
+          <label>Shape<select id="df-n-shape"><option value="rect">Rectangle</option><option value="round">Rounded</option><option value="ellipse">Ellipse</option><option value="diamond">Diamond</option><option value="parallelogram">Parallelogram</option><option value="cylinder">Database</option><option value="hexagon">Hexagon</option><option value="document">Document</option><option value="sticky">Sticky note</option><option value="text">Text only</option></select></label>
+          <div class="df-row"><label>Fill<input id="df-n-fill" type="color"></label><label>Border<input id="df-n-stroke" type="color"></label><label>Text<input id="df-n-color" type="color"></label></div>
+          <div class="df-row"><label>Font size<input id="df-n-size" type="number" min="8" max="96"></label><label>Border width<input id="df-n-sw" type="number" min="0" max="12" step="0.5"></label></div>
+          <div class="df-row"><label>Width<input id="df-n-w" type="number" min="10" max="4000"></label><label>Height<input id="df-n-h" type="number" min="10" max="4000"></label></div>
+          <label>Border style<select id="df-n-dash"><option value="">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label>
+          <label class="df-check"><input type="checkbox" id="df-n-bold"> Bold text</label>
+        </div>
+        <div class="df-insp" id="df-insp-edge" hidden>
+          <label>Label<input id="df-e-label"></label>
+          <label>Routing<select id="df-e-route"><option value="curved">Curved</option><option value="orthogonal">Orthogonal (elbow)</option><option value="straight">Straight</option></select></label>
+          <label>Line<select id="df-e-style"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label>
+          <div class="df-row"><label class="df-check"><input type="checkbox" id="df-e-start"> Arrow at start</label><label class="df-check"><input type="checkbox" id="df-e-end"> Arrow at end</label></div>
+          <div class="df-row"><label>Colour<input id="df-e-color" type="color"></label><label>Width<input id="df-e-width" type="number" min="0.5" max="12" step="0.5"></label></div>
+          <button type="button" class="df-btn sm" id="df-e-reverse">⇄ Reverse direction</button>
+        </div>
+        <div class="df-insp" id="df-insp-multi" hidden>
+          <div class="df-row"><label>Fill all<input id="df-m-fill" type="color" value="#ffffff"></label><label>Border all<input id="df-m-stroke" type="color" value="#475569"></label></div>
+        </div>
+        <details class="df-help"><summary>Shortcuts</summary>
+          <p><b>V</b> select • <b>H</b>/Space pan • <b>R</b> rectangle • <b>O</b> ellipse • <b>D</b> diamond • <b>N</b> sticky • <b>T</b> text • <b>P</b> pen • <b>C</b> connector<br><b>Ctrl+Z/Y</b> undo/redo • <b>Ctrl+C/V/D</b> copy/paste/duplicate • <b>Ctrl+G</b> group • arrows nudge (Shift ×10) • <b>Del</b> delete • <b>Shift+1</b> fit • double-click to edit text</p>
+        </details>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TEXT / MERMAID -->
+  <section class="df-pane" id="df-pane-text" role="tabpanel">
+    <div class="df-ribbon" role="toolbar" aria-label="Text diagram tools">
+      <div class="df-group">
+        <select id="df-type" class="df-select" title="Diagram type / starter template" aria-label="Diagram type">
+          <option value="flowchart">Flowchart</option><option value="flowchartTD">System flow (top-down)</option><option value="sequence">Sequence</option><option value="class">Class UML</option><option value="state">State machine</option><option value="er">ER diagram</option><option value="mindmap">Mind map</option><option value="architecture">Architecture</option><option value="c4">C4 context</option><option value="gantt">Gantt</option><option value="timeline">Timeline</option><option value="git">Git graph</option><option value="pie">Pie</option><option value="journey">User journey</option><option value="requirement">Requirements</option><option value="sankey">Sankey</option><option value="quadrant">Quadrant</option><option value="xychart">XY chart</option><option value="packet">Packet</option><option value="block">Block diagram</option><option value="kanban">Kanban</option><option value="eventmodeling">Event modeling</option>
+        </select>
+        <button type="button" class="df-btn sm" id="df-load-template" title="Replace the text with a starter template for this type">Load template</button>
+        <select id="df-theme" class="df-select" title="Mermaid theme" aria-label="Mermaid theme"><option value="default">Default theme</option><option value="neutral">Neutral</option><option value="forest">Forest</option><option value="dark">Dark</option><option value="base">Base</option></select>
+      </div>
+      <div class="df-group">
+        <button type="button" class="df-btn sm primary" id="df-render" title="Render now (Ctrl+Enter)">▶ Render</button>
+        <label class="df-check"><input type="checkbox" id="df-live" checked> Live preview</label>
+        <button type="button" class="df-btn sm" id="df-to-canvas" title="Convert flowchart, state, ER, class or mind-map text into editable canvas shapes">Mermaid → Canvas</button>
+      </div>
+    </div>
+    <div class="df-mermaid">
+      <div class="df-codebox">
+        <textarea id="df-code" class="df-code" spellcheck="false" aria-label="Mermaid source" autocomplete="off"></textarea>
+        <div id="df-mermaid-status" class="df-status" aria-live="polite">Ready</div>
+      </div>
+      <div class="df-preview-wrap"><div id="df-mermaid-output" class="df-preview"><div class="df-empty">The preview appears here.</div></div></div>
+    </div>
+  </section>
+
+  <div class="df-library" aria-label="Starter templates">
+    <span class="df-library-label">Start from:</span>
+    <button type="button" class="df-chip" data-df-template="flowchart">↳ Flowchart</button>
+    <button type="button" class="df-chip" data-df-template="sequence">⇄ API sequence</button>
+    <button type="button" class="df-chip" data-df-template="er">▦ Database ERD</button>
+    <button type="button" class="df-chip" data-df-template="class">◫ Class model</button>
+    <button type="button" class="df-chip" data-df-template="state">◉ State machine</button>
+    <button type="button" class="df-chip" data-df-template="architecture">☁ Cloud architecture</button>
+    <button type="button" class="df-chip" data-df-template="mindmap">✦ Mind map</button>
+    <button type="button" class="df-chip" data-df-template="gantt">▤ Gantt</button>
+    <button type="button" class="df-chip" data-df-template="git">⑂ Git graph</button>
   </div>
-  <div class="df-library"><button class="df-chip" data-df-template="architecture">☁ Cloud</button><button class="df-chip" data-df-template="er">▦ ERD</button><button class="df-chip" data-df-template="sequence">⇄ API Sequence</button><button class="df-chip" data-df-template="mindmap">✦ Mind Map</button><button class="df-chip" data-df-template="state">◉ State Machine</button><button class="df-chip" data-df-template="git">⑂ Git Graph</button><button class="df-chip" data-df-template="gantt">▤ Gantt</button><button class="df-chip" data-df-template="flowchart">↳ Flowchart</button></div>
 </div></div>
 <div class="module-panel" id="tabLocalDoctor"><div class="card"><h2>🩺 Local Engine Doctor</h2><div class="sub">Live dependency audit for Python packages and native tools.</div><div class="actions-bar"><button class="btn btn-primary" id="doctorBtn" type="button">Run Full Doctor</button></div><pre id="doctorOutput" class="code-output">Run Doctor to inspect this machine.</pre></div></div>
 <div class="module-panel" id="tabAllTests">
@@ -4059,8 +4381,9 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./bi_code_studio.js?v=2"></script>
 <script src="./omni_browser_studio_plus.js?v=5"></script>
 <script src="./omni_browser_docs.js?v=5"></script>
-<script src="./office_tools_studio.js?v=1"></script>
-<script src="./diagram_forge_studio.js?v=1"></script>
+<script src="./omni_vendor_loader.js?v=1"></script>
+<script src="./office_tools_studio.js?v=2"></script>
+<script src="./diagram_forge_studio.js?v=2"></script>
 <script src="./omni_browser_epub.js?v=2"></script>
 <script src="./omni_browser_ocr.js?v=1"></script>
 <script src="./omni_browser_images.js?v=1"></script>
@@ -4460,7 +4783,7 @@ $('codeLabFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0
 $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 })();
 </script>
-<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabDiagramForge:'Diagram Forge',tabSocialMedia:'Social Media',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
+<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabOfficeTools:'Office Tools',tabDiagramForge:'Diagram Forge',tabSocialMedia:'Social Media',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
 <script id="omni-workspace-v9">
 (function(){
 'use strict';
@@ -4484,6 +4807,8 @@ const meta={
  tabDataClean:['Data Clean','Profile, normalize, validate and clean data before downstream conversion.'],
  tabSocialMedia:['Social Media','Download public media from supported social/video URLs using the browser or the optional Local Engine.'],
  tabBatchLab:['Batch Lab','Run repeatable multi-file conversion workflows and review their manifests.'],
+ tabOfficeTools:['Office Tools','Edit Word, Excel, PowerPoint and plain-text files directly in the browser — nothing is uploaded.'],
+ tabDiagramForge:['Diagram Forge','Draw flowcharts, ERDs, UML and architecture diagrams on a canvas or from Mermaid text.'],
  tabLocalDoctor:['System Doctor','Inspect local runtime readiness, dependencies and fallback capability.'],
  tabDiagnostics:['Diagnostics','Inspect browser capabilities, engines and workspace health.'],
  tabAllTests:['Validation Lab','Run the control and option validation suite and isolate failed checks quickly.']
@@ -4494,7 +4819,7 @@ function setupPanel(p){
  const cards=[...p.querySelectorAll(':scope > .card')];
  const head=document.createElement('section');
  head.className='studio-workspace-head';
- head.innerHTML='<div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> ACTIVE STUDIO</div><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">'+cards.length+' TOOLS</span><span class="studio-meta-chip">BROWSER-FIRST</span><span class="studio-meta-chip">LOCAL FALLBACK</span></div>';
+ head.innerHTML='<div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> ACTIVE STUDIO</div><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">'+(+p.dataset.toolCount||cards.length)+' TOOLS</span><span class="studio-meta-chip">BROWSER-FIRST</span><span class="studio-meta-chip">LOCAL FALLBACK</span></div>';
  p.insertBefore(head,p.firstElementChild);
  p.dataset.v9Ready='1';
 }
@@ -4520,6 +4845,8 @@ function enter(id,button){
    tabDatabaseStudio:['#CA8A04','#F97316','rgba(202,138,4,.14)'],
    tabDataClean:['#16A34A','#14B8A6','rgba(22,163,74,.14)'],
    tabBatchLab:['#EA580C','#DB2777','rgba(234,88,12,.14)'],
+   tabOfficeTools:['#2563EB','#06B6D4','rgba(37,99,235,.14)'],
+   tabDiagramForge:['#F97316','#EC4899','rgba(249,115,22,.14)'],
    tabLocalDoctor:['#4F46E5','#9333EA','rgba(79,70,229,.14)'],
    tabDiagnostics:['#16A34A','#0EA5E9','rgba(22,163,74,.14)'],
    tabAllTests:['#BE185D','#7C3AED','rgba(190,24,93,.14)']

@@ -1,0 +1,172 @@
+@layer redmark-studio-fixes;
+/* Redmark Forge — Office Tools styles (office_tools_studio.js) */
+.nav-btn[data-tab="tabOfficeTools"]{--c:#2563eb;--c2:#06b6d4;--cs:rgba(37,99,235,.14)}
+#tabOfficeTools{--studio-accent:#2563eb;--studio-accent-2:#06b6d4;--ot-accent:#2563eb;--ot-accent-2:#06b6d4;--ot-ink:#172033;--ot-muted:#64748b;--ot-line:#dbe2ea;--ot-soft:#f1f5f9}
+.ot-shell{position:relative;background:rgba(255,255,255,.96);border:1px solid rgba(15,23,42,.08);border-radius:24px;box-shadow:0 26px 70px -30px rgba(15,23,42,.28);overflow:hidden;color:var(--ot-ink)}
+.ot-shell button,.ot-shell select,.ot-shell input,.ot-shell textarea{font-family:inherit}
+.ot-topline{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:22px 24px;background:linear-gradient(120deg,#fff,#eff6ff)}
+.ot-kicker{font-size:.72rem;font-weight:900;letter-spacing:.14em;color:var(--ot-accent)}
+.ot-topline h2{margin:4px 0 5px;font-size:1.8rem}
+.ot-filebar{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+.ot-btn,.ot-icon{border:1px solid var(--ot-line);background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:700;color:#26334a;line-height:1.1;transition:background .15s,border-color .15s,box-shadow .15s}
+.ot-btn:hover,.ot-icon:hover{border-color:var(--ot-accent);background:#f5f9ff}
+.ot-btn:focus-visible,.ot-icon:focus-visible,.ot-tab:focus-visible,.ot-sheet-tab:focus-visible,.ot-thumb:focus-visible{outline:2px solid var(--ot-accent);outline-offset:2px}
+.ot-btn.primary{background:linear-gradient(120deg,var(--ot-accent),var(--ot-accent-2));color:#fff;border-color:var(--ot-accent)}
+.ot-btn.primary:hover{filter:brightness(1.05)}
+.ot-btn.sm{padding:6px 9px;font-size:.8rem}
+.ot-icon{min-width:34px;padding:7px 8px;text-align:center}
+.ot-icon.on{background:#dbeafe;border-color:var(--ot-accent);color:#1d4ed8}
+.ot-input{border:1px solid var(--ot-line);border-radius:7px;padding:7px 9px;background:#fff;min-width:0}
+.ot-tabs{display:flex;gap:4px;padding:8px 12px;background:#1e293b;align-items:center;overflow-x:auto}
+.ot-tab{border:0;background:transparent;color:#cbd5e1;padding:10px 13px;border-radius:8px;white-space:nowrap;font-weight:800;cursor:pointer}
+.ot-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ot-tab.active{background:#fff;color:#1e293b}
+.ot-docname{margin-left:auto;color:#e2e8f0;font-size:.8rem;font-weight:700;max-width:30ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ot-save-state{color:#94a3b8;font-size:.78rem;white-space:nowrap;padding-left:10px}
+.ot-save-state.dirty{color:#fbbf24}
+.ot-panel{display:none;background:var(--ot-soft)}
+.ot-panel.active{display:block}
+.ot-ribbon{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid var(--ot-line)}
+.ot-group{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding-right:10px;border-right:1px solid #e2e8f0}
+.ot-group:last-child{border-right:0}
+.ot-ribbon select{border:1px solid var(--ot-line);border-radius:7px;padding:7px;background:#fff;max-width:170px}
+.ot-color{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:33px;border:1px solid var(--ot-line);border-radius:9px;background:#fff;cursor:pointer;font-weight:900}
+.ot-color span{pointer-events:none;border-bottom:4px solid #c81e1e;line-height:1}
+.ot-color.hl span{border-bottom-color:#fde047;color:#a16207}
+.ot-color input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:0;padding:0}
+.ot-check{display:inline-flex;gap:5px;align-items:center;font-size:.8rem;font-weight:700;color:#334155;white-space:nowrap}
+.ot-findbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:#fffbeb;border-bottom:1px solid #fde68a}
+.ot-findbar[hidden]{display:none}
+.ot-findbar input:not([type]){border:1px solid var(--ot-line);border-radius:7px;padding:7px 9px;min-width:160px}
+.ot-findbar label{font-size:.8rem;display:inline-flex;gap:4px;align-items:center}
+.ot-find-msg{font-size:.8rem;color:#92400e;min-width:6ch}
+.ot-statusbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 14px;background:#fff;border-top:1px solid var(--ot-line);font-size:.78rem;color:var(--ot-muted)}
+.ot-statusbar select{border:1px solid var(--ot-line);border-radius:6px;padding:2px 4px;margin-left:4px}
+
+/* Word */
+.ot-paper-wrap{padding:28px;height:min(78vh,900px);min-height:480px;background:#e8edf3;overflow:auto}
+.ot-word-editor{width:min(850px,100%);min-height:1100px;margin:0 auto;padding:72px 76px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.15);outline:0;color:#172033;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.6;overflow-wrap:anywhere;box-sizing:border-box}
+.ot-word-editor h1,.ot-word-editor h2,.ot-word-editor h3,.ot-word-editor h4{line-height:1.2;margin:.8em 0 .4em}
+.ot-word-editor h1{font-size:2em}.ot-word-editor h2{font-size:1.6em}.ot-word-editor h3{font-size:1.3em}
+.ot-word-editor p{margin:0 0 .6em}
+.ot-word-editor table{border-collapse:collapse;width:100%;margin:14px 0}
+.ot-word-editor td,.ot-word-editor th{border:1px solid #9ca3af;padding:7px;vertical-align:top;min-width:2em}
+.ot-word-editor th{background:#f1f5f9}
+.ot-word-editor blockquote{border-left:4px solid var(--ot-accent-2);margin:1em 0;padding-left:14px;color:#475569}
+.ot-word-editor pre{background:#f1f5f9;border-radius:6px;padding:10px 12px;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}
+.ot-word-editor img{max-width:100%;height:auto;cursor:pointer}
+.ot-word-editor a{color:#0563c1}
+.ot-word-editor hr{border:0;border-top:1px solid #cbd5e1;margin:1.2em 0}
+.ot-word-editor hr.ot-page-break{border-top:2px dashed #94a3b8;position:relative;margin:2em -76px;overflow:visible}
+.ot-word-editor hr.ot-page-break::after{content:"Page break";position:absolute;left:50%;top:-.75em;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:11px;color:#64748b;letter-spacing:.08em;text-transform:uppercase}
+
+/* Excel */
+.ot-formulabar{display:flex;gap:6px;align-items:center;padding:6px 12px;background:#fff;border-bottom:1px solid var(--ot-line)}
+.ot-cell-label{width:110px;font:700 12px ui-monospace,monospace;padding:7px 9px;background:#f8fafc;border:1px solid var(--ot-line);border-radius:7px;text-align:center}
+.ot-fx{font:italic 700 14px Georgia,serif;color:#64748b;padding:0 4px}
+.ot-formula{flex:1;min-width:120px;border:1px solid var(--ot-line);border-radius:7px;padding:7px 9px;font:13px ui-monospace,SFMono-Regular,Consolas,monospace}
+.ot-sheet-grid{overflow:auto;height:min(64vh,720px);min-height:320px;background:#fff;outline:0;position:relative}
+.ot-sheet-grid:focus-visible{box-shadow:inset 0 0 0 2px rgba(37,99,235,.25)}
+.ot-grid{border-collapse:separate;border-spacing:0;table-layout:fixed;font:13px Arial,Helvetica,sans-serif;user-select:none}
+.ot-grid th,.ot-grid td{border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;height:26px;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.ot-grid td{background:#fff;cursor:cell;color:#0f172a}
+.ot-grid td.err{color:#b91c1c}
+.ot-grid thead th{position:sticky;top:0;background:#eef2f7;z-index:3;text-align:center;font-weight:700;color:#475569;cursor:s-resize}
+.ot-grid th.corner{left:0;z-index:5;cursor:se-resize}
+.ot-grid th.rowhead{position:sticky;left:0;background:#eef2f7;text-align:center;z-index:2;color:#475569;font-weight:700;cursor:e-resize}
+.ot-grid th.hl{background:#dbeafe;color:#1d4ed8}
+.ot-grid td.sel{background-color:#e0ecff!important}
+.ot-grid td.active{outline:2px solid var(--ot-accent);outline-offset:-2px}
+.ot-grid.frozen tbody tr:first-child td{position:sticky;top:26px;z-index:2;box-shadow:0 2px 0 #94a3b8}
+.ot-grid.frozen tbody td[data-c="0"]{position:sticky;left:46px;z-index:1;box-shadow:2px 0 0 #94a3b8}
+.ot-grid.frozen tbody tr:first-child td[data-c="0"]{z-index:3}
+.ot-colresize{position:absolute;right:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:4}
+.ot-grid thead th{position:sticky}
+.ot-cell-input{width:100%;height:100%;border:0;outline:0;padding:0;margin:0;font:inherit;background:#fff;box-sizing:border-box}
+.ot-more{padding:10px;text-align:center;background:#f8fafc;position:sticky;left:0}
+.ot-sheet-tabs{display:flex;gap:6px;align-items:center;padding:6px 10px;background:#f8fafc;border-top:1px solid var(--ot-line);overflow-x:auto}
+.ot-sheet-tablist{display:flex;gap:3px}
+.ot-sheet-tab{border:1px solid var(--ot-line);border-top:0;background:#e2e8f0;border-radius:0 0 8px 8px;padding:6px 12px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;color:#334155}
+.ot-sheet-tab.active{background:#fff;color:var(--ot-accent);box-shadow:inset 0 3px 0 var(--ot-accent)}
+.ot-sheet-stats{margin-left:auto;font-size:.78rem;color:var(--ot-muted);white-space:nowrap}
+
+/* PowerPoint */
+.ot-deck{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0;min-height:560px}
+.ot-thumbs{list-style:none;margin:0;padding:12px;display:flex;flex-direction:column;gap:12px;background:#e8edf3;border-right:1px solid var(--ot-line);overflow:auto;max-height:min(78vh,820px)}
+.ot-thumb{position:relative;cursor:pointer;border-radius:8px;padding-left:20px}
+.ot-thumb .n{position:absolute;left:0;top:2px;font-size:.72rem;font-weight:800;color:#64748b}
+.ot-thumb-view{width:160px;height:90px;overflow:hidden;border-radius:6px;box-shadow:0 2px 6px rgba(15,23,42,.18);border:2px solid transparent;background:#fff}
+.ot-thumb-view .ot-sl{transform:scale(.125)}
+.ot-thumb.active .ot-thumb-view{border-color:var(--ot-accent)}
+.ot-thumb.drop .ot-thumb-view{box-shadow:0 -4px 0 var(--ot-accent-2)}
+.ot-stage-wrap{padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ot-stage{width:100%;max-width:1100px;margin:0 auto;position:relative;overflow:hidden;border-radius:10px;box-shadow:0 14px 32px rgba(15,23,42,.18);background:#fff}
+.ot-stage .ot-sl{position:absolute;left:0;top:0}
+.ot-notes-label{display:flex;flex-direction:column;gap:5px;max-width:1100px;width:100%;margin:0 auto;font-size:.78rem;font-weight:800;color:#475569}
+.ot-notes{min-height:84px;border:1px solid var(--ot-line);border-radius:10px;padding:9px 11px;font:14px/1.5 inherit;resize:vertical;background:#fff}
+.ot-present{position:fixed;inset:0;z-index:2147483000;background:#000;display:flex;align-items:center;justify-content:center;outline:0;cursor:pointer}
+.ot-present[hidden]{display:none}
+.ot-present-slide{position:relative;overflow:hidden}
+.ot-present-slide .ot-sl{position:absolute;left:0;top:0}
+.ot-present-hud{position:fixed;right:16px;bottom:12px;color:rgba(255,255,255,.6);font:12px system-ui,sans-serif;pointer-events:none;white-space:pre}
+
+/* Notepad */
+.ot-note-editor{display:block;width:100%;height:min(74vh,860px);min-height:360px;border:0;resize:vertical;padding:22px 26px;font:15px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;outline:0;background:#fff;color:#0f172a;white-space:pre-wrap;tab-size:4;box-sizing:border-box}
+
+/* Dialog, busy state, footer */
+.ot-footer{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;background:#fff;border-top:1px solid var(--ot-line);color:var(--ot-muted);font-size:.72rem}
+.ot-dialog{border:0;border-radius:16px;padding:0;box-shadow:0 30px 80px rgba(15,23,42,.35);width:min(440px,92vw)}
+.ot-dialog::backdrop{background:rgba(15,23,42,.35)}
+.ot-dialog form{display:grid;gap:12px;padding:20px 22px}
+.ot-dialog h3{margin:0}
+.ot-dialog label{display:grid;gap:5px;font-size:.8rem;font-weight:800;color:#475569}
+.ot-dialog select{border:1px solid var(--ot-line);border-radius:7px;padding:8px}
+.ot-dialog-note{margin:0;font-size:.78rem;color:#92400e;min-height:1em}
+.ot-dialog-actions{display:flex;justify-content:flex-end;gap:8px}
+.ot-shell.busy::after{content:attr(data-busy);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.65);font-weight:800;color:#1e293b;z-index:50;backdrop-filter:blur(1px)}
+
+@media(max-width:850px){
+  .ot-topline{align-items:flex-start;flex-direction:column}
+  .ot-filebar{justify-content:flex-start}
+  .ot-paper-wrap{padding:10px}
+  .ot-word-editor{padding:34px 22px;min-height:800px}
+  .ot-word-editor hr.ot-page-break{margin-left:-22px;margin-right:-22px}
+  .ot-footer{flex-direction:column}
+  .ot-deck{grid-template-columns:1fr}
+  .ot-thumbs{flex-direction:row;max-height:none;border-right:0;border-bottom:1px solid var(--ot-line)}
+  .ot-stage-wrap{padding:12px}
+  .ot-docname{display:none}
+}
+@media(max-width:600px){
+  .ot-tabs{padding:6px}
+  .ot-tab{font-size:.75rem;padding:9px}
+  .ot-topline{padding:16px}
+  .ot-filebar .ot-btn{flex:1}
+  .ot-shell{border-radius:16px}
+  .ot-group{border-right:0;padding-right:0}
+  .ot-cell-label{width:76px}
+}
+@media print{.ot-present{display:none!important}}
+
+/* The suite-wide theme forces `.module-panel textarea/select/input` styles with !important.
+   Those rules live in @layer omni-revamp, and layered !important beats unlayered !important, so
+   these overrides sit in a layer declared earlier (this file loads before the theme). */
+@layer redmark-studio-fixes{
+#tabOfficeTools .ot-sl textarea{background:transparent!important;color:inherit!important;border:2px dashed transparent!important;border-radius:10px!important;box-shadow:none!important;font-family:inherit!important;padding:4px 8px!important;min-height:0!important}
+#tabOfficeTools .ot-sl textarea.ot-sl-title{font-size:52px!important;font-weight:700!important;line-height:1.12!important;color:var(--tc)!important}
+#tabOfficeTools .ot-sl.ot-ly-title textarea.ot-sl-title{font-size:72px!important}
+#tabOfficeTools .ot-sl.ot-ly-section textarea.ot-sl-title{font-size:64px!important}
+#tabOfficeTools .ot-sl textarea.ot-sl-sub{font-size:30px!important;line-height:1.35!important}
+#tabOfficeTools .ot-sl textarea.ot-sl-body{font-size:30px!important;line-height:1.4!important}
+#tabOfficeTools .ot-sl textarea.ot-sl-caption{font-size:22px!important;font-style:italic!important;line-height:1.3!important}
+#tabOfficeTools .ot-sl.ot-ly-title textarea{text-align:center}
+#tabOfficeTools .ot-sl textarea:hover{border-color:color-mix(in srgb,var(--fc) 25%,transparent)!important}
+#tabOfficeTools .ot-sl textarea:focus{border-color:var(--ac)!important;background:color-mix(in srgb,var(--bg) 85%,var(--ac) 15%)!important;box-shadow:none!important}
+#tabOfficeTools .ot-sl textarea::placeholder{color:currentColor!important;opacity:.45}
+#tabOfficeTools .ot-note-editor{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;font-size:var(--ot-note-size,15px)!important;line-height:1.6!important;border:0!important;border-radius:0!important;padding:22px 26px!important;background:#fff!important;box-shadow:none!important;color:#0f172a!important}
+#tabOfficeTools .ot-note-editor:focus{box-shadow:inset 0 0 0 2px rgba(37,99,235,.18)!important}
+#tabOfficeTools .ot-cell-input,#tabOfficeTools .ot-cell-input:focus{border:0!important;box-shadow:none!important;outline:0!important;padding:0!important;min-height:0!important;font:13px Arial,Helvetica,sans-serif!important;background:#fff!important;border-radius:0!important}
+#tabOfficeTools .ot-notes{font-size:14px!important;min-height:84px!important}
+#tabOfficeTools .ot-ribbon select,#tabOfficeTools .ot-statusbar select{min-height:34px!important;padding:5px 8px!important;font-size:13px!important}
+#tabOfficeTools .ot-check,#tabOfficeTools .ot-findbar label,#tabOfficeTools .ot-dialog label{font-weight:700!important}
+}
