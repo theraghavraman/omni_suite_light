@@ -52,7 +52,7 @@
     const seconds=Math.round(Number(info.duration)||0);
     const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
-     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>u.startsWith('http')?u:RESOLVER+u);
+     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>safeHttpUrl(u.startsWith('http')?u:RESOLVER+u)).filter(Boolean);
      const mediaKind=(d)=>{
        const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
        if(ext)return ext;
@@ -80,7 +80,7 @@
          }).join('')+
        '</div>';
      }else{
-       const first=downloads[0]; const firstUrl=itemUrls[0]||info.thumbnail; const esc=String(firstUrl||'').replace(/"/g,'&quot;');
+       const first=downloads[0]; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
        preview.innerHTML=firstUrl?(first&&isVideo(first)?'<video src="'+esc+'" controls playsinline preload="metadata" style="max-width:100%;max-height:430px"></video>':'<img src="'+esc+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">'):'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
      }
      preview.className='social-preview';
