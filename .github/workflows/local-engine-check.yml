@@ -33,6 +33,7 @@ jobs:
           node --check office_find_replace.js
           node --check photo_editor.js
           node --check file_sharing_studio.js
+          node --check qrcode_generator.js
           python -m py_compile omni-cloud-engine/app.py
       - name: Validate Office Tools and Diagram Forge wiring
         run: node .github/scripts/studio_wiring_check.mjs

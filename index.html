@@ -1305,48 +1305,90 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabSocialMedia #socialMediaOpen:hover:not(:disabled),#tabSocialMedia #socialMediaReset:hover:not(:disabled){color:#6c5cff!important;border-color:#6c5cff!important}
 @media(max-width:800px){.social-media-hero{grid-template-columns:1fr}.social-platform-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.module-panel#tabSocialMedia > .card{width:calc(100% - 24px)}.social-url-row{grid-template-columns:1fr}.social-meta-grid{grid-template-columns:1fr}.social-preview{min-height:220px}}
 </style><style id="omni-file-sharing-style">
-#tabFileSharing{--fs:#0F766E;--fs2:#14B8A6;--fssoft:rgba(15,118,110,.12)}
+#tabFileSharing{--fs:#0F766E;--fs2:#14B8A6;--fssoft:rgba(15,118,110,.10);--fsline:rgba(23,43,77,.12);--fsink:#172B4D;--fsmuted:#5E6B7A}
 #tabFileSharing .fs-head{background:linear-gradient(120deg,#0F766E,#14B8A6)!important;box-shadow:0 24px 44px -22px #0F766E!important}
-#tabFileSharing .fs-modebar{display:flex;gap:8px;margin:0 0 16px;padding:7px;background:#fffdf8;border:1px solid rgba(23,43,77,.12);border-radius:16px}#tabFileSharing .fs-share-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 16px}#tabFileSharing .fs-share-option{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:13px;padding:17px 18px;border:1px solid rgba(23,43,77,.12);border-radius:18px;background:#fffdf8;box-shadow:0 10px 24px rgba(23,43,77,.06);cursor:pointer;transition:.18s ease}#tabFileSharing .fs-share-option:hover,#tabFileSharing .fs-share-option.selected{transform:translateY(-1px);border-color:var(--fs);box-shadow:0 14px 28px rgba(15,118,110,.12)}#tabFileSharing .fs-share-option-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;font-weight:900;background:var(--fssoft);color:var(--fs)}#tabFileSharing .fs-share-option strong{display:block;font-size:1rem;color:#172b4d}#tabFileSharing .fs-share-option span{display:block;margin-top:3px;color:#697687;font-size:.75rem;line-height:1.4}#tabFileSharing .fs-share-option-transfer .fs-share-option-icon{background:rgba(217,87,31,.12);color:#D9571F}#tabFileSharing .fs-share-option-transfer:hover,#tabFileSharing .fs-share-option-transfer.selected{border-color:#D9571F;box-shadow:0 14px 28px rgba(217,87,31,.11)}
-#tabFileSharing .fs-mode{border:0;background:transparent;color:#536275;padding:10px 14px;border-radius:11px;font-weight:800;cursor:pointer}
-#tabFileSharing .fs-mode.active{background:#172B4D;color:#fff}
-#tabFileSharing .fs-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
-#tabFileSharing .fs-card h2,#tabFileSharing .fs-session h2,#tabFileSharing .fs-qr-result h2{margin-bottom:6px}
-#tabFileSharing .fs-special{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-#tabFileSharing .fs-special label,.fs-design-grid label,.fs-transfer-mode label{display:grid;gap:5px;font-size:.76rem;font-weight:800;color:#536275}
-#tabFileSharing .fs-special-2{grid-template-columns:1fr 1fr}
-#tabFileSharing .fs-design-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-#tabFileSharing .fs-check{display:flex!important;align-items:center;gap:7px}
-#tabFileSharing .fs-logo{display:grid;gap:5px;margin-top:12px;font-size:.76rem;font-weight:800;color:#536275}
-#tabFileSharing .fs-actions,.fs-transfer-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-#tabFileSharing .fs-qr-result{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:center;margin-top:14px}
-#tabFileSharing .fs-qr-preview{min-height:390px;display:grid;place-items:center;border-radius:18px;background:#fff;border:1px solid rgba(23,43,77,.12);padding:14px}
-#tabFileSharing .fs-qr-preview svg{max-width:100%;height:auto}
-#tabFileSharing .fs-status{margin-top:9px;padding:9px 12px;border-radius:11px;background:#f3f6f5;color:#536275;font-size:.78rem}
-#tabFileSharing .fs-status.ok{background:#e7f4ef;color:#087a52}.fs-status.warn{background:#fff4d9;color:#8a5a00}.fs-status.working{background:#eef6ff;color:#2458a5}
-#tabFileSharing .fs-empty,.fs-empty-inline{color:#7b8795;text-align:center;font-size:.8rem}
-#tabFileSharing .fs-transfer-hero{display:grid;grid-template-columns:1fr 1.1fr;gap:18px}
-#tabFileSharing .fs-lan-note{margin-top:14px;padding:10px 12px;border-radius:12px;background:#e7f4ef;color:#087a52;font-size:.78rem;font-weight:700}
-#tabFileSharing .fs-drop{margin-top:12px;padding:22px;border:2px dashed rgba(15,118,110,.32);border-radius:16px;text-align:center;background:#f7fcfa;display:grid;gap:5px;justify-items:center}
-#tabFileSharing .fs-drop.dragover{border-color:#D9571F;background:#fff8ef}
+#tabFileSharing [hidden]{display:none!important}
+#tabFileSharing .fs-share-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
+#tabFileSharing .fs-share-option{position:relative;display:grid;grid-template-columns:48px 1fr 26px;align-items:center;gap:14px;width:100%;padding:16px 18px;text-align:left;font:inherit;color:inherit;border:1.5px solid var(--fsline);border-radius:18px;background:#fffdf8;box-shadow:0 10px 24px rgba(23,43,77,.05);cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease}
+#tabFileSharing .fs-share-option:hover{transform:translateY(-2px);border-color:rgba(15,118,110,.45)}
+#tabFileSharing .fs-share-option:focus-visible{outline:3px solid rgba(20,184,166,.35);outline-offset:2px}
+#tabFileSharing .fs-share-option.selected{border-color:var(--fs);background:linear-gradient(135deg,#fff,#f0faf8);box-shadow:0 16px 30px -14px rgba(15,118,110,.45)}
+#tabFileSharing .fs-share-option-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:24px;font-weight:900;background:var(--fssoft);color:var(--fs)}
+#tabFileSharing .fs-share-option-transfer .fs-share-option-icon{background:rgba(217,87,31,.12);color:#D9571F}
+#tabFileSharing .fs-share-option-transfer.selected{border-color:#D9571F;background:linear-gradient(135deg,#fff,#fff6ef);box-shadow:0 16px 30px -14px rgba(217,87,31,.4)}
+#tabFileSharing .fs-share-option-text{min-width:0}
+#tabFileSharing .fs-share-option strong{display:block;font-size:1rem;color:var(--fsink)}
+#tabFileSharing .fs-share-option-text>span{display:block;margin-top:3px;color:var(--fsmuted);font-size:.78rem;line-height:1.4}
+#tabFileSharing .fs-share-check{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;color:#fff;background:var(--fs);opacity:0;transform:scale(.6);transition:.2s ease}
+#tabFileSharing .fs-share-option-transfer .fs-share-check{background:#D9571F}
+#tabFileSharing .fs-share-option.selected .fs-share-check{opacity:1;transform:none}
+#tabFileSharing .fs-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;align-items:start}
+#tabFileSharing .fs-card h2,#tabFileSharing .fs-session h2,#tabFileSharing .fs-qr-result h2,#tabFileSharing .fs-transfer-setup h2{margin:2px 0 6px}
+#tabFileSharing .fs-card .form-group{margin-top:14px}
+#tabFileSharing .fs-generic{display:grid;gap:6px}
+#tabFileSharing .fs-special{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+#tabFileSharing .fs-special label,#tabFileSharing .fs-design-grid label{display:grid;gap:6px;font-size:.76rem;font-weight:800;color:#536275;min-width:0}
+#tabFileSharing .fs-span{grid-column:1/-1}
+#tabFileSharing .fs-design-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+#tabFileSharing .fs-colors{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+#tabFileSharing .fs-colors label{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--fsline);border-radius:12px;background:#fff;font-size:.76rem;font-weight:800;color:#536275;cursor:pointer}
+#tabFileSharing .fs-colors input[type=color]{width:30px;height:30px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer;flex:none}
+#tabFileSharing .fs-colors input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+#tabFileSharing .fs-colors input[type=color]::-webkit-color-swatch{border:1px solid var(--fsline);border-radius:8px}
+#tabFileSharing .fs-checks{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+#tabFileSharing .fs-check{display:flex!important;align-items:center;gap:7px;font-size:.8rem;font-weight:700;color:#536275;cursor:pointer}
+#tabFileSharing .fs-logo{display:grid;gap:6px;margin-top:14px;font-size:.76rem;font-weight:800;color:#536275}
+#tabFileSharing .fs-actions,#tabFileSharing .fs-transfer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+#tabFileSharing .fs-qr-result{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:center;margin-top:16px}
+#tabFileSharing .fs-qr-preview{aspect-ratio:1;width:100%;max-width:360px;display:grid;place-items:center;border-radius:20px;background:repeating-conic-gradient(#f4f6f7 0 25%,#fff 0 50%) 0 0/18px 18px;border:1px solid var(--fsline);padding:12px;justify-self:end}
+#tabFileSharing .fs-qr-preview svg,#tabFileSharing .fs-qr-preview canvas{max-width:100%;height:auto;display:block}
+#tabFileSharing .fs-status{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f3f6f5;color:#536275;font-size:.8rem;line-height:1.45}
+#tabFileSharing .fs-status.ok{background:#e7f4ef;color:#087a52}#tabFileSharing .fs-status.warn{background:#fff4d9;color:#8a5a00}#tabFileSharing .fs-status.working{background:#eef6ff;color:#2458a5}
+#tabFileSharing .fs-empty{display:grid;gap:8px;justify-items:center;color:#7b8795;text-align:center;font-size:.82rem;padding:18px}
+#tabFileSharing .fs-empty b{font-size:34px;line-height:1;color:rgba(15,118,110,.35)}
+#tabFileSharing .fs-empty-inline{color:#7b8795;text-align:center;font-size:.8rem;padding:14px;border:1px dashed var(--fsline);border-radius:12px}
+#tabFileSharing code:empty{display:none}
+#tabFileSharing code{display:block;margin-top:12px;max-width:100%;overflow:auto;padding:8px 10px;border-radius:10px;background:#f6f7f8;color:#536275;font-size:.72rem;white-space:pre-wrap;word-break:break-all}
+#tabFileSharing .fs-transfer-setup{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:8px 24px;align-items:start}
+#tabFileSharing .fs-transfer-intro{grid-row:span 3}
+#tabFileSharing .fs-direction{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#tabFileSharing .fs-dir{display:grid;gap:3px;text-align:left;padding:13px 14px;border:1.5px solid var(--fsline);border-radius:14px;background:#fff;font:inherit;color:var(--fsink);cursor:pointer;transition:.18s ease}
+#tabFileSharing .fs-dir b{font-size:.9rem}#tabFileSharing .fs-dir span{font-size:.72rem;color:var(--fsmuted);line-height:1.35}
+#tabFileSharing .fs-dir.active{border-color:var(--fs);background:#f0faf8;box-shadow:inset 0 0 0 1px var(--fs)}
+#tabFileSharing .fs-dir:disabled{cursor:not-allowed;opacity:.6}#tabFileSharing .fs-dir.active:disabled{opacity:1}
+#tabFileSharing .fs-drop{margin-top:2px;padding:22px;border:2px dashed rgba(15,118,110,.32);border-radius:16px;text-align:center;background:#f7fcfa;display:grid;gap:6px;justify-items:center;transition:.15s}
+#tabFileSharing .fs-drop.dragover{border-color:#D9571F;background:#fff8ef;transform:scale(1.01)}
 #tabFileSharing .fs-drop span{font-size:.75rem;color:#7b8795}
-#tabFileSharing .fs-file-list{display:grid;gap:5px;margin-top:9px}
-#tabFileSharing .fs-file-list>div,.fs-received{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#fff;border:1px solid rgba(23,43,77,.1);font-size:.78rem}
-#tabFileSharing .fs-file-list small,.fs-received small{color:#7b8795;margin-left:auto}
-#tabFileSharing .fs-file-list button{border:0;background:transparent;color:#a32154;font-size:18px;cursor:pointer}
-#tabFileSharing .fs-transfer-grid{display:grid;grid-template-columns:360px 1fr;gap:14px;margin-top:14px}
-#tabFileSharing .fs-session{text-align:left}
-#tabFileSharing .fs-transfer-qr{width:320px;max-width:100%;margin:12px auto;display:grid;place-items:center;padding:8px;background:#fff;border-radius:16px}
-#tabFileSharing .fs-transfer-qr svg{width:100%;height:auto}
-#tabFileSharing .fs-pin{font:900 1.25rem "Fira Code",monospace;text-align:center;color:#0F766E;letter-spacing:.12em}
-#tabFileSharing .fs-transfer-url{margin:10px 0;padding:9px;border-radius:9px;background:#f3f6f5;color:#536275;font:11px/1.45 "Fira Code",monospace;word-break:break-all}
-#tabFileSharing .fs-received-list{display:grid;gap:8px;margin-top:12px}
-#tabFileSharing .fs-received{background:#fffdf8}
-#tabFileSharing .fs-received>div{display:grid;gap:2px}
-#tabFileSharing .fs-security-list{display:grid;gap:8px;margin-top:16px;color:#536275;font-size:.78rem}
-#tabFileSharing code{display:block;margin-top:12px;max-width:100%;overflow:auto;color:#536275;font-size:.7rem}
+#tabFileSharing .fs-receive-note{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:14px;background:#f0faf8;border:1px solid rgba(15,118,110,.2)}
+#tabFileSharing .fs-receive-note>b{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--fs);color:#fff}
+#tabFileSharing .fs-receive-note strong{display:block;color:var(--fsink);font-size:.9rem}#tabFileSharing .fs-receive-note span{font-size:.78rem;color:var(--fsmuted);line-height:1.45}#tabFileSharing .fs-receive-note em{font-style:normal;font-weight:800;color:var(--fs)}
+#tabFileSharing .fs-file-list{display:grid;gap:6px;margin-top:10px}
+#tabFileSharing .fs-file-list>div,#tabFileSharing .fs-received{display:grid;grid-template-columns:36px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid rgba(23,43,77,.1);font-size:.8rem}
+#tabFileSharing .fs-received{grid-template-columns:36px minmax(0,1fr) auto}
+#tabFileSharing .fs-ext{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--fssoft);color:var(--fs);font:800 9px/1 "Fira Code",monospace;text-transform:uppercase;overflow:hidden}
+#tabFileSharing .fs-fn,#tabFileSharing .fs-received b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;min-width:0}
+#tabFileSharing .fs-received>div{min-width:0;display:grid;gap:2px}
+#tabFileSharing .fs-file-list small,#tabFileSharing .fs-received small{color:#7b8795}
+#tabFileSharing .fs-file-list button{border:0;background:transparent;color:#a32154;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
+#tabFileSharing .fs-received .btn{padding:6px 12px;font-size:.75rem;min-height:0}
+#tabFileSharing .fs-transfer-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+#tabFileSharing .fs-pair{text-align:center}
+#tabFileSharing .fs-transfer-qr{width:260px;max-width:100%;aspect-ratio:1;margin:12px auto 6px;display:grid;place-items:center;padding:10px;background:#fff;border-radius:18px;border:1px solid var(--fsline)}
+#tabFileSharing .fs-transfer-qr svg{width:100%;height:auto;display:block}
+#tabFileSharing .fs-pin:empty,#tabFileSharing .fs-transfer-url:empty{display:none}
+#tabFileSharing .fs-pin{font:900 1.15rem "Fira Code",monospace;color:#0F766E;letter-spacing:.14em}
+#tabFileSharing .fs-pin::before{content:"PIN ";font-size:.7rem;letter-spacing:.08em;color:#7b8795}
+#tabFileSharing .fs-transfer-url{margin:8px 0 10px;padding:8px 10px;border-radius:10px;background:#f3f6f5;color:#536275;font:11px/1.45 "Fira Code",monospace;word-break:break-all;user-select:all}
+#tabFileSharing .fs-session-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+#tabFileSharing .fs-countdown{padding:6px 10px;border-radius:999px;background:#fff4d9;color:#8a5a00;font:800 .75rem "Fira Code",monospace;white-space:nowrap}
+#tabFileSharing .fs-received-list{display:grid;gap:8px;margin-top:12px;max-height:340px;overflow:auto}
+#tabFileSharing .fs-received-list:empty{display:none}
+#tabFileSharing .fs-open-inbox{margin-top:12px}
+#tabFileSharing .fs-security-list{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--fsline);color:#536275;font-size:.76rem}
 .nav-bar .nav-btn[data-tab="tabFileSharing"]{--c:#0F766E;--c2:#14B8A6;--cs:rgba(15,118,110,.14)}
-@media(max-width:850px){#tabFileSharing .fs-share-options{grid-template-columns:1fr}#tabFileSharing .fs-share-option{grid-template-columns:42px 1fr}.fs-share-option .fs-open-mode{grid-column:1/-1;width:100%}#tabFileSharing .fs-grid,#tabFileSharing .fs-transfer-hero,#tabFileSharing .fs-transfer-grid,#tabFileSharing .fs-qr-result{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{min-height:330px}.fs-special{grid-template-columns:1fr!important}}
+@media(max-width:980px){#tabFileSharing .fs-transfer-setup{grid-template-columns:1fr}#tabFileSharing .fs-transfer-intro{grid-row:auto}#tabFileSharing .fs-transfer-grid{grid-template-columns:1fr}}
+@media(max-width:850px){#tabFileSharing .fs-grid,#tabFileSharing .fs-qr-result{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{justify-self:center}}
+@media(max-width:620px){#tabFileSharing .fs-share-options{grid-template-columns:1fr 1fr;gap:10px}#tabFileSharing .fs-share-option{grid-template-columns:1fr;justify-items:start;gap:8px;padding:13px}#tabFileSharing .fs-share-option-text>span{display:none}#tabFileSharing .fs-share-option-icon{width:38px;height:38px;font-size:19px}#tabFileSharing .fs-share-check{position:absolute;top:10px;right:10px;width:22px;height:22px}#tabFileSharing .fs-special,#tabFileSharing .fs-design-grid{grid-template-columns:1fr}#tabFileSharing .fs-colors{grid-template-columns:1fr 1fr 1fr}#tabFileSharing .fs-colors label{flex-direction:column;align-items:flex-start;gap:5px}#tabFileSharing .fs-direction{grid-template-columns:1fr}#tabFileSharing .fs-security-list{grid-template-columns:1fr}#tabFileSharing .fs-actions .btn,#tabFileSharing .fs-transfer-actions .btn{flex:1}}
 </style></head>
 <body>
   <button type="button" id="omniStaticStudios" aria-label="Back to Studios"><span>←</span><span class="studio-back-label">Studios</span></button>
@@ -6024,7 +6066,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
   box-shadow:0 2px 0 #42BFA8,0 14px 28px -14px rgba(20,160,140,.6) !important;
 }
 </style>
-  <script src="./omni_render_cloud.js?v=3"></script><script src="./file_sharing_studio.js?v=1"></script>
+  <script src="./omni_render_cloud.js?v=3"></script><script src="./file_sharing_studio.js?v=2"></script>
   <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=4">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}

@@ -402,6 +402,53 @@ TRANSFER_SESSIONS = {}
 TRANSFER_LOCK = threading.Lock()
 TRANSFER_HTTPD = None
 TRANSFER_PORT = None
+TRANSFER_CHUNK = 1024 * 1024
+
+def transfer_inbox():
+    """Folder where files sent from a phone land on this computer.
+
+    Files received here belong to the user, so they are kept after the
+    session ends (unlike the temporary copies made for "send" sessions)."""
+    custom = os.environ.get("OMNI_TRANSFER_DIR", "").strip()
+    base = Path(custom).expanduser() if custom else Path.home() / "Downloads" / "Omni Transfers"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+def transfer_display_name(name: str, fallback="received-file") -> str:
+    """Keep a readable original name (spaces, unicode) while stripping paths and control chars."""
+    name = os.path.basename(str(name or "").replace("\\", "/")).strip()
+    name = "".join(c for c in name if c.isprintable() and c not in '<>:"/\\|?*').strip(" .")
+    return (name or fallback)[:180]
+
+def transfer_unique_path(folder: Path, name: str) -> Path:
+    stem, suffix = os.path.splitext(name)
+    candidate = folder / name
+    n = 2
+    while candidate.exists() or candidate.with_name(candidate.name + ".part").exists():
+        candidate = folder / f"{stem} ({n}){suffix}"
+        n += 1
+    return candidate
+
+def content_disposition(name: str) -> str:
+    ascii_name = safe_name(name, "download.bin")
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{urllib.parse.quote(name)}"
+
+def stream_file(handler, path: Path, extra_headers=None, name=None):
+    size = path.stat().st_size
+    handler.send_response(200)
+    handler.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+    handler.send_header("Content-Length", str(size))
+    handler.send_header("Content-Disposition", content_disposition(name or path.name))
+    handler.send_header("Cache-Control", "no-store")
+    for k, v in (extra_headers or {}).items():
+        handler.send_header(k, v)
+    handler.end_headers()
+    with open(path, "rb") as src:
+        while True:
+            chunk = src.read(TRANSFER_CHUNK)
+            if not chunk:
+                break
+            handler.wfile.write(chunk)
 
 def lan_ip():
     import socket
@@ -417,28 +464,42 @@ def lan_ip():
     finally:
         s.close()
 
+def _drop_session_files(sess):
+    # Only temporary copies are removed. Files a phone sent to this computer
+    # are saved in the inbox folder and always kept.
+    for p in sess.get("owned_paths", []):
+        try: p.unlink(missing_ok=True)
+        except OSError: pass
+
 def transfer_cleanup():
     now = time.time()
     with TRANSFER_LOCK:
         stale = [k for k,v in TRANSFER_SESSIONS.items() if v.get("expires",0) <= now]
-        for k in stale:
-            sess = TRANSFER_SESSIONS.pop(k, None)
-            if not sess: continue
-            for p in sess.get("owned_paths", []):
-                try: p.unlink(missing_ok=True)
-                except OSError: pass
-            if sess.get("mode") == "receive":
-                for _,p in sess.get("files", []):
-                    try: p.unlink(missing_ok=True)
-                    except OSError: pass
+        dropped = [TRANSFER_SESSIONS.pop(k) for k in stale]
+    for sess in dropped:
+        _drop_session_files(sess)
     stop_transfer_server_if_idle()
 
 def transfer_session(token):
     transfer_cleanup()
     with TRANSFER_LOCK:
         s = TRANSFER_SESSIONS.get(token)
-        if not s: raise ValueError("Transfer session expired or not found")
+        if not s: raise ValueError("This transfer session has ended or expired. Start a new one on your computer.")
         return s
+
+def transfer_file_name(s, fid, p):
+    return (s.get("names") or {}).get(fid) or p.name
+
+def transfer_files_json(s):
+    with TRANSFER_LOCK:
+        files = list(s.get("files", []))
+    out = []
+    for fid, p in files:
+        try:
+            out.append({"id": fid, "name": transfer_file_name(s, fid, p), "size": p.stat().st_size})
+        except OSError:
+            continue
+    return out
 
 def start_transfer_server():
     global TRANSFER_HTTPD, TRANSFER_PORT
@@ -447,6 +508,7 @@ def start_transfer_server():
     for port in range(TRANSFER_PORT_BASE, TRANSFER_PORT_BASE + 12):
         try:
             httpd = ThreadingHTTPServer(("0.0.0.0", port), LANTransferHandler)
+            httpd.daemon_threads = True
             TRANSFER_HTTPD, TRANSFER_PORT = httpd, port
             threading.Thread(target=httpd.serve_forever, daemon=True, name="OmniLANTransfer").start()
             return port
@@ -463,104 +525,283 @@ def stop_transfer_server_if_idle():
         TRANSFER_HTTPD, TRANSFER_PORT = None, None
         threading.Thread(target=h.shutdown, daemon=True).start()
 
-def transfer_html(token):
-    return """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Omni Local Transfer</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f4e7cf;color:#172b4d;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:720px;margin:auto;padding:24px}.hero,.card{background:#fffdf8;border:1px solid #e1d6c7;border-radius:22px;box-shadow:0 18px 45px rgba(70,48,27,.12);padding:20px;margin-bottom:14px}.brand{font-weight:900;font-size:28px}.sub{color:#536275}.pill{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:#e7f4ef;color:#0f766e;font-weight:800;font-size:12px}.files{display:grid;gap:9px;margin-top:14px}.file{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid #e1d6c7;border-radius:14px;background:white}.file small{display:block;color:#7b8795}.btn{display:inline-block;padding:10px 14px;border-radius:11px;border:1px solid #0f766e;background:#0f766e;color:white;font-weight:800;text-decoration:none;cursor:pointer}.drop{padding:24px;border:2px dashed #8bc9c0;border-radius:16px;text-align:center;background:#f1fbf8}.drop input{margin-top:12px;width:100%}.status{margin-top:12px;color:#536275;font-size:13px}.danger{color:#a32154}</style></head><body><main>
-<div class="hero"><div class="brand">⇄ Omni Local Transfer</div><div class="sub">Private file transfer over the same Wi-Fi network. Nothing is uploaded to the internet.</div><div class="pill" id="mode"></div><div class="status" id="status">Connecting…</div></div>
-<div class="card"><h2 id="title">Files</h2><div id="files" class="files"></div><div id="uploadBox"></div></div>
+TRANSFER_PAGE = r"""<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F766E">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>Omni Transfer</title>
+<style>
+:root{--bg:#F3F6F5;--card:#FFFFFF;--ink:#13233A;--muted:#5E6B7A;--line:#E3E8EC;--accent:#0F766E;--accent2:#14B8A6;--soft:#E6F4F1;--warn:#B42318;--warnsoft:#FDECEA;--ok:#067647;--oksoft:#E7F6EE;--shadow:0 10px 30px -18px rgba(15,35,58,.35)}
+@media (prefers-color-scheme:dark){:root{--bg:#0C1416;--card:#142024;--ink:#E8F1F0;--muted:#93A4A8;--line:#22343A;--soft:#123331;--warnsoft:#3A1A17;--warn:#FDA29B;--oksoft:#11302A;--ok:#6CE9A6;--shadow:none}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.top{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 18px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:640px;margin:auto}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.01em}
+.logo{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:18px}
+.conn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);font-size:12px;font-weight:700;white-space:nowrap}
+.conn i{width:8px;height:8px;border-radius:50%;background:#FDE68A}.conn.on i{background:#86EFAC;box-shadow:0 0 0 3px rgba(134,239,172,.3)}.conn.off i{background:#FCA5A5}
+main{max-width:640px;margin:auto;padding:16px 16px calc(28px + env(safe-area-inset-bottom))}
+.intro{margin:4px 2px 14px}
+.intro h1{margin:0 0 4px;font-size:24px;line-height:1.2;letter-spacing:-.02em}
+.intro p{margin:0;color:var(--muted);font-size:14px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.chip b{color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.card h2 small{font-weight:600;color:var(--muted);font-size:12px}
+.pick{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px;padding:20px;border:2px dashed color-mix(in srgb,var(--accent) 45%,transparent);border-radius:16px;background:var(--soft);text-align:center;cursor:pointer;transition:transform .15s}
+.pick:active{transform:scale(.98)}
+.pick .ico{width:52px;height:52px;border-radius:16px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:700}
+.pick strong{font-size:17px}.pick span{color:var(--muted);font-size:13px}
+.pick input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.pick.drag{border-color:var(--accent);transform:scale(1.01)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:13px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:inherit;font-weight:700;font-size:15px;line-height:1;text-decoration:none;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:active{opacity:.85}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.list{display:grid;gap:10px}
+.file{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.ext{width:42px;height:42px;border-radius:11px;background:var(--soft);color:var(--accent);display:grid;place-items:center;font:800 10px/1 ui-monospace,Menlo,monospace;text-transform:uppercase;overflow:hidden}
+.fname{min-width:0}.fname b{display:block;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fname small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.bar{height:5px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
+.tag{font-size:12px;font-weight:800;padding:6px 9px;border-radius:9px;background:var(--oksoft);color:var(--ok)}
+.tag.err{background:var(--warnsoft);color:var(--warn)}.tag.wait{background:var(--soft);color:var(--accent)}
+.file .btn{min-height:40px;padding:0 14px;font-size:14px}
+.empty{padding:18px 8px;text-align:center;color:var(--muted);font-size:14px}
+.note{font-size:12.5px;color:var(--muted);margin:10px 2px 0;text-align:center}
+.ended{text-align:center;padding:36px 18px}.ended .ico{font-size:40px}.ended h2{justify-content:center;font-size:20px}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));max-width:600px;margin:auto;padding:13px 15px;border-radius:14px;background:#13233A;color:#fff;font-size:14px;font-weight:600;box-shadow:0 16px 40px rgba(0,0,0,.3);transform:translateY(calc(100% + 60px));visibility:hidden;transition:transform .25s,visibility .25s;z-index:10}
+.toast.show{transform:none;visibility:visible}.toast.err{background:var(--warn);color:#fff}
+[hidden]{display:none!important}
+</style></head><body>
+<header class="top"><div class="top-row"><div class="brand"><span class="logo">&#8644;</span>Omni Transfer</div><span id="conn" class="conn"><i></i><span>Connecting</span></span></div></header>
+<main>
+  <section class="intro"><h1 id="title">Loading&hellip;</h1><p id="lead">Private transfer over your Wi-Fi. Nothing goes to the internet.</p>
+    <div class="meta"><span class="chip">PIN <b id="pin">&mdash;</b></span><span class="chip">Ends in <b id="left">&mdash;</b></span></div></section>
+
+  <section id="sendView" hidden>
+    <div class="card"><h2>Files on your computer <small id="sendCount"></small></h2><div id="sendList" class="list"></div>
+      <button id="dlAll" class="btn ghost" type="button" style="width:100%;margin-top:12px" hidden>Download all</button></div>
+    <p class="note">On iPhone, downloads appear in the Files app &rsaquo; Downloads.</p>
+  </section>
+
+  <section id="recvView" hidden>
+    <div class="card">
+      <label class="pick" id="pick"><input id="pickInput" type="file" multiple><span class="ico">+</span><strong>Choose files to send</strong><span>Photos, videos, documents &mdash; any type</span></label>
+      <div class="row2"><label class="btn ghost" for="photoInput">Photos &amp; videos</label><label class="btn ghost" for="camInput">Take photo</label></div>
+      <input id="photoInput" type="file" accept="image/*,video/*" multiple hidden><input id="camInput" type="file" accept="image/*" capture="environment" hidden>
+    </div>
+    <div class="card" id="queueCard" hidden><h2>Sending <small id="queueInfo"></small></h2><div id="queue" class="list"></div></div>
+    <div class="card"><h2>Received on computer <small id="recvCount"></small></h2><div id="recvList" class="list"><div class="empty">Nothing sent yet.</div></div></div>
+    <p class="note">Keep this page open until every file shows &ldquo;Sent&rdquo;.</p>
+  </section>
+
+  <section id="endedView" class="card ended" hidden><div class="ico">&#8987;</div><h2>Session ended</h2><p class="note" id="endedMsg">This link has expired or was stopped on the computer. Start a new transfer there and scan the new QR code.</p></section>
+</main>
+<div id="toast" class="toast" role="status"></div>
 <script>
-const TOKEN=__TOKEN__, base=location.origin;
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>{n=+n||0;const u=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<4){n/=1024;i++;}return (n<10&&i?n.toFixed(1):Math.round(n))+' '+u[i]};
-async function state(){const r=await fetch('/api/status/'+encodeURIComponent(TOKEN));const j=await r.json();if(!r.ok)throw new Error(j.error||'Session unavailable');document.getElementById('mode').textContent=j.mode==='send'?'DOWNLOAD FROM MAC':'UPLOAD TO MAC';document.getElementById('title').textContent=j.mode==='send'?'Files shared by your Mac':'Send files to your Mac';document.getElementById('status').textContent=j.connected?'Connected to Omni on the local network':'Waiting for the Mac session…';document.getElementById('files').innerHTML=(j.files||[]).map(f=>j.mode==='send'?'<div class="file"><div><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><a class="btn" href="/api/download/'+encodeURIComponent(TOKEN)+'/'+encodeURIComponent(f.id)+'">Download</a></div>':'<div class="file"><div><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><span>Received</span></div>').join('')||'<div class="sub">No files yet.</div>';if(j.mode==='receive'){document.getElementById('uploadBox').innerHTML='<div class="drop"><b>Select files from this device</b><br><input id="pick" type="file" multiple></div>';document.getElementById('pick').onchange=e=>upload(e.target.files)}else document.getElementById('uploadBox').innerHTML=''}
-async function upload(files){for(const f of files){document.getElementById('status').textContent='Uploading '+f.name+'…';const r=await fetch('/api/upload/'+encodeURIComponent(TOKEN),{method:'POST',headers:{'X-Filename':encodeURIComponent(f.name),'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Upload failed')}}state()}
-state().catch(e=>document.getElementById('status').innerHTML='<span class="danger">'+esc(e.message)+'</span>');setInterval(()=>state().catch(()=>{}),1800);
-</script></main></body></html>""".replace("__TOKEN__", json.dumps(token))
+(function(){
+var TOKEN=__TOKEN__;
+var $=function(id){return document.getElementById(id)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var fmt=function(n){n=+n||0;var u=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<4){n/=1024;i++}return (n<10&&i?n.toFixed(1):Math.round(n))+' '+u[i]};
+var ext=function(n){var m=/\.([a-z0-9]{1,5})$/i.exec(n||'');return m?m[1]:'file'};
+var mode=null, expires=0, ended=false, poll=null, busy=false, toastTimer=null, uploaded=0;
+function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.className='toast'},3800)}
+function conn(state,label){var c=$('conn');c.className='conn '+state;c.lastChild.textContent=label}
+function tick(){if(!expires||ended)return;var s=Math.max(0,Math.round(expires-Date.now()/1000));$('left').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');if(!s)end('This session has expired.')}
+function end(msg){if(ended)return;ended=true;clearInterval(poll);$('sendView').hidden=true;$('recvView').hidden=true;$('endedView').hidden=false;$('title').textContent='Transfer finished';$('lead').textContent='';document.querySelector('.meta').hidden=true;conn('off','Ended')}
+function setup(j){
+  mode=j.mode;
+  if(mode==='send'){$('title').textContent='Download from your computer';$('lead').textContent='Tap a file to save it to this device.';$('sendView').hidden=false}
+  else{$('title').textContent='Send to your computer';$('lead').textContent='Files are saved on the computer in Downloads › Omni Transfers.';$('recvView').hidden=false;bindPicker()}
+}
+function renderSend(files){
+  $('sendCount').textContent=files.length?files.length+(files.length>1?' files':' file'):'';
+  $('sendList').innerHTML=files.map(function(f){var url='/api/download/'+encodeURIComponent(TOKEN)+'/'+encodeURIComponent(f.id);return '<div class="file"><span class="ext">'+esc(ext(f.name))+'</span><div class="fname"><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><a class="btn" href="'+url+'" download="'+esc(f.name)+'">Save</a></div>'}).join('')||'<div class="empty">No files shared yet.</div>';
+  $('dlAll').hidden=files.length<2;
+}
+function renderRecv(files){
+  $('recvCount').textContent=files.length?files.length+(files.length>1?' files':' file'):'';
+  $('recvList').innerHTML=files.slice().reverse().map(function(f){return '<div class="file"><span class="ext">'+esc(ext(f.name))+'</span><div class="fname"><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><span class="tag">Saved</span></div>'}).join('')||'<div class="empty">Nothing sent yet.</div>';
+}
+function refresh(){
+  if(ended)return Promise.resolve();
+  return fetch('/api/status/'+encodeURIComponent(TOKEN),{cache:'no-store'}).then(function(r){return r.json().then(function(j){return {r:r,j:j}})}).then(function(x){
+    if(!x.r.ok){end(x.j&&x.j.error);return}
+    var j=x.j;if(!mode)setup(j);expires=j.expires||0;$('pin').textContent=j.pin||'—';tick();
+    conn('on','Connected');
+    if(mode==='send')renderSend(j.files||[]);else renderRecv(j.files||[]);
+  }).catch(function(){conn('off','Offline')});
+}
+/* Picker is created once and never re-rendered, so the phone's file chooser is never interrupted. */
+function bindPicker(){
+  ['pickInput','photoInput','camInput'].forEach(function(id){$(id).addEventListener('change',function(e){var fs=Array.prototype.slice.call(e.target.files||[]);e.target.value='';if(fs.length)enqueue(fs)})});
+  var p=$('pick');['dragenter','dragover'].forEach(function(n){p.addEventListener(n,function(e){e.preventDefault();p.classList.add('drag')})});['dragleave','drop'].forEach(function(n){p.addEventListener(n,function(e){e.preventDefault();p.classList.remove('drag')})});
+  p.addEventListener('drop',function(e){var fs=Array.prototype.slice.call(e.dataTransfer.files||[]);if(fs.length)enqueue(fs)});
+}
+var queue=[];
+function enqueue(files){
+  files.forEach(function(f){var id='q'+Math.random().toString(36).slice(2);queue.push({id:id,file:f});
+    var row=document.createElement('div');row.className='file';row.id=id;row.innerHTML='<span class="ext">'+esc(ext(f.name))+'</span><div class="fname"><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+' · waiting</small><div class="bar"><i></i></div></div><span class="tag wait">Queued</span>';$('queue').prepend(row)});
+  $('queueCard').hidden=false;run();
+}
+function run(){
+  if(busy)return;var next=queue.shift();if(!next){$('queueInfo').textContent=uploaded?uploaded+' sent':'';return}
+  busy=true;var f=next.file,row=$(next.id),bar=row.querySelector('.bar i'),small=row.querySelector('small'),tag=row.querySelector('.tag');
+  tag.className='tag wait';tag.textContent='0%';var t0=Date.now();
+  var xhr=new XMLHttpRequest();xhr.open('POST','/api/upload/'+encodeURIComponent(TOKEN));
+  xhr.setRequestHeader('X-Filename',encodeURIComponent(f.name||'file'));xhr.setRequestHeader('Content-Type',f.type||'application/octet-stream');
+  xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;var pc=Math.round(e.loaded/e.total*100),sec=(Date.now()-t0)/1000;bar.style.width=pc+'%';tag.textContent=pc+'%';small.textContent=fmt(e.loaded)+' of '+fmt(e.total)+(sec>1?' · '+fmt(e.loaded/sec)+'/s':'')};
+  xhr.onload=function(){var j={};try{j=JSON.parse(xhr.responseText)}catch(_){}
+    if(xhr.status>=200&&xhr.status<300){bar.style.width='100%';tag.className='tag';tag.textContent='Sent';small.textContent=fmt(f.size)+' · saved as '+(j.name||f.name);uploaded++;refresh()}
+    else{tag.className='tag err';tag.textContent='Failed';small.textContent=j.error||('Upload failed ('+xhr.status+')');toast(j.error||'Upload failed',true);if(xhr.status===404)end(j.error)}
+    busy=false;run()};
+  xhr.onerror=function(){tag.className='tag err';tag.textContent='Failed';small.textContent='Connection lost. Check you are on the same Wi-Fi.';toast('Connection lost while sending '+f.name,true);busy=false;run()};
+  xhr.send(f);
+}
+$('dlAll').addEventListener('click',function(){var links=Array.prototype.slice.call(document.querySelectorAll('#sendList a.btn'));links.forEach(function(a,i){setTimeout(function(){a.click()},i*900)})});
+window.addEventListener('beforeunload',function(e){if(busy||queue.length){e.preventDefault();e.returnValue=''}});
+refresh();poll=setInterval(refresh,2500);setInterval(tick,1000);
+})();
+</script></body></html>"""
+
+def transfer_html(token):
+    return TRANSFER_PAGE.replace("__TOKEN__", json.dumps(token))
 
 class LANTransferHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "OmniLANTransfer/1.0"
+    server_version = "OmniLANTransfer/1.1"
     def log_message(self, fmt, *args): print("[OmniLAN]", fmt % args, flush=True)
     def send_bytes(self, data, ctype="text/plain; charset=utf-8", status=200, extra=None):
         self.send_response(status); self.send_header("Content-Type",ctype); self.send_header("Cache-Control","no-store")
+        self.send_header("X-Content-Type-Options","nosniff"); self.send_header("Referrer-Policy","no-referrer")
         if extra:
             for k,v in extra.items(): self.send_header(k,v)
         self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
     def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj).encode(),"application/json; charset=utf-8",status)
-    def do_OPTIONS(self):
-        self.send_response(204); self.send_header("Access-Control-Allow-Origin","*"); self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS"); self.send_header("Access-Control-Allow-Headers","Content-Type,X-Filename"); self.end_headers()
     def do_GET(self):
         try:
             parsed=urllib.parse.urlparse(self.path); parts=[p for p in parsed.path.split("/") if p]
             if len(parts)==2 and parts[0]=="share":
-                transfer_session(parts[1]); self.send_bytes(transfer_html(parts[1]).encode(),"text/html; charset=utf-8"); return
+                try:
+                    s=transfer_session(parts[1])
+                    with TRANSFER_LOCK: s["connected"]=True; s["last_seen"]=time.time()
+                except ValueError:
+                    pass  # the page itself shows the "session ended" state
+                self.send_bytes(transfer_html(parts[1]).encode(),"text/html; charset=utf-8"); return
             if len(parts)==3 and parts[0]=="api" and parts[1]=="status":
                 s=transfer_session(parts[2])
-                with TRANSFER_LOCK: files=list(s.get("files",[])); mode=s["mode"]; connected=s.get("connected",False)
-                self.send_json({"ok":True,"mode":mode,"connected":connected,"files":[{"id":fid,"name":p.name,"size":p.stat().st_size} for fid,p in files if p.exists()]}); return
+                with TRANSFER_LOCK:
+                    s["connected"]=True; s["last_seen"]=time.time()
+                    mode=s["mode"]; pin=s.get("pin",""); expires=s.get("expires",0)
+                self.send_json({"ok":True,"mode":mode,"pin":pin,"expires":expires,"max_upload":TRANSFER_MAX_UPLOAD,"files":transfer_files_json(s)}); return
             if len(parts)==4 and parts[0]=="api" and parts[1]=="download":
                 s=transfer_session(parts[2])
                 with TRANSFER_LOCK: p=s.get("file_map",{}).get(parts[3])
                 if not p or not p.exists(): raise ValueError("File not found")
-                with open(p,"rb") as src:
-                    data=src.read()
-                self.send_bytes(data,mimetypes.guess_type(p.name)[0] or "application/octet-stream",extra={"Content-Disposition":f'attachment; filename="{safe_name(p.name)}"'}); return
+                stream_file(self, p, name=transfer_file_name(s, parts[3], p)); return
+            if parsed.path in ("/", "/favicon.ico"):
+                self.send_bytes(b"", "text/plain", 204); return
             self.send_json({"ok":False,"error":"Not found"},404)
+        except (BrokenPipeError, ConnectionResetError):
+            return
         except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
     def do_POST(self):
+        part=None
         try:
             parsed=urllib.parse.urlparse(self.path); parts=[p for p in parsed.path.split("/") if p]
             if len(parts)==3 and parts[0]=="api" and parts[1]=="upload":
                 s=transfer_session(parts[2])
-                if s["mode"]!="receive": raise ValueError("This transfer is download-only.")
+                if s["mode"]!="receive": raise ValueError("This session only shares files from the computer.")
                 length=int(self.headers.get("Content-Length","0"))
-                if length<=0 or length>TRANSFER_MAX_UPLOAD: raise ValueError("File is empty or exceeds the local transfer limit.")
-                name=safe_name(urllib.parse.unquote(self.headers.get("X-Filename","received.bin")))
-                fid=new_id("t"); p=ROOT/f"transfer_{fid}_{name}"
-                with open(p,"wb") as f:
+                if length<=0: raise ValueError("The selected file is empty.")
+                if length>TRANSFER_MAX_UPLOAD: raise ValueError("File is larger than the transfer limit of "+str(TRANSFER_MAX_UPLOAD//1024**3)+" GB.")
+                name=transfer_display_name(urllib.parse.unquote(self.headers.get("X-Filename","")))
+                inbox=transfer_inbox()
+                with TRANSFER_LOCK:
+                    dest=transfer_unique_path(inbox, name)
+                    part=dest.with_name(dest.name+".part"); part.touch()
+                with open(part,"wb") as f:
                     remaining=length
                     while remaining:
-                        chunk=self.rfile.read(min(1024*1024,remaining))
-                        if not chunk: raise ValueError("Unexpected end of upload")
+                        chunk=self.rfile.read(min(TRANSFER_CHUNK,remaining))
+                        if not chunk: raise ValueError("Upload was interrupted. Try again.")
                         f.write(chunk); remaining-=len(chunk)
+                os.replace(part, dest); part=None
+                fid=new_id("t")
                 with TRANSFER_LOCK:
-                    s["file_map"][fid]=p; s["files"].append((fid,p)); s["connected"]=True
-                self.send_json({"ok":True,"id":fid,"name":name,"size":p.stat().st_size}); return
+                    s["file_map"][fid]=dest; s["files"].append((fid,dest)); s["connected"]=True; s["last_seen"]=time.time()
+                print(f"[OmniLAN] received {dest}", flush=True)
+                self.send_json({"ok":True,"id":fid,"name":dest.name,"size":dest.stat().st_size}); return
             self.send_json({"ok":False,"error":"Not found"},404)
-        except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except Exception as e:
+            self.close_connection=True
+            status=404 if "expired" in str(e) else 400
+            self.send_json({"ok":False,"error":str(e)},status)
+        finally:
+            if part is not None:
+                try: part.unlink(missing_ok=True)
+                except OSError: pass
 
 def transfer_start(payload):
     transfer_cleanup()
     mode=str(payload.get("mode","send"))
     if mode not in ("send","receive"): raise ValueError("Transfer mode must be send or receive")
     file_ids=list(payload.get("file_ids") or [])
-    file_map={}
-    for fid in file_ids:
-        p=get_file(fid); file_map[new_id("f")]=p
+    names=list(payload.get("names") or [])
+    file_map={}; display={}
+    for i,fid in enumerate(file_ids):
+        p=get_file(fid); key=new_id("f"); file_map[key]=p
+        if i<len(names) and names[i]: display[key]=transfer_display_name(names[i])
+    if mode=="send" and not file_map: raise ValueError("Select at least one file to share.")
     token=secrets.token_urlsafe(24).replace("-","").replace("_","")
     pin=str(secrets.randbelow(900000)+100000)
     ttl=max(60,min(3600,int(payload.get("ttl",TRANSFER_TTL))))
+    inbox=str(transfer_inbox()) if mode=="receive" else ""
     with TRANSFER_LOCK:
-        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"owned_paths":[],"connected":False}
+        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":[],"connected":False}
     port=start_transfer_server(); ip=lan_ip()
-    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}"}
+    warn="" if not ip.startswith("127.") else "This computer does not seem to be on a Wi-Fi/LAN network."
+    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"expires":time.time()+ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}","inbox":inbox,"warning":warn}
 
 def transfer_status(token):
     s=transfer_session(token)
     with TRANSFER_LOCK:
-        files=list(s.get("files",[]))
-    return {"ok":True,"token":token,"mode":s["mode"],"pin":s["pin"],"expires":s["expires"],"connected":s.get("connected",False),"files":[{"id":fid,"name":p.name,"size":p.stat().st_size} for fid,p in files if p.exists()]}
+        mode=s["mode"]; pin=s["pin"]; expires=s["expires"]; connected=s.get("connected",False); last=s.get("last_seen",0)
+    return {"ok":True,"token":token,"mode":mode,"pin":pin,"expires":expires,"connected":connected,"active":bool(last and time.time()-last<8),"inbox":str(transfer_inbox()) if mode=="receive" else "","files":transfer_files_json(s)}
+
+def transfer_reveal(token, fid=""):
+    """Show a received file (or the inbox folder) in Finder / Explorer / the file manager."""
+    s=transfer_session(token) if token else None
+    target=transfer_inbox()
+    if s and fid:
+        with TRANSFER_LOCK: p=s.get("file_map",{}).get(fid)
+        if p and p.exists(): target=p
+    system=platform.system()
+    if system=="Darwin":
+        cmd=["open","-R",str(target)] if target.is_file() else ["open",str(target)]
+    elif system=="Windows":
+        cmd=["explorer","/select,",str(target)] if target.is_file() else ["explorer",str(target)]
+    else:
+        cmd=["xdg-open",str(target.parent if target.is_file() else target)]
+    try: subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError as e: raise ValueError("Could not open the folder: "+str(e))
+    return {"ok":True,"path":str(target)}
 
 def transfer_stop(token):
     with TRANSFER_LOCK: s=TRANSFER_SESSIONS.pop(token,None)
     if s:
-        for p in s.get("owned_paths",[]):
-            try:p.unlink(missing_ok=True)
-            except OSError:pass
-        if s.get("mode")=="receive":
-            for _,p in s.get("files",[]):
-                try:p.unlink(missing_ok=True)
-                except OSError:pass
+        _drop_session_files(s)
     stop_transfer_server_if_idle()
     return {"ok":True}
 
@@ -1298,6 +1539,25 @@ class Handler(BaseHTTPRequestHandler):
                 health["token"] = TOKEN
             self.send_json(health)
             return
+        if parsed.path == "/api/transfer/status":
+            if not authorize(self): return
+            q=urllib.parse.parse_qs(parsed.query)
+            try: self.send_json(transfer_status(q.get("token",[""])[0]))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+            return
+        if parsed.path.startswith("/api/transfer/download/"):
+            if not authorize(self): return
+            parts=parsed.path.split("/")
+            if len(parts)<6: self.send_json({"ok":False,"error":"Invalid transfer download path"},400); return
+            token,fid=parts[-2],parts[-1]
+            try:
+                s=transfer_session(token)
+                with TRANSFER_LOCK: p=s.get("file_map",{}).get(fid)
+                if not p or not p.exists(): raise ValueError("File not found")
+                origin=cors_origin(self)
+                stream_file(self, p, {"Access-Control-Allow-Origin": origin, "Vary": "Origin"} if origin else None, name=transfer_file_name(s, fid, p))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+            return
         if parsed.path.startswith("/api/download/"):
             if not authorize(self):
                 return
@@ -1331,25 +1591,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/transfer/status":
-            if not authorize(self): return
-            q=urllib.parse.parse_qs(parsed.query)
-            try: self.send_json(transfer_status(q.get("token",[""])[0]))
-            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
-            return
-        if parsed.path.startswith("/api/transfer/download/"):
-            if not authorize(self): return
-            parts=parsed.path.split("/")
-            if len(parts)<6: self.send_json({"ok":False,"error":"Invalid transfer download path"},400); return
-            token,fid=parts[-2],parts[-1]
-            try:
-                s=transfer_session(token)
-                with TRANSFER_LOCK: p=s.get("file_map",{}).get(fid)
-                if not p or not p.exists(): raise ValueError("File not found")
-                with open(p,"rb") as src: data=src.read()
-                self.send_response(200); self.send_header("Content-Type",mimetypes.guess_type(p.name)[0] or "application/octet-stream"); self.send_header("Content-Disposition",f'attachment; filename="{safe_name(p.name)}"'); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
-            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
-            return
         if parsed.path == "/api/upload":
             if not authorize(self):
                 return
@@ -1380,6 +1621,25 @@ class Handler(BaseHTTPRequestHandler):
                 length=int(self.headers.get("Content-Length","0"))
                 if length>1024*1024: raise ValueError("Transfer metadata too large")
                 payload=json.loads(self.rfile.read(length) or b"{}"); self.send_json(transfer_start(payload))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
+            return
+        if parsed.path == "/api/transfer/status":
+            # POST variant: same-origin GETs carry no Origin header, POSTs always do.
+            if not authorize(self): return
+            try:
+                length=int(self.headers.get("Content-Length","0"))
+                if length>4096: raise ValueError("Request too large")
+                payload=json.loads(self.rfile.read(length) or b"{}")
+                self.send_json(transfer_status(str(payload.get("token",""))))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+            return
+        if parsed.path == "/api/transfer/reveal":
+            if not authorize(self): return
+            try:
+                length=int(self.headers.get("Content-Length","0"))
+                if length>4096: raise ValueError("Request too large")
+                payload=json.loads(self.rfile.read(length) or b"{}")
+                self.send_json(transfer_reveal(str(payload.get("token","")), str(payload.get("id",""))))
             except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
             return
         if parsed.path == "/api/transfer/stop":
