@@ -393,6 +393,177 @@ def local_ai_capabilities():
     s=_local_ai_status()
     return {"provider":s["provider"],"model":s["model"],"available":s["enabled"],"local_only":True,"providers":s["providers"]}
 
+
+# --- Temporary LAN File Transfer -------------------------------------------------
+TRANSFER_PORT_BASE = int(os.environ.get("OMNI_TRANSFER_PORT", "8766"))
+TRANSFER_MAX_UPLOAD = int(os.environ.get("OMNI_TRANSFER_MAX_UPLOAD", str(8 * 1024**3)))
+TRANSFER_TTL = int(os.environ.get("OMNI_TRANSFER_TTL", "900"))
+TRANSFER_SESSIONS = {}
+TRANSFER_LOCK = threading.Lock()
+TRANSFER_HTTPD = None
+TRANSFER_PORT = None
+
+def lan_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return "127.0.0.1"
+    finally:
+        s.close()
+
+def transfer_cleanup():
+    now = time.time()
+    with TRANSFER_LOCK:
+        stale = [k for k,v in TRANSFER_SESSIONS.items() if v.get("expires",0) <= now]
+        for k in stale:
+            sess = TRANSFER_SESSIONS.pop(k, None)
+            if not sess: continue
+            for p in sess.get("owned_paths", []):
+                try: p.unlink(missing_ok=True)
+                except OSError: pass
+            if sess.get("mode") == "receive":
+                for _,p in sess.get("files", []):
+                    try: p.unlink(missing_ok=True)
+                    except OSError: pass
+    stop_transfer_server_if_idle()
+
+def transfer_session(token):
+    transfer_cleanup()
+    with TRANSFER_LOCK:
+        s = TRANSFER_SESSIONS.get(token)
+        if not s: raise ValueError("Transfer session expired or not found")
+        return s
+
+def start_transfer_server():
+    global TRANSFER_HTTPD, TRANSFER_PORT
+    if TRANSFER_HTTPD:
+        return TRANSFER_PORT
+    for port in range(TRANSFER_PORT_BASE, TRANSFER_PORT_BASE + 12):
+        try:
+            httpd = ThreadingHTTPServer(("0.0.0.0", port), LANTransferHandler)
+            TRANSFER_HTTPD, TRANSFER_PORT = httpd, port
+            threading.Thread(target=httpd.serve_forever, daemon=True, name="OmniLANTransfer").start()
+            return port
+        except OSError:
+            continue
+    raise RuntimeError("Could not open a local Wi-Fi transfer port. Check ports 8766-8777.")
+
+def stop_transfer_server_if_idle():
+    global TRANSFER_HTTPD, TRANSFER_PORT
+    with TRANSFER_LOCK:
+        active = bool(TRANSFER_SESSIONS)
+    if not active and TRANSFER_HTTPD:
+        h = TRANSFER_HTTPD
+        TRANSFER_HTTPD, TRANSFER_PORT = None, None
+        threading.Thread(target=h.shutdown, daemon=True).start()
+
+def transfer_html(token):
+    return """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Omni Local Transfer</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f4e7cf;color:#172b4d;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:720px;margin:auto;padding:24px}.hero,.card{background:#fffdf8;border:1px solid #e1d6c7;border-radius:22px;box-shadow:0 18px 45px rgba(70,48,27,.12);padding:20px;margin-bottom:14px}.brand{font-weight:900;font-size:28px}.sub{color:#536275}.pill{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:#e7f4ef;color:#0f766e;font-weight:800;font-size:12px}.files{display:grid;gap:9px;margin-top:14px}.file{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid #e1d6c7;border-radius:14px;background:white}.file small{display:block;color:#7b8795}.btn{display:inline-block;padding:10px 14px;border-radius:11px;border:1px solid #0f766e;background:#0f766e;color:white;font-weight:800;text-decoration:none;cursor:pointer}.drop{padding:24px;border:2px dashed #8bc9c0;border-radius:16px;text-align:center;background:#f1fbf8}.drop input{margin-top:12px;width:100%}.status{margin-top:12px;color:#536275;font-size:13px}.danger{color:#a32154}</style></head><body><main>
+<div class="hero"><div class="brand">⇄ Omni Local Transfer</div><div class="sub">Private file transfer over the same Wi-Fi network. Nothing is uploaded to the internet.</div><div class="pill" id="mode"></div><div class="status" id="status">Connecting…</div></div>
+<div class="card"><h2 id="title">Files</h2><div id="files" class="files"></div><div id="uploadBox"></div></div>
+<script>
+const TOKEN=__TOKEN__, base=location.origin;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>{n=+n||0;const u=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<4){n/=1024;i++;}return (n<10&&i?n.toFixed(1):Math.round(n))+' '+u[i]};
+async function state(){const r=await fetch('/api/status/'+encodeURIComponent(TOKEN));const j=await r.json();if(!r.ok)throw new Error(j.error||'Session unavailable');document.getElementById('mode').textContent=j.mode==='send'?'DOWNLOAD FROM MAC':'UPLOAD TO MAC';document.getElementById('title').textContent=j.mode==='send'?'Files shared by your Mac':'Send files to your Mac';document.getElementById('status').textContent=j.connected?'Connected to Omni on the local network':'Waiting for the Mac session…';document.getElementById('files').innerHTML=(j.files||[]).map(f=>j.mode==='send'?'<div class="file"><div><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><a class="btn" href="/api/download/'+encodeURIComponent(TOKEN)+'/'+encodeURIComponent(f.id)+'">Download</a></div>':'<div class="file"><div><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><span>Received</span></div>').join('')||'<div class="sub">No files yet.</div>';if(j.mode==='receive'){document.getElementById('uploadBox').innerHTML='<div class="drop"><b>Select files from this device</b><br><input id="pick" type="file" multiple></div>';document.getElementById('pick').onchange=e=>upload(e.target.files)}else document.getElementById('uploadBox').innerHTML=''}
+async function upload(files){for(const f of files){document.getElementById('status').textContent='Uploading '+f.name+'…';const r=await fetch('/api/upload/'+encodeURIComponent(TOKEN),{method:'POST',headers:{'X-Filename':encodeURIComponent(f.name),'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Upload failed')}}state()}
+state().catch(e=>document.getElementById('status').innerHTML='<span class="danger">'+esc(e.message)+'</span>');setInterval(()=>state().catch(()=>{}),1800);
+</script></main></body></html>"""
+
+class LANTransferHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    server_version = "OmniLANTransfer/1.0"
+    def log_message(self, fmt, *args): print("[OmniLAN]", fmt % args, flush=True)
+    def send_bytes(self, data, ctype="text/plain; charset=utf-8", status=200, extra=None):
+        self.send_response(status); self.send_header("Content-Type",ctype); self.send_header("Cache-Control","no-store")
+        if extra:
+            for k,v in extra.items(): self.send_header(k,v)
+        self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
+    def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj).encode(),"application/json; charset=utf-8",status)
+    def do_OPTIONS(self):
+        self.send_response(204); self.send_header("Access-Control-Allow-Origin","*"); self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS"); self.send_header("Access-Control-Allow-Headers","Content-Type,X-Filename"); self.end_headers()
+    def do_GET(self):
+        try:
+            parsed=urllib.parse.urlparse(self.path); parts=[p for p in parsed.path.split("/") if p]
+            if len(parts)==2 and parts[0]=="share":
+                transfer_session(parts[1]); self.send_bytes(transfer_html(parts[1]).encode(),"text/html; charset=utf-8"); return
+            if len(parts)==3 and parts[0]=="api" and parts[1]=="status":
+                s=transfer_session(parts[2])
+                with TRANSFER_LOCK: files=list(s.get("files",[])); mode=s["mode"]; connected=s.get("connected",False)
+                self.send_json({"ok":True,"mode":mode,"connected":connected,"files":[{"id":fid,"name":p.name,"size":p.stat().st_size} for fid,p in files if p.exists()]}); return
+            if len(parts)==4 and parts[0]=="api" and parts[1]=="download":
+                s=transfer_session(parts[2])
+                with TRANSFER_LOCK: p=s.get("file_map",{}).get(parts[3])
+                if not p or not p.exists(): raise ValueError("File not found")
+                with open(p,"rb") as src:
+                    data=src.read()
+                self.send_bytes(data,mimetypes.guess_type(p.name)[0] or "application/octet-stream",extra={"Content-Disposition":f'attachment; filename="{safe_name(p.name)}"'}); return
+            self.send_json({"ok":False,"error":"Not found"},404)
+        except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+    def do_POST(self):
+        try:
+            parsed=urllib.parse.urlparse(self.path); parts=[p for p in parsed.path.split("/") if p]
+            if len(parts)==3 and parts[0]=="api" and parts[1]=="upload":
+                s=transfer_session(parts[2])
+                if s["mode"]!="receive": raise ValueError("This transfer is download-only.")
+                length=int(self.headers.get("Content-Length","0"))
+                if length<=0 or length>TRANSFER_MAX_UPLOAD: raise ValueError("File is empty or exceeds the local transfer limit.")
+                name=safe_name(urllib.parse.unquote(self.headers.get("X-Filename","received.bin")))
+                fid=new_id("t"); p=ROOT/f"transfer_{fid}_{name}"
+                with open(p,"wb") as f:
+                    remaining=length
+                    while remaining:
+                        chunk=self.rfile.read(min(1024*1024,remaining))
+                        if not chunk: raise ValueError("Unexpected end of upload")
+                        f.write(chunk); remaining-=len(chunk)
+                with TRANSFER_LOCK:
+                    s["file_map"][fid]=p; s["files"].append((fid,p)); s["connected"]=True
+                self.send_json({"ok":True,"id":fid,"name":name,"size":p.stat().st_size}); return
+            self.send_json({"ok":False,"error":"Not found"},404)
+        except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
+
+def transfer_start(payload):
+    transfer_cleanup()
+    mode=str(payload.get("mode","send"))
+    if mode not in ("send","receive"): raise ValueError("Transfer mode must be send or receive")
+    file_ids=list(payload.get("file_ids") or [])
+    file_map={}
+    for fid in file_ids:
+        p=get_file(fid); file_map[new_id("f")]=p
+    token=secrets.token_urlsafe(24).replace("-","").replace("_","")
+    pin=str(secrets.randbelow(900000)+100000)
+    ttl=max(60,min(3600,int(payload.get("ttl",TRANSFER_TTL))))
+    with TRANSFER_LOCK:
+        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"owned_paths":[],"connected":False}
+    port=start_transfer_server(); ip=lan_ip()
+    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}"}
+
+def transfer_status(token):
+    s=transfer_session(token)
+    with TRANSFER_LOCK:
+        files=list(s.get("files",[]))
+    return {"ok":True,"token":token,"mode":s["mode"],"pin":s["pin"],"expires":s["expires"],"connected":s.get("connected",False),"files":[{"id":fid,"name":p.name,"size":p.stat().st_size} for fid,p in files if p.exists()]}
+
+def transfer_stop(token):
+    with TRANSFER_LOCK: s=TRANSFER_SESSIONS.pop(token,None)
+    if s:
+        for p in s.get("owned_paths",[]):
+            try:p.unlink(missing_ok=True)
+            except OSError:pass
+        if s.get("mode")=="receive":
+            for _,p in s.get("files",[]):
+                try:p.unlink(missing_ok=True)
+                except OSError:pass
+    stop_transfer_server_if_idle()
+    return {"ok":True}
+
 def process_job(payload):
     op = payload.get("op")
     if op == "ai_status":
@@ -413,6 +584,10 @@ def process_job(payload):
             user_content=[{"type":"text","text":prompt},{"type":"image_url","image_url":{"url":image}}]
         messages=[{"role":"system","content":"You are Omni Suite AI Assist. Use only the supplied Studio context. Never invent facts. Be concise, practical and accurate."},{"role":"user","content":user_content}]
         return {"ok":True, **_ai_chat(messages, None, float(payload.get("temperature",0.2)), int(payload.get("max_tokens",220)))}
+
+    if op == "transfer_start": return transfer_start(payload)
+    if op == "transfer_status": return transfer_status(str(payload.get("token","")))
+    if op == "transfer_stop": return transfer_stop(str(payload.get("token","")))
 
     if op == "health":
         return {"ok": True, "engine_api_version": ENGINE_API_VERSION, "engine_build": ENGINE_BUILD, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"], "ai": local_ai_capabilities()}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "archive_extract": ["7z","rar"], "language_translation": omni_language_engine.capability().get("translation", []), "language_transliteration": omni_language_engine.capability().get("transliteration", []), "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
@@ -1101,7 +1276,7 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
-        cleanup_old()
+        cleanup_old(); transfer_cleanup()
         if not host_allowed(self):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
@@ -1151,11 +1326,30 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json({"ok":False,"error":"Not found"},404)
 
     def do_POST(self):
-        cleanup_old()
+        cleanup_old(); transfer_cleanup()
         if not host_allowed(self):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/transfer/status":
+            if not authorize(self): return
+            q=urllib.parse.parse_qs(parsed.query)
+            try: self.send_json(transfer_status(q.get("token",[""])[0]))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+            return
+        if parsed.path.startswith("/api/transfer/download/"):
+            if not authorize(self): return
+            parts=parsed.path.split("/")
+            if len(parts)<6: self.send_json({"ok":False,"error":"Invalid transfer download path"},400); return
+            token,fid=parts[-2],parts[-1]
+            try:
+                s=transfer_session(token)
+                with TRANSFER_LOCK: p=s.get("file_map",{}).get(fid)
+                if not p or not p.exists(): raise ValueError("File not found")
+                with open(p,"rb") as src: data=src.read()
+                self.send_response(200); self.send_header("Content-Type",mimetypes.guess_type(p.name)[0] or "application/octet-stream"); self.send_header("Content-Disposition",f'attachment; filename="{safe_name(p.name)}"'); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},404)
+            return
         if parsed.path == "/api/upload":
             if not authorize(self):
                 return
@@ -1179,6 +1373,20 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":True,"file_id":fid,"name":name,"size":path.stat().st_size})
             except Exception as e:
                 self.send_json({"ok":False,"error":str(e)},400)
+            return
+        if parsed.path == "/api/transfer/start":
+            if not authorize(self): return
+            try:
+                length=int(self.headers.get("Content-Length","0"))
+                if length>1024*1024: raise ValueError("Transfer metadata too large")
+                payload=json.loads(self.rfile.read(length) or b"{}"); self.send_json(transfer_start(payload))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
+            return
+        if parsed.path == "/api/transfer/stop":
+            if not authorize(self): return
+            try:
+                length=int(self.headers.get("Content-Length","0")); payload=json.loads(self.rfile.read(length) or b"{}"); self.send_json(transfer_stop(str(payload.get("token",""))))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
             return
         if parsed.path == "/api/process":
             if not authorize(self):
