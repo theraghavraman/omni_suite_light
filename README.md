@@ -231,6 +231,27 @@ Office Studio uses the Local Engine for native Office-family conversion. It now 
 - **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
 - **PDF → PPTX:** rendered as one slide per PDF page using Poppler.
 
+### Office Tools (browser-only editors)
+Office Tools edits files directly in the browser — nothing is uploaded and no Local Engine is needed. Drafts auto-recover after a reload, and in Chromium browsers **Save** writes back to the file you opened.
+
+| Editor | Opens | Saves | Highlights |
+|---|---|---|---|
+| Word / Writer | DOCX, DOCM, DOTX, ODT, RTF, HTML, Markdown, PDF (text + images) | DOCX, ODT, RTF, PDF, HTML, Markdown, TXT | Paragraph styles, fonts and sizes, colour/highlight, lists, tables (insert/delete rows and columns), images, links, page breaks, find & replace, sanitised paste |
+| Excel / Calc | XLSX, XLSM, XLTX, XLS, XLSB, ODS, FODS, CSV, TSV | XLSX (with styles), XLS, XLSB, ODS, FODS, CSV, TSV, HTML | ~400 Excel functions incl. XLOOKUP/XMATCH/SUMIFS/TEXTJOIN/INDIRECT/OFFSET, number formats, bold/italic/colours/fill/alignment, insert/delete rows & columns with formula reference shifting, sort, filter, freeze panes, multi-sheet, copy/paste to and from Excel, undo/redo |
+| PowerPoint / Impress | PPTX, PPTM, PPSX, POTX, Redmark deck JSON | PPTX, PPSX, POTX, PDF (print), deck JSON | Six layouts, six themes, bullet levels, slide images, speaker notes, drag-to-reorder thumbnails, full-screen slide show (F5) |
+| Notepad | Any text file | Any extension | UTF-8 / UTF-8 BOM / UTF-16 detection, LF/CRLF preservation, find & replace, word wrap |
+
+Legacy binary DOC/PPT/ODP files still need the Office Studio converter (Local Engine) first.
+
+### Diagram Forge
+Diagram Forge has two editors that share one project file:
+- **Visual canvas** — rectangles, rounded boxes, ellipses, decisions, I/O, databases, hexagons, documents, sticky notes, text, freehand pen and images; connectors (curved/orthogonal/straight, dashed/dotted, arrows at either end, labels) created by dragging from a shape's connection dots; multi-select, group, align/distribute, smart snapping guides, undo/redo, copy/paste, auto-layout (dagre), zoom/pan.
+- **Text diagrams (Mermaid 12)** — flowchart, sequence, class, state, ER, mind map, architecture, C4, Gantt, timeline, Git graph, pie, journey, requirement, Sankey, quadrant, XY chart, packet, block and kanban, with live preview and error messages.
+
+Conversions: Canvas → Mermaid flowchart, and Mermaid → Canvas for flowchart, state, ER, class and mind-map diagrams. Exports: SVG, PNG (2× or transparent), draw.io/diagrams.net `.drawio`, Mermaid `.mmd`, print/PDF and a JSON project. `.drawio` files (compressed or not) can be opened and edited.
+
+Offline: run `prepare_offline.py` once to place every library these studios use into `vendor/`; `omni_vendor_loader.js` loads the local copy first and falls back to the pinned CDN URL.
+
 ## 8. Diagnostics and full option testing
 
 The guide area includes **Run Browser Diagnostics** for a quick runtime check of the core browser libraries and capabilities.

@@ -14,6 +14,16 @@ OmniConverter Studio does not redistribute native executable binaries. Native to
 | Tesseract.js worker | 5.1.1 | Apache License 2.0 | Browser OCR worker |
 | Tesseract language data | @tesseract.js-data packages 1.0.0 | Apache License 2.0 | OCR language models |
 | Outfit | Current web font | SIL Open Font License 1.1 | Application UI typography |
+| mammoth.js | 1.13.0 | BSD 2-Clause | Office Tools: DOCX → HTML with formatting and images |
+| docx | 9.9.0 | MIT | Office Tools: DOCX writer (runs, lists, tables, images, links) |
+| ExcelJS | 4.4.0 | MIT | Office Tools: XLSX read/write with styles, formulas, column widths and merges |
+| fast-formula-parser | 1.0.19 | MIT | Office Tools: spreadsheet formula parsing and evaluation |
+| Formula.js (@formulajs/formulajs) | 4.6.1 | MIT | Office Tools: additional Excel-compatible functions |
+| DOMPurify | 3.4.16 | Apache License 2.0 OR MPL 2.0 | Office Tools: sanitising opened and pasted HTML |
+| Mermaid | 12.1.0 | MIT | Diagram Forge: text-to-diagram rendering |
+| dagre (@dagrejs/dagre) | 1.1.4 | MIT | Diagram Forge: automatic graph layout |
+
+Office Tools and Diagram Forge load these libraries on demand through `omni_vendor_loader.js` (local `vendor/` copy first, pinned CDN URL second). No GPL/AGPL editor engine is used: HyperFormula (GPL-3.0) and ONLYOFFICE (AGPL-3.0) were deliberately avoided. Diagram Forge reads and writes the open draw.io/diagrams.net mxGraph XML format with its own code; no draw.io source is included.
 
 The exact download URLs and pinned versions are defined in `prepare_offline.py`. Outfit is loaded at runtime from Google Fonts for the public UI; its SIL Open Font License 1.1 permits use and redistribution subject to the license terms. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
 

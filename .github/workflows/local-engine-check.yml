@@ -25,10 +25,14 @@ jobs:
         run: python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
-      - name: Validate Office Tools and cloud Office bridge syntax
+      - name: Validate Office Tools, Diagram Forge and cloud bridge syntax
         run: |
+          node --check omni_vendor_loader.js
           node --check office_tools_studio.js
+          node --check diagram_forge_studio.js
           python -m py_compile omni-cloud-engine/app.py
+      - name: Validate Office Tools and Diagram Forge wiring
+        run: node .github/scripts/studio_wiring_check.mjs
       - name: Validate assistant retrieval regression
         run: node .github/scripts/assistant_rag_regression.mjs
       - name: Install native dependencies (Ubuntu)
@@ -39,7 +43,16 @@ jobs:
       - name: Install native dependencies (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: choco install ffmpeg qpdf poppler imagemagick tesseract libreoffice calibre pandoc -y --no-progress
+        run: |
+          # Chocolatey downloads occasionally fail transiently; retry the whole set before giving up.
+          $pkgs = "ffmpeg","qpdf","poppler","imagemagick","tesseract","libreoffice","calibre","pandoc"
+          for ($i = 1; $i -le 3; $i++) {
+            choco install @pkgs -y --no-progress
+            if ($LASTEXITCODE -eq 0) { break }
+            Write-Host "choco install attempt $i failed (exit $LASTEXITCODE); retrying in 30s"
+            Start-Sleep -Seconds 30
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install native dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
