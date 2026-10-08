@@ -1,169 +1,213 @@
-/* Redmark Forge — Office Tools powered by ONLYOFFICE Docs */
+/* Redmark Forge — Office Tools
+ * Browser-first lightweight office editor.
+ * Uses the existing Omni document engine + SheetJS when available.
+ * Designed for everyday editing, not macro-heavy desktop-office workloads.
+ */
 (function(){
-  "use strict";
-  const CLOUD=(window.OMNI_CLOUD_ENGINE_URL||"https://omni-cloud-engine.onrender.com").replace(/\/+$/,"");
-  const token=()=>sessionStorage.getItem("omni-cloud-token")||"";
-  const officeExt=new Set(["doc","docx","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","markdown","html","htm","xhtml","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","pdf"]);
-  const ext=n=>String(n||"").split(".").pop().toLowerCase();
-  const $=id=>document.getElementById(id);
-  let editor=null,current=null,apiServer="",apiPromise=null,mode="word";
+'use strict';
+const $=id=>document.getElementById(id);
+const ext=n=>String(n||'').split('.').pop().toLowerCase();
+const base=n=>String(n||'document').replace(/\.[^.]+$/,'')||'document';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const save=(blob,name)=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);};
+const notify=(m,e=false)=>window.omniNotify?window.omniNotify(m,e):console.log(m);
 
-  const notify=(m,e=false)=>window.omniNotify?window.omniNotify(m,e):console.log(m);
-  const setStatus=(m,kind="")=>{const el=$("ot-save-state");if(el){el.textContent=m;el.className="ot-save-state "+kind;}const s=$("ot-engine-status");if(s){s.textContent=m;s.className="ot-engine-status "+kind;}};
+let mode='word', currentFile=null, currentName='Untitled';
+let wordDirty=false, sheetDirty=false, deckDirty=false, noteDirty=false;
+let sheetWB=null, sheetName=null, deckSlides=[], formulaEngine=null;
+const tabs=['word','excel','powerpoint','notepad'];
 
-  function injectCss(){
-    if($("redmark-onlyoffice-css"))return;
-    const s=document.createElement("style");s.id="redmark-onlyoffice-css";
-    s.textContent=""+
-      "#ot-onlyoffice-host{height:calc(100vh - 250px);min-height:720px;background:#eef2f7;position:relative}"+
-      "#ot-onlyoffice-placeholder{position:absolute;inset:0}"+
-      ".ot-engine-landing{min-height:720px;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 20% 10%,rgba(108,92,255,.16),transparent 42%),radial-gradient(circle at 90% 90%,rgba(255,79,154,.12),transparent 42%),#f7f8fc}"+
-      ".ot-engine-card{width:min(820px,100%);padding:34px;border:1px solid rgba(108,92,255,.16);border-radius:26px;background:rgba(255,255,255,.94);box-shadow:0 24px 70px -28px rgba(39,30,110,.3)}"+
-      ".ot-engine-card h3{font-size:1.7rem;margin:0 0 8px;color:#1c1b3a}.ot-engine-card p{color:#66708a;line-height:1.6;margin:0 0 18px}"+
-      ".ot-engine-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.ot-engine-grid button{border:1px solid #dce2ef;background:#fff;border-radius:13px;padding:13px 10px;font-weight:900;cursor:pointer;color:#343b5d}.ot-engine-grid button:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(70,55,150,.12)}"+
-      ".ot-engine-meta{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.ot-engine-chip{padding:7px 10px;border-radius:999px;background:#f1efff;color:#5b4fd0;font-size:.74rem;font-weight:900}"+
-      ".ot-engine-warning{padding:12px 14px;border-radius:13px;background:#fff7e8;color:#805500;font-size:.78rem;line-height:1.5;margin-top:16px}"+
-      ".ot-note-local{min-height:720px;background:#fff}.ot-note-local textarea{width:100%;height:720px;border:0;outline:0;padding:28px;font:15px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;color:#0f172a}"+
-      "@media(max-width:800px){#ot-onlyoffice-host{height:calc(100vh - 230px);min-height:640px}.ot-engine-grid{grid-template-columns:1fr 1fr}.ot-engine-card{padding:22px}.ot-engine-landing{min-height:640px}}";
-    document.head.appendChild(s);
-  }
+function setMode(next){
+  mode=next;
+  tabs.forEach(t=>{$('ot-'+t)?.classList.toggle('active',t===next);$('ot-panel-'+t)?.classList.toggle('active',t===next);});
+  const labels={word:'Word / Writer',excel:'Excel / Calc',powerpoint:'PowerPoint / Impress',notepad:'Notepad'};
+  $('ot-mode-label').textContent=labels[next]||next;
+  updateStatus();
+}
+function updateStatus(){
+  const dirty=(mode==='word'?wordDirty:mode==='excel'?sheetDirty:mode==='powerpoint'?deckDirty:noteDirty);
+  $('ot-save-state').textContent=dirty?'● Unsaved changes':'✓ Saved / ready';
+  $('ot-save-state').classList.toggle('dirty',dirty);
+}
+function markDirty(){if(mode==='word')wordDirty=true;else if(mode==='excel')sheetDirty=true;else if(mode==='powerpoint')deckDirty=true;else noteDirty=true;updateStatus();}
 
-  function currentKind(){return mode==="excel"?"excel":mode==="powerpoint"?"powerpoint":mode==="pdf"?"pdf":"word";}
-  function setMode(next){
-    mode=next;
-    ["word","excel","powerpoint","pdf","notepad"].forEach(t=>$("ot-"+t)?.classList.toggle("active",t===next));
-    const labels={word:"Word / Writer",excel:"Excel / Calc",powerpoint:"PowerPoint / Impress",pdf:"PDF / Forms",notepad:"Notepad"};
-    if($("ot-mode-label"))$("ot-mode-label").textContent=labels[next];
-    if(next==="notepad"){if(editor)destroy(false);$("ot-onlyoffice-host").style.display="none";$("ot-note-local").style.display="block";}
-    else{$("ot-note-local").style.display="none";$("ot-onlyoffice-host").style.display="block";if(!current)landing();}
-  }
-
-  function landing(message){
-    if(current)return;
-    $("ot-onlyoffice-host").innerHTML='<div class="ot-engine-landing"><div class="ot-engine-card">'+
-      '<div class="ot-kicker">REDMARK OFFICE ENGINE</div><h3>Full Office editing, not a mock toolbar.</h3>'+
-      '<p>Open a Word, Excel, PowerPoint or PDF file and Redmark Forge will hand it to the real ONLYOFFICE editor. The editor provides the full ribbon, menus, formulas, slides, comments, review tools, printing, export and more.</p>'+
-      '<div class="ot-engine-grid"><button data-new="word">＋ Word</button><button data-new="excel">＋ Excel</button><button data-new="powerpoint">＋ PowerPoint</button><button data-open="1">📂 Open Office File</button></div>'+
-      '<div class="ot-engine-meta"><span class="ot-engine-chip">DOCX / DOC / ODT</span><span class="ot-engine-chip">XLSX / XLS / ODS / CSV</span><span class="ot-engine-chip">PPTX / PPT / ODP</span><span class="ot-engine-chip">PDF + forms</span></div>'+
-      '<div class="ot-engine-warning">'+(message||"Office files are uploaded to the configured Redmark Forge Render storage bridge for editing. Your cloud token stays in this browser session.")+'</div>'+
-      '</div></div>';
-    $("ot-onlyoffice-host").querySelectorAll("[data-new]").forEach(b=>b.onclick=()=>newOffice(b.dataset.new));
-    $("ot-onlyoffice-host").querySelector("[data-open]")?.addEventListener("click",openPicker);
-  }
-
-  function openPicker(){
-    let i=$("ot-file");
-    if(!i){
-      i=document.createElement("input");i.type="file";i.id="ot-file";i.hidden=true;
-      i.accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.pdf,*/*";
-      document.body.appendChild(i);i.addEventListener("change",()=>openFile(i.files?.[0]));
-    }
-    i.value="";i.click();
-  }
-
-  function loadApi(server){
-    if(window.DocsAPI)return Promise.resolve();
-    if(apiPromise&&apiServer===server)return apiPromise;
-    apiServer=server;
-    apiPromise=new Promise((resolve,reject)=>{
-      const s=document.createElement("script");s.src=server+"/web-apps/apps/api/documents/api.js";s.async=true;
-      s.onload=()=>window.DocsAPI?resolve():reject(new Error("ONLYOFFICE API loaded but DocsAPI is unavailable."));
-      s.onerror=()=>reject(new Error("Could not load ONLYOFFICE editor API from "+server));
-      document.head.appendChild(s);
+function modelFromWord(){
+  const root=$('ot-word-editor'); const blocks=[];
+  if(!root)return {title:currentName,blocks:[]};
+  const walk=el=>{
+    [...el.children].forEach(n=>{
+      const tag=n.tagName.toLowerCase();
+      if(/^h[1-6]$/.test(tag)) blocks.push({type:'heading',level:+tag[1],runs:[{text:n.innerText||''}]});
+      else if(tag==='p') blocks.push({type:'para',runs:[{text:n.innerText||''}]});
+      else if(tag==='pre') blocks.push({type:'code',text:n.innerText||''});
+      else if(tag==='ul'||tag==='ol') blocks.push({type:'list',ordered:tag==='ol',items:[...n.children].map(li=>({level:0,runs:[{text:li.innerText||''}]}))});
+      else if(tag==='table') blocks.push({type:'table',rows:[...n.rows].map(r=>[...r.cells].map(c=>c.innerText||'')).filter(r=>r.length),header:true});
+      else if(tag==='blockquote') blocks.push({type:'para',runs:[{text:n.innerText||'',italic:true}]});
+      else if(tag==='div') walk(n);
     });
-    return apiPromise;
-  }
+  };
+  walk(root);
+  return {title:currentName,blocks};
+}
+function modelToWord(model){
+  const out=[];
+  (model.blocks||[]).forEach(b=>{
+    if(b.type==='heading')out.push('<h'+Math.min(6,b.level||1)+'>'+esc((b.runs||[]).map(x=>x.text).join(''))+'</h'+Math.min(6,b.level||1)+'>');
+    else if(b.type==='para')out.push('<p>'+esc((b.runs||[]).map(x=>x.text).join('')).replace(/\n/g,'<br>')+'</p>');
+    else if(b.type==='code')out.push('<pre>'+esc(b.text||'')+'</pre>');
+    else if(b.type==='list')out.push('<'+(b.ordered?'ol':'ul')+'>'+b.items.map(i=>'<li>'+esc((i.runs||[]).map(x=>x.text).join(''))+'</li>').join('')+'</'+(b.ordered?'ol':'ul')+'>');
+    else if(b.type==='table')out.push('<table><tbody>'+b.rows.map((r,i)=>'<tr>'+r.map(c=>(b.header&&i===0?'<th>':'<td>')+esc(c)+(b.header&&i===0?'</th>':'</td>')).join('')+'</tr>').join('')+'</tbody></table>');
+    else if(b.type==='slide')out.push('<h2>'+esc(b.title||'Slide')+'</h2><ul>'+b.items.map(i=>'<li>'+esc(i.text||'')+'</li>').join('')+'</ul>');
+  });
+  return out.join('')||'<p><br></p>';
+}
 
-  function destroy(showLanding=true){
-    try{editor?.requestClose?.();}catch(_){}
-    try{editor?.destroyEditor?.();}catch(_){}
-    editor=null;
-    if(showLanding){current=null;landing();}
-  }
+async function openFile(file){
+  if(!file)return;
+  currentFile=file; currentName=file.name;
+  const e=ext(file.name);
+  try{
+    if(['docx','docm','dotx','dotm','odt','ott','fodt','rtf','md','markdown','txt','text','html','htm','xhtml','pptx','pptm','ppsx','potx'].includes(e)){
+      if(!window.OMNI_DOCS)throw new Error('Browser document engine is not loaded.');
+      const model=await window.OMNI_DOCS.readDocument(file);
+      if(!model)throw new Error('This office format could not be read in the browser.');
+      if(['pptx','pptm','ppsx','potx'].includes(e)){
+        deckSlides=(model.blocks||[]).filter(x=>x.type==='slide').map((s,i)=>({id:Date.now()+i,title:s.title||('Slide '+(i+1)),body:(s.items||[]).map(x=>x.text||'').join('\n'),notes:''}));
+        renderDeck();setMode('powerpoint');deckDirty=false;
+      }else{
+        $('ot-word-editor').innerHTML=modelToWord(model);setMode('word');wordDirty=false;
+      }
+    }else if(['xls','xlsx','xlsm','xlsb','xlt','xltx','xltm','ods','ots','fods','csv','tsv'].includes(e)){
+      if(!window.XLSX)throw new Error('Spreadsheet engine is not loaded.');
+      const wb=e==='csv'||e==='tsv'?XLSX.read(await file.text(),{type:'string',FS:e==='tsv'?'\\t':','}):XLSX.read(await file.arrayBuffer(),{type:'array',cellStyles:true,cellFormula:true});
+      sheetWB=wb; sheetName=wb.SheetNames[0]||'Sheet1'; renderSheet();setMode('excel');sheetDirty=false;
+    }else{
+      const text=await file.text();
+      $('ot-note-editor').value=text;setMode('notepad');noteDirty=false;
+    }
+    updateStatus();notify('Opened '+file.name+' in Office Tools.');
+  }catch(err){notify('Could not open '+file.name+': '+err.message,true);}
+}
 
-  function renderEditor(config){
-    injectCss();
-    $("ot-onlyoffice-host").innerHTML='<div id="ot-onlyoffice-placeholder"></div>';
-    const events={
-      onAppReady:()=>setStatus("✓ ONLYOFFICE editor ready","ok"),
-      onDocumentStateChange:e=>setStatus(e?.data?"● Unsaved changes":"✓ Saved / ready",e?.data?"dirty":"ok"),
-      onError:e=>setStatus("ONLYOFFICE error: "+(e?.data?.errorDescription||"Unknown error"),"error"),
-      onRequestClose:()=>{try{editor?.destroyEditor?.();}catch(_){} editor=null;current=null;landing("Editor closed. The latest force-saved version remains available.");},
-      onRequestSaveAs:e=>notify("Use ONLYOFFICE File → Save Copy as… for format conversion."),
-      onUserActionRequired:e=>notify("ONLYOFFICE needs input before opening this file (for example password, encoding or delimiter)."),
-      onDownloadAs:e=>{if(e?.data?.url)window.open(e.data.url,"_blank","noopener");}
-    };
-    config.events={...(config.events||{}),...events};
-    editor=new window.DocsAPI.DocEditor("ot-onlyoffice-placeholder",config);
-    setStatus("Loading full Office editor…");
-  }
+function newWord(){currentFile=null;currentName='Untitled.docx';$('ot-word-editor').innerHTML='<h1>Untitled Document</h1><p>Start writing here…</p>';wordDirty=true;setMode('word');updateStatus();}
+async function ensureFormulaEngine(){if(window.HyperFormula)return window.HyperFormula;if(window.__RF_HF_PROMISE)return window.__RF_HF_PROMISE;window.__RF_HF_PROMISE=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/hyperformula@3.1.0/dist/hyperformula.full.min.js';s.onload=()=>res(window.HyperFormula);s.onerror=()=>rej(new Error('Formula engine failed to load'));document.head.appendChild(s);});return window.__RF_HF_PROMISE;}
+async function ensurePptx(){if(window.PptxGenJS)return window.PptxGenJS;if(window.__RF_PPTX_PROMISE)return window.__RF_PPTX_PROMISE;window.__RF_PPTX_PROMISE=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js';s.onload=()=>res(window.PptxGenJS);s.onerror=()=>rej(new Error('PowerPoint browser engine failed to load'));document.head.appendChild(s);});return window.__RF_PPTX_PROMISE;}
+async function newExcel(){
+  if(!window.XLSX)return notify('Spreadsheet engine is not loaded.',true);
+  sheetWB=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([['',''],['','']]);XLSX.utils.book_append_sheet(sheetWB,ws,'Sheet1');sheetName='Sheet1';currentFile=null;currentName='Book1.xlsx';renderSheet();sheetDirty=true;setMode('excel');updateStatus();
+}
+function newDeck(){deckSlides=[{id:Date.now(),title:'Title',body:'Subtitle or key point',notes:''}];currentFile=null;currentName='Presentation.pptx';renderDeck();deckDirty=true;setMode('powerpoint');updateStatus();}
+function newNote(){currentFile=null;currentName='Untitled.txt';$('ot-note-name').value='Untitled.txt';$('ot-note-editor').value='';noteDirty=true;setMode('notepad');updateStatus();$('ot-note-editor').focus();}
 
-  async function authenticatedJson(url,options={}){
-    const t=token();if(!t)throw new Error("Enter the Render cloud token first using the Run on Render control.");
-    const headers={...(options.headers||{}),"X-Omni-Cloud-Token":t};
-    const r=await fetch(url,{...options,headers});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok||j.ok===false)throw new Error(j.error||("HTTP "+r.status));
-    return j;
-  }
+async function saveCurrent(asName){
+  try{
+    if(mode==='word'){
+      const model=modelFromWord();const target=ext(asName||currentName)||'docx';
+      const allowed=['docx','odt','fodt','txt','md','html','pdf'];
+      if(!allowed.includes(target))return save(new Blob([$('ot-word-editor').innerText],{type:'text/plain'}),asName||currentName);
+      if(!window.OMNI_DOCS)throw new Error('Document engine is not loaded.');
+      const r=await window.OMNI_DOCS.writeDocument(model,target);
+      save(r.blob,(asName||base(currentName))+'.'+r.ext);currentName=(asName||base(currentName))+'.'+r.ext;wordDirty=false;
+    }else if(mode==='excel'){
+      if(!sheetWB||!window.XLSX)throw new Error('Spreadsheet engine is not loaded.');
+      const name=asName||currentName||'Book1.xlsx',t=ext(name)||'xlsx';
+      const typeMap={xlsx:'xlsx',xlsm:'xlsm',xls:'biff8',ods:'ods',csv:'csv',tsv:'csv'};
+      const bookType=typeMap[t]||'xlsx';
+      const out=XLSX.write(sheetWB,{bookType,bookSST:false,type:'array'});
+      save(new Blob([out],{type:t==='csv'||t==='tsv'?'text/csv':'application/octet-stream'}),name.endsWith('.'+t)?name:name+'.'+t);
+      currentName=name.endsWith('.'+t)?name:name+'.'+t;sheetDirty=false;
+    }else if(mode==='powerpoint'){
+      const name=asName||currentName||'Presentation.pptx',t=ext(name)||'pptx';
+      if(t!=='pptx'&&t!=='pptm'&&t!=='ppsx')throw new Error('Browser editor saves presentations as PPTX; legacy formats can be exported through the Local Engine.');
+      save(await buildPptx(deckSlides),name.endsWith('.'+t)?name:name+'.'+t);currentName=name;deckDirty=false;
+    }else{
+      const name=asName||currentName||'Untitled.txt';
+      save(new Blob([$('ot-note-editor').value],{type:'text/plain;charset=utf-8'}),name);currentName=name;noteDirty=false;
+    }
+    updateStatus();notify('Saved '+currentName+'.');
+  }catch(err){notify('Save failed: '+err.message,true);}
+}
 
-  async function openFile(file){
-    if(!file)return;
-    const e=ext(file.name);
-    if(!officeExt.has(e)){setMode("notepad");$("ot-note-name").value=file.name;$("ot-note-editor").value=await file.text();current=null;setStatus("✓ Opened as Notepad text","ok");return;}
-    try{
-      if(!token())throw new Error("Render cloud token is required for full Office editing.");
-      setStatus("Uploading "+file.name+" to Office Engine…");
-      const fd=new FormData();fd.append("file",file,file.name);
-      const j=await authenticatedJson(CLOUD+"/api/office/upload",{method:"POST",body:fd});
-      current=j;
-      setMode(e==="pdf"?"pdf":/^(xls|xlsx|xlsm|xlsb|xlt|xltx|xltm|ods|ots|fods|csv|tsv)$/.test(e)?"excel":/^(ppt|pptx|pptm|pps|ppsx|pot|potx|potm|odp|otp|fodp)$/.test(e)?"powerpoint":"word");
-      await loadApi(j.documentServer);renderEditor(j.config);notify("Opened "+file.name+" in the full ONLYOFFICE editor.");
-    }catch(err){landing("Office Engine is not available yet. "+err.message);setStatus("✕ "+err.message,"error");notify(err.message,true);}
-  }
+function exec(cmd,val=null){$('ot-word-editor')?.focus();try{document.execCommand(cmd,false,val);markDirty();}catch(e){}}
+function insertLink(){const u=prompt('Link URL');if(u)exec('createLink',u);}
+function insertImage(){
+  const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{exec('insertImage',r.result);};r.readAsDataURL(f);};i.click();
+}
 
-  async function newOffice(kind){
-    try{
-      if(!token())throw new Error("Render cloud token is required for the Office Engine.");
-      setStatus("Creating a new "+kind+" file…");
-      const j=await authenticatedJson(CLOUD+"/api/office/new",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind})});
-      current=j;setMode(kind==="excel"?"excel":kind==="powerpoint"?"powerpoint":"word");
-      await loadApi(j.documentServer);renderEditor(j.config);notify("Created "+j.filename+".");
-    }catch(err){landing("New Office files need the Office Engine. "+err.message);setStatus("✕ "+err.message,"error");notify(err.message,true);}
-  }
+async function calculateSheet(){try{const HF=await ensureFormulaEngine();const sheets={};sheetWB.SheetNames.forEach(n=>{const ws=sheetWB.Sheets[n];const r=XLSX.utils.decode_range(ws['!ref']||'A1:Z50');const rows=[];for(let y=0;y<=r.e.r;y++){const row=[];for(let x=0;x<=r.e.c;x++){const a=XLSX.utils.encode_cell({r:y,c:x});const cell=ws[a]||{};row.push(cell.f?'='+cell.f:(cell.v??''));}rows.push(row);}sheets[n]=rows;});formulaEngine=HF.buildFromSheets(sheets,{licenseKey:'gpl-v3'});sheetWB.SheetNames.forEach(n=>{const ws=sheetWB.Sheets[n];const r=XLSX.utils.decode_range(ws['!ref']||'A1:Z50');for(let y=0;y<=r.e.r;y++)for(let x=0;x<=r.e.c;x++){const v=formulaEngine.getCellValue({sheet:formulaEngine.getSheetId(n),row:y,col:x});const a=XLSX.utils.encode_cell({r:y,c:x});if(ws[a]&&ws[a].f)ws[a].v=v;}});}catch(e){console.warn('Formula engine unavailable',e);}}
+async function renderSheet(){
+  const root=$('ot-sheet-grid');if(!root||!sheetWB)return;
+  const ws=sheetWB.Sheets[sheetName];const range=XLSX.utils.decode_range(ws['!ref']||'A1:A10');
+  let h='<table><thead><tr><th class="corner"></th>';
+  for(let c=range.s.c;c<=Math.max(range.e.c,12);c++)h+='<th>'+XLSX.utils.encode_col(c)+'</th>';h+='</tr></thead><tbody>';
+  const rows=Math.max(range.e.r+1,20),cols=Math.max(range.e.c+1,13);
+  for(let r=0;r<rows;r++){h+='<tr><th class="rowhead">'+(r+1)+'</th>';for(let c=0;c<cols;c++){const a=XLSX.utils.encode_cell({r,c}),cell=ws[a]||{};const value=cell.f?'='+cell.f:(cell.v??'');h+='<td contenteditable="true" data-cell="'+a+'">'+esc(value)+'</td>';}h+='</tr>';}h+='</tbody></table>';
+  root.innerHTML=h;
+  root.querySelectorAll('td[data-cell]').forEach(td=>{td.addEventListener('focus',()=>{$('ot-formula').value=td.textContent||'';$('ot-cell-name').textContent=td.dataset.cell;});td.addEventListener('input',()=>{const a=td.dataset.cell;const v=td.textContent;const old=ws[a]||{};if(/^=/.test(v)){ws[a]={...old,f:v.slice(1),v:old.v??0,t:'n'};}else ws[a]={...old,v,t:typeof v==='number'?'n':'s'};ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rows-1,0),c:Math.max(cols-1,0)}});markDirty();});});
+  $('ot-sheet-name').textContent=sheetName;
+}
+async function applyFormula(){const a=$('ot-cell-name').textContent,td=document.querySelector('#ot-sheet-grid td[data-cell="'+a+'"]');if(td){td.textContent=$('ot-formula').value;td.dispatchEvent(new Event('input'));await calculateSheet();await renderSheet();td.focus();}}
+async function addSheet(){const n=prompt('New sheet name','Sheet'+(sheetWB.SheetNames.length+1));if(!n)return;sheetWB.Sheets[n]=XLSX.utils.aoa_to_sheet([['',''],['','']]);sheetWB.SheetNames.push(n);sheetName=n;renderSheet();markDirty();}
+async function deleteSheet(){if(!sheetWB||sheetWB.SheetNames.length<2)return notify('Keep at least one sheet.');delete sheetWB.Sheets[sheetName];sheetWB.SheetNames=sheetWB.SheetNames.filter(x=>x!==sheetName);sheetName=sheetWB.SheetNames[0];renderSheet();markDirty();}
+function renderDeck(){
+  const root=$('ot-slides');if(!root)return;root.innerHTML='';
+  deckSlides.forEach((s,i)=>{const card=document.createElement('article');card.className='ot-slide';card.dataset.i=i;card.innerHTML='<div class="ot-slide-head"><span>SLIDE '+(i+1)+'</span><div><button data-act="up">↑</button><button data-act="down">↓</button><button data-act="dup">⧉</button><button data-act="del">×</button></div></div><input class="ot-slide-title" value="'+esc(s.title)+'"><textarea class="ot-slide-body">'+esc(s.body)+'</textarea><input class="ot-slide-notes" placeholder="Speaker notes (optional)" value="'+esc(s.notes||'')+'">';
+    card.querySelector('.ot-slide-title').oninput=e=>{s.title=e.target.value;markDirty();};card.querySelector('.ot-slide-body').oninput=e=>{s.body=e.target.value;markDirty();};card.querySelector('.ot-slide-notes').oninput=e=>{s.notes=e.target.value;markDirty();};
+    card.querySelectorAll('button').forEach(b=>b.onclick=()=>{const a=b.dataset.act;if(a==='up'&&i>0)[deckSlides[i-1],deckSlides[i]]=[deckSlides[i],deckSlides[i-1]];if(a==='down'&&i<deckSlides.length-1)[deckSlides[i+1],deckSlides[i]]=[deckSlides[i],deckSlides[i+1]];if(a==='dup')deckSlides.splice(i+1,0,{...s,id:Date.now()});if(a==='del'&&deckSlides.length>1)deckSlides.splice(i,1);renderDeck();markDirty();});
+    root.appendChild(card);});
+}
+function addSlide(){deckSlides.push({id:Date.now(),title:'New Slide',body:'Add your content here',notes:''});renderDeck();markDirty();}
 
-  async function saveOffice(){
-    if(!current?.fileId)return notify("No Office document is open.");
-    try{setStatus("Saving current Office document…");const j=await authenticatedJson(CLOUD+"/api/office/force-save/"+encodeURIComponent(current.fileId),{method:"POST"});if(j.result?.error)throw new Error("ONLYOFFICE returned error "+j.result.error);setStatus("✓ Save requested; Office Engine is compiling the current version.","ok");}
-    catch(err){setStatus("✕ Save failed: "+err.message,"error");notify(err.message,true);}
-  }
+async function buildPptx(slides){try{const P=await ensurePptx();const ppt=new P();ppt.layout='LAYOUT_WIDE';ppt.author='Redmark Forge';ppt.subject='Browser-created presentation';slides.forEach((s,i)=>{const slide=ppt.addSlide();slide.background={color:'FFFFFF'};slide.addText(s.title||('Slide '+(i+1)),{x:.7,y:.45,w:11.9,h:.7,fontFace:'Aptos Display',fontSize:28,bold:true,color:'1C1B3A',margin:0});slide.addText(s.body||'',{x:.85,y:1.55,w:11.2,h:4.9,fontFace:'Aptos',fontSize:20,color:'334155',breakLine:false,margin:.04,fit:'shrink'});if(s.notes)slide.addNotes(s.notes);});return ppt.write({outputType:'blob'});}catch(_){/* fallback below */}
+  if(window.PptxGenJS)throw new Error('PptxGenJS initialization failed unexpectedly.');if(!window.JSZip)throw new Error('ZIP engine is not loaded.');
+  const z=new JSZip();const escx=s=>esc(s).replace(/'/g,'&apos;');
+  const now=new Date().toISOString();
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'+slides.map((_,i)=>'<Override PartName="/ppt/slides/slide'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>').join('')+'</Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>');
+  z.file('ppt/presentation.xml','<?xml version="1.0" encoding="UTF-8"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst/><p:sldIdLst>'+slides.map((_,i)=>'<p:sldId id="'+(256+i)+'" r:id="rId'+(i+1)+'"/>').join('')+'</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
+  z.file('ppt/_rels/presentation.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+slides.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>').join('')+'</Relationships>');
+  slides.forEach((s,i)=>{
+    const paras=(s.body||'').split(/\n/).filter(x=>x.trim()).map(x=>'<a:p><a:r><a:rPr lang="en-US" sz="2200"/><a:t>'+escx(x)+'</a:t></a:r><a:endParaRPr lang="en-US"/></a:p>').join('');
+    const title='<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="700000" y="450000"/><a:ext cx="10800000" cy="1100000"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US" b="1" sz="3200"/><a:t>'+escx(s.title||'Slide')+'</a:t></a:r></a:p></p:txBody></p:sp>';
+    const body='<p:sp><p:nvSpPr><p:cNvPr id="3" name="Body"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="850000" y="1800000"/><a:ext cx="10200000" cy="4100000"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/>'+paras+'</p:txBody></p:sp>';
+    z.file('ppt/slides/slide'+(i+1)+'.xml','<?xml version="1.0" encoding="UTF-8"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>'+title+body+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>');
+  });
+  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});}
 
-  async function downloadOffice(){
-    if(!current?.config?.document?.url)return notify("No Office document is open.");
-    try{const r=await fetch(current.config.document.url);if(!r.ok)throw new Error("Download HTTP "+r.status);const b=await r.blob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=current.filename||current.config.document.title||"office-file";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),30000);}
-    catch(err){notify("Download failed: "+err.message,true);}
-  }
+}
 
-  function newNote(){current=null;setMode("notepad");$("ot-note-name").value="Untitled.txt";$("ot-note-editor").value="";$("ot-note-editor").focus();setStatus("✓ New Notepad file","ok");}
-  function saveNote(asName){const name=asName||$("ot-note-name")?.value||"Untitled.txt";const blob=new Blob([$("ot-note-editor").value],{type:"text/plain;charset=utf-8"});const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),30000);setStatus("✓ Saved "+name,"ok");}
-
-  function wire(){
-    injectCss();
-    ["word","excel","powerpoint","pdf","notepad"].forEach(t=>$("ot-"+t)?.addEventListener("click",()=>setMode(t)));
-    $("ot-open")?.addEventListener("click",openPicker);
-    $("ot-new")?.addEventListener("click",()=>mode==="notepad"?newNote():newOffice(currentKind()));
-    $("ot-save")?.addEventListener("click",()=>mode==="notepad"?saveNote():saveOffice());
-    $("ot-saveas")?.addEventListener("click",()=>mode==="notepad"?saveNote(prompt("Save Notepad file as — any extension is allowed","Untitled.txt")):notify("Use ONLYOFFICE File → Save Copy as… for Save As / format conversion."));
-    $("ot-print")?.addEventListener("click",()=>mode==="notepad"?window.print():notify("Use the full ONLYOFFICE File → Print command."));
-    $("ot-download")?.addEventListener("click",downloadOffice);
-    $("ot-close")?.addEventListener("click",()=>destroy(true));
-    $("ot-note-new")?.addEventListener("click",newNote);
-    $("ot-note-open")?.addEventListener("click",openPicker);
-    $("ot-note-save")?.addEventListener("click",()=>saveNote($("ot-note-name")?.value||"Untitled.txt"));
-    $("ot-note-saveas")?.addEventListener("click",()=>{const n=prompt("Save text file as — any extension is allowed",$("ot-note-name")?.value||"Untitled.txt");if(n){$("ot-note-name").value=n;saveNote(n);}});
-    $("ot-note-editor")?.addEventListener("input",()=>setStatus("● Unsaved Notepad changes","dirty"));
-    setMode("word");landing();
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire,{once:true});else wire();
-  window.RedmarkOfficeTools={openFile,newOffice,saveOffice,downloadOffice,destroy};
+function wire(){
+  tabs.forEach(t=>$('ot-'+t)?.addEventListener('click',()=>setMode(t)));
+  $('ot-open')?.addEventListener('click',()=>{$('ot-file').click();});
+  $('ot-file')?.addEventListener('change',e=>openFile(e.target.files?.[0]));
+  $('ot-new')?.addEventListener('click',()=>({word:newWord,excel:newExcel,powerpoint:newDeck,notepad:newNote}[mode]||newWord)());
+  $('ot-save')?.addEventListener('click',()=>saveCurrent());
+  $('ot-saveas')?.addEventListener('click',()=>{const n=prompt('Save as — include the extension you want',currentName);if(n)saveCurrent(n);});
+  $('ot-print')?.addEventListener('click',()=>window.print());
+  $('ot-menu-open')?.addEventListener('click',()=>$('ot-file').click());
+  $('ot-menu-save')?.addEventListener('click',()=>saveCurrent());
+  $('ot-menu-saveas')?.addEventListener('click',()=>{const n=prompt('Save as — include the extension you want',currentName);if(n)saveCurrent(n);});
+  $('ot-menu-print')?.addEventListener('click',()=>window.print());
+  $('ot-menu-image')?.addEventListener('click',insertImage);$('ot-menu-table')?.addEventListener('click',()=>{const r=Math.max(1,+prompt('Rows','3')||3),col=Math.max(1,+prompt('Columns','3')||3);let h='<table><tbody>';for(let y=0;y<r;y++){h+='<tr>';for(let x=0;x<col;x++)h+='<td>&nbsp;</td>';h+='</tr>';}h+='</tbody></table>';exec('insertHTML',h);});$('ot-menu-link')?.addEventListener('click',insertLink);
+  $('ot-menu-bold')?.addEventListener('click',()=>exec('bold'));$('ot-menu-italic')?.addEventListener('click',()=>exec('italic'));
+  $('ot-menu-ul')?.addEventListener('click',()=>exec('insertUnorderedList'));$('ot-menu-ol')?.addEventListener('click',()=>exec('insertOrderedList'));
+  $('ot-menu-export')?.addEventListener('click',()=>{const n=prompt('Export format: docx, odt, pdf, html, md or txt','docx');if(n)saveCurrent(base(currentName)+'.'+n.replace(/^\./,''));});
+  $('ot-excel-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-excel-save')?.addEventListener('click',()=>saveCurrent());$('ot-excel-saveas')?.addEventListener('click',()=>{const n=prompt('Save spreadsheet as',currentName);if(n)saveCurrent(n);});
+  $('ot-ppt-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-ppt-save')?.addEventListener('click',()=>saveCurrent());$('ot-ppt-saveas')?.addEventListener('click',()=>{const n=prompt('Save presentation as',currentName);if(n)saveCurrent(n);});
+  $('ot-add-slide-2')?.addEventListener('click',addSlide);
+  $('ot-note-new')?.addEventListener('click',newNote);$('ot-note-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-note-save')?.addEventListener('click',()=>saveCurrent());$('ot-note-saveas')?.addEventListener('click',()=>{const n=prompt('Save text file as — any extension is allowed',currentName);if(n)saveCurrent(n);});
+  $('ot-add-slide')?.addEventListener('click',addSlide);
+  $('ot-add-sheet')?.addEventListener('click',()=>addSheet());$('ot-del-sheet')?.addEventListener('click',()=>deleteSheet());$('ot-formula-apply')?.addEventListener('click',applyFormula);
+  $('ot-note-editor')?.addEventListener('input',markDirty);$('ot-note-name')?.addEventListener('input',()=>{currentName=$('ot-note-name').value||'Untitled.txt';});
+  $('ot-word-editor')?.addEventListener('input',markDirty);
+  $('ot-bold')?.addEventListener('click',()=>exec('bold'));$('ot-strike')?.addEventListener('click',()=>exec('strikeThrough'));$('ot-undo')?.addEventListener('click',()=>exec('undo'));$('ot-redo')?.addEventListener('click',()=>exec('redo'));$('ot-italic')?.addEventListener('click',()=>exec('italic'));$('ot-underline')?.addEventListener('click',()=>exec('underline'));
+  $('ot-ul')?.addEventListener('click',()=>exec('insertUnorderedList'));$('ot-ol')?.addEventListener('click',()=>exec('insertOrderedList'));
+  $('ot-link')?.addEventListener('click',insertLink);$('ot-image')?.addEventListener('click',insertImage);
+  $('ot-align-left')?.addEventListener('click',()=>exec('justifyLeft'));$('ot-align-center')?.addEventListener('click',()=>exec('justifyCenter'));$('ot-align-right')?.addEventListener('click',()=>exec('justifyRight'));
+  $('ot-font')?.addEventListener('change',e=>exec('fontName',e.target.value));$('ot-size')?.addEventListener('change',e=>exec('fontSize',e.target.value));
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveCurrent();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='o'){e.preventDefault();$('ot-file')?.click();}});
+  setMode('word');if($('ot-note-name'))$('ot-note-name').value=currentName;
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
+window.REDMARK_OFFICE_TOOLS={openFile,saveCurrent};
 })();
