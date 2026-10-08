@@ -147,7 +147,7 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   .nav-btn[data-tab="tabDatabaseStudio"]{order:32 !important}
   .nav-btn[data-tab="tabDataClean"]{order:33 !important}
   .nav-btn[data-tab="tabVizInterchange"]{order:34 !important}
-  .nav-btn[data-tab="tabBatchLab"]{order:35 !important}
+  .nav-btn[data-tab="tabBatchLab"]{order:35 !important;display:flex !important;visibility:visible !important;opacity:1 !important;height:auto !important;max-height:none !important;flex:0 0 auto !important}
   .nav-btn[data-tab="tabRAGStudio"]{order:40 !important}
   .nav-btn[data-tab="tabLanguageStudio"]{order:41 !important}
   .nav-btn[data-tab="tabCodeStudio"]{order:42 !important}
