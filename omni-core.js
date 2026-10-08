@@ -237,14 +237,16 @@
       const safeBase = imgResizeFile.name.replace(/\.[^/.]+$/, '') || 'image';
       const filename = `${safeBase}_${width}x${height}px.${outExt}`;
       const url = URL.createObjectURL(blob);
-      imgResizeGrid.innerHTML = `
-        <div class="page-card">
-          <div class="page-preview-wrapper"><img src="${url}" alt="Resized preview"></div>
-          <div class="page-meta">
-            <div><div class="page-num">${width} × ${height} px</div><div class="file-meta">${title}</div></div>
-            <a class="btn-download-single" href="${url}" download="${filename}">Save</a>
-          </div>
-        </div>`;
+      imgResizeGrid.innerHTML = '';
+      const card=document.createElement('div'); card.className='page-card';
+      const pw=document.createElement('div'); pw.className='page-preview-wrapper';
+      const img=document.createElement('img'); img.src=url; img.alt='Resized preview'; pw.appendChild(img);
+      const pm=document.createElement('div'); pm.className='page-meta';
+      const left=document.createElement('div');
+      const pn=document.createElement('div'); pn.className='page-num'; pn.textContent=width+' × '+height+' px';
+      const fm=document.createElement('div'); fm.className='file-meta'; fm.textContent=title; left.append(pn,fm);
+      const save=document.createElement('a'); save.className='btn-download-single'; save.href=url; save.download=filename; save.textContent='Save';
+      pm.append(left,save); card.append(pw,pm); imgResizeGrid.appendChild(card);
       imgResizeResults.style.display = 'block';
       imgResizeResultTitle.textContent = title;
       imgResizeResultMeta.textContent = `${width} × ${height} px • ${formatFileSize(blob.size)}`;
@@ -463,7 +465,12 @@
       const row = document.createElement('div');
       row.className = 'item-row';
       const url = URL.createObjectURL(blob);
-      row.innerHTML = `<div><div class="item-row-title">${escapeXml(name)}</div><div class="item-row-meta">${formatFileSize(blob.size)}</div></div><div class="item-row-actions"><a class="btn-download-single" href="${url}" download="${name}">Save</a></div>`;
+      const body=document.createElement('div');
+      const title=document.createElement('div'); title.className='item-row-title'; title.textContent=name;
+      const meta=document.createElement('div'); meta.className='item-row-meta'; meta.textContent=formatFileSize(blob.size);
+      const actions=document.createElement('div'); actions.className='item-row-actions';
+      const save=document.createElement('a'); save.className='btn-download-single'; save.href=url; save.download=name; save.textContent='Save';
+      body.append(title,meta); actions.appendChild(save); row.append(body,actions);
       decompressList.appendChild(row);
     }
 
@@ -679,13 +686,12 @@
       pdfConvertedImgs.forEach(img => {
         const card = document.createElement('div');
         card.className = 'page-card';
-        card.innerHTML = `
-          <div class="page-preview-wrapper"><img src="${img.dataUrl}"></div>
-          <div class="page-meta">
-            <div class="page-num">Page ${img.pNum}</div>
-            <a class="btn-download-single" href="${URL.createObjectURL(img.blob)}" download="${img.filename}">Save .${img.ext.toUpperCase()}</a>
-          </div>
-        `;
+        const pw=document.createElement('div'); pw.className='page-preview-wrapper';
+        const pic=document.createElement('img'); pic.src=img.dataUrl; pic.alt='PDF page '+img.pNum; pw.appendChild(pic);
+        const pm=document.createElement('div'); pm.className='page-meta';
+        const pn=document.createElement('div'); pn.className='page-num'; pn.textContent='Page '+img.pNum;
+        const save=document.createElement('a'); save.className='btn-download-single'; save.href=URL.createObjectURL(img.blob); save.download=img.filename; save.textContent='Save .'+img.ext.toUpperCase();
+        pm.append(pn,save); card.append(pw,pm);
         pdf2imgGrid.appendChild(card);
       });
       } catch (err) {
@@ -985,7 +991,7 @@
         } catch (retryError) {
           console.error('PDF to Word retry failed', retryError);
           const reason = retryError?.message || e?.message || 'Unknown PDF.js error';
-          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\\n\\n' + reason);
+          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\n\n' + reason);
           resetP2w();
         }
       }
@@ -1533,7 +1539,12 @@
       convertedImageResults.forEach(item => {
         const card = document.createElement('div');
         card.className = 'page-card';
-        card.innerHTML = `<div class="page-preview-wrapper"><img src="${item.dataUrl}"></div><div class="page-meta"><div class="page-num" style="font-size:0.8rem;">${item.filename}</div><a class="btn-download-single" href="${URL.createObjectURL(item.blob)}" download="${item.filename}">Save</a></div>`;
+        const pw=document.createElement('div'); pw.className='page-preview-wrapper';
+        const pic=document.createElement('img'); pic.src=item.dataUrl; pic.alt='EPUB page '+(i+1); pw.appendChild(pic);
+        const pm=document.createElement('div'); pm.className='page-meta';
+        const pn=document.createElement('div'); pn.className='page-num'; pn.style.fontSize='0.8rem'; pn.textContent=item.filename;
+        const save=document.createElement('a'); save.className='btn-download-single'; save.href=URL.createObjectURL(item.blob); save.download=item.filename; save.textContent='Save';
+        pm.append(pn,save); card.append(pw,pm);
         imgGrid.appendChild(card);
       });
       imgRunBtn.disabled = false;
