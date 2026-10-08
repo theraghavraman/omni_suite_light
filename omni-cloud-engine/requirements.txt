@@ -7,4 +7,4 @@ pypdf==6.9.2
 Pillow==12.3.0
 python-multipart==0.0.31
 scikit-learn==1.7.2
-yt-dlp==2026.9.27
+yt-dlp==2026.8.19
