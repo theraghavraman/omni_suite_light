@@ -313,22 +313,31 @@ const CONS={0x15:'k',0x16:'kh',0x17:'g',0x18:'gh',0x19:'ng',0x1A:'ch',0x1B:'chh'
 const SIGN={0x3E:'aa',0x3F:'i',0x40:'ee',0x41:'u',0x42:'oo',0x43:'ri',0x44:'rri',0x45:'e',0x46:'e',0x47:'e',0x48:'ai',0x49:'o',0x4A:'o',0x4B:'o',0x4C:'au',0x62:'lri',0x63:'lri'};
 function scriptOf(text){for(const ch of text){const c=ch.codePointAt(0);for(const [k,b] of Object.entries(SCRIPTS))if(c>=b&&c<b+0x80)return k;}return /[A-Za-z]/.test(text)?'latn':null;}
 function brahmicToLatin(text,script){
-  const b=SCRIPTS[script];let out='',i=0;const cps=[...text].map(c=>c.codePointAt(0));const word=[];
-  const flush=()=>{let w=word.join('');if(SCHWA_DROP.has(script)&&w.length>2)w=w.replace(/([^aeiou])a$/,'$1');out+=w;word.length=0;};
+  const b=SCRIPTS[script];let out='',i=0;const cps=[...text].map(c=>c.codePointAt(0));const word=[];// syllables: {t,inh,cons}
+  const flush=()=>{if(!word.length)return;
+    if(SCHWA_DROP.has(script)){
+      // Hindi-style schwa deletion: drop a medial inherent "a" between a voiced syllable and a consonant+vowel syllable (aapka, bachpan) …
+      // applied right to left: the final inherent vowel first (bharat, kamal) …
+      const last=word[word.length-1];if(word.length>1&&last.inh){last.t=last.t.slice(0,-1);last.inh=false;}
+      for(let k=word.length-2;k>=1;k--){const prev=word[k-1],cur=word[k],next=word[k+1];if(cur.inh&&/[aeiou]$/.test(prev.t)&&next.cons&&/[aeiou]/.test(next.t)&&!next.half){cur.t=cur.t.slice(0,-1);cur.inh=false;}}
+    }
+    out+=word.map(x=>x.t).join('');word.length=0;};
   while(i<cps.length){const c=cps[i],o=c-b;
     if(c>=b&&c<b+0x80){
       if(CONS[o]!==undefined){let cons=CONS[o];let j=i+1;if(cps[j]===b+0x3C){j++;}
-        if(cps[j]===b+0x4D){word.push(cons);i=j+1;continue;}
-        if(SIGN[cps[j]-b]!==undefined&&cps[j]>=b&&cps[j]<b+0x80){word.push(cons+SIGN[cps[j]-b]);i=j+1;continue;}
-        word.push(cons+'a');i=j;continue;}
-      if(IND_V[o]!==undefined){word.push(IND_V[o]);i++;continue;}
-      if(o===0x02||o===0x01){word.push(script==='deva'||script==='beng'||script==='guru'||script==='gujr'?'n':'m');i++;continue;}
-      if(o===0x03){word.push('h');i++;continue;}
-      if(o>=0x66&&o<=0x6F){word.push(String(o-0x66));i++;continue;}
+        if(cps[j]===b+0x4D){word.push({t:cons,cons:true,half:true});i=j+1;continue;}
+        if(SIGN[cps[j]-b]!==undefined&&cps[j]>=b&&cps[j]<b+0x80){word.push({t:cons+SIGN[cps[j]-b],cons:true});i=j+1;continue;}
+        word.push({t:cons+'a',cons:true,inh:true});i=j;continue;}
+      if(IND_V[o]!==undefined){word.push({t:IND_V[o]});i++;continue;}
+      if(o===0x02||o===0x01){word.push({t:script==='deva'||script==='beng'||script==='guru'||script==='gujr'?'n':'m'});i++;continue;}
+      if(o===0x03){word.push({t:'h'});i++;continue;}
+      if(script==='guru'&&o===0x70){word.push({t:'n'});i++;continue;}// tippi (nasal)
+      if(script==='guru'&&o===0x71){const nx=cps[i+1]-b;if(CONS[nx]!==undefined)word.push({t:CONS[nx][0]});i++;continue;}// addak (doubles next consonant)
+      if(o>=0x66&&o<=0x6F){flush();out+=String(o-0x66);i++;continue;}
       if(o===0x64||o===0x65){flush();out+='.';i++;continue;}
-      if(o===0x50){word.push('om');i++;continue;}
+      if(o===0x50){word.push({t:'om'});i++;continue;}
       i++;continue;}
-    if(script==='beng'&&(c===0x09F0||c===0x09F1)){word.push(c===0x09F0?'ra':'wa');i++;continue;}
+    if(script==='beng'&&(c===0x09F0||c===0x09F1)){word.push({t:c===0x09F0?'ra':'wa',cons:true,inh:true});i++;continue;}
     flush();out+=String.fromCodePoint(c);i++;}
   flush();return out.replace(/aa(?=\b)/g,'a');
 }
