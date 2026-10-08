@@ -1845,55 +1845,16 @@ python prepare_language_models.py --transliteration</pre>
       </div>
     </div>
 
-    <!-- OFFICE TOOLS: full ONLYOFFICE editor + arbitrary-extension Notepad -->
+    <!-- OFFICE TOOLS: browser-only Office workspace -->
     <div class="module-panel" id="tabOfficeTools">
       <div class="ot-shell">
-        <div class="ot-topline">
-          <div>
-            <div class="ot-kicker">REDMARK OFFICE TOOLS</div>
-            <h2 id="ot-mode-label">Word / Writer</h2>
-            <div class="sub">Real document, spreadsheet, presentation and PDF editing through the open-source ONLYOFFICE engine. Not a simulated toolbar.</div>
-          </div>
-          <div class="ot-filebar">
-            <button class="ot-btn primary" id="ot-new">＋ New</button>
-            <button class="ot-btn" id="ot-open">📂 Open</button>
-            <button class="ot-btn" id="ot-save">💾 Save</button>
-            <button class="ot-btn" id="ot-saveas">Save As…</button>
-            <button class="ot-btn" id="ot-download">Download</button>
-            <button class="ot-btn" id="ot-print">🖨 Print</button>
-            <button class="ot-btn" id="ot-close">Close</button>
-            <input id="ot-file" type="file" hidden accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.pdf,*/*">
-          </div>
-        </div>
-
-        <div class="ot-tabs">
-          <button id="ot-word" class="ot-tab active">📝 Word / Writer</button>
-          <button id="ot-excel" class="ot-tab">📊 Excel / Calc</button>
-          <button id="ot-powerpoint" class="ot-tab">📽 PowerPoint / Impress</button>
-          <button id="ot-pdf" class="ot-tab">📕 PDF / Forms</button>
-          <button id="ot-notepad" class="ot-tab">▤ Notepad</button>
-          <span class="ot-save-state" id="ot-save-state">✓ Ready</span>
-        </div>
-
-        <div id="ot-engine-status" class="ot-ribbon-note" style="padding:8px 14px;background:#fff;border-bottom:1px solid #dbe2ea">Full Office Engine ready. Open a file or create a new document.</div>
-
-        <div id="ot-onlyoffice-host"></div>
-
-        <div id="ot-note-local" class="ot-note-local">
-          <div class="ot-ribbon">
-            <div class="ot-menu"><button>File</button><div><button id="ot-note-new">New</button><button id="ot-note-open">Open</button><button id="ot-note-save">Save</button><button id="ot-note-saveas">Save As…</button></div></div>
-            <div class="ot-menu"><button>Edit</button><div><button onclick="document.getElementById('ot-note-editor')?.focus()">Focus</button><button onclick="document.getElementById('ot-note-editor')?.select()">Select All</button></div></div>
-            <div class="ot-menu"><button>View</button><div><button onclick="document.getElementById('ot-note-editor').style.fontSize='18px'">Larger text</button><button onclick="document.getElementById('ot-note-editor').style.fontSize='14px'">Normal text</button></div></div>
-            <span class="ot-ribbon-note">Save with any filename and extension — .txt, .bat, .cmd, .json, .sql, .py, .html, .md, or anything else.</span>
-          </div>
-          <div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid #dbe2ea"><input id="ot-note-name" class="ot-formula" value="Untitled.txt" style="width:min(320px,100%)" aria-label="Notepad filename"></div>
-          <textarea id="ot-note-editor" class="ot-note-editor" spellcheck="false" placeholder="Type anything…"></textarea>
-        </div>
-
-        <div class="ot-footer">
-          <span>Powered by ONLYOFFICE Docs Community • Browser UI + Render Office Engine</span>
-          <span>Notepad stays local and supports arbitrary file extensions.</span>
-        </div>
+        <div class="ot-topline"><div><div class="ot-kicker">REDMARK OFFICE TOOLS</div><h2 id="ot-mode-label">Word / Writer</h2><div class="sub">100% browser-side Office editing. No Render, no cloud Office server and no paid service required.</div></div><div class="ot-filebar"><button class="ot-btn primary" id="ot-new">＋ New</button><button class="ot-btn" id="ot-open">📂 Open</button><button class="ot-btn" id="ot-save">💾 Save</button><button class="ot-btn" id="ot-saveas">Save As…</button><button class="ot-btn" id="ot-print">🖨 Print</button><input id="ot-file" type="file" hidden accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,.pdf,*/*"></div></div>
+        <div class="ot-tabs"><button id="ot-word" class="ot-tab active">📝 Word / Writer</button><button id="ot-excel" class="ot-tab">📊 Excel / Calc</button><button id="ot-powerpoint" class="ot-tab">📽 PowerPoint / Impress</button><button id="ot-notepad" class="ot-tab">▤ Notepad</button><span class="ot-save-state" id="ot-save-state">✓ Saved / ready</span></div>
+        <section class="ot-panel active" id="ot-panel-word"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-menu-open">Open</button><button id="ot-menu-save">Save</button><button id="ot-menu-saveas">Save As…</button><button id="ot-menu-export">Export</button><button id="ot-menu-print">Print</button></div></div><div class="ot-menu"><button>Edit</button><div><button id="ot-menu-undo">Undo</button><button id="ot-menu-redo">Redo</button><button onclick="document.execCommand('selectAll')">Select All</button></div></div><div class="ot-menu"><button>Insert</button><div><button id="ot-menu-image">Image</button><button id="ot-menu-link">Link</button><button id="ot-menu-table">Table</button><button onclick="document.execCommand('insertHorizontalRule')">Horizontal Rule</button></div></div><select id="ot-font"><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Times New Roman</option><option>Verdana</option><option>Courier New</option></select><select id="ot-size"><option value="1">10</option><option value="2">12</option><option value="3" selected>14</option><option value="4">18</option><option value="5">24</option><option value="6">32</option><option value="7">48</option></select><button class="ot-icon" id="ot-bold"><b>B</b></button><button class="ot-icon" id="ot-italic"><i>I</i></button><button class="ot-icon" id="ot-underline"><u>U</u></button><button class="ot-icon" id="ot-strike"><s>S</s></button><button class="ot-icon" id="ot-ul">•≡</button><button class="ot-icon" id="ot-ol">1≡</button><button class="ot-icon" id="ot-align-left">≡</button><button class="ot-icon" id="ot-align-center">≡</button><button class="ot-icon" id="ot-align-right">≡</button><button class="ot-icon" id="ot-link">🔗</button><button class="ot-icon" id="ot-image">🖼</button><button class="ot-icon" id="ot-undo">↶</button><button class="ot-icon" id="ot-redo">↷</button></div><div class="ot-paper-wrap"><article id="ot-word-editor" class="ot-word-editor" contenteditable="true" spellcheck="true"><h1>Untitled Document</h1><p>Start writing here…</p></article></div></section>
+        <section class="ot-panel" id="ot-panel-excel"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-excel-open">Open</button><button id="ot-excel-save">Save</button><button id="ot-excel-saveas">Save As…</button></div></div><div class="ot-menu"><button>Home</button><div><button id="ot-excel-bold">Bold</button><button id="ot-excel-italic">Italic</button><button id="ot-excel-center">Center</button></div></div><div class="ot-menu"><button>Insert</button><div><button id="ot-add-sheet">New Sheet</button><button id="ot-del-sheet">Delete Sheet</button></div></div><div class="ot-menu"><button>Data</button><div><button id="ot-sort-help">Sort / Filter</button><button id="ot-freeze-help">Freeze Panes</button></div></div><span class="ot-cell-label" id="ot-cell-name">A1</span><input class="ot-formula" id="ot-formula" placeholder="Formula or value"><button class="ot-icon" id="ot-formula-apply">✓</button></div><div class="ot-sheet-head"><strong id="ot-sheet-name">Sheet1</strong><span>Browser spreadsheet • formulas + multi-sheet import/export</span></div><div class="ot-sheet-grid" id="ot-sheet-grid"></div></section>
+        <section class="ot-panel" id="ot-panel-powerpoint"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-ppt-open">Open</button><button id="ot-ppt-save">Save</button><button id="ot-ppt-saveas">Save As…</button></div></div><div class="ot-menu"><button>Home</button><div><button id="ot-add-slide">New Slide</button><button id="ot-add-slide-2">Duplicate Slide</button></div></div><div class="ot-menu"><button>Slide</button><div><button id="ot-add-slide-image">Add Image</button><button id="ot-add-slide-shape">Add Shape</button></div></div><span class="ot-ribbon-note">Browser-native presentation builder • PPTX export</span></div><div class="ot-slides" id="ot-slides"></div></section>
+        <section class="ot-panel" id="ot-panel-notepad"><div class="ot-ribbon"><div class="ot-menu"><button>File</button><div><button id="ot-note-new">New</button><button id="ot-note-open">Open</button><button id="ot-note-save">Save</button><button id="ot-note-saveas">Save As…</button></div></div><div class="ot-menu"><button>Edit</button><div><button onclick="document.getElementById('ot-note-editor').select()">Select All</button><button onclick="document.execCommand('copy')">Copy</button></div></div><span class="ot-ribbon-note">Any filename + extension: .txt, .bat, .cmd, .json, .sql, .py, .html, .md, etc.</span></div><div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid #dbe2ea"><input id="ot-note-name" class="ot-formula" value="Untitled.txt" style="width:min(320px,100%)"></div><textarea id="ot-note-editor" class="ot-note-editor" spellcheck="false" placeholder="Type anything…"></textarea></section>
+        <div class="ot-footer"><span>🔒 Browser-only • files remain on this device until you download</span><span>No Render • no paid service</span></div>
       </div>
     </div>
 
