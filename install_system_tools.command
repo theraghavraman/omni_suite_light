@@ -34,7 +34,7 @@ if [ "$OS" = "Darwin" ]; then
   # Install only formulae that actually exist in the current Homebrew catalog.
   # Some older Omni copies referenced libwebm directly; FFmpeg already provides WebM
   # encode/decode support for Omni, so libwebm is deliberately not a hard dependency.
-  FORMULAE="python@3.13 ffmpeg qpdf poppler imagemagick librsvg libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf"
+  FORMULAE="python@3.13 ffmpeg qpdf poppler imagemagick librsvg libheif libraw openexr jpeg-xl webp ghostscript tesseract tesseract-lang eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf"
   for formula in $FORMULAE; do
     if brew list --formula "$formula" >/dev/null 2>&1; then
       echo "[OK] Homebrew formula already installed: $formula"
