@@ -3083,7 +3083,7 @@ async function pdfPpt(f, options={}) {
   }
   return output;
 }
-async function office(f,target,options={}){const e=ext(f.name);if(e==='pdf'&&target==='pptx')return pdfPpt(f,options);if(['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(e)&&['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(target))return data(f,target,'sqlite','Sheet1');if(['pptx','ppsx','potx'].includes(e)&&['pptx','ppsx','potx'].includes(target)&&e!==target){if(!window.JSZip)return false;const z=await JSZip.loadAsync(await f.arrayBuffer()),ct=z.file('[Content_Types].xml');if(!ct)return false;let s=await ct.async('text');const m={pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',ppsx:'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',potx:'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'};s=s.split(m[e]).join(m[target]);z.file('[Content_Types].xml',s);dl(await z.generateAsync({type:'blob',compression:true}),f.name.replace(/\.[^.]+$/,'')+'.'+target);return true}return false}
+async function office(f,target,options={}){const e=ext(f.name);if(e==='pdf'&&target==='pptx')return pdfPpt(f,options);if(['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(e)&&['xlsx','xlsm','xlsb','xls','ods','fods','csv','tsv'].includes(target))return data(f,target,'sqlite','Sheet1');if(['pptx','ppsx','potx'].includes(e)&&['pptx','ppsx','potx'].includes(target)&&e!==target){if(!window.JSZip)return false;const z=await JSZip.loadAsync(await f.arrayBuffer()),ct=z.file('[Content_Types].xml');if(!ct)return false;let s=await ct.async('text');const m={pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',ppsx:'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',potx:'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml'};s=s.split(m[e]).join(m[target]);z.file('[Content_Types].xml',s);dl(await z.generateAsync({type:'blob',compression:'DEFLATE'}),f.name.replace(/\.[^.]+$/,'')+'.'+target);return true}return false}
 function ddb(v){if(Array.isArray(v))return v.map(ddb);if(v&&typeof v==='object'){if('S' in v)return v.S;if('N' in v)return Number(v.N);if('BOOL' in v)return !!v.BOOL;if('NULL' in v)return null;if('B' in v)return v.B;if('SS' in v)return v.SS;if('NS' in v)return v.NS.map(Number);if('BS' in v)return v.BS;if('L' in v)return v.L.map(ddb);if('M' in v)return Object.fromEntries(Object.entries(v.M).map(([k,x])=>[k,ddb(x)]));return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,ddb(x)]))}return v}
 function mongo(v){if(Array.isArray(v))return v.map(mongo);if(v&&typeof v==='object'){if('$oid' in v)return v.$oid;if('$date' in v)return typeof v.$date==='object'?(v.$date.$numberLong||v.$date):v.$date;if('$numberInt' in v)return Number(v.$numberInt);if('$numberLong' in v)return Number(v.$numberLong);if('$numberDouble' in v)return Number(v.$numberDouble);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,mongo(x)]))}return v}
 async function nosql(f,source,target){if(!['json','jsonl','dynamodb-json'].includes(source))return false;const t=await f.text();let v=source==='jsonl'?t.split(/\r?\n/).filter(Boolean).map(JSON.parse):JSON.parse(t);v=source==='dynamodb-json'?ddb(v):mongo(v);const r=rows(v);if(target==='json'){dl(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}),'omni_browser_nosql.json');return true}if(target==='jsonl'){dl(new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'}),'omni_browser_nosql.jsonl');return true}if(target==='csv'||target==='sql')return data(new File([JSON.stringify(v)],'browser.json',{type:'application/json'}),target,'sqlite','nosql_data');if(target==='cql'||target==='cypher'){const fr=r.map(x=>flat(x)),keys=[...new Set(fr.flatMap(x=>Object.keys(x)))];let out;if(target==='cql')out='CREATE TABLE nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')+' text').join(', ')+');\n\n'+fr.map(x=>'INSERT INTO nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')).join(', ')+') VALUES ('+keys.map(k=>"'"+String(x[k]??'').replace(/'/g,"''")+"'").join(', ')+');').join('\n');else{const ck=k=>'`'+String(k).replace(/`/g,'``')+'`',cv=v=>v===null||v===undefined?'null':typeof v==='number'||typeof v==='boolean'?String(v):"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";out=fr.map(x=>'CREATE (:NoSQLData {'+Object.entries(x).map(([k,v])=>ck(k)+': '+cv(v)).join(', ')+'});').join('\n')}dl(new Blob([out],{type:'text/plain'}),'omni_browser_nosql.'+target+'.txt');return true}return false}
@@ -3997,6 +3997,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./omni_assistant.js?v=fast8"></script>
 <script src="./bi_code_studio.js?v=2"></script>
 <script src="./omni_browser_studio_plus.js?v=4"></script>
+<script src="./omni_browser_docs.js?v=4"></script>
 
 <script id="omni-unicode-local-bridge">
 (function(){
@@ -4019,7 +4020,11 @@ async function omniLocalText(format){
   a.href=u; a.download=j.name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(u),2000);
 }
-function needsUnicode(s){return /[^\x00-\xFF]/.test(s||"");}
+// The browser engine (omni_browser_docs.js) typesets Latin and Indic scripts itself; only scripts it cannot
+// embed yet (Arabic, Hebrew, CJK, emoji) go to the Local Engine first.
+function needsUnicode(s){return /[\u0590-\u08FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]|[\u{1F300}-\u{1FAFF}]/u.test(s||"");}
+function omniBrowserRetry(btn,msg){window.__omniBrowserRetry=true;try{window.omniNotify&&window.omniNotify(msg);btn.click();}finally{window.__omniBrowserRetry=false;}}
+const localMissing=err=>err&&(err.localEngine||/Local Engine|Failed to fetch|not running/i.test(err.message||""));
 async function omniLocalPdfDocx(){
   const input=document.getElementById("p2wInput"); if(!input||!input.files[0]) throw new Error("Choose a PDF first.");
   const file=input.files[0];
@@ -4035,24 +4040,21 @@ async function omniLocalPdfDocx(){
 }
 const pdf=document.getElementById("t2dPdfBtn"), docx=document.getElementById("t2dDocxBtn"), p2w=document.getElementById("p2wRunBtn");
 if(p2w) p2w.addEventListener("click",async e=>{
+  if(window.__omniBrowserRetry) return;
+  if((document.getElementById("p2wMode")||{}).value!=="hybrid") return; // visual / browser modes run in the browser
   e.preventDefault(); e.stopImmediatePropagation();
   try{await omniLocalPdfDocx(); window.omniNotify&&window.omniNotify("Editable DOCX created with Local Engine.");}
-  catch(err){alert("PDF → editable DOCX requires the Local Engine with Poppler + LibreOffice.\n\n"+err.message);}
+  catch(err){if(localMissing(err)){omniBrowserRetry(p2w,"Local Engine not running — converting in your browser instead.");return;}alert("PDF → editable DOCX failed in the Local Engine.\n\n"+err.message);}
 },true);
 if(pdf) pdf.addEventListener("click",async e=>{
+  if(window.__omniBrowserRetry) return;
   const text=(document.getElementById("t2dText")||{}).value||"";
   if(!needsUnicode(text)) return;
   e.preventDefault(); e.stopImmediatePropagation();
   try{await omniLocalText("pdf"); window.omniNotify&&window.omniNotify("Unicode-safe PDF created locally.");}
-  catch(err){alert("Hindi/Unicode PDF needs the Local Engine. Start Omni locally and try again.\n\n"+err.message);}
+  catch(err){if(localMissing(err)){omniBrowserRetry(pdf,"Local Engine not running — building the PDF in your browser (some characters may be replaced).");return;}alert("Local Engine PDF failed.\n\n"+err.message);}
 },true);
-if(docx) docx.addEventListener("click",async e=>{
-  const text=(document.getElementById("t2dText")||{}).value||"";
-  if(!needsUnicode(text)) return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  try{await omniLocalText("docx"); window.omniNotify&&window.omniNotify("Unicode-safe DOCX created locally.");}
-  catch(err){alert("Hindi/Unicode DOCX needs the Local Engine. Start Omni locally and try again.\n\n"+err.message);}
-},true);
+// DOCX is plain XML and stores every script correctly, so it is always built in the browser.
 })();
 </script>
 
