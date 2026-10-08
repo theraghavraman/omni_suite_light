@@ -29,6 +29,17 @@
   <script src="./vendor/jsyaml/js-yaml.min.js"></script>
   <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
+<style id="redmark-office-tools-css">
+#tabOfficeTools{--ot-accent:#e11d48;--ot-blue:#2563eb;--ot-green:#16a34a;--ot-gold:#f59e0b}
+.ot-shell{background:rgba(255,255,255,.92);border:1px solid rgba(15,23,42,.08);border-radius:24px;box-shadow:0 26px 70px -30px rgba(15,23,42,.28);overflow:hidden}
+.ot-topline{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:22px 24px;background:linear-gradient(120deg,#fff,#fff7f9)}
+.ot-kicker{font-size:.72rem;font-weight:900;letter-spacing:.14em;color:#e11d48}.ot-topline h2{margin:4px 0 5px;font-size:1.8rem}.ot-filebar{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}.ot-btn,.ot-icon,.ot-menu>button,.ot-menu>div button{border:1px solid #dbe2ea;background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:700;color:#26334a}.ot-btn.primary{background:#e11d48;color:#fff;border-color:#e11d48}
+.ot-tabs{display:flex;gap:4px;padding:8px 12px;background:#1e293b;align-items:center;overflow:auto}.ot-tab{border:0;background:transparent;color:#cbd5e1;padding:10px 13px;border-radius:8px;white-space:nowrap;font-weight:800;cursor:pointer}.ot-tab.active{background:#fff;color:#1e293b}.ot-save-state{margin-left:auto;color:#94a3b8;font-size:.78rem;white-space:nowrap}.ot-save-state.dirty{color:#fbbf24}
+.ot-panel{display:none;background:#f1f5f9}.ot-panel.active{display:block}.ot-ribbon{min-height:58px;display:flex;gap:6px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #dbe2ea;overflow:auto}.ot-menu{position:relative}.ot-menu>button{border:0;background:#fff}.ot-menu>div{display:none;position:absolute;top:100%;left:0;z-index:20;min-width:180px;padding:6px;background:#fff;border:1px solid #dbe2ea;border-radius:10px;box-shadow:0 14px 30px rgba(15,23,42,.18)}.ot-menu:hover>div{display:grid}.ot-menu>div button{text-align:left;border:0;border-radius:6px;background:#fff}.ot-menu>div button:hover{background:#f1f5f9}.ot-tool-sep{width:1px;height:30px;background:#dbe2ea;margin:0 4px}.ot-ribbon select,.ot-formula{border:1px solid #dbe2ea;border-radius:7px;padding:7px;background:#fff}.ot-icon{min-width:34px;padding:7px}.ot-paper-wrap{padding:28px;min-height:720px;background:#e8edf3;overflow:auto}.ot-word-editor{width:min(850px,100%);min-height:1050px;margin:0 auto;padding:72px 76px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.15);outline:0;color:#172033;font-family:Arial,sans-serif;font-size:16px;line-height:1.6}.ot-word-editor h1,.ot-word-editor h2,.ot-word-editor h3{line-height:1.2}.ot-word-editor table{border-collapse:collapse;width:100%;margin:14px 0}.ot-word-editor td,.ot-word-editor th{border:1px solid #9ca3af;padding:7px}.ot-word-editor blockquote{border-left:4px solid #e11d48;padding-left:14px;color:#475569}.ot-sheet-head{display:flex;gap:18px;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #dbe2ea;font-size:.8rem}.ot-sheet-head span{color:#64748b}.ot-sheet-grid{padding:0;overflow:auto;max-height:720px;background:#fff}.ot-sheet-grid table{border-collapse:collapse;min-width:1100px;font:13px Arial,sans-serif}.ot-sheet-grid th,.ot-sheet-grid td{border:1px solid #d7dee7;height:28px;min-width:92px;padding:4px 7px;white-space:nowrap}.ot-sheet-grid thead th{position:sticky;top:0;background:#eef2f7;z-index:3;text-align:center}.ot-sheet-grid .corner{left:0;z-index:5}.ot-sheet-grid .rowhead{position:sticky;left:0;background:#eef2f7;text-align:center;z-index:2;min-width:44px}.ot-sheet-grid td:focus{outline:2px solid #2563eb;outline-offset:-2px}.ot-cell-label{font:700 12px ui-monospace,monospace;padding:7px 9px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:7px}.ot-formula{min-width:260px}.ot-slides{padding:24px;display:grid;gap:20px}.ot-slide{max-width:1000px;margin:0 auto;width:100%;background:#fff;aspect-ratio:16/9;border-radius:14px;box-shadow:0 14px 32px rgba(15,23,42,.14);padding:28px 38px;display:flex;flex-direction:column;gap:16px}.ot-slide-head{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;font-weight:900;color:#64748b;letter-spacing:.12em}.ot-slide-head button{border:1px solid #dbe2ea;background:#fff;border-radius:6px;margin-left:4px}.ot-slide-title{font-size:2rem;font-weight:900;border:0;border-bottom:2px solid #e2e8f0;padding:8px 0;outline:0}.ot-slide-body{flex:1;border:0;resize:none;font:20px/1.6 Arial,sans-serif;outline:0;white-space:pre-wrap}.ot-slide-notes{border:1px dashed #cbd5e1;border-radius:7px;padding:7px}.ot-note-editor{display:block;width:100%;min-height:720px;border:0;resize:vertical;padding:28px;font:15px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;outline:0;background:#fff;color:#0f172a}.ot-ribbon-note{font-size:.78rem;color:#64748b}.ot-footer{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;background:#fff;border-top:1px solid #dbe2ea;color:#64748b;font-size:.72rem}
+.nav-btn[data-tab="tabOfficeTools"]{--c:#e11d48;--c2:#f59e0b;--cs:rgba(225,29,72,.14)}#tabOfficeTools{--studio-accent:#e11d48;--studio-accent-2:#f59e0b}
+@media(max-width:850px){.ot-topline{align-items:flex-start;flex-direction:column}.ot-filebar{justify-content:flex-start}.ot-paper-wrap{padding:10px}.ot-word-editor{padding:34px 24px;min-height:800px}.ot-footer{flex-direction:column}.ot-formula{min-width:160px}.ot-slide{padding:18px 22px}.ot-slide-title{font-size:1.4rem}.ot-slide-body{font-size:15px}}
+@media(max-width:600px){.ot-tabs{padding:6px}.ot-tab{font-size:.75rem;padding:9px}.ot-ribbon{flex-wrap:wrap}.ot-topline{padding:16px}.ot-filebar .ot-btn{flex:1}.ot-shell{border-radius:16px}}
+</style>
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
@@ -1392,6 +1403,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
       <button type="button" class="nav-btn" data-tab="tabLanguageStudio"><span class="studio-icon"><span class="studio-svg">文</span></span><span class="studio-label">Language Engine</span><small>TRANSLATE • TRANSLITERATE</small></button>
       <button type="button" class="nav-btn" data-tab="tabPdf"><span class="studio-icon studio-pdf"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5v4h4M9.2 15.8h1.6a1.55 1.55 0 0 0 0-3.1H9.2v4.4m4.1-4.4v4.4m0-4.4h1.2a2.2 2.2 0 0 1 0 4.4h-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">PDF Suite</span></button>
       <button type="button" class="nav-btn" data-tab="tabWord"><span class="studio-icon studio-word"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 11.5h5M8 15h8M8 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="studio-label">Office Studio</span></button>
+      <button type="button" class="nav-btn" data-tab="tabOfficeTools"><span class="studio-icon studio-word"><span class="studio-svg">▤</span></span><span class="studio-label">Office Tools</span><small>EDIT • CREATE • SAVE</small></button>
       <button type="button" class="nav-btn" data-tab="tabEpub"><span class="studio-icon studio-epub"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h9.2L18.5 7v12.5H6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4.5V7h3.5M9 9h5.5M9 12h5.5M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 6.5v13a1 1 0 0 0 1 1h10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></svg></span><span class="studio-label">EPUB Studio</span></button>
       <button type="button" class="nav-btn" data-tab="tabImages"><span class="studio-icon studio-image"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="m5.5 17 4.4-4.3 3.1 3 2.2-2.1 3.3 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="studio-label">Image Tools</span></button>
       <button type="button" class="nav-btn" data-tab="tabOcr"><span class="studio-icon studio-ocr"><svg class="studio-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 9V5.5A1.5 1.5 0 0 1 6 4h3.5M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="m13.6 13.6 3.1 3.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="studio-label">Image to Text</span><small>OCR</small></button>
@@ -1829,6 +1841,92 @@ python prepare_language_models.py --transliteration</pre>
             <input type="text" id="pdfSplitRange" class="form-input" style="margin-top:6px;" placeholder="Pages to extract (e.g. 1-3, 5)">
             <button type="button" class="btn btn-primary" style="margin-top:6px;" id="pdfSplitBtn">Extract Pages</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OFFICE TOOLS: browser-first lightweight Word / Excel / PowerPoint / Notepad workspace -->
+    <div class="module-panel" id="tabOfficeTools">
+      <div class="ot-shell">
+        <div class="ot-topline">
+          <div>
+            <div class="ot-kicker">REDMARK OFFICE TOOLS</div>
+            <h2 id="ot-mode-label">Word / Writer</h2>
+            <div class="sub">Everyday browser editing for documents, spreadsheets, presentations and plain-text files. Open, edit, save and export without leaving Redmark Forge.</div>
+          </div>
+          <div class="ot-filebar">
+            <button class="ot-btn primary" id="ot-new">＋ New</button>
+            <button class="ot-btn" id="ot-open">📂 Open</button>
+            <button class="ot-btn" id="ot-save">💾 Save</button>
+            <button class="ot-btn" id="ot-saveas">Save As…</button>
+            <button class="ot-btn" id="ot-print">🖨 Print</button>
+            <input id="ot-file" type="file" hidden accept=".doc,.docx,.docm,.dot,.dotx,.dotm,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm,.ods,.ots,.fods,.csv,.tsv,.ppt,.pptx,.pptm,.pps,.ppsx,.pot,.potx,.potm,.odp,.otp,.fodp,*/*">
+          </div>
+        </div>
+
+        <div class="ot-tabs">
+          <button id="ot-word" class="ot-tab active">📝 Word / Writer</button>
+          <button id="ot-excel" class="ot-tab">📊 Excel / Calc</button>
+          <button id="ot-powerpoint" class="ot-tab">📽 PowerPoint / Impress</button>
+          <button id="ot-notepad" class="ot-tab">▤ Notepad</button>
+          <span class="ot-save-state" id="ot-save-state">✓ Saved / ready</span>
+        </div>
+
+        <section class="ot-panel active" id="ot-panel-word">
+          <div class="ot-ribbon">
+            <div class="ot-menu"><button>File</button><div><button id="ot-menu-open">Open</button><button id="ot-menu-save">Save</button><button id="ot-menu-saveas">Save As…</button><button id="ot-menu-export">Export</button><button id="ot-menu-print">Print</button></div></div>
+            <div class="ot-menu"><button>Edit</button><div><button onclick="document.execCommand('undo')">Undo</button><button onclick="document.execCommand('redo')">Redo</button><button onclick="document.execCommand('selectAll')">Select All</button></div></div>
+            <div class="ot-menu"><button>View</button><div><button onclick="document.execCommand('removeFormat')">Clear Formatting</button><button onclick="document.getElementById('ot-word-editor').focus()">Focus Editor</button></div></div>
+            <div class="ot-menu"><button>Insert</button><div><button id="ot-menu-image">Image</button><button id="ot-menu-link">Link</button><button onclick="document.execCommand('insertHorizontalRule')">Horizontal Rule</button></div></div>
+            <div class="ot-menu"><button>Format</button><div><button id="ot-menu-bold">Bold</button><button id="ot-menu-italic">Italic</button><button id="ot-menu-ul">Bullets</button><button id="ot-menu-ol">Numbering</button></div></div>
+            <div class="ot-tool-sep"></div>
+            <select id="ot-font"><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Times New Roman</option><option>Verdana</option><option>Courier New</option></select>
+            <select id="ot-size"><option value="1">10</option><option value="2">12</option><option value="3" selected>14</option><option value="4">18</option><option value="5">24</option><option value="6">32</option><option value="7">48</option></select>
+            <button class="ot-icon" id="ot-bold"><b>B</b></button><button class="ot-icon" id="ot-italic"><i>I</i></button><button class="ot-icon" id="ot-underline"><u>U</u></button>
+            <button class="ot-icon" id="ot-ul">•≡</button><button class="ot-icon" id="ot-ol">1≡</button>
+            <button class="ot-icon" id="ot-align-left">≡</button><button class="ot-icon" id="ot-align-center">≡</button><button class="ot-icon" id="ot-align-right">≡</button>
+            <button class="ot-icon" id="ot-link">🔗</button><button class="ot-icon" id="ot-image">🖼</button>
+          </div>
+          <div class="ot-paper-wrap"><article id="ot-word-editor" class="ot-word-editor" contenteditable="true" spellcheck="true"><h1>Untitled Document</h1><p>Start writing here…</p></article></div>
+        </section>
+
+        <section class="ot-panel" id="ot-panel-excel">
+          <div class="ot-ribbon">
+            <div class="ot-menu"><button>File</button><div><button id="ot-excel-open">Open</button><button id="ot-excel-save">Save</button><button id="ot-excel-saveas">Save As…</button></div></div>
+            <div class="ot-menu"><button>Home</button><div><button onclick="document.execCommand('copy')">Copy</button><button onclick="document.execCommand('paste')">Paste</button><button id="ot-excel-bold">Bold</button></div></div>
+            <div class="ot-menu"><button>Insert</button><div><button id="ot-add-sheet">New Sheet</button><button id="ot-del-sheet">Delete Sheet</button></div></div>
+            <div class="ot-menu"><button>Data</button><div><button id="ot-sort-help">Sort / Filter</button><button id="ot-freeze-help">Freeze panes</button></div></div>
+            <div class="ot-tool-sep"></div>
+            <span class="ot-cell-label" id="ot-cell-name">A1</span><input class="ot-formula" id="ot-formula" placeholder="Formula or value"><button class="ot-icon" id="ot-formula-apply">✓</button>
+          </div>
+          <div class="ot-sheet-head"><strong id="ot-sheet-name">Sheet1</strong><span>Editable cells • formulas begin with = • use Save As for XLSX/XLS/ODS/CSV</span></div>
+          <div class="ot-sheet-grid" id="ot-sheet-grid"></div>
+        </section>
+
+        <section class="ot-panel" id="ot-panel-powerpoint">
+          <div class="ot-ribbon">
+            <div class="ot-menu"><button>File</button><div><button id="ot-ppt-open">Open</button><button id="ot-ppt-save">Save</button><button id="ot-ppt-saveas">Save As…</button></div></div>
+            <div class="ot-menu"><button>Home</button><div><button id="ot-add-slide">New Slide</button><button onclick="document.execCommand('undo')">Undo</button><button onclick="document.execCommand('redo')">Redo</button></div></div>
+            <div class="ot-menu"><button>Slide</button><div><button id="ot-add-slide-2">Duplicate / Add</button></div></div>
+            <div class="ot-menu"><button>View</button><div><button onclick="document.querySelector('#ot-slides')?.scrollIntoView({behavior:'smooth'})">Slide Sorter</button></div></div>
+            <div class="ot-tool-sep"></div><span class="ot-ribbon-note">Text-first presentation editor • easy decks • PPTX export</span>
+          </div>
+          <div class="ot-slides" id="ot-slides"></div>
+        </section>
+
+        <section class="ot-panel" id="ot-panel-notepad">
+          <div class="ot-ribbon">
+            <div class="ot-menu"><button>File</button><div><button id="ot-note-new">New</button><button id="ot-note-open">Open</button><button id="ot-note-save">Save</button><button id="ot-note-saveas">Save As…</button></div></div>
+            <div class="ot-menu"><button>Edit</button><div><button onclick="document.execCommand('undo')">Undo</button><button onclick="document.execCommand('redo')">Redo</button><button onclick="document.execCommand('selectAll')">Select All</button></div></div>
+            <div class="ot-menu"><button>View</button><div><button onclick="document.getElementById('ot-note-editor').focus()">Focus</button><button onclick="document.getElementById('ot-note-editor').style.fontSize='18px'">Larger text</button></div></div>
+            <div class="ot-tool-sep"></div><span class="ot-ribbon-note">Save with any filename and extension — .txt, .bat, .cmd, .json, .sql, .py, .html, .md, or your own.</span>
+          </div>
+          <textarea id="ot-note-editor" class="ot-note-editor" spellcheck="false" placeholder="Type anything…"></textarea>
+        </section>
+
+        <div class="ot-footer">
+          <span>Browser-first • Local Engine remains available for heavy / legacy office formats</span>
+          <span>Office Tools is intentionally focused on everyday editing.</span>
         </div>
       </div>
     </div>
@@ -3998,6 +4096,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./bi_code_studio.js?v=2"></script>
 <script src="./omni_browser_studio_plus.js?v=5"></script>
 <script src="./omni_browser_docs.js?v=5"></script>
+<script src="./office_tools_studio.js?v=1"></script>
 <script src="./omni_browser_epub.js?v=2"></script>
 <script src="./omni_browser_ocr.js?v=1"></script>
 <script src="./omni_browser_images.js?v=1"></script>
