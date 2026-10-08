@@ -43,6 +43,8 @@ function css(){
 .omni-browser-ai-actions button:disabled{opacity:.5;cursor:wait}
 .omni-browser-ai-output{display:none;margin-top:9px}
 .omni-browser-ai-output.open{display:block}
+.omni-browser-ai-preview{margin-bottom:8px;border:1px solid #e1dff0;border-radius:11px;padding:8px;background:repeating-conic-gradient(#eef0f6 0% 25%,#fff 0% 50%) 50%/18px 18px;text-align:center}
+.omni-browser-ai-preview img{max-width:100%;max-height:320px;display:inline-block}
 .omni-browser-ai-output textarea{width:100%;min-height:120px;border:1px solid #e1dff0;border-radius:11px;padding:10px;background:#fff;color:#2b2a45;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
 .omni-browser-ai-status{margin-top:7px;font-size:.67rem;color:#69728a;min-height:16px}
 .omni-browser-ai-status.busy{color:#6c5cff}.omni-browser-ai-status.ok{color:#087f5b}.omni-browser-ai-status.err{color:#b42318}
@@ -63,7 +65,7 @@ function firstFile(panel,kind){
  const inputs=[...panel.querySelectorAll('input[type="file"]')];
  const withFile=inputs.filter(x=>x.files&&x.files.length);
  if(kind==="image")return withFile.find(x=>String(x.accept||"").includes("image"))?.files?.[0]||withFile.find(x=>x.files[0]?.type?.startsWith("image/"))?.files?.[0]||null;
- if(kind==="audio")return withFile.find(x=>String(x.accept||"").includes("audio"))?.files?.[0]||withFile.find(x=>/^audio\//.test(x.files[0]?.type||""))?.files?.[0]||null;
+ if(kind==="audio")return withFile.find(x=>/audio|video/.test(String(x.accept||"")))?.files?.[0]||withFile.find(x=>/^(audio|video)\//.test(x.files[0]?.type||""))?.files?.[0]||null;
  if(kind==="pdf")return withFile.find(x=>String(x.accept||"").includes("pdf"))?.files?.[0]||withFile.find(x=>/\.pdf$/i.test(x.files[0]?.name||"")||x.files[0]?.type==="application/pdf")?.files?.[0]||null;
  return withFile[0]?.files?.[0]||null;
 }
@@ -129,10 +131,44 @@ function wavBlob(audio,sr){
  for(let i=0;i<data.length;i++)v.setInt16(44+i*2,Math.max(-1,Math.min(1,data[i]))*32767,true);
  return new Blob([buf],{type:"audio/wav"});
 }
+// Background removal, depth maps and transcription run on-device (omni_browser_media_ai.js), not through the Local Engine LLM.
+const MEDIA_OPS=new Set(["background","depth","asr"]);
+function baseName(file){return String(file?.name||"omni").replace(/\.[^.]+$/,"").replace(/[^\w.() -]+/g,"_").slice(0,80)||"omni"}
+function setPreview(ui,blob,alt){
+ const box=ui.preview;if(!box)return;
+ if(box.dataset.url){URL.revokeObjectURL(box.dataset.url);delete box.dataset.url}
+ if(!blob){box.hidden=true;box.innerHTML="";return}
+ const url=URL.createObjectURL(blob);box.dataset.url=url;box.hidden=false;
+ box.innerHTML='<img alt="'+esc(alt||"Result preview")+'" src="'+url+'">';
+}
+function mediaProgress(ui,label){
+ return p=>{
+  if(p.stage==="download")ui.status.textContent="Downloading "+label+(p.percent!=null?" · "+p.percent+"%":"")+" — first use only, then cached in this browser…";
+  else if(p.stage==="loading")ui.status.textContent="Loading "+label+"…";
+  else if(p.stage==="decoding")ui.status.textContent="Reading the audio track…";
+  else if(p.stage==="running")ui.status.textContent="Running "+label+" in this browser"+(p.device?" ("+(p.device==="webgpu"?"WebGPU":"CPU")+")":"")+"…";
+ };
+}
+async function runMedia(op,file,ai,ui){
+ const M=window.OmniMediaAI?.models||{};
+ if(op==="background"){
+  const r=await ai.removeBackground(file,{onProgress:mediaProgress(ui,M.background?.name||"the background-removal model")});
+  setPreview(ui,r.blob,"Image with background removed");downloadBlob(r.blob,baseName(file)+"-no-background.png");
+  return {...r,text:"Background removed from "+(file.name||"the image")+" ("+r.width+"×"+r.height+"). Transparent PNG download started."};
+ }
+ if(op==="depth"){
+  const r=await ai.depth(file,{onProgress:mediaProgress(ui,M.depth?.name||"the depth model")});
+  setPreview(ui,r.blob,"Depth map");downloadBlob(r.blob,baseName(file)+"-depth.png");
+  return {...r,text:"Depth map generated for "+(file.name||"the image")+" ("+r.width+"×"+r.height+"). Brighter areas are closer to the camera. PNG download started."};
+ }
+ const r=await ai.transcribe(file,{onProgress:mediaProgress(ui,M.transcribe?.name||"the speech model")});
+ return {...r,text:r.text||"No speech was detected in this recording."};
+}
 async function run(action,panel,ui){
  const ai=A();if(!ai)throw new Error("Browser AI Engine has not loaded yet.");
  ui.out.classList.add("open");ui.status.className="omni-browser-ai-status busy";ui.status.textContent="Reading the selected Studio input…";
- let result="",ctx={text:"",meta:""},text="",file=null;
+ let result="",ctx={text:"",meta:""},text="",file=null,media=null;
+ setPreview(ui,null);
  try{
    ctx=await contextFor(panel);
    text=ctx.text;
@@ -140,20 +176,19 @@ async function run(action,panel,ui){
    if(action.kind==="image"&&!file)throw new Error("Choose an image in this Studio first.");
    if(action.kind==="audio"&&!file)throw new Error("Choose an audio or video file first.");
    if(action.kind==="text"&&!text)throw new Error("Enter or generate some text in this Studio first.");
-   ui.status.textContent="Connecting to local AI…";
+   ui.status.textContent=MEDIA_OPS.has(action.op)?"Preparing the on-device model…":"Connecting to local AI…";
    if(action.op==="summarize")result=await ai.summarize(text);
    else if(action.op==="pdfGenerate")result=await pdfGenerate(text,action.prompt);
    else if(action.op==="generate")result=await ai.generate(action.prompt+"\n\nSTUDIO CONTEXT:\n"+text,{model:action.model||"general",maxNewTokens:220});
    else if(action.op==="embed"){const v=await ai.embed(text);result="Embedding generated locally.\nDimensions: "+v.length+"\nFirst values: "+v.slice(0,12).map(x=>x.toFixed(4)).join(", ")}
    else if(action.op==="caption"){const u=await imageDataUrl(file);result=await ai.caption(u)}
    else if(action.op==="detect"){const u=await imageDataUrl(file);const d=await ai.detect(u);result=d.length?d.map(x=>x.label+" — "+(x.score*100).toFixed(1)+"%").join("\n"):"No confident objects detected."}
-   else if(action.op==="background"){const u=imageUrl(file);try{const b=await ai.removeBackground(u);downloadBlob(b,"omni-background-removed.png");result="Background removed. PNG download started."}finally{URL.revokeObjectURL(u)}}
-   else if(action.op==="depth"){const u=imageUrl(file);try{const d=await ai.depth(u);const b=d?.depth?.toBlob?await d.depth.toBlob():(d?.depth?.toCanvas?await new Promise(r=>d.depth.toCanvas().toBlob(r,"image/png")):null);if(b)downloadBlob(b,"omni-depth-map.png");result=b?"Depth map generated. PNG download started.":"Depth map generated, but this browser did not expose an image export method."}finally{URL.revokeObjectURL(u)}}
-   else if(action.op==="asr"){const u=imageUrl(file);try{result=await ai.transcribe(u)}finally{URL.revokeObjectURL(u)}}
+   else if(MEDIA_OPS.has(action.op)){media=await runMedia(action.op,file,ai,ui)}
    else if(action.op==="tts"){const o=await ai.speak(text);const b=wavBlob(o.audio,o.sampling_rate||44100);downloadBlob(b,"omni-speech.wav");result="Speech generated. WAV download started."}
    else if(action.op==="ocr"){const u=await imageDataUrl(file);result=await ai.advancedOcr(u)}
    else if(action.op==="ner"){const d=await ai.entities(text);result=d.length?d.map(x=>x.word+" — "+x.entity_group+" ("+(Number(x.score||0)*100).toFixed(1)+"%)").join("\n"):"No entities detected."}
    else if(action.op==="docqa"){const q=window.prompt("Ask a question about the selected document image:","What is the main subject of this document?");if(!q)throw new Error("Document question cancelled.");const u=await imageDataUrl(file);result=await ai.docQa(u,q)}
+   if(media){ui.textarea.value=media.text;ui.status.className="omni-browser-ai-status ok";ui.status.textContent="Done · "+media.model+" · ran in this browser ("+(media.device==="webgpu"?"WebGPU":"CPU")+"). Nothing was uploaded.";return}
    ui.textarea.value=result;ui.status.className="omni-browser-ai-status ok";const st=await ai.load();ui.status.textContent="Done · "+(st.provider||"local AI")+" / "+(st.model||"local model")+" · runs on this computer. "+ctx.meta;
  }catch(e){ui.textarea.value="";ui.status.className="omni-browser-ai-status err";ui.status.textContent="AI Assist failed: "+(e?.message||e)}
 }
@@ -182,14 +217,17 @@ function actionDefs(panelId){
   tabDiagnostics:[["Explain diagnostics","generate","Explain these browser/runtime diagnostics and distinguish warnings from actionable failures."],["Troubleshoot","generate","Suggest a prioritized troubleshooting plan for these diagnostics."]],
   tabAllTests:[["Explain failures","generate","Explain the failed tests below and identify the most likely root cause for each."],["Fix plan","generate","Create a prioritized fix plan for the failed tests."]]
  };
- return (map[panelId]||[]).map(x=>({label:x[0],op:x[1],kind:x[3]||x[2]||"text",prompt:x[1]==="generate"?x[2]:""}));
+ // Entries are [label, op, prompt?, kind?] for prompt-driven ops and [label, op, kind?] for the rest.
+ const prompted=op=>op==="generate"||op==="pdfGenerate";
+ return (map[panelId]||[]).map(x=>({label:x[0],op:x[1],kind:(prompted(x[1])?x[3]:x[2])||"text",prompt:prompted(x[1])?(x[2]||""):""}));
 }
+const MEDIA_PANELS=new Set(["tabImages","tabAudio","tabVideo"]);
 function add(panel){
  if(!panel||panel.querySelector(".omni-browser-ai"))return;
  const id=panel.id,actions=actionDefs(id);if(!actions.length)return;
  const card=document.createElement("section");card.className="omni-browser-ai";
- card.innerHTML=`<div class="omni-browser-ai-head"><div><div class="omni-browser-ai-title">✨ AI Assist <span>LOCAL LLM • OLLAMA / LM STUDIO</span></div><div class="omni-browser-ai-sub">The browser never loads an AI model. Actions run through the local Python engine using Ollama or LM Studio.</div></div><div class="omni-browser-ai-meta" id="omni-ai-meta-${id}">0 models loaded</div></div><div class="omni-browser-ai-actions"></div><div class="omni-browser-ai-output"><textarea readonly aria-label="Browser AI result"></textarea><div class="omni-browser-ai-status">Ready · local AI is idle until you click an action.</div></div>`;
- const actionsEl=card.querySelector(".omni-browser-ai-actions"),out={out:card.querySelector(".omni-browser-ai-output"),textarea:card.querySelector("textarea"),status:card.querySelector(".omni-browser-ai-status")};
+ card.innerHTML=`<div class="omni-browser-ai-head"><div><div class="omni-browser-ai-title">✨ AI Assist <span>${MEDIA_PANELS.has(id)?"LOCAL LLM + ON-DEVICE MODELS":"LOCAL LLM • OLLAMA / LM STUDIO"}</span></div><div class="omni-browser-ai-sub">${MEDIA_PANELS.has(id)?"Text actions run through the local Python engine using Ollama or LM Studio. Remove background, Depth map and Transcribe run in this browser; their model downloads once on first use.":"Actions run through the local Python engine using Ollama or LM Studio."}</div></div><div class="omni-browser-ai-meta" id="omni-ai-meta-${id}">0 models loaded</div></div><div class="omni-browser-ai-actions"></div><div class="omni-browser-ai-output"><div class="omni-browser-ai-preview" hidden></div><textarea readonly aria-label="Browser AI result"></textarea><div class="omni-browser-ai-status">Ready · local AI is idle until you click an action.</div></div>`;
+ const actionsEl=card.querySelector(".omni-browser-ai-actions"),out={out:card.querySelector(".omni-browser-ai-output"),textarea:card.querySelector("textarea"),status:card.querySelector(".omni-browser-ai-status"),preview:card.querySelector(".omni-browser-ai-preview")};
  actions.forEach(a=>{const b=document.createElement("button");b.type="button";b.textContent=a.label;b.onclick=async()=>{actionsEl.querySelectorAll("button").forEach(x=>x.disabled=true);try{await run(a,panel,out)}finally{actionsEl.querySelectorAll("button").forEach(x=>x.disabled=false);refreshMeta(card)}};actionsEl.appendChild(b)});
  panel.insertBefore(card,panel.firstElementChild);
 }

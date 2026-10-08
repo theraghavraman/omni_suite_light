@@ -34,6 +34,10 @@ jobs:
           node --check photo_editor.js
           node --check file_sharing_studio.js
           node --check qrcode_generator.js
+          node --check omni_browser_ai.js
+          node --check omni_browser_ai_ui.js
+          node --check omni_browser_media_ai.js
+          node --input-type=module --check < omni_browser_media_ai_worker.js
           python -m py_compile omni-cloud-engine/app.py
       - name: Validate Office Tools and Diagram Forge wiring
         run: node .github/scripts/studio_wiring_check.mjs

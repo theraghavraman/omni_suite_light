@@ -73,24 +73,19 @@ The multilingual AI stack is intentionally isolated from Omni Assistant and Priv
 
 Model binaries are not committed to the normal source tree. Use `prepare_language_models.py` to materialize them under `language-models/` after reviewing the upstream model terms. The language engine uses local model files at inference time and has no online translation fallback.
 
-## Optional Omni Browser AI Engine
+## Browser AI models
 
-The browser AI layer is isolated from Omni Assistant, Private RAG, and Omni Language Engine. Models are downloaded lazily from their respective public model repositories and cached by the browser; no model is loaded at page startup.
+No model is loaded at page startup. Each model below is downloaded from its public Hugging Face repository the first time its feature is used, cached by the browser, and run on-device with Transformers.js 4.3.0 (Apache License 2.0). AI Assist text actions do not use browser models; they go through the Local Engine to Ollama or LM Studio.
 
-Current browser-AI model registry includes:
-- SmolLM2 135M Instruct ONNX — Apache 2.0.
-- all-MiniLM-L6-v2 ONNX — Apache 2.0.
-- FLAN-T5 Small ONNX — Apache 2.0 — lightweight browser summarization/document instructions.
-- Whisper Tiny ONNX — Apache 2.0.
-- Supertonic TTS ONNX — OpenRAIL.
-- ViT-GPT2 image captioning ONNX — model repository is Transformers.js-compatible.
-- DETR ResNet-50 ONNX — model repository is Transformers.js-compatible.
-- MODNet — Apache 2.0.
-- TrOCR Small Printed — model repository is Transformers.js-compatible.
-- Donut DocVQA — model repository is Transformers.js-compatible.
-- Multilingual NER — model repository is Transformers.js-compatible.
-- Depth Anything V2 Small ONNX — Apache 2.0.
-- Qwen2.5 0.5B Instruct ONNX — Apache 2.0 — retained as an optional experimental model; not used for PDF AI Assist by default.
+| Model (repository) | License | Used by |
+|---|---|---|
+| all-MiniLM-L6-v2 (`Xenova/all-MiniLM-L6-v2`) | Apache License 2.0 | Private RAG and Omni Assistant embeddings |
+| Gemma 3 270M IT (`onnx-community/gemma-3-270m-it-ONNX`) | Gemma Terms of Use | Private RAG and Omni Assistant answers |
+| DeepSeek Coder 1.3B Instruct (`onnx-community/deepseek-coder-1.3b-instruct-ONNX`) | DeepSeek License (upstream `deepseek-ai/deepseek-coder-1.3b-instruct`) | Code and Database Studio explanations |
+| Opus-MT en↔hi (`Xenova/opus-mt-en-hi`, `Xenova/opus-mt-hi-en`) | Apache License 2.0 (upstream Helsinki-NLP) | Language Studio browser mini model |
+| BiRefNet lite (`onnx-community/BiRefNet_lite-ONNX`) | MIT | AI Assist: Remove background (Image Tools) |
+| Depth Anything V2 Small (`onnx-community/depth-anything-v2-small`) | Apache License 2.0 | AI Assist: Depth map (Image Tools) |
+| Whisper base (`onnx-community/whisper-base`) | Apache License 2.0 (upstream `openai/whisper-base`) | AI Assist: Transcribe (Audio and Video Studio) |
 
 Verify the upstream model repository/license before redistributing model weights. Omni Suite does not commit third-party model binaries to this repository.
 
