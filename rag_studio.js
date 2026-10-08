@@ -226,7 +226,7 @@ function bind(){
  css();initRuntimeStatus();$("ragFiles").onchange=e=>queueFiles([...e.target.files]);
  const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");queueFiles([...e.dataTransfer.files])});
  $("ragAsk").onclick=answer;$("ragQuery").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")answer()});
- $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{if(!e.target.checked)localStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
+ $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{e.target.checked=false;sessionStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
  $("ragEmbed").onclick=indexPendingFiles;
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }
