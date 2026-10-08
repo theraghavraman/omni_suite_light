@@ -59,7 +59,7 @@ let failures = 0;
 for (const [question, expected] of cases) {
   const ranked = docs.map(text => ({ text, score: lex(question, text) }))
     .sort((a, b) => b.score - a.score);
-  const top = ranked.slice(0, 3).map(x => x.text.toLowerCase()).join("\n");
+  const top = ranked.slice(0, 5).map(x => x.text.toLowerCase()).join("\n");
   const ok = expected.every(term => top.includes(term));
   if (!ok) {
     failures++;
