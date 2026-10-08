@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: redmark-office-docs
+    runtime: docker
+    dockerfilePath: ./onlyoffice/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthcheck
+    plan: 2c-4g
+    region: singapore
+    envVars:
+      - key: JWT_ENABLED
+        value: "true"
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_HEADER
+        value: "Authorization"
+      - key: JWT_IN_BODY
+        value: "false"
+      - key: PLUGINS_ENABLED
+        value: "true"
