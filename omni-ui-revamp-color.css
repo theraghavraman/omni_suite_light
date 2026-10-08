@@ -242,6 +242,8 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 
 /* studio header */
 .module-panel{scroll-margin-top:calc(var(--rv-bar) + 12px) !important}
+/* keep anything scrolled into view clear of the sticky tool bar */
+.module-panel .card,.module-panel .results-section,.module-panel [id$="Results"],.module-panel [id$="ResultsSection"],.module-panel [id$="Output"],.module-panel [id$="OutputContainer"]{scroll-margin-top:calc(var(--rv-bar) + var(--rv-overview-h,56px) + 12px) !important}
 .studio-workspace-head{
   background:var(--rv-surface) !important;color:var(--rv-ink) !important;
   border:1px solid var(--rv-line) !important;border-radius:var(--rv-r-lg) !important;
