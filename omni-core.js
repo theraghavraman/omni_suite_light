@@ -618,7 +618,7 @@
           currentPdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
           pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
         } catch (fallbackError) {
-          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\\n\\n' + fallbackError.message);
+          alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\n\n' + fallbackError.message);
           resetPdf2Img();
         }
       }
