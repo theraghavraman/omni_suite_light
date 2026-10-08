@@ -90,7 +90,6 @@ async function openFile(file){
 }
 
 function newWord(){currentFile=null;currentName='Untitled.docx';$('ot-word-editor').innerHTML='<h1>Untitled Document</h1><p>Start writing here…</p>';wordDirty=true;setMode('word');updateStatus();}
-async function ensureFormulaEngine(){if(window.HyperFormula)return window.HyperFormula;if(window.__RF_HF_PROMISE)return window.__RF_HF_PROMISE;window.__RF_HF_PROMISE=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/hyperformula@3.1.0/dist/hyperformula.full.min.js';s.onload=()=>res(window.HyperFormula);s.onerror=()=>rej(new Error('Formula engine failed to load'));document.head.appendChild(s);});return window.__RF_HF_PROMISE;}
 async function ensurePptx(){if(window.PptxGenJS)return window.PptxGenJS;if(window.__RF_PPTX_PROMISE)return window.__RF_PPTX_PROMISE;window.__RF_PPTX_PROMISE=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js';s.onload=()=>res(window.PptxGenJS);s.onerror=()=>rej(new Error('PowerPoint browser engine failed to load'));document.head.appendChild(s);});return window.__RF_PPTX_PROMISE;}
 async function newExcel(){
   if(!window.XLSX)return notify('Spreadsheet engine is not loaded.',true);
@@ -134,7 +133,6 @@ function insertImage(){
   const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{exec('insertImage',r.result);};r.readAsDataURL(f);};i.click();
 }
 
-async function calculateSheet(){try{const HF=await ensureFormulaEngine();const sheets={};sheetWB.SheetNames.forEach(n=>{const ws=sheetWB.Sheets[n];const r=XLSX.utils.decode_range(ws['!ref']||'A1:Z50');const rows=[];for(let y=0;y<=r.e.r;y++){const row=[];for(let x=0;x<=r.e.c;x++){const a=XLSX.utils.encode_cell({r:y,c:x});const cell=ws[a]||{};row.push(cell.f?'='+cell.f:(cell.v??''));}rows.push(row);}sheets[n]=rows;});formulaEngine=HF.buildFromSheets(sheets,{licenseKey:'gpl-v3'});sheetWB.SheetNames.forEach(n=>{const ws=sheetWB.Sheets[n];const r=XLSX.utils.decode_range(ws['!ref']||'A1:Z50');for(let y=0;y<=r.e.r;y++)for(let x=0;x<=r.e.c;x++){const v=formulaEngine.getCellValue({sheet:formulaEngine.getSheetId(n),row:y,col:x});const a=XLSX.utils.encode_cell({r:y,c:x});if(ws[a]&&ws[a].f)ws[a].v=v;}});}catch(e){console.warn('Formula engine unavailable',e);}}
 async function renderSheet(){
   const root=$('ot-sheet-grid');if(!root||!sheetWB)return;
   const ws=sheetWB.Sheets[sheetName];const range=XLSX.utils.decode_range(ws['!ref']||'A1:A10');
@@ -146,7 +144,7 @@ async function renderSheet(){
   root.querySelectorAll('td[data-cell]').forEach(td=>{td.addEventListener('focus',()=>{$('ot-formula').value=td.textContent||'';$('ot-cell-name').textContent=td.dataset.cell;});td.addEventListener('input',()=>{const a=td.dataset.cell;const v=td.textContent;const old=ws[a]||{};if(/^=/.test(v)){ws[a]={...old,f:v.slice(1),v:old.v??0,t:'n'};}else ws[a]={...old,v,t:typeof v==='number'?'n':'s'};ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rows-1,0),c:Math.max(cols-1,0)}});markDirty();});});
   $('ot-sheet-name').textContent=sheetName;
 }
-async function applyFormula(){const a=$('ot-cell-name').textContent,td=document.querySelector('#ot-sheet-grid td[data-cell="'+a+'"]');if(td){td.textContent=$('ot-formula').value;td.dispatchEvent(new Event('input'));await calculateSheet();await renderSheet();td.focus();}}
+function applyFormula(){const a=$('ot-cell-name').textContent,td=document.querySelector('#ot-sheet-grid td[data-cell="'+a+'"]');if(td){td.textContent=$('ot-formula').value;td.dispatchEvent(new Event('input'));td.focus();}}
 async function addSheet(){const n=prompt('New sheet name','Sheet'+(sheetWB.SheetNames.length+1));if(!n)return;sheetWB.Sheets[n]=XLSX.utils.aoa_to_sheet([['',''],['','']]);sheetWB.SheetNames.push(n);sheetName=n;renderSheet();markDirty();}
 async function deleteSheet(){if(!sheetWB||sheetWB.SheetNames.length<2)return notify('Keep at least one sheet.');delete sheetWB.Sheets[sheetName];sheetWB.SheetNames=sheetWB.SheetNames.filter(x=>x!==sheetName);sheetName=sheetWB.SheetNames[0];renderSheet();markDirty();}
 function renderDeck(){
