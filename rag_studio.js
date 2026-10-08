@@ -6,7 +6,7 @@
 const $=id=>document.getElementById(id);
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
 function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
-let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[];
+let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[], lexicalOnly=false;
 let embedWorker=null, embedWorkerReady=null, embedRequestId=0, embedPending=new Map();
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
 const MODEL_LLM="onnx-community/gemma-3-270m-it-ONNX";
@@ -73,8 +73,8 @@ function tx(mode){return db.transaction(STORE,mode).objectStore(STORE)}
 function metaTx(mode){return db.transaction(META,mode).objectStore(META)}
 function metaGet(key){return new Promise((res,rej)=>{const r=metaTx("readonly").get(key);r.onsuccess=()=>res(r.result?.value||null);r.onerror=()=>rej(r.error)})}
 function metaSet(key,value){return new Promise((res,rej)=>{const r=metaTx("readwrite").put({key,value});r.onsuccess=res;r.onerror=()=>rej(r.error)})}
-function deleteSources(sources){const set=new Set(sources);if(!set.size)return Promise.resolve();return new Promise((res,rej)=>{const t=tx("readwrite"),q=t.openCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(set.has(c.value.source))c.delete();c.continue()};t.oncomplete=res;t.onerror=()=>rej(t.error)})}
-function putMany(a){return new Promise((res,rej)=>{const t=tx("readwrite");a.forEach(x=>t.put(x));t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+function deleteSources(sources){const set=new Set(sources);if(!set.size)return Promise.resolve();return new Promise((res,rej)=>{const s=tx("readwrite"),t=s.transaction,q=s.openCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(set.has(c.value.source))c.delete();c.continue()};t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("Index delete aborted"))})}
+function putMany(a){return new Promise((res,rej)=>{const s=tx("readwrite"),t=s.transaction;a.forEach(x=>s.put(x));t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("Index write aborted"))})}
 function clearDB(){return new Promise((res,rej)=>{const r=tx("readwrite").clear();r.onsuccess=res;r.onerror=()=>rej(r.error)})}
 function getAll(){return new Promise((res,rej)=>{const r=tx("readonly").getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)}
@@ -100,9 +100,9 @@ async function indexText(text,source,meta={}){
  for(let start=0;start<parts.length;start+=batchSize){
   const batch=parts.slice(start,start+batchSize);
   setRagActivity(`Embedding ${Math.min(start+batch.length,parts.length)}/${parts.length} in background — ${source}`,"busy");
-  const vectors=await embedTexts(batch);
+  let vectors=[];if(!lexicalOnly){try{vectors=await embedTexts(batch)}catch(e){console.warn('Embedding unavailable; indexing for keyword search only.',e);lexicalOnly=true}}
   const batchOut=[];
-  for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]})}
+  for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]||null})}
   out.push(...batchOut);await putMany(batchOut);
   await new Promise(r=>setTimeout(r,0));
  }
@@ -132,8 +132,9 @@ async function indexPendingFiles(){
  const files=[...pendingFiles];const btn=$("ragEmbed");btn.disabled=true;const originalLabel=btn.textContent;btn.textContent="⏳ Preparing…";
  setRagActivity("Starting semantic search preparation…","busy");
  try{
-  await ensureEmbedWorker();
-  setRagActivity("Background embedding worker ready. Reading selected files…","busy");
+  lexicalOnly=false;
+  try{await ensureEmbedWorker();setRagActivity("Background embedding worker ready. Reading selected files…","busy")}
+  catch(e){console.warn('Semantic model unavailable; using keyword index.',e);lexicalOnly=true;setRagActivity("Semantic model unavailable on this device — indexing for keyword search…","busy")}
   for(let n=0;n<files.length;n++){
    const f=files[n];
    setRagActivity("Reading "+(n+1)+"/"+files.length+" · "+f.name,"busy");
@@ -144,19 +145,20 @@ async function indexPendingFiles(){
    await new Promise(r=>requestAnimationFrame(r));
   }
   chunks=await getAll();updateStats();
-  setRagActivity("✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally.","ok");
+  setRagActivity("✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally"+(lexicalOnly?" (keyword search — semantic model unavailable).":"."),"ok");
  }catch(e){console.error(e);setRagActivity("Could not index selected files: "+e.message,"error")}
  finally{btn.disabled=false;btn.textContent=originalLabel}
 }
-async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$("ragStatus").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
+async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));if(!chunks.some(x=>Array.isArray(x.vector)&&x.vector.length))return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:Array.isArray(x.vector)&&x.vector.length?.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical):x.lexical})).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$("ragStatus").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
 function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
+function extractiveAnswer(q,r){const stop=new Set("a an the is are was were be to of in on for and or what which who how why when where does do did can with from by this that it as at".split(" "));const terms=[...new Set(String(q).toLowerCase().match(/[\p{L}\p{N}_]+/gu)||[])].filter(t=>!stop.has(t)&&t.length>1);const sents=[];r.slice(0,6).forEach((x,ri)=>String(x.text).split(/(?<=[.!?])\s+|\n+/).forEach(t=>{t=t.trim();if(t.length<12)return;const w=t.toLowerCase();let hit=0;terms.forEach(k=>{if(w.includes(k))hit++});if(hit)sents.push({t,score:hit/Math.max(1,terms.length)+(6-ri)*0.02,src:ri+1})}));sents.sort((a,b)=>b.score-a.score);const top=[];for(const x of sents){if(top.length>=3)break;if(!top.some(y=>y.t===x.t))top.push(x)}const head=top.length?"Answer (extracted from your documents):\n"+top.map(x=>"• "+x.t+" [Source "+x.src+"]").join("\n"):"No sentence matched your question directly — see the closest passages below.";return head+"\n\nRetrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}
 async function answer(){
  const q=$("ragQuery").value.trim();if(!q)return;
  $("ragAnswer").textContent="Retrieving relevant knowledge…";$("ragSources").innerHTML="";
  try{const r=await search(q);renderResults(r);if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
  const context=r.map((x,i)=>`[Source ${i+1}: ${x.source}]\n${x.text}`).join("\n\n");
- if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading Gemma 3 270M…");let device="wasm",dtype="q4";try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}catch(e){if(device==="webgpu"){generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"})}else throw e};setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent="Retrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}}
+ if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading Gemma 3 270M…");let device="wasm",dtype="q4";try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}catch(e){if(device==="webgpu"){generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"})}else throw e};setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent=extractiveAnswer(q,r)}}
  catch(e){$("ragAnswer").textContent="RAG error: "+e.message;$("ragStatus").textContent="Error"}}
 async function refreshRepo(){
  const status=$("ragStatus"),repo=repoRef();status.textContent="Checking "+repo+" repository version…";
