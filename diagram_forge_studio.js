@@ -103,6 +103,7 @@ const templates={
  API --> Data
  Data --> DB`
 };
+Object.assign(templates,{journey:'journey\n title User Journey\n section Discover\n  Search: 5: User\n  Compare: 4: User\n section Use\n  Create: 5: User\n  Export: 5: User',requirement:'requirementDiagram\n requirement checkout_req {\n  id: 1\n  text: Orders must be payable online.\n  risk: high\n  verifymethod: test\n }\n element checkout_service {\n  type: service\n }\n checkout_service - satisfies -> checkout_req',c4:'C4Context\n title System Context\n Person(user, "User")\n System(app, "Redmark Forge")\n SystemDb(db, "Browser Data")\n Rel(user, app, "uses")\n Rel(app, db, "stores locally")',sankey:'sankey-beta\nBrowser,Editor,60\nEditor,Export,35\nEditor,Storage,25',quadrant:'quadrantChart\n title Priority Matrix\n x-axis Low --> High\n y-axis Low --> High\n quadrant-1 Strategic\n quadrant-2 Invest\n quadrant-3 Defer\n quadrant-4 Quick wins\n Feature A: [0.8,0.7]\n Feature B: [0.7,0.3]',xychart:'xychart-beta\n title "Weekly Activity"\n x-axis [Mon, Tue, Wed, Thu, Fri]\n y-axis "Tasks" 0 --> 10\n bar [3,5,4,8,7]\n line [2,4,6,7,9]',packet:'packet\n 0-7: "Version"\n 8-15: "Type"\n 16-31: "Length"\n 32-63: "Payload"',block:'block-beta\n columns 3\n A[Client] B[API] C[Database]\n A --> B\n B --> C',eventmodeling:'flowchart LR\n C[Command] --> E[Event] --> R[Read Model]\n E --> P[Policy] --> C'});
 
 function saveState(){
  const s=JSON.stringify({nodes,edges,zoom,pan,currentType,code:$('df-code')?.value||''});
@@ -129,6 +130,20 @@ function renderCanvas(){
  g.appendChild(svgEl('rect',{x:-5000,y:-5000,width:10000,height:10000,fill:$('df-grid-toggle')?.checked?'url(#df-grid)':'#fff'}));
  edges.forEach(e=>{const a=nodeBy(e.from),b=nodeBy(e.to);if(!a||!b)return;const p1=pointFor(a,'right'),p2=pointFor(b,'left');const path=svgEl('path',{d:'M '+p1.x+' '+p1.y+' C '+(p1.x+70)+' '+p1.y+' '+(p2.x-70)+' '+p2.y+' '+p2.x+' '+p2.y,fill:'none',stroke:'#64748b','stroke-width':2,'marker-end':'url(#df-arrow)'});g.appendChild(path);if(e.label){const t=svgEl('text',{x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2-7,'font-size':12,fill:'#475569','text-anchor':'middle'});t.textContent=e.label;g.appendChild(t);}});
  nodes.forEach(n=>{const group=svgEl('g',{transform:'translate('+n.x+' '+n.y+')',cursor:'move'});const shape=n.shape==='circle'?svgEl('ellipse',{cx:n.w/2,cy:n.h/2,rx:n.w/2,ry:n.h/2}):n.shape==='diamond'?svgEl('polygon',{points:(n.w/2)+',0 '+n.w+','+(n.h/2)+' '+(n.w/2)+','+n.h+' 0,'+(n.h/2)}):svgEl('rect',{x:0,y:0,width:n.w,height:n.h,rx:n.shape==='round'?18:6});shape.setAttribute('fill',n.fill);shape.setAttribute('stroke',n.id===selected?'#e11d48':n.stroke);shape.setAttribute('stroke-width',n.id===selected?3:1.5);group.appendChild(shape);const text=svgEl('text',{x:n.w/2,y:n.h/2+5,'text-anchor':'middle','font-size':n.fontSize,fill:n.color,'font-family':'Inter,Arial,sans-serif'});text.textContent=n.label;group.appendChild(text);group.addEventListener('pointerdown',e=>{e.stopPropagation();selected=n.id;updateInspector();if(e.shiftKey){if(!edgeStart)edgeStart=n.id;else{addEdge(edgeStart,n.id);edgeStart=null;}return;}drag={id:n.id,sx:e.clientX,sy:e.clientY,ox:n.x,oy:n.y};group.setPointerCapture?.(e.pointerId);renderCanvas();});group.addEventListener('dblclick',e=>{e.stopPropagation();const v=prompt('Node label',n.label);if(v!==null){pushHistory();n.label=v;renderCanvas();updateInspector();}});g.appendChild(group);});
+}
+function canvasToMermaid(){
+ if(!nodes.length){alert('Add at least one node first.');return;}
+const names=new Map(nodes.map((n,i)=>[n.id,'N'+(i+1)]));
+const lines=['flowchart LR'];
+nodes.forEach((n,i)=>lines.push(' '+names.get(n.id)+'['+String(n.label||('Node '+(i+1))).replace(/[\\[\\]]/g,'')+']'));
+edges.forEach(e=>{if(names.has(e.from)&&names.has(e.to))lines.push(' '+names.get(e.from)+' --> '+names.get(e.to));});
+$('df-type').value='flowchart';$('df-code').value=lines.join('\n');renderMermaid();
+}
+function mermaidToCanvas(){
+const code=$('df-code').value||'',lines=code.split(/\r?\n/),parsed=[],links=[];
+lines.forEach(line=>{const m=line.match(/([A-Za-z][\\w-]*)\s*(?:\[([^\]]+)\]|\(([^\)]+)\)|\{([^}]+)\})/);if(m){const id=m[1],label=m[2]||m[3]||m[4]||id;if(!parsed.some(n=>n.id===id))parsed.push({id,x:180+(parsed.length%3)*250,y:120+Math.floor(parsed.length/3)*130,label,shape:'rect',w:150,h:70,fill:'#fff',stroke:'#475569',color:'#0f172a',fontSize:16});}const e=line.match(/([A-Za-z][\\w-]*)[^\n]*?(?:-->|---|==>)[^\n]*?([A-Za-z][\\w-]*)/);if(e)links.push({from:e[1],to:e[2],label:''});});
+if(!parsed.length){alert('This Mermaid type does not map cleanly to the visual canvas. Use the live Mermaid preview instead.');return;}
+pushHistory();nodes=parsed;edges=links.filter(e=>parsed.some(n=>n.id===e.from)&&parsed.some(n=>n.id===e.to));selected=null;renderCanvas();updateInspector();
 }
 function updateInspector(){
  const n=nodeBy(selected);$('df-selected').textContent=n?('Selected: '+n.label):'No node selected';
@@ -164,7 +179,7 @@ function init(){
  $('df-delete')?.addEventListener('click',removeSelected);
  $('df-undo')?.addEventListener('click',undo);$('df-redo')?.addEventListener('click',redo);
  $('df-apply')?.addEventListener('click',applyInspector);
- $('df-render')?.addEventListener('click',renderMermaid);
+ $('df-render')?.addEventListener('click',renderMermaid);$('df-render-2')?.addEventListener('click',renderMermaid);$('df-copy-svg')?.addEventListener('click',async()=>{const svg=$('df-mermaid-output svg');if(svg)await navigator.clipboard?.writeText(new XMLSerializer().serializeToString(svg));});$('df-print')?.addEventListener('click',()=>window.print());$('df-canvas-to-mermaid')?.addEventListener('click',canvasToMermaid);$('df-mermaid-to-canvas')?.addEventListener('click',mermaidToCanvas);
  $('df-template')?.addEventListener('change',e=>template(e.target.value));
  $('df-type')?.addEventListener('change',e=>template(e.target.value));
  $('df-export-svg')?.addEventListener('click',downloadSvg);$('df-export-png')?.addEventListener('click',downloadPng);
