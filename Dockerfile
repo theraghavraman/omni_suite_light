@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    OMNI_HOST=0.0.0.0 \
+    OMNI_HOST=127.0.0.1 \
     OMNI_PORT=8765
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

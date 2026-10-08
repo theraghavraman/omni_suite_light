@@ -71,6 +71,20 @@ jobs:
             Write-Host "convert -> $($cmd.Source)"
           }
 
+      - name: Install Python runtime used by the native smoke test
+        if: runner.os == 'Linux'
+        run: python -m pip install -r requirements-local.txt
+
+      - name: Run representative native smoke test
+        if: runner.os == 'Linux'
+        run: python .github/scripts/native_smoke_test.py
+
+      - name: Run dependency audit
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
+
       - name: Verify native executables (Unix)
         if: runner.os != 'Windows'
         shell: bash

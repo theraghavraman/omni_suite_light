@@ -616,7 +616,7 @@ def jina_instagram_media(source: str) -> dict | None:
             # The canonical numeric id is sometimes present as:
             # instagram://media?id=123...
             media_ids = re.findall(
-                r"instagram://media\\?id=(\\d+)",
+                r"instagram://media\?id=(\d+)",
                 html_lib.unescape(raw),
                 flags=re.I,
             )

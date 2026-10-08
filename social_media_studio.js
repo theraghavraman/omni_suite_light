@@ -15,6 +15,10 @@
   const REMOTE_READER='https://r.jina.ai/';
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
+  function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function safeHttpUrl(v){
+    try{const u=new URL(String(v||''));return /^https?:$/i.test(u.protocol)?u.href:'';}catch(_){return '';}
+  }
   function findMediaUrls(text,base){
     const out=[]; const addUrl=v=>{v=cleanMediaUrl(v);if(v.startsWith('http')&&!out.includes(v))out.push(v);};
     const doc=new DOMParser().parseFromString(String(text||''),'text/html');
@@ -34,7 +38,7 @@
       if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
       return j;
     }catch(e){
-      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 90 seconds');
+      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 210 seconds');
       throw e;
     }finally{
       clearTimeout(timer);
@@ -48,7 +52,7 @@
     const seconds=Math.round(Number(info.duration)||0);
     const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
-     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>u.startsWith('http')?u:RESOLVER+u);
+     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>safeHttpUrl(u.startsWith('http')?u:RESOLVER+u)).filter(Boolean);
      const mediaKind=(d)=>{
        const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
        if(ext)return ext;
@@ -76,21 +80,23 @@
          }).join('')+
        '</div>';
      }else{
-       const first=downloads[0]; const firstUrl=itemUrls[0]||info.thumbnail; const esc=String(firstUrl||'').replace(/"/g,'&quot;');
+       const first=downloads[0]; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
        preview.innerHTML=firstUrl?(first&&isVideo(first)?'<video src="'+esc+'" controls playsinline preload="metadata" style="max-width:100%;max-height:430px"></video>':'<img src="'+esc+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">'):'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
      }
      preview.className='social-preview';
     const buttons=(info.downloads||[]).map(d=>{
-      const href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;
+      const rawHref=String(d.url||'');
+      const href=safeHttpUrl(rawHref.startsWith('http')?rawHref:RESOLVER+rawHref);
       const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
       const label=ext==='jpg'||ext==='jpeg'?'JPG':ext==='png'?'PNG':ext==='webp'?'WEBP':ext==='avif'?'AVIF':ext==='gif'?'GIF':ext==='mp4'?'MP4':ext==='webm'?'WEBM':ext==='mov'?'MOV':ext==='m4v'?'M4V':ext==='m3u8'?'HLS':ext==='mp3'?'MP3':ext==='m4a'?'M4A':ext==='aac'?'AAC':ext==='ogg'?'OGG':'MEDIA';
-      return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">'+label+' • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
+      if(!href)return '';
+      return '<a href="'+escHtml(href)+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+escHtml(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">'+label+' • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
     }).join('');
     hint.style.display='block';hint.className='social-direct-hint social-direct-ok';
     hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download'+
       '<div style="margin-top:12px;font-weight:800;color:#1c1b3a">Available downloads</div>'+
       (buttons||'<div style="margin-top:6px">No downloadable public format was returned.</div>')+
-      '<div style="margin-top:10px;color:#7b8795">Creator: '+String(info.uploader||'Public creator')+' • Duration: '+dur+'</div>';
+      '<div style="margin-top:10px;color:#7b8795">Creator: '+escHtml(info.uploader||'Public creator')+' • Duration: '+escHtml(dur)+'</div>';
     setButtons(false);msg('Public media found. Choose a download below.','ok');
   }
 

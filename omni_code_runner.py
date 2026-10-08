@@ -227,10 +227,12 @@ def execute(language: str, source: str, stdin: str = "", timeout: int = 8) -> di
             "command": command[0],
         }
     except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
         return {
             "ok": False,
-            "stdout": exc.stdout or "",
-            "stderr": (exc.stderr or "") + f"\nExecution timed out after {timeout}s.",
+            "stdout": stdout,
+            "stderr": stderr + f"\nExecution timed out after {timeout}s.",
             "exit_code": 124,
             "language": lang,
         }

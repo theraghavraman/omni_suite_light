@@ -209,6 +209,9 @@ def read_data(path,fmt=None,table=None):
         finally: con.close()
     if fmt=="sql":
         text=Path(path).read_text(encoding="utf-8-sig",errors="replace"); con=sqlite3.connect(":memory:")
+        def _deny_sqlite_attach(action,arg1,arg2,db_name,trigger_name):
+            return sqlite3.SQLITE_DENY if action==sqlite3.SQLITE_ATTACH else sqlite3.SQLITE_OK
+        con.set_authorizer(_deny_sqlite_attach)
         try:
             con.executescript(text); tables=[r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
             if not tables: raise RuntimeError("SQL contains no SQLite-compatible tables")
