@@ -53,12 +53,12 @@
   function showResult(blob,name){lastBlob=blob;lastName=name||'omni-render-output';if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(blob);resultTitle.textContent='✓ Cloud job completed';resultMeta.textContent=lastName+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';downloadBtn.disabled=false;previewBtn.disabled=false;result.style.display='block'}
   downloadBtn.onclick=()=>{if(lastBlob)downloadBlob(lastBlob,lastName)};
   previewBtn.onclick=()=>{if(lastUrl)window.open(lastUrl,'_blank','noopener')};
-  function open(){modal.style.display='flex';clearResult();status.textContent='Ready — nothing is sent until you press Run on Render.'} function close(){modal.style.display='none'}
+  function open(){modal.style.display='flex';clearResult();status.textContent=tokenInput?.value?'Ready — token loaded for this browser session.':'Enter your Render token, then press Run on Render.'} function close(){modal.style.display='none'}
   btn.onclick=open;document.getElementById(id+'Close').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close()});
   function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name||'omni-render-output';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
   async function run(files,operation,options){
     files=Array.from(files||[]); if(!files.length) throw new Error('Select at least one file.');
-    status.textContent='Connecting to Render…';
+    status.textContent='Authenticating with Render…';
     const fd=new FormData();fd.append('operation',operation||op.value);fd.append('options',JSON.stringify(options||{}));files.forEach(f=>fd.append('files',f,f.name));
     const cloudToken=(tokenInput?.value||'').trim();
     if(!cloudToken) throw new Error('Enter the Render cloud token first.');
