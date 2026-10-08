@@ -24,12 +24,13 @@ function splitLong(text) {
 function lex(query, text) {
   const queryTokens = new Set((query.toLowerCase().match(/[a-z0-9_-]{2,}/g) || []));
   const bodyTokens = text.toLowerCase().match(/[a-z0-9_-]{2,}/g) || [];
+  const overlaps = (token, set) => set.has(token) || [...set].some(q => q.length >= 6 && token.length >= 6 && q.slice(0,6) === token.slice(0,6));
   let n = 0;
-  for (const token of bodyTokens) if (queryTokens.has(token)) n++;
+  for (const token of bodyTokens) if (overlaps(token, queryTokens)) n++;
   const bodyScore = n / Math.sqrt(Math.max(1, queryTokens.size * bodyTokens.length));
   const heading = (text.match(/^##\s+.+$/m)?.[0] || "").toLowerCase();
   const headingTokens = heading.match(/[a-z0-9_-]{2,}/g) || [];
-  const headingHits = headingTokens.filter(token => queryTokens.has(token)).length;
+  const headingHits = headingTokens.filter(token => overlaps(token, queryTokens)).length;
   const headingScore = headingHits / Math.max(1, headingTokens.length);
   return bodyScore + (headingScore * 0.45);
 }
