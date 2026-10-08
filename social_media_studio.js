@@ -38,7 +38,7 @@
       if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
       return j;
     }catch(e){
-      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 90 seconds');
+      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 210 seconds');
       throw e;
     }finally{
       clearTimeout(timer);
@@ -85,10 +85,12 @@
      }
      preview.className='social-preview';
     const buttons=(info.downloads||[]).map(d=>{
-      const href=String(d.url||'').startsWith('http')?d.url:RESOLVER+d.url;
+      const rawHref=String(d.url||'');
+      const href=safeHttpUrl(rawHref.startsWith('http')?rawHref:RESOLVER+rawHref);
       const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
       const label=ext==='jpg'||ext==='jpeg'?'JPG':ext==='png'?'PNG':ext==='webp'?'WEBP':ext==='avif'?'AVIF':ext==='gif'?'GIF':ext==='mp4'?'MP4':ext==='webm'?'WEBM':ext==='mov'?'MOV':ext==='m4v'?'M4V':ext==='m3u8'?'HLS':ext==='mp3'?'MP3':ext==='m4a'?'M4A':ext==='aac'?'AAC':ext==='ogg'?'OGG':'MEDIA';
-      return '<a href="'+String(href).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+String(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">'+label+' • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
+      if(!href)return '';
+      return '<a href="'+escHtml(href)+'" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin-top:7px;border:1px solid rgba(108,92,255,.14);border-radius:12px;background:#fff;color:#1c1b3a;text-decoration:none;font-weight:800;font-size:.76rem"><span>'+escHtml(d.quality||'Best')+'<small style="display:block;color:#7b8795;font-weight:500;margin-top:2px">'+label+' • Browser download</small></span><b style="padding:7px 11px;border-radius:9px;background:linear-gradient(120deg,#6c5cff,#ff4f9a);color:#fff;font-size:.7rem">Download</b></a>';
     }).join('');
     hint.style.display='block';hint.className='social-direct-hint social-direct-ok';
     hint.innerHTML='<b>✓ Public content</b> &nbsp; ✓ No login required &nbsp; ✓ Browser download'+
