@@ -183,7 +183,7 @@ async function refreshRepo(){
   status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
 }
-function githubToken(){return sessionStorage.getItem("omniRagGithubToken")||localStorage.getItem("omniRagGithubToken")||""}
+function githubToken(){return sessionStorage.getItem("omniRagGithubToken")||""}
 function githubCfg(){return {repo:($("ragGithubRepo")?.value||DEFAULT_REPO).trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,""),folder:($("ragGithubFolder")?.value||"knowledge-base").trim().replace(/^\/+|\/+$/g,""),branch:($("ragGithubBranch")?.value||"main").trim()||"main"}}
 function b64(buf){let s="",a=new Uint8Array(buf);const step=0x8000;for(let i=0;i<a.length;i+=step)s+=String.fromCharCode(...a.subarray(i,Math.min(i+step,a.length)));return btoa(s)}
 function setGithubStatus(msg,kind=""){const el=$("ragGithubStatus");if(el){el.textContent=msg;el.className="rag-github-status "+kind}}
@@ -192,7 +192,7 @@ async function saveSelectedToGitHub(){
  const files=[...($("ragFiles")?.files||[])];if(!files.length){setGithubStatus("Choose at least one file first.","error");return}
  const token=($("ragGithubToken")?.value||githubToken()).trim();if(!token){setGithubStatus("Enter your GitHub fine-grained token first.","error");return}
  const cfg=githubCfg();if(!/^[^/]+\/[^/]+$/.test(cfg.repo)){setGithubStatus("Repository must look like owner/repository.","error");return}
- if($("ragGithubRemember")?.checked)localStorage.setItem("omniRagGithubToken",token);else sessionStorage.setItem("omniRagGithubToken",token);
+ sessionStorage.setItem("omniRagGithubToken",token);
  const btn=$("ragGithubSave");if(btn)btn.disabled=true;
  try{
   setGithubStatus("Checking GitHub access…");
