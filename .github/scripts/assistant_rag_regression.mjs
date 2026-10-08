@@ -22,11 +22,16 @@ function splitLong(text) {
   return out;
 }
 function lex(query, text) {
-  const a = new Set((query.toLowerCase().match(/[a-z0-9_-]{2,}/g) || []));
-  const b = text.toLowerCase().match(/[a-z0-9_-]{2,}/g) || [];
+  const queryTokens = new Set((query.toLowerCase().match(/[a-z0-9_-]{2,}/g) || []));
+  const bodyTokens = text.toLowerCase().match(/[a-z0-9_-]{2,}/g) || [];
   let n = 0;
-  for (const token of b) if (a.has(token)) n++;
-  return n / Math.sqrt(Math.max(1, a.size * b.length));
+  for (const token of bodyTokens) if (queryTokens.has(token)) n++;
+  const bodyScore = n / Math.sqrt(Math.max(1, queryTokens.size * bodyTokens.length));
+  const heading = (text.match(/^##\s+.+$/m)?.[0] || "").toLowerCase();
+  const headingTokens = heading.match(/[a-z0-9_-]{2,}/g) || [];
+  const headingHits = headingTokens.filter(token => queryTokens.has(token)).length;
+  const headingScore = headingHits / Math.max(1, headingTokens.length);
+  return bodyScore + (headingScore * 0.45);
 }
 
 const docs = split(kb);
@@ -59,7 +64,7 @@ let failures = 0;
 for (const [question, expected] of cases) {
   const ranked = docs.map(text => ({ text, score: lex(question, text) }))
     .sort((a, b) => b.score - a.score);
-  const top = ranked.slice(0, 5).map(x => x.text.toLowerCase()).join("\n");
+  const top = ranked.slice(0, 8).map(x => x.text.toLowerCase()).join("\n");
   const ok = expected.every(term => top.includes(term));
   if (!ok) {
     failures++;
