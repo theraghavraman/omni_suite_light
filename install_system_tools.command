@@ -31,8 +31,26 @@ if [ "$OS" = "Darwin" ]; then
   fi
 
   brew update
-  brew install python@3.13 ffmpeg qpdf poppler imagemagick librsvg libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf
-  brew install --cask libreoffice calibre
+  # Install only formulae that actually exist in the current Homebrew catalog.
+  # Some older Omni copies referenced libwebm directly; FFmpeg already provides WebM
+  # encode/decode support for Omni, so libwebm is deliberately not a hard dependency.
+  FORMULAE="python@3.13 ffmpeg qpdf poppler imagemagick librsvg libheif libraw openexr jpeg-xl libwebp ghostscript tesseract tesseract-lang eccodes pandoc p7zip sevenzip zip unzip unixodbc freetds libpq mysql-client sqlite pkgconf"
+  for formula in $FORMULAE; do
+    if brew list --formula "$formula" >/dev/null 2>&1; then
+      echo "[OK] Homebrew formula already installed: $formula"
+    else
+      echo "[SETUP] Installing Homebrew formula: $formula"
+      brew install "$formula"
+    fi
+  done
+  for cask in libreoffice calibre; do
+    if brew list --cask "$cask" >/dev/null 2>&1; then
+      echo "[OK] Homebrew cask already installed: $cask"
+    else
+      echo "[SETUP] Installing Homebrew cask: $cask"
+      brew install --cask "$cask"
+    fi
+  done
 
   PYTHON="$(brew --prefix python@3.13)/bin/python3.13"
   "$PYTHON" -m venv .venv
