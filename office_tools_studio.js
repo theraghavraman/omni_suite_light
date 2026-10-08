@@ -156,22 +156,27 @@ function renderDeck(){
 }
 function addSlide(){deckSlides.push({id:Date.now(),title:'New Slide',body:'Add your content here',notes:''});renderDeck();markDirty();}
 
-async function buildPptx(slides){try{const P=await ensurePptx();const ppt=new P();ppt.layout='LAYOUT_WIDE';ppt.author='Redmark Forge';ppt.subject='Browser-created presentation';slides.forEach((s,i)=>{const slide=ppt.addSlide();slide.background={color:'FFFFFF'};slide.addText(s.title||('Slide '+(i+1)),{x:.7,y:.45,w:11.9,h:.7,fontFace:'Aptos Display',fontSize:28,bold:true,color:'1C1B3A',margin:0});slide.addText(s.body||'',{x:.85,y:1.55,w:11.2,h:4.9,fontFace:'Aptos',fontSize:20,color:'334155',breakLine:false,margin:.04,fit:'shrink'});if(s.notes)slide.addNotes(s.notes);});return ppt.write({outputType:'blob'});}catch(_){/* fallback below */}
-  if(window.PptxGenJS)throw new Error('PptxGenJS initialization failed unexpectedly.');if(!window.JSZip)throw new Error('ZIP engine is not loaded.');
-  const z=new JSZip();const escx=s=>esc(s).replace(/'/g,'&apos;');
-  const now=new Date().toISOString();
-  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'+slides.map((_,i)=>'<Override PartName="/ppt/slides/slide'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>').join('')+'</Types>');
-  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>');
-  z.file('ppt/presentation.xml','<?xml version="1.0" encoding="UTF-8"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst/><p:sldIdLst>'+slides.map((_,i)=>'<p:sldId id="'+(256+i)+'" r:id="rId'+(i+1)+'"/>').join('')+'</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
-  z.file('ppt/_rels/presentation.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+slides.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>').join('')+'</Relationships>');
+async function buildPptx(slides){
+  const P=await ensurePptx();
+  if(!P)throw new Error('PowerPoint browser engine is unavailable.');
+  const ppt=new P();
+  ppt.layout='LAYOUT_WIDE';
+  ppt.author='Redmark Forge';
+  ppt.subject='Browser-created presentation';
   slides.forEach((s,i)=>{
-    const paras=(s.body||'').split(/\n/).filter(x=>x.trim()).map(x=>'<a:p><a:r><a:rPr lang="en-US" sz="2200"/><a:t>'+escx(x)+'</a:t></a:r><a:endParaRPr lang="en-US"/></a:p>').join('');
-    const title='<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="700000" y="450000"/><a:ext cx="10800000" cy="1100000"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US" b="1" sz="3200"/><a:t>'+escx(s.title||'Slide')+'</a:t></a:r></a:p></p:txBody></p:sp>';
-    const body='<p:sp><p:nvSpPr><p:cNvPr id="3" name="Body"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="850000" y="1800000"/><a:ext cx="10200000" cy="4100000"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/>'+paras+'</p:txBody></p:sp>';
-    z.file('ppt/slides/slide'+(i+1)+'.xml','<?xml version="1.0" encoding="UTF-8"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>'+title+body+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>');
+    const slide=ppt.addSlide();
+    slide.background={color:'FFFFFF'};
+    slide.addText(s.title||('Slide '+(i+1)),{
+      x:.7,y:.45,w:11.9,h:.7,fontFace:'Aptos Display',fontSize:28,bold:true,
+      color:'1C1B3A',margin:0
+    });
+    slide.addText(s.body||'',{
+      x:.85,y:1.55,w:11.2,h:4.9,fontFace:'Aptos',fontSize:20,
+      color:'334155',breakLine:false,margin:.04,fit:'shrink'
+    });
+    if(s.notes&&typeof slide.addNotes==='function')slide.addNotes(s.notes);
   });
-  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});}
-
+  return ppt.write({outputType:'blob'});
 }
 
 function wire(){
