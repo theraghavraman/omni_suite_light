@@ -10,7 +10,7 @@ const loader = readFileSync('omni_vendor_loader.js', 'utf8');
 const failures = [];
 
 const RUNTIME_IDS = new Set(['ot-x-more', 'ot-deck-css', 'df-grid-pat']);
-for (const file of ['office_tools_studio.js', 'diagram_forge_studio.js', 'office_find_replace.js']) {
+for (const file of ['office_tools_studio.js', 'diagram_forge_studio.js', 'office_find_replace.js', 'photo_editor.js']) {
   const src = readFileSync(file, 'utf8');
   const ids = new Set([...src.matchAll(/\$\('([\w-]+)'\)/g)].map(m => m[1]));
   for (const id of ids) {
@@ -21,7 +21,7 @@ for (const file of ['office_tools_studio.js', 'diagram_forge_studio.js', 'office
   console.log(`${file}: ${ids.size} element ids checked`);
 }
 
-for (const asset of ['office_tools_studio.css', 'diagram_forge_studio.css', 'office_find_replace.css', 'omni_vendor_loader.js', 'office_tools_studio.js', 'diagram_forge_studio.js', 'office_find_replace.js']) {
+for (const asset of ['office_tools_studio.css', 'diagram_forge_studio.css', 'office_find_replace.css', 'photo_editor.css', 'photo_editor.js', 'omni_vendor_loader.js', 'office_tools_studio.js', 'diagram_forge_studio.js', 'office_find_replace.js']) {
   if (!html.includes(`./${asset}`)) failures.push(`index.html does not reference ${asset}`);
   if (!existsSync(asset)) failures.push(`${asset} is missing`);
 }

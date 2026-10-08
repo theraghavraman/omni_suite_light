@@ -30,7 +30,7 @@
   <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
 <link rel="stylesheet" href="./diagram_forge_studio.css?v=2">
-<link rel="stylesheet" href="./office_tools_studio.css?v=2"><link rel="stylesheet" href="./office_find_replace.css?v=1">
+<link rel="stylesheet" href="./office_tools_studio.css?v=2"><link rel="stylesheet" href="./office_find_replace.css?v=1"><link rel="stylesheet" href="./photo_editor.css?v=1">
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
@@ -2589,6 +2589,92 @@ python prepare_language_models.py --transliteration</pre>
           <div class="form-hint">SVG output from a raster source is not guaranteed to become true editable vector artwork; use it for compatible ImageMagick SVG output, not as a vectorization guarantee.</div>
         </div>
       </div>
+      <div class="card" id="photoEditorCard">
+        <h2>5. Photo Editor</h2>
+        <div class="sub">Open one photo and crop, rotate, straighten, fix light and colour, apply filters, blur or pixelate faces and number plates, draw, add text, resize and export — all in your browser. Nothing is uploaded, and camera/location metadata is removed from the saved photo.</div>
+        <div class="dropzone" id="peDrop">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/><path d="M15 3l2 2 3-3" stroke-linecap="round"/></svg>
+          <h3>Open a photo to edit</h3>
+          <p>JPG, PNG, WebP, AVIF, GIF, BMP or SVG — drop it here, click to browse, or paste with Ctrl+V</p>
+          <input type="file" id="peInput" class="file-input" accept="image/*">
+        </div>
+        <div class="pe-app" id="peApp" hidden>
+          <div class="pe-top">
+            <div class="pe-top-left"><span class="pe-info" id="peInfo"></span></div>
+            <div class="pe-top-actions">
+              <button type="button" class="pe-btn" id="peUndo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+              <button type="button" class="pe-btn" id="peRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+              <button type="button" class="pe-btn" id="peCompare" title="Hold to see the original">◐ Hold to compare</button>
+              <button type="button" class="pe-btn" id="peReset" title="Back to the original photo">⟲ Reset</button>
+              <button type="button" class="pe-btn" id="peNew" title="Close this photo and open another">✕ Close</button>
+              <button type="button" class="pe-btn primary" id="peDownload" title="Download with the settings in Resize & Save">⤓ Download</button>
+            </div>
+          </div>
+          <div class="pe-body">
+            <nav class="pe-tools" role="tablist" aria-label="Editing tools">
+              <button type="button" class="pe-tool active" data-pe-tool="crop" role="tab" aria-selected="true"><span>⬚</span>Crop</button>
+              <button type="button" class="pe-tool" data-pe-tool="adjust" role="tab" aria-selected="false"><span>☀</span>Adjust</button>
+              <button type="button" class="pe-tool" data-pe-tool="filters" role="tab" aria-selected="false"><span>◑</span>Filters</button>
+              <button type="button" class="pe-tool" data-pe-tool="retouch" role="tab" aria-selected="false"><span>◌</span>Blur</button>
+              <button type="button" class="pe-tool" data-pe-tool="draw" role="tab" aria-selected="false"><span>✎</span>Draw</button>
+              <button type="button" class="pe-tool" data-pe-tool="text" role="tab" aria-selected="false"><span>T</span>Text</button>
+              <button type="button" class="pe-tool" data-pe-tool="export" role="tab" aria-selected="false"><span>⤓</span>Resize &amp; Save</button>
+            </nav>
+            <div class="pe-stage" id="peStage"><canvas id="peCanvas" aria-label="Photo"></canvas><div class="pe-busy" id="peBusy" hidden>Working…</div></div>
+            <aside class="pe-panel">
+              <section data-pe-panel="crop" id="pePanelCrop">
+                <h4>Crop shape</h4>
+                <div class="pe-chips"><button type="button" class="pe-chip on" data-aspect="free">Free</button><button type="button" class="pe-chip" data-aspect="orig">Original</button><button type="button" class="pe-chip" data-aspect="1:1">Square</button><button type="button" class="pe-chip" data-aspect="4:3">4:3</button><button type="button" class="pe-chip" data-aspect="3:2">3:2</button><button type="button" class="pe-chip" data-aspect="16:9">16:9</button><button type="button" class="pe-chip" data-aspect="4:5">4:5</button><button type="button" class="pe-chip" data-aspect="9:16">9:16</button></div>
+                <h4>Rotate &amp; flip</h4>
+                <div class="pe-chips"><button type="button" class="pe-chip" id="peRotL" title="Rotate left">⟲ 90°</button><button type="button" class="pe-chip" id="peRotR" title="Rotate right">⟳ 90°</button><button type="button" class="pe-chip" id="peFlipH">⇋ Flip</button><button type="button" class="pe-chip" id="peFlipV">⇵ Flip</button></div>
+                <label class="pe-slider"><span>Straighten<b id="peStraightenVal">0°</b></span><input type="range" id="peStraighten" min="-45" max="45" step="0.5" value="0" aria-label="Straighten angle"></label>
+                <div class="pe-actions"><button type="button" class="pe-btn primary" id="peApplyCrop">✓ Apply crop</button><button type="button" class="pe-btn" id="peCancelCrop">Cancel</button></div>
+                <p class="pe-hint">Drag the corners or edges; drag inside to move. Enter applies.</p>
+              </section>
+              <section data-pe-panel="adjust" hidden>
+                <div class="pe-actions"><button type="button" class="pe-btn primary" id="peAuto">✨ Auto enhance</button><button type="button" class="pe-btn" id="peAdjReset">Reset sliders</button></div>
+                <div id="peAdjList" class="pe-adj"></div>
+                <p class="pe-hint">Double-click a slider to reset it.</p>
+              </section>
+              <section data-pe-panel="filters" hidden>
+                <div class="pe-filters" id="peFilters"></div>
+                <p class="pe-hint">Fine-tune any filter in Adjust.</p>
+              </section>
+              <section data-pe-panel="retouch" id="pePanelRetouch" hidden>
+                <h4>Hide or soften</h4>
+                <div class="pe-chips"><button type="button" class="pe-chip on" data-retouch="blur-brush">◌ Blur brush</button><button type="button" class="pe-chip" data-retouch="pixel-brush">▦ Pixelate brush</button><button type="button" class="pe-chip" data-retouch="blur-box">⬚ Blur area</button><button type="button" class="pe-chip" data-retouch="pixel-box">▦ Pixelate area</button><button type="button" class="pe-chip" data-retouch="redact-box">■ Black box</button></div>
+                <label class="pe-slider" id="peRetouchSizeRow"><span>Brush size</span><input type="range" id="peRetouchSize" min="5" max="150" value="40" aria-label="Brush size"></label>
+                <label class="pe-slider" id="peRetouchStrengthRow"><span>Strength</span><input type="range" id="peRetouchStrength" min="0" max="100" value="50" aria-label="Strength"></label>
+                <p class="pe-hint">Paint over faces, number plates or private details. Use “area” to drag a box.</p>
+              </section>
+              <section data-pe-panel="draw" id="pePanelDraw" hidden>
+                <div class="pe-chips"><button type="button" class="pe-chip on" data-draw="pen">✎ Pen</button><button type="button" class="pe-chip" data-draw="marker">▮ Highlighter</button><button type="button" class="pe-chip" data-draw="line">╱ Line</button><button type="button" class="pe-chip" data-draw="arrow">➜ Arrow</button><button type="button" class="pe-chip" data-draw="rect">▭ Box</button><button type="button" class="pe-chip" data-draw="ellipse">◯ Circle</button></div>
+                <div class="pe-row"><label class="pe-color">Colour<input type="color" id="peDrawColor" value="#ff3b30"></label><label class="pe-slider grow"><span>Size</span><input type="range" id="peDrawSize" min="1" max="60" value="12" aria-label="Line size"></label></div>
+              </section>
+              <section data-pe-panel="text" hidden>
+                <textarea id="peTextValue" rows="3" placeholder="Type your text, then click the photo to place it"></textarea>
+                <div class="pe-row"><label class="pe-field">Font<select id="peTextFont"><option value="sans">Clean</option><option value="serif">Serif</option><option value="impact">Bold poster</option><option value="hand">Handwritten</option><option value="mono">Typewriter</option></select></label><label class="pe-color">Colour<input type="color" id="peTextColor" value="#ffffff"></label></div>
+                <label class="pe-slider"><span>Size</span><input type="range" id="peTextSize" min="10" max="250" value="60" aria-label="Text size"></label>
+                <div class="pe-checks"><label><input type="checkbox" id="peTextBold" checked> Bold</label><label><input type="checkbox" id="peTextShadow" checked> Shadow</label><label><input type="checkbox" id="peTextBg"> Background</label><input type="color" id="peTextBgColor" value="#000000" aria-label="Background colour"></div>
+                <p class="pe-hint">A faded preview follows your pointer; click to place. Undo removes it.</p>
+              </section>
+              <section data-pe-panel="export" id="pePanelExport" hidden>
+                <h4>Resize</h4>
+                <div class="pe-row"><label class="pe-field">Width<input type="number" id="peW" min="1"></label><label class="pe-field">Height<input type="number" id="peH" min="1"></label></div>
+                <label class="pe-check"><input type="checkbox" id="peLock" checked> Keep proportions</label>
+                <div class="pe-chips"><button type="button" class="pe-chip" data-scale="50%">50%</button><button type="button" class="pe-chip" data-scale="25%">25%</button><button type="button" class="pe-chip" data-scale="1080">1080 px</button><button type="button" class="pe-chip" data-scale="1920">1920 px</button><button type="button" class="pe-chip" data-scale="3840">4K</button></div>
+                <button type="button" class="pe-btn" id="peApplyResize">Apply resize</button>
+                <h4>Save as</h4>
+                <label class="pe-field">File name<input id="peFileName" autocomplete="off"></label>
+                <div class="pe-row"><label class="pe-field">Format<select id="peFormat"><option value="jpeg">JPEG</option><option value="png">PNG (lossless)</option><option value="webp">WebP</option><option value="avif">AVIF</option></select></label><label class="pe-color" id="peBgRow">Background<input type="color" id="peBg" value="#ffffff"></label></div>
+                <label class="pe-slider" id="peQualityRow"><span>Quality<b id="peQualityVal">90%</b></span><input type="range" id="peQuality" min="40" max="100" value="90" aria-label="Quality"></label>
+                <div class="pe-estimate" id="peEstimate"></div>
+                <div class="pe-actions"><button type="button" class="pe-btn primary" id="peDownload2">⤓ Download</button><button type="button" class="pe-btn" id="peCopy">⧉ Copy</button></div>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 5. OCR: IMAGE TO TEXT -->
@@ -4433,6 +4519,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./omni_browser_epub.js?v=2"></script>
 <script src="./omni_browser_ocr.js?v=1"></script>
 <script src="./omni_browser_images.js?v=1"></script>
+<script src="./photo_editor.js?v=1"></script>
 <script src="./omni_browser_audio.js?v=1"></script>
 <script src="./omni_browser_video.js?v=1"></script>
 <script src="./omni_browser_archive.js?v=1"></script>

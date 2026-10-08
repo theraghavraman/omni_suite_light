@@ -231,6 +231,16 @@ Office Studio uses the Local Engine for native Office-family conversion. It now 
 - **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
 - **PDF → PPTX:** rendered as one slide per PDF page using Poppler.
 
+### Image Tools — Photo Editor
+Tool 5 in Image Tools is a simple single-photo editor that runs entirely in the browser (Canvas 2D, no libraries, nothing uploaded):
+- **Crop** with handles and shapes (free, original, square, 4:3, 3:2, 16:9, 4:5, 9:16), rotate 90°, flip, and straighten (−45°…45°, corners filled automatically).
+- **Adjust**: exposure, brightness, contrast, highlights, shadows, saturation, vibrance, warmth, tint, fade, sharpen, blur, vignette and grain, plus one-click **Auto enhance**.
+- **Filters**: Vivid, Bright, Warm, Cool, Faded, Vintage, Dramatic, B&W, Noir and Sepia with live thumbnails.
+- **Blur**: blur or pixelate brushes and boxes, and a black box, for hiding faces, number plates and private details.
+- **Draw** (pen, highlighter, line, arrow, box, circle) and **Text** (fonts, size, colour, shadow, background).
+- **Resize & Save** to JPEG, PNG, WebP or AVIF (where supported) with quality and live size estimate, or copy to the clipboard.
+- Undo/redo, hold-to-compare with the original, reset. Saved photos contain no EXIF/GPS metadata. Very large photos are worked on at up to 16 megapixels to stay within browser limits.
+
 ### Office Studio — Find & Replace inside Office files
 Tool 7 in Office Studio changes text inside DOCX/DOCM/DOTX, PPTX/PPTM/PPSX/POTX, XLSX/XLSM/XLTX and ODT/ODS/ODP files without converting them, entirely in the browser. Only the text changes: fonts, styles, images, tables, layout and macros are untouched, including words that Word has split across several formatting runs (the replacement takes the formatting of the run where the match starts).
 - Many files and many rules at once; rules can be imported/exported as a two-column CSV (`find,replace`).
