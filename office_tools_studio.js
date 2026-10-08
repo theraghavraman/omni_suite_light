@@ -180,6 +180,18 @@ function wire(){
   $('ot-save')?.addEventListener('click',()=>saveCurrent());
   $('ot-saveas')?.addEventListener('click',()=>{const n=prompt('Save as — include the extension you want',currentName);if(n)saveCurrent(n);});
   $('ot-print')?.addEventListener('click',()=>window.print());
+  $('ot-menu-open')?.addEventListener('click',()=>$('ot-file').click());
+  $('ot-menu-save')?.addEventListener('click',()=>saveCurrent());
+  $('ot-menu-saveas')?.addEventListener('click',()=>{const n=prompt('Save as — include the extension you want',currentName);if(n)saveCurrent(n);});
+  $('ot-menu-print')?.addEventListener('click',()=>window.print());
+  $('ot-menu-image')?.addEventListener('click',insertImage);$('ot-menu-link')?.addEventListener('click',insertLink);
+  $('ot-menu-bold')?.addEventListener('click',()=>exec('bold'));$('ot-menu-italic')?.addEventListener('click',()=>exec('italic'));
+  $('ot-menu-ul')?.addEventListener('click',()=>exec('insertUnorderedList'));$('ot-menu-ol')?.addEventListener('click',()=>exec('insertOrderedList'));
+  $('ot-menu-export')?.addEventListener('click',()=>{const n=prompt('Export format: docx, odt, pdf, html, md or txt','docx');if(n)saveCurrent(base(currentName)+'.'+n.replace(/^\./,''));});
+  $('ot-excel-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-excel-save')?.addEventListener('click',()=>saveCurrent());$('ot-excel-saveas')?.addEventListener('click',()=>{const n=prompt('Save spreadsheet as',currentName);if(n)saveCurrent(n);});
+  $('ot-ppt-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-ppt-save')?.addEventListener('click',()=>saveCurrent());$('ot-ppt-saveas')?.addEventListener('click',()=>{const n=prompt('Save presentation as',currentName);if(n)saveCurrent(n);});
+  $('ot-add-slide-2')?.addEventListener('click',addSlide);
+  $('ot-note-new')?.addEventListener('click',newNote);$('ot-note-open')?.addEventListener('click',()=>$('ot-file').click());$('ot-note-save')?.addEventListener('click',()=>saveCurrent());$('ot-note-saveas')?.addEventListener('click',()=>{const n=prompt('Save text file as — any extension is allowed',currentName);if(n)saveCurrent(n);});
   $('ot-add-slide')?.addEventListener('click',addSlide);
   $('ot-add-sheet')?.addEventListener('click',addSheet);$('ot-del-sheet')?.addEventListener('click',deleteSheet);$('ot-formula-apply')?.addEventListener('click',applyFormula);
   $('ot-note-editor')?.addEventListener('input',markDirty);
