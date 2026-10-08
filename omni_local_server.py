@@ -9,6 +9,7 @@ OmniConverter Local Engine
 """
 from __future__ import annotations
 import urllib.request
+import ipaddress
 import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -34,10 +35,19 @@ def request_origin(handler):
     return handler.headers.get("Origin", "").rstrip("/")
 
 def host_allowed(handler):
+    # The Host header is client-controlled. Require the actual TCP peer to be
+    # loopback as well, so a remotely reachable 0.0.0.0 bind cannot be turned
+    # into an engine-token/code-execution bridge.
+    peer = getattr(handler, "client_address", ("", 0))[0]
+    try:
+        if not ipaddress.ip_address(peer).is_loopback:
+            return False
+    except ValueError:
+        return False
     host = handler.headers.get("Host", "").split(":", 1)
-    hostname = host[0].strip().lower()
+    hostname = host[0].strip().lower().strip("[]")
     port = host[1] if len(host) == 2 else "80"
-    return hostname in {"127.0.0.1", "localhost"} and port == "8765"
+    return hostname in {"127.0.0.1", "localhost", "::1"} and port == "8765"
 
 def origin_allowed(handler):
     origin = request_origin(handler)
@@ -140,12 +150,22 @@ def register(path):
 
 def cleanup_old():
     cutoff = time.time() - 6 * 3600
+    stale_paths = set()
     for p in ROOT.iterdir():
         try:
             if p.is_file() and p.stat().st_mtime < cutoff:
                 p.unlink(missing_ok=True)
+                stale_paths.add(p.resolve())
         except OSError:
             pass
+    if stale_paths:
+        with LOCK:
+            for fid, p in list(FILES.items()):
+                try:
+                    if p.resolve() in stale_paths:
+                        FILES.pop(fid, None)
+                except OSError:
+                    FILES.pop(fid, None)
 
 def run(cmd, timeout=7200):
     try:
@@ -185,7 +205,7 @@ def build_pdf_pptx(inp: Path, out: Path, dpi: int = 120):
         def png_size(path):
             with open(path, "rb") as fh:
                 sig = fh.read(24)
-            if sig[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+            if sig[:8] != b"\x89PNG\r\n\x1a\n":
                 raise RuntimeError("Invalid PNG generated from PDF")
             return struct.unpack(">II", sig[16:24])
 
