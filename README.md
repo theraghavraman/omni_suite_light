@@ -284,6 +284,12 @@ The Local Engine streams uploads/downloads and uses temporary processing files o
 
 ## 12. Security model
 
+The public Render Cloud Engine is authenticated with the `OMNI_CLOUD_TOKEN` environment secret. The browser Cloud bridge keeps the operator-supplied token in `sessionStorage` only and sends it as `X-Omni-Cloud-Token`; never commit the token or hard-code it into the public site.
+
+The Social Media resolver may use `https://r.jina.ai/` to retrieve public-page representations. The exact public URL being resolved may therefore be disclosed to that third-party service.
+
+The local code runner can execute arbitrary code in the host user environment. Keep the Local Engine loopback-only and never expose the code-execution operation to a network interface.
+
 The Local Engine binds to 127.0.0.1, exposes predefined operations rather than arbitrary shell commands, stores temporary files in the operating-system temporary directory and cleans stale temporary data.
 
 Do not change the server binding to 0.0.0.0 unless you understand the security consequences.
