@@ -25,6 +25,7 @@
       <h2>☁ Omni Cloud — Render</h2>
       <p>Heavy processing lives in Render. Existing browser and Local Engine buttons are untouched. Upload here when you explicitly want cloud processing.</p>
       <div id="${id}Grid">
+        <label>Cloud token<input id="${id}Token" type="password" autocomplete="off" placeholder="Paste the Render OMNI_CLOUD_TOKEN"></label>
         <label>Cloud operation<select id="${id}Op">
           <option value="ffmpeg">Video / FFmpeg</option><option value="image-batch">Batch images</option><option value="pdf-batch">Merge PDF batch</option>
           <option value="ocr">OCR</option><option value="office-convert">Office conversion</option><option value="data-profile">Data profiling</option>
@@ -41,6 +42,10 @@
     </div>`;
   document.body.appendChild(modal);
   const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
+  const tokenInput=document.getElementById(id+'Token');
+  const savedToken=sessionStorage.getItem('omni-cloud-token')||'';
+  if(tokenInput) tokenInput.value=savedToken;
+  tokenInput?.addEventListener('input',()=>{if(tokenInput.value)sessionStorage.setItem('omni-cloud-token',tokenInput.value);else sessionStorage.removeItem('omni-cloud-token');});
   const op=document.getElementById(id+'Op'),input=document.getElementById(id+'Input'),fmt=document.getElementById(id+'Format'),status=document.getElementById(id+'Status');
   const result=document.getElementById(id+'Result'),resultTitle=document.getElementById(id+'ResultTitle'),resultMeta=document.getElementById(id+'ResultMeta'),downloadBtn=document.getElementById(id+'Download'),previewBtn=document.getElementById(id+'Preview');
   let lastBlob=null,lastName='omni-render-output',lastUrl=null;
@@ -55,12 +60,14 @@
     files=Array.from(files||[]); if(!files.length) throw new Error('Select at least one file.');
     status.textContent='Connecting to Render…';
     const fd=new FormData();fd.append('operation',operation||op.value);fd.append('options',JSON.stringify(options||{}));files.forEach(f=>fd.append('files',f,f.name));
-    const r=await fetch(CLOUD+'/api/process',{method:'POST',body:fd});const ct=r.headers.get('content-type')||'';
+    const cloudToken=(tokenInput?.value||'').trim();
+    if(!cloudToken) throw new Error('Enter the Render cloud token first.');
+    const r=await fetch(CLOUD+'/api/process',{method:'POST',headers:{'X-Omni-Cloud-Token':cloudToken},body:fd});const ct=r.headers.get('content-type')||'';
     if(!r.ok){let e={};try{e=await r.json()}catch(_){}throw new Error(e.error||('Render HTTP '+r.status))}
     const blob=await r.blob();const name=r.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]||'omni-render-output';showResult(blob,name);
     return {blob,name};
   }
-  window.OmniRenderCloud={url:CLOUD,run};
+  window.OmniRenderCloud={url:CLOUD,run,requiresToken:true};
   document.getElementById(id+'Run').onclick=async()=>{
     try{
       const options={format:fmt.value.trim()||undefined};
