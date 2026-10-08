@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./onlyoffice/Dockerfile
     dockerContext: .
-    healthCheckPath: /healthcheck
+    healthCheckPath: /info/info.json
     plan: 2c-4g
     region: singapore
     envVars:
