@@ -30,6 +30,7 @@ jobs:
           node --check omni_vendor_loader.js
           node --check office_tools_studio.js
           node --check diagram_forge_studio.js
+          node --check office_find_replace.js
           python -m py_compile omni-cloud-engine/app.py
       - name: Validate Office Tools and Diagram Forge wiring
         run: node .github/scripts/studio_wiring_check.mjs

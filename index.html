@@ -30,7 +30,7 @@
   <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
 <link rel="stylesheet" href="./diagram_forge_studio.css?v=2">
-<link rel="stylesheet" href="./office_tools_studio.css?v=2">
+<link rel="stylesheet" href="./office_tools_studio.css?v=2"><link rel="stylesheet" href="./office_find_replace.css?v=1">
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
@@ -2282,6 +2282,51 @@ python prepare_language_models.py --transliteration</pre>
           </div>
         </div>
       </div>
+      <div class="card omni-office-area" id="officeFindReplace">
+        <h2>7. Find &amp; Replace inside Office Files</h2>
+        <div class="sub">Change text inside Word, PowerPoint, Excel and OpenDocument files without opening or converting them. Fonts, styles, images, tables, layout and macros stay exactly as they were — even when Word has split a word across several formatting runs. Runs 100% in your browser; your originals are never modified.</div>
+        <div class="dropzone" id="ofrDrop">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5M8 10.5h5"/></svg>
+          <h3>Choose one or more Office files</h3>
+          <p>DOCX, DOCM, DOTX, PPTX, PPTM, PPSX, POTX, XLSX, XLSM, XLTX, ODT, ODS or ODP — add as many as you like</p>
+          <input type="file" id="ofrInput" class="file-input" multiple>
+        </div>
+        <div class="controls-panel" id="ofrControls" style="display:none;">
+          <div class="file-summary">
+            <div><div class="file-name" id="ofrCount">No files selected</div><ul class="ofr-files" id="ofrFileList"></ul></div>
+            <button type="button" class="btn-reset" id="ofrReset">Reset</button>
+          </div>
+          <div class="ofr-rules-head"><b>Replacement rules</b><span>applied top to bottom</span>
+            <div class="ofr-rule-actions"><button type="button" class="btn btn-secondary" id="ofrAddRule">＋ Add rule</button><button type="button" class="btn btn-secondary" id="ofrImport" title="CSV or TSV with two columns: find, replace">Import CSV</button><button type="button" class="btn btn-secondary" id="ofrExport">Export CSV</button><input type="file" id="ofrRulesFile" accept=".csv,.tsv,.txt,text/csv" hidden></div>
+          </div>
+          <div class="ofr-rules" id="ofrRules"></div>
+          <div class="ofr-options">
+            <fieldset><legend>Matching</legend>
+              <label><input type="checkbox" id="ofrCase"> Match case</label>
+              <label><input type="checkbox" id="ofrWord"> Whole words only</label>
+              <label><input type="checkbox" id="ofrPreserve"> Keep capitalisation (Apple → Pear, APPLE → PEAR)</label>
+              <label><input type="checkbox" id="ofrRegex"> Regular expressions</label>
+              <div class="form-hint" id="ofrRegexHint" hidden>JavaScript regex syntax. Use <code>$1</code>, <code>$&lt;name&gt;</code> or <code>$&amp;</code> in the replacement, e.g. find <code>(\d{2})/(\d{2})/(\d{4})</code> → <code>$3-$2-$1</code>.</div>
+            </fieldset>
+            <fieldset><legend>Also search in</legend>
+              <label><input type="checkbox" id="ofrHeaders" checked> Headers, footers &amp; footnotes</label>
+              <label><input type="checkbox" id="ofrNotes" checked> Speaker notes</label>
+              <label><input type="checkbox" id="ofrCharts" checked> Charts &amp; SmartArt</label>
+              <label><input type="checkbox" id="ofrComments"> Comments</label>
+              <label><input type="checkbox" id="ofrMasters"> Slide masters &amp; layouts</label>
+              <label><input type="checkbox" id="ofrProps"> Document properties (title, subject, keywords)</label>
+            </fieldset>
+          </div>
+          <div class="actions-bar">
+            <button type="button" class="btn btn-secondary" id="ofrScan">🔍 Preview matches</button>
+            <button type="button" class="btn btn-primary" id="ofrReplace">Replace &amp; download</button>
+            <label class="ofr-zip"><input type="checkbox" id="ofrZip"> Always download as ZIP</label>
+          </div>
+          <div class="form-hint" id="ofrProgress" style="display:none" aria-live="polite"></div>
+          <div class="ofr-report" id="ofrReport" style="display:none" aria-live="polite"></div>
+          <div class="form-hint">Excel: cell text, inline text, comments and table headers are updated; numbers, formulas and sheet names are not touched. Matches that would cross a tab, line break or field are skipped and listed rather than guessed. Legacy DOC/XLS/PPT files must first be converted with the Office Format Converter above.</div>
+        </div>
+      </div>
     </div>
 
     <!-- 3. EPUB STUDIO -->
@@ -4383,6 +4428,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./omni_browser_docs.js?v=5"></script>
 <script src="./omni_vendor_loader.js?v=1"></script>
 <script src="./office_tools_studio.js?v=2"></script>
+<script src="./office_find_replace.js?v=1"></script>
 <script src="./diagram_forge_studio.js?v=2"></script>
 <script src="./omni_browser_epub.js?v=2"></script>
 <script src="./omni_browser_ocr.js?v=1"></script>

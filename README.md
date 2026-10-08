@@ -231,6 +231,14 @@ Office Studio uses the Local Engine for native Office-family conversion. It now 
 - **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
 - **PDF → PPTX:** rendered as one slide per PDF page using Poppler.
 
+### Office Studio — Find & Replace inside Office files
+Tool 7 in Office Studio changes text inside DOCX/DOCM/DOTX, PPTX/PPTM/PPSX/POTX, XLSX/XLSM/XLTX and ODT/ODS/ODP files without converting them, entirely in the browser. Only the text changes: fonts, styles, images, tables, layout and macros are untouched, including words that Word has split across several formatting runs (the replacement takes the formatting of the run where the match starts).
+- Many files and many rules at once; rules can be imported/exported as a two-column CSV (`find,replace`).
+- Match case, whole words, keep capitalisation (acme → globex, Acme → Globex, ACME → GLOBEX) and regular expressions with `$1`/`$<name>` back-references.
+- Scope: body, tables and text boxes always; optionally headers/footers/footnotes, speaker notes, charts & SmartArt, comments, slide masters/layouts and document properties.
+- Excel: shared and inline cell text, rich text, comments and table headers (kept consistent with the table definition); numbers, formulas and sheet names are never changed.
+- **Preview matches** shows every hit in context before anything is written; **Replace & download** returns the edited file (or a ZIP for several). Matches crossing a tab, line break or field are skipped and reported.
+
 ### Office Tools (browser-only editors)
 Office Tools edits files directly in the browser — nothing is uploaded and no Local Engine is needed. Drafts auto-recover after a reload, and in Chromium browsers **Save** writes back to the file you opened.
 
