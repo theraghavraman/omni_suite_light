@@ -1452,7 +1452,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
     <div class="form-group"><label for="ragGithubBranch">Branch</label><input id="ragGithubBranch" class="form-input" value="main" placeholder="main"></div>
   </div>
   <div class="form-group" style="margin-top:9px"><label for="ragGithubToken">GitHub fine-grained token</label><input id="ragGithubToken" class="form-input" type="password" autocomplete="off" placeholder="github_pat_…"></div>
-  <div class="actions-bar" style="margin-top:9px"><button type="button" class="btn btn-primary" id="ragGithubSave">☁️ Save Selected Files to GitHub</button><button type="button" class="btn btn-secondary" id="ragGithubForget">Forget Token</button><label style="display:flex;align-items:center;gap:7px;font-size:.75rem;color:#667085"><input id="ragGithubRemember" type="checkbox"> Remember on this device</label></div>
+  <div class="actions-bar" style="margin-top:9px"><button type="button" class="btn btn-primary" id="ragGithubSave">☁️ Save Selected Files to GitHub</button><button type="button" class="btn btn-secondary" id="ragGithubForget">Forget Token</button><label style="display:flex;align-items:center;gap:7px;font-size:.75rem;color:#667085"><input id="ragGithubRemember" type="checkbox" disabled> Session only — token is never persisted</label></div>
   <div class="rag-github-note"><b>Recommended:</b> create a fine-grained GitHub token limited to this repository with <b>Contents: Read and write</b>. The token is used only for GitHub API calls from this browser. Do not paste a token into the public repository code.</div>
   <div class="rag-github-status" id="ragGithubStatus">Ready — choose files, then save them to GitHub when you want persistence.</div>
 </div>
@@ -5443,5 +5443,6 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
 }
 </style>
   <script src="./omni_render_cloud.js?v=3"></script>
+  <link rel="stylesheet" href="./omni-ui-revamp-color.css">
 </body>
 </html>

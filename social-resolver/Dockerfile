@@ -16,4 +16,4 @@ RUN python -m pip install --upgrade pip && python -m pip install -r requirements
 COPY app.py .
 
 EXPOSE 10000
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port \${PORT:-10000}"]
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-10000}"]
