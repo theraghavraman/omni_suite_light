@@ -1575,10 +1575,10 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
             <textarea id="ragQuery" class="form-textarea" style="min-height:110px" placeholder="Ask a question about your indexed knowledge…"></textarea>
             <div class="rag-controls" style="margin-top:12px">
               <div class="form-group"><label for="ragTopK">Retrieved chunks</label><input id="ragTopK" class="form-input" type="number" min="1" max="20" value="12"></div>
-              <div class="form-group"><label for="ragUseLLM">Generation</label><select id="ragUseLLM" class="form-select"><option value="true">Local small LLM</option><option value="false">Retrieval only</option></select></div>
-              <div class="form-group"><label>Privacy</label><div class="rag-status rag-ok" style="padding-top:10px">Documents + vectors remain local</div></div>
+              <div class="form-group"><label for="ragUseLLM">Generation</label><select id="ragUseLLM" class="form-select"><option value="hybrid">Hybrid Auto · Cloud → Local → Browser</option><option value="true">Browser LLM · private</option><option value="cloud">Render Cloud LLM</option><option value="local">Local Engine LLM</option><option value="false">Retrieval only</option></select></div>
+              <div class="form-group"><label>Privacy</label><div class="rag-status rag-ok" style="padding-top:10px">Files + vectors stay local; Hybrid sends retrieved passages to the selected generator.</div></div>
             </div>
-            <div class="actions-bar"><button class="btn btn-primary" id="ragAsk">Ask • Retrieve + Generate</button><span class="rag-status">Ctrl/⌘ + Enter also asks</span></div>
+            <div class="form-group" style="margin-top:10px"><label for="ragLocalUrl">Optional Local Engine URL</label><input id="ragLocalUrl" class="form-input" value="http://127.0.0.1:8765" placeholder="http://127.0.0.1:8765"><small class="rag-status">Render generation uses the token entered in the Run on Render panel. Hybrid tries cloud, then Local Engine, then browser LLM.</small></div><div class="actions-bar"><button class="btn btn-primary" id="ragAsk">Ask • Retrieve + Generate</button><span class="rag-status">Ctrl/⌘ + Enter also asks</span></div>
           </div>
           <div class="card">
             <div class="rag-section-label">STEP 3</div><h2>Grounded answer</h2>
@@ -1593,7 +1593,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
           </div>
           <div class="card">
             <div class="rag-section-label">OVERVIEW</div><h2>How it works</h2>
-            <div class="sub"><b>1. Ingest</b> → extract text from documents.<br><br><b>2. Chunk</b> → split content into retrieval-sized passages.<br><br><b>3. Embed</b> → create local vector representations with a browser embedding model.<br><br><b>4. Retrieve</b> → semantic vector + lexical hybrid search.<br><br><b>5. Generate</b> → optional small local LLM answers using only retrieved context.</div>
+            <div class="sub"><b>1. Ingest</b> → extract text from documents.<br><br><b>2. Chunk</b> → split content into retrieval-sized passages.<br><br><b>3. Embed</b> → create local vector representations with a browser embedding model.<br><br><b>4. Retrieve</b> → semantic vector + lexical hybrid search.<br><br><b>5. Generate</b> → choose cloud, Local Engine, browser LLM, automatic fallback, or retrieval-only mode. Only retrieved passages are sent to the selected generator.</div>
           </div>
           <div class="card">
             <div class="rag-section-label">REPOSITORY</div><h2>Repository knowledge</h2>
