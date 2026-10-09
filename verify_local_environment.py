@@ -5,7 +5,7 @@ import importlib.util
 import subprocess
 import sys
 from pathlib import Path
-from omni_environment import PYTHON_IMPORTS, OPTIONAL_PYTHON_IMPORTS, NATIVE_GROUPS, OFFLINE_ASSETS, find_native_tool_path
+from omni_environment import PYTHON_IMPORTS, OPTIONAL_PYTHON_IMPORTS, NATIVE_GROUPS, OFFLINE_ASSETS, OPTIONAL_NATIVE_GROUPS, find_native_tool_path
 
 ROOT = Path(__file__).resolve().parent
 
@@ -60,12 +60,16 @@ def main() -> int:
     missing_optional_py = [x for x, ok in py.items() if not ok and x in OPTIONAL_PYTHON_IMPORTS]
     required_total = sum(1 for x in py if x not in OPTIONAL_PYTHON_IMPORTS)
     required_ready = required_total - len(missing_py)
-    missing_native = [x for x, path in native.items() if not path]
+    missing_native = [x for x, path in native.items() if not path and x not in OPTIONAL_NATIVE_GROUPS]
+    missing_optional_native = [x for x, path in native.items() if not path and x in OPTIONAL_NATIVE_GROUPS]
+    required_native_total = len(native) - len(OPTIONAL_NATIVE_GROUPS)
+    required_native_ready = required_native_total - len(missing_native)
     missing_assets = [x for x, ok in assets.items() if not ok]
 
     print(f"Python packages: {required_ready}/{required_total} required ready")
     print(f"Optional packages: {len(OPTIONAL_PYTHON_IMPORTS) - len(missing_optional_py)}/{len(OPTIONAL_PYTHON_IMPORTS)} ready")
-    print(f"Native tools:    {len(native)-len(missing_native)}/{len(native)} ready")
+    print(f"Native tools:    {required_native_ready}/{required_native_total} required ready")
+    print(f"Optional native tools: {len(OPTIONAL_NATIVE_GROUPS) - len(missing_optional_native)}/{len(OPTIONAL_NATIVE_GROUPS)} ready")
     print(f"Offline assets:   {len(assets)-len(missing_assets)}/{len(assets)} ready")
     print(f"pip check:        {'PASS' if pip_ok else 'FAIL'}")
 
@@ -75,6 +79,8 @@ def main() -> int:
         print("Optional Python packages not installed (non-blocking):", ", ".join(missing_optional_py))
     if missing_native:
         print("Missing native tools:", ", ".join(missing_native))
+    if missing_optional_native:
+        print("Optional native tools not detected (non-blocking):", ", ".join(missing_optional_native))
     if missing_assets:
         print("Missing offline assets:", ", ".join(missing_assets))
     if pip_msg:
