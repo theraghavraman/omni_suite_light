@@ -7,7 +7,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const state={raw:null,sourceName:'',kind:'unknown',records:[],meta:{bytes:0,kind:'unknown',rows:0,numeric:[]},audio:null,animation:null,file:null};
-let __udsBound=false;
+let __udsBound=false,audioPreviewUrl=null,audioPreviewBuffer=null;
 
 function esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function ext(n){return (n.split('.').pop()||'').toLowerCase();}
@@ -31,8 +31,9 @@ function guessKind(name,text){
 function parseCSV(text,sep=','){
  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
  if(!lines.length)return [];
+ const source=lines.join('\n');
  const out=[];let row=[],cur='',q=false;
- for(let i=0;i<lines.join('\n').length;i++){const c=lines.join('\n')[i];if(c==='"'){if(q&&lines.join('\n')[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===sep&&!q){row.push(cur);cur='';}else if(c==='\n'&&!q){row.push(cur);out.push(row);row=[];cur='';}else cur+=c;}
+ for(let i=0;i<source.length;i++){const c=source[i];if(c==='"'){if(q&&source[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===sep&&!q){row.push(cur);cur='';}else if(c==='\n'&&!q){row.push(cur);out.push(row);row=[];cur='';}else cur+=c;}
  if(cur||row.length){row.push(cur);out.push(row);}
  const head=out.shift().map(x=>x.trim());return out.map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]??''])));
 }
@@ -54,11 +55,12 @@ function normalize(obj){
  else if(obj&&typeof obj==='object') rows=[obj];
  return rows.map((r,i)=>{const o={...r,_index:i};const lat=Number(o.lat??o.latitude??o.y??o.LATITUDE??o.Latitude??o._latitude);const lon=Number(o.lon??o.lng??o.longitude??o.x??o.LONGITUDE??o.Longitude??o._longitude);if(Number.isFinite(lat)&&Number.isFinite(lon)){o.lat=lat;o.lon=lon;o._geo=true;}return o;});
 }
+function minMaxBy(items,getValue){let min=Infinity,max=-Infinity;for(const item of items){const n=Number(getValue(item));if(!Number.isFinite(n))continue;if(n<min)min=n;if(n>max)max=n;}return {min,max};}
 function numericFields(rows){if(!rows.length)return[];return [...new Set(rows.flatMap(r=>Object.entries(r).filter(([k,v])=>k[0]!=='_'&&v!==''&&Number.isFinite(Number(v))).map(([k])=>k)))].slice(0,40);}
 function parseGPX(text){const pts=[];const re=/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/gi;let m,i=0;while((m=re.exec(text))){const s=m[3];const tm=(s.match(/<time>([^<]+)/i)||[])[1];const ele=(s.match(/<ele>([^<]+)/i)||[])[1];pts.push({lat:+m[1],lon:+m[2],time:tm||'',elevation:ele?+ele:null,_index:i++});}return pts;}
 function parseKML(text){const pts=[];const re=/<Placemark[\s\S]*?<coordinates>([^<]+)<\/coordinates>[\s\S]*?<\/Placemark>/gi;let m,i=0;while((m=re.exec(text))){const parts=m[1].trim().split(/\s+/);parts.forEach(p=>{const a=p.split(',');if(a.length>=2)pts.push({lon:+a[0],lat:+a[1],elevation:a[2]?+a[2]:null,_index:i++});});}return pts;}
 function parseInput(name,text,buf){
- const k=guessKind(name,text);state.kind=k;
+ const k=guessKind(name,text);if(k!=='audio')state.audio=null;state.kind=k;
  if(k==='table')state.records=parseCSV(text,ext(name)==='tsv'?'\t':',');
  else if(k==='records'){try{const j=ext(name)==='ndjson'||ext(name)==='jsonl'?text.split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x)):JSON.parse(text);state.records=normalize(j);}catch(e){state.records=[];throw new Error('JSON/NDJSON parse failed: '+e.message);}}
  else if(k==='geo'){if(ext(name)==='gpx')state.records=parseGPX(text);else if(ext(name)==='kml')state.records=parseKML(text);else state.records=normalize(JSON.parse(text));}
@@ -73,7 +75,7 @@ async function loadFile(f){const buf=await f.arrayBuffer();let text='';if(!['aud
 function renderPreview(){
  const meta=$('udsMeta');if(meta)meta.innerHTML='<div class="uds-pill"><b>'+esc(state.kind.toUpperCase())+'</b><span>'+prettyBytes(state.meta.bytes||0)+'</span></div><div class="uds-pill"><b>'+state.records.length+'</b><span>normalized rows</span></div><div class="uds-pill"><b>'+state.meta.numeric.length+'</b><span>numeric fields</span></div>';
  const p=$('udsPreview');if(!p)return;
- if(state.audio){p.innerHTML='<audio controls src="'+URL.createObjectURL(new Blob([state.audio]))+'"></audio>';return;}
+ if(state.audio){if(audioPreviewBuffer!==state.audio){if(audioPreviewUrl)URL.revokeObjectURL(audioPreviewUrl);audioPreviewUrl=URL.createObjectURL(new Blob([state.audio]));audioPreviewBuffer=state.audio;}p.innerHTML='<audio controls src="'+audioPreviewUrl+'"></audio>';return;}if(audioPreviewUrl){URL.revokeObjectURL(audioPreviewUrl);audioPreviewUrl=null;audioPreviewBuffer=null;}
  const rows=state.records.slice(0,8);if(!rows.length){p.innerHTML='<div class="uds-empty">Binary/scientific or unsupported-native data loaded. Use the conversion/export layer or Local Engine for native decoding.</div>';return;}
  const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))].slice(0,8);
  p.innerHTML='<div class="uds-table-wrap"><table><thead><tr>'+keys.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+keys.map(k=>'<td>'+esc(typeof r[k]==='object'?JSON.stringify(r[k]):r[k])+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
@@ -103,7 +105,7 @@ function draw(){
  const chartLeft=76,chartRight=24,chartTop=44,chartBottom=58;
  const plotW=Math.max(1,w-chartLeft-chartRight),plotH=Math.max(1,h-chartTop-chartBottom);
  const fmtNum=v=>{const n=Number(v);if(!Number.isFinite(n))return '';return Math.abs(n)>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toLocaleString(undefined,{maximumFractionDigits:2});};
- const niceField=v=>String(v||'').replace(/_/g,' ').replace(/\\b\\w/g,m=>m.toUpperCase());
+ const niceField=v=>String(v||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
  const unitForField=k=>{
    const s=String(k||'').toLowerCase();
    if(/temperature|temp/.test(s))return '°C';
@@ -137,7 +139,8 @@ function draw(){
 
  const pts=rows.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));
  if($('udsVizType')?.value==='map'||pts.length){
-   const minx=Math.min(...pts.map(r=>r.lon)),maxx=Math.max(...pts.map(r=>r.lon)),miny=Math.min(...pts.map(r=>r.lat)),maxy=Math.max(...pts.map(r=>r.lat));
+   if(!pts.length){x.fillStyle='#65718a';x.font='16px sans-serif';x.fillText('No latitude/longitude coordinates available for this map',24,40);return;}
+   const bx=minMaxBy(pts,r=>r.lon),by=minMaxBy(pts,r=>r.lat),minx=bx.min,maxx=bx.max,miny=by.min,maxy=by.max;
    const sx=Math.max(maxx-minx,1e-9),sy=Math.max(maxy-miny,1e-9);
    x.strokeStyle='#dce3ef';x.lineWidth=1;
    for(let i=1;i<8;i++){const px=chartLeft+i*plotW/8,py=chartTop+i*plotH/8;x.beginPath();x.moveTo(px,chartTop);x.lineTo(px,chartTop+plotH);x.stroke();x.beginPath();x.moveTo(chartLeft,py);x.lineTo(chartLeft+plotW,py);x.stroke();}
@@ -158,7 +161,7 @@ function draw(){
    x.fillStyle='#65718a';x.font='16px sans-serif';x.fillText('No numeric field available for visualization',24,40);return;
  }
  const visible=pairs.slice(0,5000),vlist=visible.map(p=>p.v);
- const min=Math.min(...vlist),max=Math.max(...vlist),span=max-min||1;
+ const bounds=minMaxBy(vlist,v=>v),min=bounds.min,max=bounds.max,span=max-min||1;
  x.strokeStyle='#dce3ef';x.lineWidth=1;
  for(let i=0;i<6;i++){const py=chartTop+plotH*i/5;x.beginPath();x.moveTo(chartLeft,py);x.lineTo(chartLeft+plotW,py);x.stroke();}
  x.strokeStyle='#7c879d';x.beginPath();x.moveTo(chartLeft,chartTop);x.lineTo(chartLeft,chartTop+plotH);x.lineTo(chartLeft+plotW,chartTop+plotH);x.stroke();
@@ -188,7 +191,7 @@ function drawWave(x,w,h){const u=state.audio;if(!u)return;const a=new Uint8Array
 function sonify(duration=8){
  const vals=state.records.map(r=>Number(r[$('udsField')?.value])).filter(Number.isFinite);if(!vals.length)throw new Error('Select a numeric field first.');
  const sr=44100,n=sr*duration,buf=new ArrayBuffer(44+n*2),dv=new DataView(buf);function w(o,s){for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i));}w(0,'RIFF');dv.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,sr,true);dv.setUint32(28,sr*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,n*2,true);
- const mn=Math.min(...vals),mx=Math.max(...vals),sp=mx-mn||1;for(let i=0;i<n;i++){const p=i/(n-1),idx=Math.floor(p*(vals.length-1)),v=(vals[idx]-mn)/sp;const freq=140+v*900,env=.22+.5*Math.min(1,4*Math.min(p,1-p));const s=Math.sin(2*Math.PI*freq*i/sr)*env;dv.setInt16(44+i*2,Math.max(-1,Math.min(1,s))*32767,true);}return new Blob([buf],{type:'audio/wav'});
+ const bounds=minMaxBy(vals,v=>v),mn=bounds.min,mx=bounds.max,sp=mx-mn||1;for(let i=0;i<n;i++){const p=i/(n-1),idx=Math.floor(p*(vals.length-1)),v=(vals[idx]-mn)/sp;const freq=140+v*900,env=.22+.5*Math.min(1,4*Math.min(p,1-p));const s=Math.sin(2*Math.PI*freq*i/sr)*env;dv.setInt16(44+i*2,Math.max(-1,Math.min(1,s))*32767,true);}return new Blob([buf],{type:'audio/wav'});
 }
 function htmlReport(){
  const g=state.records.some(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));return '<!doctype html><meta charset="utf-8"><title>Omni Data Report</title><style>body{font-family:system-ui;margin:30px;background:#f5f7fb;color:#182033}table{border-collapse:collapse;width:100%}td,th{padding:7px;border:1px solid #dce3ef;text-align:left}</style><h1>Omni Universal Data Report</h1><p>Source: '+esc(state.sourceName)+' · Type: '+esc(state.kind)+' · Rows: '+state.records.length+'</p><pre>'+esc(JSON.stringify({meta:state.meta,geojson:g?geoJSON():null},null,2))+'</pre>';
@@ -209,7 +212,7 @@ async function exportAs(fmt){
  if(fmt==='json'){downloadBlob(new Blob([JSON.stringify(rowsForExport(),null,2)],{type:'application/json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.json');}
  else if(fmt==='csv'){downloadBlob(new Blob([csvOut(rowsForExport())],{type:'text/csv'}),state.sourceName.replace(/\.[^.]+$/,'')+'.csv');}
  else if(fmt==='geojson'){downloadBlob(new Blob([JSON.stringify(geoJSON(),null,2)],{type:'application/geo+json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.geojson');}
- else if(fmt==='svg'){const pts=state.records.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));if(!pts.length)throw new Error('SVG map requires latitude/longitude records.');const minx=Math.min(...pts.map(r=>r.lon)),maxx=Math.max(...pts.map(r=>r.lon)),miny=Math.min(...pts.map(r=>r.lat)),maxy=Math.max(...pts.map(r=>r.lat)),sx=maxx-minx||1,sy=maxy-miny||1;const circles=pts.map(r=>'<circle cx="'+(20+(r.lon-minx)/sx*760).toFixed(1)+'" cy="'+(380-(r.lat-miny)/sy*340).toFixed(1)+'" r="3"/>').join('');downloadBlob(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="100%" height="100%" fill="#f7f9ff"/><g fill="#635bff">'+circles+'</g></svg>'],{type:'image/svg+xml'}),'omni-map.svg');}
+ else if(fmt==='svg'){const pts=state.records.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));if(!pts.length)throw new Error('SVG map requires latitude/longitude records.');const bx=minMaxBy(pts,r=>r.lon),by=minMaxBy(pts,r=>r.lat),minx=bx.min,maxx=bx.max,miny=by.min,maxy=by.max,sx=maxx-minx||1,sy=maxy-miny||1;const circles=pts.map(r=>'<circle cx="'+(20+(r.lon-minx)/sx*760).toFixed(1)+'" cy="'+(380-(r.lat-miny)/sy*340).toFixed(1)+'" r="3"/>').join('');downloadBlob(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="100%" height="100%" fill="#f7f9ff"/><g fill="#635bff">'+circles+'</g></svg>'],{type:'image/svg+xml'}),'omni-map.svg');}
  else if(fmt==='png'){draw();const c=$('udsCanvas');const b=await new Promise(r=>c.toBlob(r,'image/png'));downloadBlob(b,'omni-data-visualization.png');}
  else if(fmt==='wav'){downloadBlob(sonify(Number($('udsDuration')?.value||8)),'omni-data-sonification.wav');}
  else if(fmt==='webm'){await exportVideo();}
@@ -218,6 +221,7 @@ async function exportAs(fmt){
 }
 async function fetchURL(){
  const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';if(/audio\//i.test(ct))state.audio=buf;parseInput(name,text,buf);setStatus('Fetched '+name);}
+function bytesToBinaryString(bytes){let out='';const chunkSize=0x4000;for(let start=0;start<bytes.length;start+=chunkSize)out+=String.fromCharCode(...bytes.subarray(start,Math.min(start+chunkSize,bytes.length)));return out;}
 function encodedConvert(){
  const input=$('udsEncodedInput')?.value.trim();if(!input)throw new Error('Enter encoded data first.');
  const mode=$('udsEncodedMode')?.value||'hex-to-base64';
@@ -228,7 +232,7 @@ function encodedConvert(){
  else if(mode==='text-to-base64'){bytes=new TextEncoder().encode(input);}
  else throw new Error('Unsupported encoding mode.');
  let out='';
- if(mode==='hex-to-base64'||mode==='text-to-base64')out=btoa(String.fromCharCode(...bytes));
+ if(mode==='hex-to-base64'||mode==='text-to-base64')out=btoa(bytesToBinaryString(bytes));
  else if(mode==='hex-to-text'||mode==='base64-to-text')out=new TextDecoder().decode(bytes);
  else if(mode==='base64-to-hex'||mode==='text-to-hex')out=[...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
  $('udsEncodedOutput').value=out;
