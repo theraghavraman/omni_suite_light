@@ -33,6 +33,7 @@ jobs:
           node --check office_find_replace.js
           node --check photo_editor.js
           node --check etl_studio.js
+          node --check omni_language_studio.js
           node --check file_sharing_studio.js
           node --check qrcode_generator.js
           node --check omni_browser_ai.js
