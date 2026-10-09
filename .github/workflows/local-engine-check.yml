@@ -40,6 +40,8 @@ jobs:
           node --check omni_browser_ai_ui.js
           node --check omni_browser_media_ai.js
           python -m py_compile omni-cloud-engine/app.py
+      - name: Validate RAG Studio JavaScript syntax
+        run: node --check rag_studio.js
       - name: Validate browser worker module syntax
         shell: bash
         run: node --input-type=module --check < omni_browser_media_ai_worker.js
