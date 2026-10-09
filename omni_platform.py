@@ -5,33 +5,9 @@ from __future__ import annotations
 import hashlib, importlib.util, json, re, shutil, subprocess
 from pathlib import Path
 from typing import Any
+from omni_environment import PYTHON_IMPORTS as PYTHON_PACKAGES, OPTIONAL_PYTHON_IMPORTS, NATIVE_TOOLS, find_native_tool_path
 
-PYTHON_PACKAGES = {
-    "pandas":"pandas","numpy":"numpy","pyarrow":"pyarrow","duckdb":"duckdb",
-    "openpyxl":"openpyxl","xlrd":"xlrd","pyxlsb":"pyxlsb","odfpy":"odf",
-    "fastavro":"fastavro","pyreadstat":"pyreadstat","tabulate":"tabulate",
-    "polars":"polars","fastparquet":"fastparquet","scipy":"scipy","sympy":"sympy",
-    "sqlalchemy":"sqlalchemy","psycopg":"psycopg","mysql_connector":"mysql.connector",
-    "oracledb":"oracledb","pyodbc":"pyodbc","py7zr":"py7zr","rarfile":"rarfile",
-    "imageio":"imageio","pydub":"pydub","moviepy":"moviepy","easyocr":"easyocr",
-    "pymongo":"pymongo","msgpack":"msgpack","xarray":"xarray","netCDF4":"netCDF4",
-    "h5py":"h5py","astropy":"astropy","cdflib":"cdflib","cfgrib":"cfgrib",
-    "eccodes":"eccodes","Pillow":"PIL",
-    "duckdb_engine":"duckdb_engine","snowflake_sqlalchemy":"snowflake.sqlalchemy","google_cloud_bigquery":"google.cloud.bigquery",
-    "databricks_sql_connector":"databricks.sql","trino":"trino","clickhouse_sqlalchemy":"clickhouse_sqlalchemy","sqlalchemy_redshift":"sqlalchemy_redshift",
-    "cassandra_driver":"cassandra","redis":"redis","neo4j":"neo4j","boto3":"boto3","fsspec":"fsspec","s3fs":"s3fs","gcsfs":"gcsfs",
-}
-NATIVE_TOOLS = {
-    "ffmpeg":("ffmpeg","ffmpeg"), "qpdf":("qpdf","qpdf"), "pdftoppm":("pdftoppm","poppler"),
-    "pdftotext":("pdftotext","poppler"), "magick":("magick","ImageMagick"),
-    "convert":("convert","ImageMagick"), "tesseract":("tesseract","Tesseract"),
-    "libreoffice":("libreoffice","LibreOffice"), "soffice":("soffice","LibreOffice"),
-    "ebook-convert":("ebook-convert","Calibre"), "pandoc":("pandoc","Pandoc"),
-    "ffprobe":("ffprobe","FFmpeg"), "rsvg-convert":("rsvg-convert","librsvg"), "7z":("7z","7-Zip"), "7zz":("7zz","7-Zip"),
-    "zip":("zip","Info-ZIP"), "unzip":("unzip","Info-ZIP"), "gzip":("gzip","gzip"), "bzip2":("bzip2","bzip2"), "xz":("xz","xz"),
-    "tar":("tar","tar"), "gs":("gs","Ghostscript"), "sqlite3":("sqlite3","SQLite"), "psql":("psql","PostgreSQL client"),
-    "mysql":("mysql","MySQL client"), "isql":("isql","unixODBC"),
-}
+
 DATA_BROWSER = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md"}
 DATABASE_FORMATS = {"sqlite","db","duckdb","sql","parquet","csv","json","jsonl","xlsx","ods"}
 PRIVACY_PATTERNS = {
@@ -55,13 +31,13 @@ def doctor():
     for label,mod in PYTHON_PACKAGES.items():
         try:
             spec=importlib.util.find_spec(mod)
-            python[label]={"installed":bool(spec)}
+            python[label]={"installed":bool(spec), "optional":label in OPTIONAL_PYTHON_IMPORTS}
             if spec: python[label]["origin"]=str(spec.origin or "")
         except Exception: python[label]={"installed":False}
     native={}
     for label,(cmd,package) in NATIVE_TOOLS.items():
-        path=shutil.which(cmd)
-        native[label]={"installed":bool(path),"path":path,"version":_version(cmd) if path else None,"package":package}
+        path=find_native_tool_path(cmd)
+        native[label]={"installed":bool(path),"path":path,"version":_version(path) if path else None,"package":package}
     return {"python":python,"native":native}
 
 def capability(source=None,target=None):
