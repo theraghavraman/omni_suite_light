@@ -57,8 +57,24 @@ run?.addEventListener('click',async e=>{
     let current=0;
     worker=await Tesseract.createWorker(lang,1,Object.assign({},window.OMNI_TESSERACT_OPTIONS||{},{logger:m=>{if(m.status==='recognizing text'&&typeof m.progress==='number')prog(8+92*(current+m.progress)/pages.length,'Page '+(current+1)+' of '+pages.length+' • recognizing text');else if(m.status&&current===0&&typeof m.progress==='number')prog(2+6*m.progress,m.status);}}));
     const texts=[],pdfParts=[];let conf=0;
-    for(current=0;current<pages.length;current++){const pg=pages[current];const img=await prepare(pg.canvas||pg.file);
-      const r=await worker.recognize(img,{},{text:true,pdf:true});texts.push(pages.length>1?'— '+pg.label+' —\n'+r.data.text.trim():r.data.text.trim());conf+=r.data.confidence||0;if(r.data.pdf)pdfParts.push(new Uint8Array(r.data.pdf));}
+    for(current=0;current<pages.length;current++){
+      const pg=pages[current],source=pg.canvas||pg.file;
+      // First pass: let Tesseract read the original image without preprocessing.
+      let r=await worker.recognize(source,{},{text:true,pdf:true});
+      const rawText=(r.data.text||'').trim(),rawConfidence=Number(r.data.confidence)||0;
+      // Only retry with image clean-up when the raw pass is weak or returns no text.
+      if(rawConfidence<75||!rawText){
+        prog(8+92*current/pages.length,'Low-confidence result — retrying page '+(current+1)+' with image clean-up');
+        const cleaned=await prepare(source);
+        const retry=await worker.recognize(cleaned,{},{text:true,pdf:true});
+        const retryText=(retry.data.text||'').trim(),retryConfidence=Number(retry.data.confidence)||0;
+        if(retryConfidence>rawConfidence||(!rawText&&retryText))r=retry;
+      }
+      const finalText=(r.data.text||'').trim();
+      texts.push(pages.length>1?'— '+pg.label+' —\\n'+finalText:finalText);
+      conf+=Number(r.data.confidence)||0;
+      if(r.data.pdf)pdfParts.push(new Uint8Array(r.data.pdf));
+    }
     await worker.terminate();worker=null;
     // merge per-page searchable PDFs
     searchablePdf=null;if(pdfParts.length&&window.PDFLib){const doc=await PDFLib.PDFDocument.create();for(const part of pdfParts){const src=await PDFLib.PDFDocument.load(part);(await doc.copyPages(src,src.getPageIndices())).forEach(p=>doc.addPage(p));}searchablePdf=new Blob([await doc.save()],{type:'application/pdf'});}
