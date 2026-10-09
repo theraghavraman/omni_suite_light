@@ -4206,8 +4206,9 @@ async function runOptions(clear=true){
            sel.value=o.value;
            if(sel.value!==o.value) throw new Error('Browser rejected option value');
            /* Validation must never invoke real side-effect handlers on export/action selectors.
-              Diagram Forge's #df-export onchange downloads a file for every non-empty option. */
-           const sideEffectSelect = sel.id === 'df-export' || sel.matches('[data-validation-side-effects="true"]');
+              Diagram Forge's #df-export downloads files; Office Studio's #ot-table-op mutates the
+              document table and requires a real caret inside a cell. */
+           const sideEffectSelect = ['df-export','ot-table-op'].includes(sel.id) || sel.matches('[data-validation-side-effects="true"]');
            if(hasChange && !sideEffectSelect){
              const beforeErrors=uncaught.length;
              sel.dispatchEvent(new Event('change',{bubbles:true,cancelable:true}));
