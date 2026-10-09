@@ -32,6 +32,7 @@ jobs:
           node --check diagram_forge_studio.js
           node --check office_find_replace.js
           node --check photo_editor.js
+          node --check etl_studio.js
           node --check file_sharing_studio.js
           node --check qrcode_generator.js
           node --check omni_browser_ai.js
@@ -39,7 +40,7 @@ jobs:
           node --check omni_browser_media_ai.js
           node --input-type=module --check < omni_browser_media_ai_worker.js
           python -m py_compile omni-cloud-engine/app.py
-      - name: Validate Office Tools and Diagram Forge wiring
+      - name: Validate Studio wiring
         run: node .github/scripts/studio_wiring_check.mjs
       - name: Validate assistant retrieval regression
         run: node .github/scripts/assistant_rag_regression.mjs
