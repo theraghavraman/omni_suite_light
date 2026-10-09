@@ -28,7 +28,7 @@ async function downloadQr(ext){if(!qr)await renderQr();if(qr){await qr.download(
 
 /* ---------- Markup ---------- */
 function panel(){const p=document.createElement('div');p.className='module-panel';p.id=ID;p.innerHTML=[
-'<section class="studio-workspace-head fs-head"><div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> FILE SHARING</div><h2 class="studio-workspace-title">File Sharing Studio</h2><p class="studio-workspace-desc">Create permanent static QR codes or move files directly between this computer and your phone over the same Wi-Fi network.</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">QR + LAN</span><span class="studio-meta-chip">NO CLOUD</span><span class="studio-meta-chip">MAC READY</span></div></section>',
+'<section class="studio-workspace-head fs-head"><div class="studio-workspace-copy"><h2 class="studio-workspace-title">File Sharing Studio</h2><p class="studio-workspace-desc">Create permanent static QR codes or move files directly between this computer and your phone over the same Wi-Fi network.</p></div></section>',
 /* One mode switch (the two cards), instead of cards + a duplicate tab bar */
 '<div class="fs-share-options" role="tablist" aria-label="File Sharing tools">',
  '<button type="button" class="fs-share-option fs-share-option-qr selected" role="tab" aria-selected="true" data-open-mode="qr"><span class="fs-share-option-icon">▦</span><span class="fs-share-option-text"><strong>QR Generator</strong><span>Permanent static QR for a link, Wi-Fi, contact, text and more.</span></span><span class="fs-share-check" aria-hidden="true">✓</span></button>',

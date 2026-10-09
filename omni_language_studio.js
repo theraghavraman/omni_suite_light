@@ -37,8 +37,8 @@
     if(hint&&!hint.dataset.running){
       if(pairSupported(source.value,target.value)){
         hint.textContent=state.localDetected
-          ?'Browser-first: this pair uses the in-browser model when supported; otherwise it uses a compatible Local Engine model.'
-          :'Browser mode is ready for Hindi ↔ English. Start the Local Engine for additional installed IndicTrans2 language pairs.';
+          ?'Runs in the browser when supported, otherwise on the Local Engine.'
+          :'Hindi ↔ English runs in the browser. Start the Local Engine for more language pairs.';
       }else{
         hint.textContent='This language pair is not available in the detected models. Check Local Engine status or choose another pair.';
       }
@@ -100,7 +100,7 @@
     $('languageTranslateOutput').style.display='none';
     const hint=$('languageTranslateStatus');
     if(hint)hint.dataset.running='1';
-    setStatus('languageTranslateStatus','Trying the browser model first… the first download may take a moment; Local Engine is the fallback.');
+    setStatus('languageTranslateStatus','Translating… the first run downloads the model.');
     try{
       const r=await window.OmniLanguageEngine.translate(input,source.value,target.value,{max_new_tokens:512});
       $('languageTranslateOutput').value=r.text||'';

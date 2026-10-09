@@ -19,11 +19,11 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <script src="./omni_language_engine.js?v=4"></script>
   <script src="./omni_language_browser.js?v=1"></script>
-  <script src="./omni_language_studio.js?v=3"></script>
+  <script src="./omni_language_studio.js?v=4"></script>
   <script src="./omni_browser_media_ai.js?v=1"></script>
   <script src="./omni_browser_ai.js?v=6"></script>
   <script src="./omni_deepseek_code_ai.js?v=1"></script>
-  <script src="./omni_browser_ai_ui.js?v=3"></script>
+  <script src="./omni_browser_ai_ui.js?v=4"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
   <script src="./vendor/sheetjs/xlsx.full.min.js"></script>
   <script>window.XLSX||document.write('<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"><\/script>')</script>
@@ -37,16 +37,19 @@
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
 .omni-sandbox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.omni-sandbox-editor{width:100%;min-height:190px;margin-top:12px;padding:12px;border:1px solid #d6dfec;border-radius:12px;background:#0e1628;color:#e7efff;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}.omni-sandbox-output{min-height:150px;margin-top:12px;padding:12px;border-radius:12px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow:auto}.omni-sandbox-status{margin-top:10px;padding:9px 11px;border-radius:10px;background:#f1f5f9;color:#66748a;font-size:.76rem}.omni-sandbox-status.ok{background:#ecfbf5;color:#087a5b}.omni-sandbox-status.warn{background:#fff8e7;color:#8a5a00}.omni-sandbox-table-wrap{max-height:270px;overflow:auto;margin-top:12px;border:1px solid #dfe6f1;border-radius:12px;background:#fff}.omni-sandbox-table{width:100%;border-collapse:collapse;font-size:.75rem}.omni-sandbox-table th,.omni-sandbox-table td{padding:7px 8px;border-bottom:1px solid #edf1f6;text-align:left;white-space:nowrap}.omni-sandbox-table th{position:sticky;top:0;background:#f4f7fb;color:#34405a}.omni-sandbox-history{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.omni-sandbox-history button{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;padding:5px 8px;border:1px solid #d6dfec;border-radius:8px;background:#fff;color:#52617a;cursor:pointer}@media(max-width:850px){.omni-sandbox-grid{grid-template-columns:1fr}}
 
+#tabRAGStudio .rag-model-item{grid-template-columns:minmax(0,1fr) auto !important}
+
 /* Static studio consolidation: apply before scripts execute. */
 .nav-bar .nav-btn[data-tab="tabOfficeTools"],
 .nav-bar .nav-btn[data-tab="tabUniversalData"],
 .nav-bar .nav-btn[data-tab="tabLocalDoctor"],
 .nav-bar .nav-btn[data-tab="tabAllTests"] { display:none !important; }
-.omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--border-color,rgba(120,130,150,.22));border-radius:14px;background:var(--card-bg,rgba(120,130,150,.06));}
+.omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--line,rgba(27,42,73,.12));border-radius:14px;background:rgba(255,255,255,.72);}
 .omni-consolidated-links .omni-consolidated-copy{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;justify-content:center;}
 .omni-consolidated-links strong{font-size:.95rem;}
 .omni-consolidated-links small{opacity:.72;font-size:.8rem;}
-.omni-consolidated-links button{border:1px solid var(--active-studio-accent,#168C91);border-radius:10px;padding:9px 13px;background:var(--active-studio-soft,rgba(22,140,145,.12));color:inherit;font:inherit;font-weight:650;cursor:pointer;}
+.omni-consolidated-links button{border:1px solid var(--active-studio-accent,#168C91);border-radius:10px;padding:9px 13px;background:var(--active-studio-soft,rgba(22,140,145,.12));color:inherit;font:inherit;font-weight:650;cursor:pointer;transition:transform .2s,filter .2s;}
+.omni-consolidated-links button:hover{filter:brightness(.96);transform:translateY(-1px);}
 
 </style>
 <style id="omni-design-final">
@@ -1525,24 +1528,18 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
     <!-- PRIVATE RAG STUDIO -->
     <div class="module-panel" id="tabRAGStudio">
       <div class="rag-top-grid">
-      <div class="card rag-hero">
-        <div class="rag-kicker">PRIVATE KNOWLEDGE • BROWSER-FIRST</div>
-        <h2>🧠 Private RAG Studio</h2>
-        <div class="sub">Search your own documents privately in the browser, retrieve the most relevant passages, and optionally generate a grounded answer with a local model.</div>
-        <div class="rag-statbar">
+      <div class="card rag-model-card">
+        <div class="rag-model-head"><div><h3 style="margin:0">Local AI &amp; Privacy</h3></div><span class="rag-local-badge" id="ragPrivacyBadge">LOCAL-FIRST</span></div>
+        <div class="rag-statbar" style="margin:12px 0">
           <div class="rag-stat"><b id="ragDocs">0</b>documents</div>
           <div class="rag-stat"><b id="ragChunks">0</b>chunks</div>
           <div class="rag-stat"><b id="ragIndex">Empty</b>index</div>
-          <span class="rag-pill">Private</span><span class="rag-pill">Local Search</span><span class="rag-pill">Grounded Answers</span>
         </div>
-      </div>
-      <div class="card rag-model-card">
-        <div class="rag-model-head"><div><span class="rag-kicker">SYSTEM STATUS</span><h3 style="margin:.25rem 0 0">Local AI &amp; Privacy</h3></div><span class="rag-local-badge" id="ragPrivacyBadge">LOCAL-FIRST</span></div>
         <div class="rag-model-grid">
-          <div class="rag-model-item"><div class="rag-model-icon">⌁</div><div><b>Search model</b><span id="ragEmbedState">Ready when semantic search starts</span></div><strong id="ragEmbedDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">✦</div><div><b>Answer model</b><span id="ragLLMState">Optional local generation</span></div><strong id="ragLLMDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">⚡</div><div><b>Browser runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
-          <div class="rag-model-item"><div class="rag-model-icon">▣</div><div><b>Storage</b><span id="ragStorageState">Browser-local IndexedDB</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
+          <div class="rag-model-item"><div><b>Search model</b><span id="ragEmbedState">Ready when semantic search starts</span></div><strong id="ragEmbedDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div><b>Answer model</b><span id="ragLLMState">Optional local generation</span></div><strong id="ragLLMDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div><b>Browser runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
+          <div class="rag-model-item"><div><b>Storage</b><span id="ragStorageState">Browser-local IndexedDB</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
         </div>
         <div class="rag-privacy-strip"><span>🔒</span><div><b>Browser-local by default</b><small>Files and vectors stay in this browser unless you explicitly use “Save My Knowledge to GitHub”.</small></div></div>
       </div>
@@ -1558,7 +1555,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
             <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
 <div class="rag-github-card">
   <div class="rag-section-label">PERSONAL GITHUB SYNC</div>
-  <h3 style="margin:.2rem 0 .3rem">☁️ Save My Knowledge to GitHub</h3>
+  <h3 style="margin:.2rem 0 .3rem">Save My Knowledge to GitHub</h3>
   <div class="sub">For your personal use: save the files you selected above directly into your GitHub repository. After saving, Omni refreshes the repository knowledge index automatically.</div>
   <div class="rag-github-grid">
     <div class="form-group"><label for="ragGithubRepo">Repository</label><input id="ragGithubRepo" class="form-input" value="theraghavraman/omni_suite_light" placeholder="owner/repository"></div>
@@ -1609,11 +1606,11 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 <div class="module-panel" id="tabData">
       <div class="omni-consolidated-links" data-consolidated-child="tabUniversalData">
         <div class="omni-consolidated-copy"><strong>Universal Data</strong><small>Specialized data and signal representations</small></div>
-        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabUniversalData&quot;]').click()">Open Universal Data</button>
+        <button type="button" data-open-studio="tabUniversalData">Open Universal Data</button>
       </div>
 
       <div class="card">
-        <h2>🧬 9. Data Studio — Structured • Semi-Structured • Unstructured</h2>
+        <h2>Structured, Semi-Structured &amp; Unstructured Data</h2>
         <div class="sub">A local data engineering workbench for tabular files, document data, SQL dialects, schemas, binary columnar formats and NoSQL export bridges. Processing is local through the Local Engine.</div>
         <div class="omni-data-grid">
           <div class="omni-data-pill"><b>Structured</b><span>CSV • Excel • ODS • Parquet • ORC • Arrow • SQLite • DuckDB • Avro</span></div>
@@ -1706,16 +1703,15 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
     <!-- 10. LOCAL NATIVE ENGINE -->
     <div class="module-panel" id="tabLanguageStudio">
       <div class="card">
-        <div class="code-kicker">OMNI LANGUAGE ENGINE • ISOLATED AI</div>
-        <h2>🌐 Multilingual Translation &amp; Transliteration</h2>
-        <div class="sub">A separate local AI stack for multilingual text work. Its translation and transliteration models are isolated from Omni Assistant and Private RAG, with no web translation fallback.</div>
+        <h2>Translation &amp; Transliteration</h2>
+        <div class="sub">Uses its own models, separate from Omni Assistant and Private RAG. No web translation service is used.</div>
         <div class="options-grid" style="margin-top:16px;">
           <div class="card" style="margin:0;">
-            <h3 style="margin-top:0;">🔒 Engine Status</h3>
+            <h3 style="margin-top:0;">Engine Status</h3>
             <pre id="languageEngineStatus" class="code-output">Checking isolated language engine…</pre>
           </div>
           <div class="card" style="margin:0;">
-            <h3 style="margin-top:0;">📦 Model Architecture</h3>
+            <h3 style="margin-top:0;">Model Architecture</h3>
             <div class="form-hint">Translation: IndicTrans2 • Transliteration: IndicXlit • Runtime: Local Engine • Assistant/RAG model state: never shared.</div>
             <div class="actions-bar" style="margin-top:12px;">
               <button type="button" class="btn btn-secondary" id="languageRefreshStatus">↻ Refresh Status</button>
@@ -1725,7 +1721,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
       </div>
 
       <div class="card">
-        <h2>🔤 Language Workspace</h2>
+        <h2>Language Workspace</h2>
         <div class="sub">Test translation and transliteration independently of OCR. This workspace uses exactly the same isolated Language Engine used by OCR.</div>
         <div class="form-group" style="margin-top:12px;">
           <label for="languageInputText">Input text</label>
@@ -1748,11 +1744,11 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
         <div class="actions-bar">
           <button type="button" class="btn btn-primary" id="languageTranslateBtn">Translate</button>
         </div>
-        <div id="languageTranslateStatus" class="form-hint">Browser-first translation: Hindi ↔ English runs in this browser after the model is downloaded and cached. Other supported Indic pairs use the Local Engine when available; no third-party translation API is used.</div>
+        <div id="languageTranslateStatus" class="form-hint">Hindi ↔ English runs in this browser (the model downloads once). Other Indic pairs use the Local Engine.</div>
         <textarea id="languageTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" readonly></textarea>
 
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid #e1e7f0;">
-          <h3>🔤 Transliteration</h3>
+          <h3>Transliteration</h3>
           <div class="form-hint">Native Indic ↔ Roman transliteration using the isolated IndicXlit model.</div>
           <div class="options-grid" style="margin-top:10px;">
             <div class="form-group">
@@ -1771,7 +1767,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
       </div>
 
       <div class="card">
-        <h2>🛠️ Optional Model Setup</h2>
+        <h2>Optional Model Setup</h2>
         <div class="sub">Browser Mini Model: Hindi ↔ English is available directly in the GitHub Pages app through Transformers.js and is cached in the browser after the first download. Larger IndicTrans2 and IndicXlit models remain optional Local Engine assets.</div>
         <pre class="code-output">python -m venv .venv-language
 # Windows:
@@ -1789,11 +1785,11 @@ python prepare_language_models.py --transliteration</pre>
     <div class="module-panel" id="tabLocal">
       <div class="omni-consolidated-links" data-consolidated-child="tabLocalDoctor">
         <div class="omni-consolidated-copy"><strong>System Doctor</strong><small>Dependency checks and Local Engine diagnostics</small></div>
-        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabLocalDoctor&quot;]').click()">Open System Doctor</button>
+        <button type="button" data-open-studio="tabLocalDoctor">Open System Doctor</button>
       </div>
 
       <div class="card">
-        <h2>10. Local Native Engine</h2>
+        <h2>Local Native Engine</h2>
         <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div><div style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #f0d9a3;color:#6d5520;"><b>Browser/mobile note:</b> GitHub Pages can process browser-capable files, but it cannot launch desktop programs. FFmpeg, LibreOffice, Calibre, qpdf, Poppler and other native jobs require the Local Engine running on a Windows/macOS/Linux computer. A phone browser cannot start that desktop engine by itself.</div>
         <div id="omniLocalStatus" style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#f6f7fb;border:1px solid #dce3ef;font-weight:700;color:#647089;">Checking local engine…</div>
         <div class="dropzone" id="omniLocalDropzone">
@@ -2177,7 +2173,7 @@ python prepare_language_models.py --transliteration</pre>
     <div class="module-panel" id="tabWord">
       <div class="omni-consolidated-links" data-consolidated-child="tabOfficeTools">
         <div class="omni-consolidated-copy"><strong>Office Tools</strong><small>Additional office editing and creation tools</small></div>
-        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabOfficeTools&quot;]').click()">Open Office Tools</button>
+        <button type="button" data-open-studio="tabOfficeTools">Open Office Tools</button>
       </div>
 
       <div class="card">
@@ -2798,7 +2794,7 @@ python prepare_language_models.py --transliteration</pre>
     <!-- 5. OCR: IMAGE TO TEXT -->
     <div class="module-panel" id="tabOcr">
       <div class="card">
-        <h2>🔎 Image to Text Extraction (OCR)</h2>
+        <h2>Image to Text Extraction (OCR)</h2>
         <div class="sub">Extract editable text from screenshots, scanned documents, receipts, and images using in-browser Tesseract OCR.</div>
         <div class="dropzone" id="ocrDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -2927,7 +2923,7 @@ python prepare_language_models.py --transliteration</pre>
     <!-- 6. AUDIO STUDIO -->
     <div class="module-panel" id="tabAudio">
       <div class="card">
-        <h2>🎵 Universal Audio Studio: Convert, Cut &amp; Tune Speed</h2>
+        <h2>Convert, Cut &amp; Tune Speed</h2>
         <div class="sub">Decode any browser-supported audio format, trim segments with sample accuracy, adjust playback speed, and export uncompressed 16-bit PCM WAV.</div>
         <div class="dropzone" id="audioDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12 0c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
@@ -2992,7 +2988,7 @@ python prepare_language_models.py --transliteration</pre>
     <!-- 7. VIDEO STUDIO -->
     <div class="module-panel" id="tabVideo">
       <div class="card">
-        <h2>🎬 Universal Video Studio: Cut, Speed Enhancer &amp; Audio Extractor</h2>
+        <h2>Cut, Speed &amp; Audio Extraction</h2>
         <div class="sub">Trim video clips, modify playback speeds, capture current video frames as high-res images, or extract audio tracks into lossless WAV.</div>
         <div class="dropzone" id="videoDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -3071,7 +3067,7 @@ python prepare_language_models.py --transliteration</pre>
     <!-- 8. FILE COMPRESSION -->
     <div class="module-panel" id="tabCompress">
       <div class="card">
-        <h2>🗜️ File Compression &amp; Decompression Studio</h2>
+        <h2>Compression &amp; Decompression</h2>
         <div class="sub">Compress files locally into ZIP, GZIP, DEFLATE, or Brotli in the browser. 7z is available through the Local Engine. RAR is supported for extraction only because RAR creation is not an open archive-writing path.</div>
 
         <div class="options-grid">
@@ -3123,7 +3119,7 @@ python prepare_language_models.py --transliteration</pre>
       </div>
 
       <div class="card">
-        <h2>📦 Decompress / Extract</h2>
+        <h2>Decompress / Extract</h2>
         <div class="sub">Extract ZIP, 7z, and RAR archives, or decompress GZIP/DEFLATE/Brotli streams. ZIP/7z/RAR contents are listed individually so you can save only what you need. 7z/RAR extraction uses the Local Engine.</div>
         <div class="dropzone" id="decompressDropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 2h9l5 5v15H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
@@ -3146,7 +3142,7 @@ python prepare_language_models.py --transliteration</pre>
         </div>
       </div>
       <div class="card" id="archiveNativeBridge">
-        <h2>📦 Native Archive Bridge</h2>
+        <h2>Native Archive Bridge</h2>
         <div class="sub">Local Engine compression for TAR, GZIP, BZIP2, XZ and 7z, plus Local Engine extraction for 7z and RAR. Browser ZIP/GZIP/DEFLATE/Brotli remain unchanged.</div>
         <div class="dropzone" id="archiveNativeDropzone"><h3>Choose a file to package</h3><p>Runs locally; 7z uses the installed 7-Zip executable. RAR is extraction-only and uses the same 7-Zip engine.</p><input type="file" id="archiveNativeInput" class="file-input"></div>
         <div class="controls-panel" id="archiveNativeControls" style="display:none;"><div class="file-summary"><div><div class="file-name" id="archiveNativeName">No file selected</div><div class="file-meta" id="archiveNativeMeta"></div></div><button type="button" class="btn-reset" id="archiveNativeReset">Reset</button></div>
@@ -3159,13 +3155,13 @@ python prepare_language_models.py --transliteration</pre>
     <div class="module-panel" id="tabDiagnostics">
       <div class="omni-consolidated-links" data-consolidated-child="tabAllTests">
         <div class="omni-consolidated-copy"><strong>Validation Lab</strong><small>Full control and regression test suite</small></div>
-        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabAllTests&quot;]').click()">Open Validation Lab</button>
+        <button type="button" data-open-studio="tabAllTests">Open Validation Lab</button>
       </div>
 
       <div class="omni-test-lab">
         <div class="omni-test-head">
           <div>
-            <h2>🧪 Diagnostics &amp; Test Lab</h2>
+            <h2>Diagnostics &amp; Test Lab</h2>
             <p>Real end-to-end checks for the browser layer and the Local Engine. Green means an operation actually executed; yellow means it cannot be tested in the current environment.</p>
           </div>
           <div class="omni-test-actions">
@@ -3195,7 +3191,7 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <div class="module-panel" id="tabVizInterchange">
-      <div class="card"><h2>📊 BI & Visualization Interchange Studio</h2><div class="sub">Browser-first semantic interchange for Tableau, Power BI, Cognos and compatible definitions. Build an OMNI-VIZ model, reconstruct SQL, generate Excel-function templates and inspect conversion fidelity.</div>
+      <div class="card"><h2>BI &amp; Visualization Interchange</h2><div class="sub">Browser-first semantic interchange for Tableau, Power BI, Cognos and compatible definitions. Build an OMNI-VIZ model, reconstruct SQL, generate Excel-function templates and inspect conversion fidelity.</div>
         <div class="viz-cap-grid"><div><b>Browser</b><span>TWB / TWBX / XML / JSON / TMDL / PBIR</span></div><div><b>Best effort</b><span>Fields, calculations, filters, charts and layout metadata</span></div><div><b>Local/native</b><span>Binary PBIX and proprietary platform features</span></div></div>
       </div>
       <div class="card"><h2>1. Load BI definitions</h2><div class="sub">PBIP/PBIR/TMDL are preferred for Power BI. PBIX is proprietary binary content and will be flagged when browser parsing cannot safely recover its semantics.</div>
@@ -3214,7 +3210,7 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <div class="module-panel" id="tabCodeStudio">
-      <div class="card"><div class="code-kicker">OMNI-CODE BRIDGE</div><h2>💻 Programming Language Translation Studio</h2><div class="sub">Translate common source languages where straightforward syntax and intent can be inferred in-browser. The dedicated Pseudo Code target turns program logic into readable algorithmic steps.</div><div class="code-warning">Browser translation is heuristic, not a compiler. Framework APIs, reflection, macros, concurrency and language-specific libraries can require review.</div></div>
+      <div class="card"><div class="code-warning" style="margin:0">Browser translation is heuristic, not a compiler. Framework APIs, reflection, macros, concurrency and language-specific libraries can require review.</div></div>
       <div class="card"><h2>1. Source code</h2>
         <div class="options-grid"><div class="form-group"><label for="codeSourceLanguage">Source</label><select id="codeSourceLanguage" class="form-select"><option value="auto">Auto detect</option><option>Python</option><option>JavaScript</option><option>TypeScript</option><option>Java</option><option>C#</option><option>C++</option><option>C</option><option>Go</option><option>Rust</option><option>Kotlin</option><option>Swift</option><option>PHP</option><option>Ruby</option><option>Bash</option><option>SQL</option></select></div>
         <div class="form-group"><label for="codeTargetLanguage">Target</label><select id="codeTargetLanguage" class="form-select"><option value="Pseudo Code">Pseudo Code</option><option>Python</option><option>JavaScript</option><option>TypeScript</option><option>Java</option><option>C#</option><option>C++</option><option>C</option><option>Go</option><option>Rust</option><option>Kotlin</option><option>Swift</option><option>PHP</option><option>Ruby</option><option>Bash</option><option>SQL</option></select></div>
@@ -3226,7 +3222,7 @@ python prepare_language_models.py --transliteration</pre>
       <div class="card"><h2>2. Translation result</h2><div class="code-meta" id="codeMeta">No source analyzed yet.</div><pre class="code-output" id="codeOutput">Your translated code or pseudo code will appear here.</pre></div>
       <div class="card"><h2>3. Translation confidence</h2><div class="sub">The browser can handle many straightforward constructs, but cannot guarantee semantic equivalence across every language ecosystem.</div><div class="code-audit" id="codeAudit"></div></div>
     <div class="omni-sandbox" id="omni-code-execution-lab">
-<div class="omni-sandbox-head"><div><h3>🧪 Temporary Programming Execution Lab</h3><p>Run small programs in an isolated browser worker where supported, or hand them to the Local Engine for installed runtimes/compilers. Browser execution is temporary and separate from the page UI.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="codeLabRunBrowser">▶ Browser Run</button><button class="btn btn-secondary" id="codeLabRunLocal">Run Local Engine</button><button class="btn btn-secondary" id="codeLabReset">Reset</button></div></div>
+<div class="omni-sandbox-head"><div><h3>Temporary Programming Execution Lab</h3><p>Run small programs in an isolated browser worker where supported, or hand them to the Local Engine for installed runtimes/compilers. Browser execution is temporary and separate from the page UI.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="codeLabRunBrowser">▶ Browser Run</button><button class="btn btn-secondary" id="codeLabRunLocal">Run Local Engine</button><button class="btn btn-secondary" id="codeLabReset">Reset</button></div></div>
 <div class="omni-sandbox-grid"><div class="form-group"><label for="codeLabLanguage">Language</label><select id="codeLabLanguage" class="form-select"><option value="javascript">JavaScript</option><option value="typescript">TypeScript</option><option value="python">Python</option><option value="bash">Bash</option><option value="ruby">Ruby</option><option value="php">PHP</option><option value="c">C</option><option value="cpp">C++</option><option value="java">Java</option><option value="go">Go</option><option value="rust">Rust</option><option value="swift">Swift</option><option value="kotlin">Kotlin</option></select></div><div class="form-group"><label for="codeLabFile">Load source file</label><input id="codeLabFile" class="form-input" type="file" accept=".js,.ts,.py,.sh,.bash,.rb,.php,.c,.h,.cpp,.cc,.cxx,.java,.go,.rs,.swift,.kt,.kts"></div><div class="form-group"><label for="codeLabTimeout">Local timeout (seconds)</label><input id="codeLabTimeout" class="form-input" type="number" min="1" max="20" value="8"></div></div>
 <div class="form-group" style="margin-top:12px"><label for="codeLabStdin">Standard input</label><textarea id="codeLabStdin" class="form-textarea" style="min-height:90px" placeholder="Input passed to stdin/readLine()"></textarea></div>
 <textarea id="codeLabSource" class="omni-sandbox-editor" spellcheck="false">console.log("Hello from Omni Sandbox");
@@ -3238,18 +3234,15 @@ console.log("sum =", values.reduce((a,b)=>a+b,0));</textarea>
         <!-- UNIVERSAL DATA & SIGNAL STUDIO -->
     <div class="module-panel" id="tabUniversalData">
       <div class="card uds-hero">
-        <div class="uds-kicker">OMNI UNIVERSAL DATA LAYER</div>
-        <h2>🌐 Universal Data & Signal Studio</h2>
-        <div class="sub">Bring CSV, JSON, GPS, weather, sensor, audio, scientific and encoded data into one browser workspace. Inspect it, visualize it, and convert it into useful formats.</div>
         <div class="uds-source-grid">
-          <div class="uds-source"><b>🗺 Geospatial</b><span>GPS tracks, GeoJSON, GPX, KML and coordinates</span></div>
-          <div class="uds-source"><b>🌦 Weather & Earth</b><span>Forecasts, observations, stations and environmental data</span></div>
-          <div class="uds-source"><b>📡 Signals & Audio</b><span>Audio files, signal samples and waveform data</span></div>
-          <div class="uds-source"><b>🚀 Space & Science</b><span>Telemetry, scientific datasets and space-related data</span></div>
-          <div class="uds-source"><b>🔐 Encoded & Binary</b><span>Base64, hexadecimal, raw bytes and binary data</span></div>
-          <div class="uds-source"><b>🧩 Tabular Data</b><span>CSV, TSV, JSON, NDJSON, logs and numeric datasets</span></div>
+          <div class="uds-source"><b>Geospatial</b><span>GPS tracks, GeoJSON, GPX, KML and coordinates</span></div>
+          <div class="uds-source"><b>Weather & Earth</b><span>Forecasts, observations, stations and environmental data</span></div>
+          <div class="uds-source"><b>Signals & Audio</b><span>Audio files, signal samples and waveform data</span></div>
+          <div class="uds-source"><b>Space & Science</b><span>Telemetry, scientific datasets and space-related data</span></div>
+          <div class="uds-source"><b>Encoded & Binary</b><span>Base64, hexadecimal, raw bytes and binary data</span></div>
+          <div class="uds-source"><b>Tabular Data</b><span>CSV, TSV, JSON, NDJSON, logs and numeric datasets</span></div>
         </div>
-        <div class="uds-note">Browser-first: common text, data, audio and visual formats run directly here. Specialized scientific files can use the Local Engine when a native parser is needed. Public URLs must allow browser access; otherwise download the file and upload it here.</div>
+        <div class="uds-note">Specialized scientific files use the Local Engine when a native parser is needed.</div>
       </div>
 
             <div class="card">
@@ -3337,8 +3330,8 @@ console.log("sum =", values.reduce((a,b)=>a+b,0));</textarea>
       </div>
     </div>
 
-<div class="module-panel" id="tabDatabaseStudio"><div class="card"><div class="code-kicker">OMNI DATABASE STUDIO</div><h2>🗄️ Database Studio</h2><div class="sub">Work with browser-native SQL through the temporary in-memory sandbox. Import database files or tabular data, run SQL safely in your browser, inspect schemas, test transactions, and export the sandbox when needed.</div></div><div class="omni-sandbox" id="omni-sql-sandbox">
-<div class="omni-sandbox-head"><div><h3>🧪 Temporary SQL Simulation Environment</h3><p>Build a throw-away relational database in your browser. Import CSV/TSV/JSON/JSONL/XLSX or an SQLite database, create tables, run DDL + DML + queries, test transactions/savepoints, joins, CTEs, window functions, views, triggers and SQLite functions. Nothing is written to your real database or server.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="dbSandboxInit">Start SQL Sandbox</button><button class="btn btn-secondary" id="dbSandboxReset">Reset Session</button><button class="btn btn-secondary" id="dbSandboxExport">Export SQLite</button></div></div>
+<div class="module-panel" id="tabDatabaseStudio"><div class="omni-sandbox" id="omni-sql-sandbox">
+<div class="omni-sandbox-head"><div><h3>Temporary SQL Sandbox</h3><p>Build a throw-away relational database in your browser. Import CSV/TSV/JSON/JSONL/XLSX or an SQLite database, create tables, run DDL + DML + queries, test transactions/savepoints, joins, CTEs, window functions, views, triggers and SQLite functions. Nothing is written to your real database or server.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="dbSandboxInit">Start SQL Sandbox</button><button class="btn btn-secondary" id="dbSandboxReset">Reset Session</button><button class="btn btn-secondary" id="dbSandboxExport">Export SQLite</button></div></div>
 <div class="omni-sandbox-status" id="dbSandboxStatus">Not started. The sandbox is an in-memory SQLite database and disappears when you reset or close the page.</div>
 <div class="omni-sandbox-grid">
 <div class="form-group"><label for="dbSandboxTable">Table name for imported data</label><input id="dbSandboxTable" class="form-input" value="imported_data"></div>
@@ -3357,14 +3350,14 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 <div class="actions-bar"><button class="btn btn-primary" id="dbSandboxRun">▶ Run SQL</button><button class="btn btn-secondary" id="dbSandboxExplain">Explain Query</button><button class="btn btn-secondary" id="dbSandboxClearOutput">Clear Output</button></div>
 <div id="dbSandboxTables" class="omni-sandbox-history"></div><div id="dbSandboxResult"></div><div class="omni-sandbox-output" id="dbSandboxOutput">SQL results, errors, affected-row counts and transaction messages will appear here.</div><div class="omni-sandbox-history" id="dbSandboxHistory"></div>
 </div></div>
-<div class="module-panel" id="tabDataClean"><div class="card"><div class="code-kicker">OMNI DATA QUALITY & PRIVACY</div><h2>🧹 Data Cleaning & Privacy Studio</h2><div class="sub">Clean tabular files locally and inspect likely sensitive patterns. Detection is heuristic and should be reviewed before production use.</div></div><div class="card"><div class="dropzone"><input type="file" id="cleanInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.orc,.avro,.sqlite,.db,.duckdb,.dta,.sas,.sav"><h3>Select data file</h3><p id="cleanName">No file selected</p></div><div class="options-grid"><label><input type="checkbox" class="clean-action" value="drop_duplicates"> Remove duplicates</label><label><input type="checkbox" class="clean-action" value="trim_strings"> Trim text</label><label><input type="checkbox" class="clean-action" value="lower_columns"> Normalize column names</label><label><input type="checkbox" class="clean-action" value="drop_empty_rows"> Drop empty rows</label><label><input type="checkbox" class="clean-action" value="fill_numeric_zero"> Fill numeric nulls with 0</label><label><input type="checkbox" class="clean-action" value="sort_columns"> Sort columns</label></div><div class="form-group"><label>Output format</label><select id="cleanTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option></select></div><div class="actions-bar"><button class="btn btn-primary" id="cleanBtn" type="button">Clean & Export</button><button class="btn btn-secondary" id="privacyBtn" type="button">Scan Privacy</button></div><pre id="cleanOutput" class="code-output">Cleaning/privacy results will appear here.</pre></div></div>
-<div class="module-panel" id="tabBatchLab"><div class="card"><div class="code-kicker">OMNI BATCH ENGINE</div><h2>⚡ Batch Lab</h2><div class="sub">Process many files with one operation. Failures are isolated so you can retry only failed files.</div></div><div class="card"><div class="dropzone" id="batchDrop"><input type="file" id="batchInput" class="file-input" multiple><div class="dropzone-icon" aria-hidden="true">⇶</div><h3>Choose files for batch processing</h3><p>Click to select multiple files or drag & drop them here.</p><div id="batchList" class="sub" style="margin-top:10px;margin-bottom:0;">No files selected.</div></div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option><option value="yaml">YAML</option><option value="xml">XML</option><option value="html">HTML</option><option value="avro">Avro</option><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option><option value="sql">SQL</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
+<div class="module-panel" id="tabDataClean"><div class="card"><div class="dropzone"><input type="file" id="cleanInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.orc,.avro,.sqlite,.db,.duckdb,.dta,.sas,.sav"><h3>Select data file</h3><p id="cleanName">No file selected</p></div><div class="options-grid"><label><input type="checkbox" class="clean-action" value="drop_duplicates"> Remove duplicates</label><label><input type="checkbox" class="clean-action" value="trim_strings"> Trim text</label><label><input type="checkbox" class="clean-action" value="lower_columns"> Normalize column names</label><label><input type="checkbox" class="clean-action" value="drop_empty_rows"> Drop empty rows</label><label><input type="checkbox" class="clean-action" value="fill_numeric_zero"> Fill numeric nulls with 0</label><label><input type="checkbox" class="clean-action" value="sort_columns"> Sort columns</label></div><div class="form-group"><label>Output format</label><select id="cleanTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option></select></div><div class="actions-bar"><button class="btn btn-primary" id="cleanBtn" type="button">Clean & Export</button><button class="btn btn-secondary" id="privacyBtn" type="button">Scan Privacy</button></div><pre id="cleanOutput" class="code-output">Cleaning/privacy results will appear here.</pre></div></div>
+<div class="module-panel" id="tabBatchLab"><div class="card"><div class="dropzone" id="batchDrop"><input type="file" id="batchInput" class="file-input" multiple><div class="dropzone-icon" aria-hidden="true">⇶</div><h3>Choose files for batch processing</h3><p>Click to select multiple files or drag & drop them here.</p><div id="batchList" class="sub" style="margin-top:10px;margin-bottom:0;">No files selected.</div></div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option><option value="yaml">YAML</option><option value="xml">XML</option><option value="html">HTML</option><option value="avro">Avro</option><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option><option value="sql">SQL</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
 <div class="module-panel" id="tabDiagramForge" data-tool-count="2">
 <div class="df-shell" id="df-root">
   <header class="df-head">
     <div>
       <div class="df-kicker">REDMARK DIAGRAM ENGINE</div>
-      <h2>◇ Diagram Forge</h2>
+      <h2>Diagram Forge</h2>
       <p>Flowcharts, ERDs, UML, architecture, mind maps and text-defined diagrams — drawn and exported entirely in your browser.</p>
     </div>
     <div class="df-actions">
@@ -3515,11 +3508,11 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
     <button type="button" class="df-chip" data-df-template="git">⑂ Git graph</button>
   </div>
 </div></div>
-<div class="module-panel" id="tabLocalDoctor"><div class="card"><h2>🩺 Local Engine Doctor</h2><div class="sub">Live dependency audit for Python packages and native tools.</div><div class="actions-bar"><button class="btn btn-primary" id="doctorBtn" type="button">Run Full Doctor</button></div><pre id="doctorOutput" class="code-output">Run Doctor to inspect this machine.</pre></div></div>
+<div class="module-panel" id="tabLocalDoctor"><div class="card"><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="doctorBtn" type="button">Run Full Doctor</button></div><pre id="doctorOutput" class="code-output">Run Doctor to inspect this machine.</pre></div></div>
 <div class="module-panel" id="tabAllTests">
       <div class="omni-all-lab">
         <div class="omni-all-head">
-          <div><h2>🔬 Control &amp; Option Validation</h2><p>Technical validation workspace for enumerating studio controls, actions, upload surfaces and select options, then verifying their browser-side wiring and implementation references without modifying user files.</p></div>
+          <div><h2>Control &amp; Option Validation</h2><p>Technical validation workspace for enumerating studio controls, actions, upload surfaces and select options, then verifying their browser-side wiring and implementation references without modifying user files.</p></div>
           <div class="omni-all-actions"><button type="button" class="btn btn-primary" id="omniRunAllOptions">▶ Test Every Option</button><button type="button" class="btn btn-secondary" id="omniRunStructure">UI Structure</button><button type="button" class="btn btn-secondary" id="omniRunOptions">Option Inventory</button><button type="button" class="btn btn-secondary" id="omniExportResult">⇩ Export Test Result</button><select id="omniAllFilter" class="form-select" style="width:auto;min-width:150px;"><option value="all">Show all results</option><option value="failed">Show failed only</option></select></div>
         </div>
         <div class="omni-all-summary"><div class="omni-all-stat"><b id="allPass">0</b><span>PASS</span></div><div class="omni-all-stat"><b id="allFail">0</b><span>FAIL</span></div><div class="omni-all-stat"><b id="allSkip">0</b><span>SKIPPED</span></div><div class="omni-all-stat"><b id="allTotal">0</b><span>CHECKS</span></div><div class="omni-all-stat"><b id="allControls">0</b><span>CONTROLS</span></div></div>
@@ -3528,7 +3521,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
     </div>
 
 <div class="module-panel" id="tabSocialMedia">
-<div class="card"><div class="social-media-hero"><div><div class="code-kicker">OMNI SOCIAL MEDIA • BROWSER-FIRST</div><h2>📥 Social Media Download Studio</h2><div class="sub">Download image, video or audio files when you have a direct media URL and the source permits browser access. Platform links are detected automatically; protected pages are not scraped or bypassed.</div><div class="social-url-row"><input id="socialMediaUrl" class="form-input" type="url" placeholder="Paste a social post URL or direct media URL…"><button type="button" class="btn btn-primary" id="socialMediaAnalyze">Analyze Link</button></div><div id="socialMediaStatus" class="social-status">Paste a social post URL or a direct image/video URL.</div><div class="social-platform-grid"><div class="social-platform-chip">YouTube</div><div class="social-platform-chip">Instagram</div><div class="social-platform-chip">TikTok</div><div class="social-platform-chip">Facebook</div><div class="social-platform-chip">X</div><div class="social-platform-chip">Pinterest</div><div class="social-platform-chip">Reddit</div><div class="social-platform-chip">LinkedIn</div><div class="social-platform-chip">Threads</div><div class="social-platform-chip">Snapchat</div><div class="social-platform-chip">Telegram</div><div class="social-platform-chip">Twitch</div><div class="social-platform-chip">Vimeo</div><div class="social-platform-chip">Tumblr</div><div class="social-platform-chip">Bluesky</div><div class="social-platform-chip">Mastodon</div></div></div><div><div id="socialMediaPreview" class="social-preview empty">Media preview appears here after a direct media URL is detected.</div><div id="socialMediaResult" style="display:none"><div class="social-meta-grid"><div class="social-meta-card"><small>Platform</small><b id="socialMediaPlatform">—</b></div><div class="social-meta-card"><small>Type</small><b id="socialMediaKind">—</b></div><div class="social-meta-card"><small>Info</small><b id="socialMediaMeta">—</b></div></div><div class="actions-bar"><button type="button" class="btn btn-primary" id="socialMediaDownload" style="display:none">⬇ Download Media</button><a class="btn btn-secondary" id="socialMediaOpen" href="#" target="_blank" rel="noopener noreferrer" style="display:none">Open Source</a><button type="button" class="btn btn-secondary" id="socialMediaReset">Reset</button></div><div id="socialMediaDirectHint" class="social-direct-hint">For platform pages, Omni does not bypass login walls, DRM, anti-bot systems, or platform restrictions. If the platform gives you a direct media/CDN URL, paste that URL here.</div></div></div></div></div></div>
+<div class="card"><div class="social-media-hero"><div><div class="social-url-row"><input id="socialMediaUrl" class="form-input" type="url" placeholder="Paste a social post URL or direct media URL…"><button type="button" class="btn btn-primary" id="socialMediaAnalyze">Analyze Link</button></div><div id="socialMediaStatus" class="social-status">Paste a social post URL or a direct image/video URL.</div><div class="social-platform-grid"><div class="social-platform-chip">YouTube</div><div class="social-platform-chip">Instagram</div><div class="social-platform-chip">TikTok</div><div class="social-platform-chip">Facebook</div><div class="social-platform-chip">X</div><div class="social-platform-chip">Pinterest</div><div class="social-platform-chip">Reddit</div><div class="social-platform-chip">LinkedIn</div><div class="social-platform-chip">Threads</div><div class="social-platform-chip">Snapchat</div><div class="social-platform-chip">Telegram</div><div class="social-platform-chip">Twitch</div><div class="social-platform-chip">Vimeo</div><div class="social-platform-chip">Tumblr</div><div class="social-platform-chip">Bluesky</div><div class="social-platform-chip">Mastodon</div></div></div><div><div id="socialMediaPreview" class="social-preview empty">Media preview appears here after a direct media URL is detected.</div><div id="socialMediaResult" style="display:none"><div class="social-meta-grid"><div class="social-meta-card"><small>Platform</small><b id="socialMediaPlatform">—</b></div><div class="social-meta-card"><small>Type</small><b id="socialMediaKind">—</b></div><div class="social-meta-card"><small>Info</small><b id="socialMediaMeta">—</b></div></div><div class="actions-bar"><button type="button" class="btn btn-primary" id="socialMediaDownload" style="display:none">⬇ Download Media</button><a class="btn btn-secondary" id="socialMediaOpen" href="#" target="_blank" rel="noopener noreferrer" style="display:none">Open Source</a><button type="button" class="btn btn-secondary" id="socialMediaReset">Reset</button></div><div id="socialMediaDirectHint" class="social-direct-hint">For platform pages, Omni does not bypass login walls, DRM, anti-bot systems, or platform restrictions. If the platform gives you a direct media/CDN URL, paste that URL here.</div></div></div></div></div></div>
 </div>
 
     <footer>
@@ -5039,7 +5032,7 @@ $('codeLabFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0
 $('codeLabLanguage')?.dispatchEvent(new Event('change'));
 })();
 </script>
-<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabOfficeTools:'Office Tools',tabDiagramForge:'Diagram Forge',tabSocialMedia:'Social Media',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const o=document.createElement('div');o.className='studio-overview';o.innerHTML='<div class="studio-overview-copy"><strong>Studio workspace</strong><span>'+names[p.id]+'</span></div><div class="studio-overview-meta">'+cards.length+' TOOLS · '+String(i+1).padStart(2,'0')+'</div>';const map=document.createElement('div');map.className='studio-tool-map';cards.forEach((x,n)=>{const h=x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3');const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=(h?h.textContent.replace(/\s+/g,' ').trim().slice(0,60):'Tool '+(n+1));b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
+<script id="omni-navigation-v7">(function(){'use strict';const names={tabRAGStudio:'Private RAG',tabLanguageStudio:'Language Engine',tabPdf:'PDF Suite',tabWord:'Office Studio',tabEpub:'EPUB Studio',tabImages:'Image Tools',tabOcr:'Image to Text',tabAudio:'Audio Studio',tabVideo:'Video Studio',tabCompress:'Compressor',tabData:'Data Studio',tabLocal:'Local Engine',tabVizInterchange:'BI Interchange',tabCodeStudio:'Code Studio',tabUniversalData:'Universal Data',tabDatabaseStudio:'Database Studio',tabDataClean:'Data Clean',tabBatchLab:'Batch Lab',tabOfficeTools:'Office Tools',tabDiagramForge:'Diagram Forge',tabSocialMedia:'Social Media',tabLocalDoctor:'System Doctor',tabDiagnostics:'Diagnostics',tabAllTests:'Validation Lab'};function build(p,i){if(p.querySelector(':scope > .studio-overview'))return;const cards=[...p.querySelectorAll(':scope > .card')];if(!cards.length)return;cards.forEach((x,n)=>{if(!x.id)x.id=p.id+'-tool-'+(n+1)});const titled=cards.map(x=>[x,x.querySelector(':scope > h2,:scope > h3,:scope h2,:scope h3')]).filter(z=>z[1]);if(titled.length<2)return;const o=document.createElement('div');o.className='studio-overview';const map=document.createElement('div');map.className='studio-tool-map';titled.forEach(([x,h])=>{const b=document.createElement('button');b.type='button';b.className='studio-tool-link';b.textContent=h.textContent.replace(/\s+/g,' ').replace(/^\d+\.\s*/,'').trim().slice(0,60);b.onclick=()=>{x.scrollIntoView({behavior:'smooth',block:'start'});map.querySelectorAll('button').forEach(z=>z.classList.remove('active'));b.classList.add('active')};map.appendChild(b)});o.appendChild(map);p.insertBefore(o,p.firstElementChild)}function init(){const nav=document.querySelector('.nav-bar');if(!nav)return;const bs=[...nav.querySelectorAll('.nav-btn')],ps=[...document.querySelectorAll('.module-panel')],n=document.getElementById('omniWorkspaceName'),i=document.getElementById('omniWorkspaceIcon');ps.forEach(build);function go(b,s){const id=b.dataset.tab,p=document.getElementById(id);if(!p)return;bs.forEach(x=>x.classList.toggle('active',x===b));ps.forEach(x=>x.classList.toggle('active',x===p));n.textContent=names[id]||b.textContent.trim();i.textContent=String(bs.indexOf(b)+1).padStart(2,'0');if(s)p.scrollIntoView({behavior:'smooth',block:'start'})}bs.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b,true)}));go(bs.find(x=>x.classList.contains('active'))||bs[0],false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();</script>
 <script id="omni-workspace-v9">
 (function(){
 'use strict';
@@ -5057,25 +5050,24 @@ const meta={
  tabData:['Data Studio','Work with CSV, JSON, XML, YAML and tabular data transformations.'],
  tabLocal:['Local Engine','Connect the browser workspace to the optional local execution engine.'],
  tabVizInterchange:['BI Interchange','Move analytical data between visualization and BI-friendly formats.'],
- tabCodeStudio:['Code Studio','Run and inspect supported code directly in the browser or through Local Engine.'],
- tabUniversalData:['Universal Data','Convert structured, semi-structured and unstructured data through one workspace.'],
- tabDatabaseStudio:['Database Studio','Explore SQL, database files and browser-native database operations.'],
- tabDataClean:['Data Clean','Profile, normalize, validate and clean data before downstream conversion.'],
- tabSocialMedia:['Social Media','Download public media from supported social/video URLs using the browser or the optional Local Engine.'],
- tabBatchLab:['Batch Lab','Run repeatable multi-file conversion workflows and review their manifests.'],
+ tabCodeStudio:['Code Studio','Translate code between common languages, or into readable pseudo code, directly in the browser.'],
+ tabUniversalData:['Universal Data','Inspect, visualize and convert GPS, weather, sensor, audio, scientific and encoded data in one place.'],
+ tabDatabaseStudio:['Database Studio','Import database files or tabular data and run SQL in a temporary in-browser SQLite sandbox.'],
+ tabDataClean:['Data Clean','Clean tabular files locally and flag likely sensitive values. Review detections before production use.'],
+ tabSocialMedia:['Social Media','Download image, video or audio from a direct media URL when the source allows browser access. Protected pages are not scraped.'],
+ tabBatchLab:['Batch Lab','Run one operation over many files. Failures are isolated so you can retry only those files.'],
  tabOfficeTools:['Office Tools','Edit Word, Excel, PowerPoint and plain-text files directly in the browser — nothing is uploaded.'],
  tabDiagramForge:['Diagram Forge','Draw flowcharts, ERDs, UML and architecture diagrams on a canvas or from Mermaid text.'],
- tabLocalDoctor:['System Doctor','Inspect local runtime readiness, dependencies and fallback capability.'],
+ tabLocalDoctor:['System Doctor','Audit the Python packages and native tools the Local Engine depends on.'],
  tabDiagnostics:['Diagnostics','Inspect browser capabilities, engines and workspace health.'],
  tabAllTests:['Validation Lab','Run the control and option validation suite and isolate failed checks quickly.']
 };
 function setupPanel(p){
  if(!p||p.dataset.v9Ready)return;
  const m=meta[p.id]||['Studio','Focused conversion workspace.'];
- const cards=[...p.querySelectorAll(':scope > .card')];
  const head=document.createElement('section');
  head.className='studio-workspace-head';
- head.innerHTML='<div class="studio-workspace-copy"><div class="studio-workspace-kicker"><i class="studio-workspace-dot"></i> ACTIVE STUDIO</div><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div><div class="studio-workspace-meta"><span class="studio-meta-chip primary">'+(+p.dataset.toolCount||cards.length)+' TOOLS</span><span class="studio-meta-chip">BROWSER-FIRST</span><span class="studio-meta-chip">LOCAL FALLBACK</span></div>';
+ head.innerHTML='<div class="studio-workspace-copy"><h2 class="studio-workspace-title">'+m[0]+'</h2><p class="studio-workspace-desc">'+m[1]+'</p></div>';
  p.insertBefore(head,p.firstElementChild);
  p.dataset.v9Ready='1';
 }
@@ -6104,54 +6096,29 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
   box-shadow:0 2px 0 #42BFA8,0 14px 28px -14px rgba(20,160,140,.6) !important;
 }
 </style>
-  <script src="./omni_render_cloud.js?v=3"></script><script src="./file_sharing_studio.js?v=3"></script>
-  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=4">
+  <script src="./omni_render_cloud.js?v=4"></script><script src="./file_sharing_studio.js?v=4"></script>
+  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=5">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch,{once:true});else watch();document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.nav-btn'))setTimeout(upd,60);});window.addEventListener('resize',upd);})();</script>
 
-<script id="omni-studio-consolidation-v1">
+<script id="omni-studio-consolidation-v2">
 (function(){
   'use strict';
-  const groups = [
-    {parent:'tabWord', child:'tabOfficeTools', label:'Open Office Tools', note:'Additional office editing and creation tools'},
-    {parent:'tabData', child:'tabUniversalData', label:'Open Universal Data', note:'Specialized data and signal representations'},
-    {parent:'tabLocal', child:'tabLocalDoctor', label:'Open System Doctor', note:'Dependency checks and Local Engine diagnostics'},
-    {parent:'tabDiagnostics', child:'tabAllTests', label:'Open Validation Lab', note:'Full control and regression test suite'}
-  ];
-  function init(){
-    const style=document.createElement('style');
-    style.id='omni-studio-consolidation-style';
-    style.textContent=
-      '.nav-bar .nav-btn[data-tab="tabOfficeTools"],'+
-      '.nav-bar .nav-btn[data-tab="tabUniversalData"],'+
-      '.nav-bar .nav-btn[data-tab="tabLocalDoctor"],'+
-      '.nav-bar .nav-btn[data-tab="tabAllTests"]{display:none!important;}'+
-      '.omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--border-color,rgba(120,130,150,.22));border-radius:14px;background:var(--card-bg,rgba(120,130,150,.06));}'+
-      '.omni-consolidated-links .omni-consolidated-copy{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;justify-content:center;}'+
-      '.omni-consolidated-links strong{font-size:.95rem;}'+
-      '.omni-consolidated-links small{opacity:.72;font-size:.8rem;}'+
-      '.omni-consolidated-links button{border:1px solid var(--active-studio-accent,#168C91);border-radius:10px;padding:9px 13px;background:var(--active-studio-soft,rgba(22,140,145,.12));color:inherit;font:inherit;font-weight:650;cursor:pointer;}'+
-      '.omni-consolidated-links button:hover{filter:brightness(.96);transform:translateY(-1px);}';
-    document.head.appendChild(style);
-    groups.forEach(g=>{
-      const parent=document.getElementById(g.parent), childButton=document.querySelector('.nav-bar .nav-btn[data-tab="'+g.child+'"]');
-      if(!parent||!childButton||parent.querySelector('[data-consolidated-child="'+g.child+'"]'))return;
-      const box=document.createElement('div');
-      box.className='omni-consolidated-links';
-      box.dataset.consolidatedChild=g.child;
-      const copy=document.createElement('div');copy.className='omni-consolidated-copy';
-      const title=document.createElement('strong');title.textContent=g.label.replace(/^Open /,'');
-      const note=document.createElement('small');note.textContent=g.note;
-      copy.append(title,note);
-      const button=document.createElement('button');button.type='button';button.textContent=g.label;
-      button.addEventListener('click',()=>childButton.click());
-      box.append(copy,button);
-      const overview=parent.querySelector(':scope > .studio-overview');
-      if(overview&&overview.nextSibling)parent.insertBefore(box,overview.nextSibling);else if(overview)parent.appendChild(box);else parent.insertBefore(box,parent.firstChild);
-    });
+  // Child studios are hidden from the nav (static CSS) and opened from a link box in their parent studio.
+  const parentOf={tabOfficeTools:'tabWord',tabUniversalData:'tabData',tabLocalDoctor:'tabLocal',tabAllTests:'tabDiagnostics'};
+  const navBtn=id=>document.querySelector('.nav-bar .nav-btn[data-tab="'+id+'"]');
+  function markParent(id){
+    const parent=parentOf[id];
+    if(!parent)return;
+    const pb=navBtn(parent);
+    // run after the nav handlers have set .active on the hidden child button
+    setTimeout(()=>{if(pb)pb.classList.add('active');},0);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+  document.addEventListener('click',e=>{
+    const open=e.target.closest('[data-open-studio]');
+    if(open){const b=navBtn(open.dataset.openStudio);if(b){b.click();markParent(open.dataset.openStudio);}}
+  });
 })();
 </script>
 

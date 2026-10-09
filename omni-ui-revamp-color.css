@@ -640,3 +640,8 @@ body,body.studio-mode{
 /* tidy pills inside the Private RAG intro */
 .rag-pill{white-space:nowrap !important;padding:6px 11px !important;height:auto !important;min-height:0 !important;align-self:center !important;border-radius:999px !important}
 }
+
+/* Clean studio headers: no decorative icon tile before card headings */
+.card h2::before,.module-panel .card > h2::before{content:none !important;display:none !important}
+/* Private RAG: stats live inside the status card, so the top row is one column */
+#tabRAGStudio .rag-top-grid{grid-template-columns:minmax(0,1fr) !important}

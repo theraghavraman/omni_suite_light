@@ -22,7 +22,7 @@
   const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
   const modal=document.createElement('div');modal.id=id+'Modal';modal.innerHTML=`
     <div id="${id}Card">
-      <h2>☁ Omni Cloud — Render</h2>
+      <h2>Omni Cloud — Render</h2>
       <p>Heavy processing lives in Render. Existing browser and Local Engine buttons are untouched. Upload here when you explicitly want cloud processing.</p>
       <div id="${id}Grid">
         <label>Cloud token<input id="${id}Token" type="password" autocomplete="off" placeholder="Paste the Render OMNI_CLOUD_TOKEN"></label>
@@ -41,7 +41,7 @@
       <div id="${id}Result"><strong id="${id}ResultTitle">Cloud output</strong><div id="${id}ResultMeta">No output yet — run a cloud job to generate one.</div><div id="${id}ResultActions"><button id="${id}Download">Download Output</button><button id="${id}Preview">Preview / Open</button></div></div>
     </div>`;
   document.body.appendChild(modal);
-  const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
+  const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
   const tokenInput=document.getElementById(id+'Token');
   const savedToken=sessionStorage.getItem('omni-cloud-token')||'';
   if(tokenInput) tokenInput.value=savedToken;
