@@ -40,6 +40,11 @@
 #tabRAGStudio .rag-model-item{grid-template-columns:minmax(0,1fr) auto !important}
 
 /* Static studio consolidation: apply before scripts execute. */
+/* Local Engine is a backend service, not a user-facing studio. Keep its DOM and runtime hooks intact. */
+.nav-bar .nav-btn[data-tab="tabLocal"] { display:none !important; }
+#tabLocal { display:none !important; }
+.omni-guide-grid .omni-guide-item:nth-child(2) { display:none !important; }
+
 .nav-bar .nav-btn[data-tab="tabOfficeTools"],
 .nav-bar .nav-btn[data-tab="tabUniversalData"],
 .nav-bar .nav-btn[data-tab="tabLocalDoctor"],
