@@ -38,8 +38,10 @@ jobs:
           node --check omni_browser_ai.js
           node --check omni_browser_ai_ui.js
           node --check omni_browser_media_ai.js
-          node --input-type=module --check < omni_browser_media_ai_worker.js
           python -m py_compile omni-cloud-engine/app.py
+      - name: Validate browser worker module syntax
+        shell: bash
+        run: node --input-type=module --check < omni_browser_media_ai_worker.js
       - name: Validate Studio wiring
         run: node .github/scripts/studio_wiring_check.mjs
       - name: Validate assistant retrieval regression
