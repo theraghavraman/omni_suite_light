@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 from pathlib import Path
+from omni_environment import OFFLINE_ASSETS
 
 ROOT = Path(__file__).resolve().parent
 PORT = 8765
@@ -48,19 +49,9 @@ def verify() -> bool:
         print((cp.stderr or cp.stdout or "unknown Python import error").strip(), flush=True)
         return False
 
-    required_assets = [
-        ROOT / "vendor/pdfjs/pdf.min.js",
-        ROOT / "vendor/pdfjs/pdf.worker.min.js",
-        ROOT / "vendor/jszip/jszip.min.js",
-        ROOT / "vendor/pdf-lib/pdf-lib.min.js",
-        ROOT / "vendor/tesseract/tesseract.min.js",
-        ROOT / "vendor/tesseract/worker.min.js",
-        ROOT / "vendor/tesseract/core/tesseract-core.wasm.js",
-        ROOT / "vendor/tesseract/lang/eng.traineddata.gz",
-        ROOT / "vendor/sheetjs/xlsx.full.min.js",
-        ROOT / "vendor/jsyaml/js-yaml.min.js",
-    ]
+    required_assets = [ROOT / rel for rel in OFFLINE_ASSETS]
     missing = [str(p.relative_to(ROOT)) for p in required_assets if not p.is_file() or p.stat().st_size == 0]
+
     if missing:
         print("[SETUP] Offline browser assets are incomplete:", flush=True)
         for item in missing:
