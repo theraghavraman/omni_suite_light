@@ -1,4 +1,4 @@
-import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time
+import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time, urllib.request, urllib.error
 from pathlib import Path
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_file
@@ -156,6 +156,46 @@ def clean_data(p,out,opts):
     if out.suffix.lower()==".xlsx": df.to_excel(out,index=False)
     else: df.to_csv(out,index=False)
     return out
+
+@app.post("/api/ai/generate")
+def ai_generate():
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    if not rate_allowed():
+        return jsonify(ok=False,error="Rate limit exceeded. Retry shortly."),429
+    payload=request.get_json(silent=True) or {}
+    question=str(payload.get("question","")).strip()
+    context=str(payload.get("context","")).strip()
+    if not question or not context:
+        return jsonify(ok=False,error="Both question and retrieved context are required."),400
+    if len(question)>4000 or len(context)>24000:
+        return jsonify(ok=False,error="Question or retrieved context exceeds the configured limit."),413
+    api_key=os.getenv("OMNI_LLM_API_KEY","").strip()
+    model=os.getenv("OMNI_LLM_MODEL","").strip()
+    base=os.getenv("OMNI_LLM_BASE_URL","https://api.openai.com/v1").strip().rstrip("/")
+    if not api_key or not model:
+        return jsonify(ok=False,error="Cloud generation is not configured. Set OMNI_LLM_API_KEY and OMNI_LLM_MODEL on Render; OMNI_LLM_BASE_URL is optional."),503
+    endpoint=base if base.endswith("/chat/completions") else base+"/chat/completions"
+    prompt=("Answer using only the retrieved evidence. If the evidence does not support an answer, say you do not know. Cite claims as [Source N].\\n\\nRETRIEVED EVIDENCE:\\n"+context+"\\n\\nQUESTION:\\n"+question)
+    body=json.dumps({"model":model,"messages":[
+        {"role":"system","content":"You are Omni RAG. Ground every factual claim in the provided evidence. Do not invent facts; cite source numbers."},
+        {"role":"user","content":prompt}
+    ],"temperature":0.1,"max_tokens":700}).encode("utf-8")
+    req=urllib.request.Request(endpoint,data=body,headers={"Authorization":"Bearer "+api_key,"Content-Type":"application/json","Accept":"application/json"})
+    try:
+        with urllib.request.urlopen(req,timeout=int(os.getenv("OMNI_LLM_TIMEOUT_SECONDS","90"))) as response:
+            result=json.loads(response.read().decode("utf-8"))
+        answer=str((((result.get("choices") or [{}])[0]).get("message") or {}).get("content") or "").strip()
+        if not answer:
+            return jsonify(ok=False,error="Configured LLM returned an empty answer."),502
+        return jsonify(ok=True,text=answer,provider="render",model=model)
+    except urllib.error.HTTPError as exc:
+        detail=""
+        try: detail=exc.read(1200).decode("utf-8","replace")
+        except Exception: pass
+        return jsonify(ok=False,error="Configured LLM returned HTTP "+str(exc.code)+((": "+detail[:800]) if detail else "")),502
+    except Exception as exc:
+        return jsonify(ok=False,error="Cloud LLM request failed: "+str(exc)[:500]),502
 
 @app.post("/api/process")
 def process():
