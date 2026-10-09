@@ -1377,6 +1377,11 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabFileSharing .fs-transfer-qr{width:260px;max-width:100%;aspect-ratio:1;margin:12px auto 6px;display:grid;place-items:center;padding:10px;background:#fff;border-radius:18px;border:1px solid var(--fsline)}
 #tabFileSharing .fs-transfer-qr svg{width:100%;height:auto;display:block}
 #tabFileSharing .fs-pin:empty,#tabFileSharing .fs-transfer-url:empty{display:none}
+#tabFileSharing .fs-net{display:grid;gap:4px;margin:0 0 10px;font-size:12px;font-weight:700;color:#536275;text-align:left}
+#tabFileSharing .fs-net .form-select{font-size:13px;padding:8px 10px}
+#tabFileSharing .fs-help{margin-top:12px;text-align:left;font-size:12.5px;color:#536275;border:1px solid var(--fsline);border-radius:12px;padding:8px 12px}
+#tabFileSharing .fs-help summary{cursor:pointer;font-weight:700;color:#0F766E}
+#tabFileSharing .fs-help ul{margin:8px 0 2px;padding-left:18px;display:grid;gap:5px}
 #tabFileSharing .fs-pin{font:900 1.15rem "Fira Code",monospace;color:#0F766E;letter-spacing:.14em}
 #tabFileSharing .fs-pin::before{content:"PIN ";font-size:.7rem;letter-spacing:.08em;color:#7b8795}
 #tabFileSharing .fs-transfer-url{margin:8px 0 10px;padding:8px 10px;border-radius:10px;background:#f3f6f5;color:#536275;font:11px/1.45 "Fira Code",monospace;word-break:break-all;user-select:all}
@@ -6067,7 +6072,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
   box-shadow:0 2px 0 #42BFA8,0 14px 28px -14px rgba(20,160,140,.6) !important;
 }
 </style>
-  <script src="./omni_render_cloud.js?v=3"></script><script src="./file_sharing_studio.js?v=2"></script>
+  <script src="./omni_render_cloud.js?v=3"></script><script src="./file_sharing_studio.js?v=3"></script>
   <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=4">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}

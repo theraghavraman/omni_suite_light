@@ -10,7 +10,7 @@ OmniConverter Local Engine
 from __future__ import annotations
 import urllib.request
 import ipaddress
-import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
+import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, sys, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import omni_data_engine
@@ -450,19 +450,130 @@ def stream_file(handler, path: Path, extra_headers=None, name=None):
                 break
             handler.wfile.write(chunk)
 
-def lan_ip():
+def _default_route_ip():
+    """Address the OS would use to reach the internet. Behind a VPN, proxy TUN
+    or hotspot bridge this is NOT the Wi-Fi address a phone can reach, so it is
+    only one hint among several."""
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
         return s.getsockname()[0]
     except OSError:
-        try:
-            return socket.gethostbyname(socket.gethostname())
-        except OSError:
-            return "127.0.0.1"
+        return ""
     finally:
         s.close()
+
+def _quiet(args, timeout=4):
+    try:
+        return subprocess.run(args, capture_output=True, text=True, timeout=timeout).stdout or ""
+    except Exception:
+        return ""
+
+def _interface_ipv4():
+    """Every IPv4 address on this machine as (interface, label, ip)."""
+    import re, socket
+    found, system = [], platform.system()
+    if system == "Windows":
+        txt = _quiet(["powershell", "-NoProfile", "-Command",
+                      "Get-NetIPAddress -AddressFamily IPv4 | ForEach-Object { $_.InterfaceAlias + '|' + $_.IPAddress }"], 8)
+        for line in txt.splitlines():
+            if "|" in line:
+                alias, ip = line.rsplit("|", 1)
+                found.append((alias.strip(), alias.strip(), ip.strip()))
+    else:
+        ports = {}
+        if system == "Darwin":
+            # Map en0/en1 to "Wi-Fi" / "Ethernet" so the right one is recognisable.
+            port = None
+            for line in _quiet(["networksetup", "-listallhardwareports"]).splitlines():
+                if line.startswith("Hardware Port:"): port = line.split(":", 1)[1].strip()
+                elif line.startswith("Device:") and port: ports[line.split(":", 1)[1].strip()] = port
+        txt = _quiet(["ip", "-4", "-o", "addr", "show"]) if system == "Linux" else ""
+        if txt:
+            for m in re.finditer(r"^\d+:\s+(\S+)\s+inet\s+(\d+\.\d+\.\d+\.\d+)", txt, re.M):
+                found.append((m.group(1), m.group(1), m.group(2)))
+        else:
+            iface = None
+            for line in _quiet(["ifconfig"]).splitlines():
+                head = re.match(r"^([A-Za-z0-9_.\-]+):?\s", line)
+                if head and not line[:1].isspace(): iface = head.group(1).rstrip(":")
+                m = re.search(r"\binet (?:addr:)?(\d+\.\d+\.\d+\.\d+)", line)
+                if m and iface: found.append((iface, ports.get(iface, iface), m.group(1)))
+    if not found:
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+                found.append(("", "", info[4][0]))
+        except OSError:
+            pass
+    return found
+
+_VIRTUAL_IFACES = ("utun", "tun", "tap", "ppp", "ipsec", "gif", "stf", "bridge", "vmnet", "vboxnet", "docker", "br-",
+                   "veth", "virbr", "awdl", "llw", "anpi", "ap1", "tailscale", "zt", "wg", "lo", "vethernet", "virtualbox",
+                   "vmware", "hyper-v", "loopback", "bluetooth", "vpn", "teredo", "isatap", "npcap", "cloudflare", "nordlynx",
+                   "proton", "mullvad", "openvpn", "wintun", "clash", "meta")
+
+def lan_addresses():
+    """Candidate addresses a phone on the same Wi-Fi could use, best first.
+
+    The old single guess used the default route, which on a Mac with a VPN,
+    proxy TUN (Clash, Surge, Cloudflare WARP…), Tailscale or Internet Sharing
+    points at a virtual interface the phone can never reach — the QR then
+    opened nothing. Here every interface is listed and ranked instead."""
+    override = os.environ.get("OMNI_LAN_IP", "").strip()
+    default_ip = _default_route_ip()
+    seen, out = set(), []
+    for iface, label, ip in _interface_ipv4():
+        try:
+            addr = ipaddress.IPv4Address(ip)
+        except ValueError:
+            continue
+        if ip in seen or addr.is_loopback or addr.is_link_local or addr.is_unspecified or addr.is_multicast:
+            continue
+        seen.add(ip)
+        name = (iface + " " + label).lower()
+        virtual = any(name.startswith(v) or (" " + v) in name for v in _VIRTUAL_IFACES)
+        wifi = any(k in name for k in ("wi-fi", "wifi", "wlan", "wireless", "airport")) or iface.startswith("wl")
+        wired = not wifi and (any(k in name for k in ("ethernet", "thunderbolt", "usb lan")) or iface.startswith(("eth", "enp", "eno", "ens")))
+        score = 0
+        if addr.is_private: score += 40
+        if wifi: score += 30
+        elif wired: score += 20
+        elif iface.startswith("en"): score += 15
+        if virtual: score -= 60
+        if addr in ipaddress.ip_network("100.64.0.0/10") or addr in ipaddress.ip_network("198.18.0.0/15"): score -= 50
+        if ip == default_ip and not virtual: score += 5
+        if ip == override: score += 1000
+        kind = "Wi-Fi" if wifi else ("Ethernet" if wired else ("Virtual / VPN" if virtual else "Network"))
+        out.append({"ip": ip, "iface": iface, "label": label or iface or "Network", "kind": kind, "score": score, "likely": score > 0})
+    if override and override not in seen:
+        out.append({"ip": override, "iface": "", "label": "OMNI_LAN_IP", "kind": "Manual", "score": 1000, "likely": True})
+    if default_ip and default_ip not in seen and not default_ip.startswith("127."):
+        private = ipaddress.IPv4Address(default_ip).is_private
+        out.append({"ip": default_ip, "iface": "", "label": "Default route", "kind": "Network", "score": 40 if private else 0, "likely": private})
+    out.sort(key=lambda a: -a["score"])
+    return out
+
+def lan_ip():
+    addrs = lan_addresses()
+    return addrs[0]["ip"] if addrs else "127.0.0.1"
+
+def firewall_hint():
+    """Best-effort warning when the OS firewall will silently drop the phone."""
+    system = platform.system()
+    if system == "Darwin":
+        fw = "/usr/libexec/ApplicationFirewall/socketfilterfw"
+        if not Path(fw).exists() or "enabled" not in _quiet([fw, "--getglobalstate"]).lower():
+            return ""
+        if "enabled" in _quiet([fw, "--getblockall"]).lower():
+            return "macOS Firewall is set to block all incoming connections, so the phone cannot connect. Turn that off in System Settings › Network › Firewall › Options."
+        exe = os.path.realpath(sys.executable)
+        if "blocked" in _quiet([fw, "--getappblocked", exe]).lower():
+            return "macOS Firewall is blocking Python. Allow it in System Settings › Network › Firewall › Options, then start a new session."
+        return "macOS Firewall is on. If macOS asks whether Python may accept incoming connections, click Allow."
+    if system == "Windows":
+        return "If Windows asks whether Python may communicate on networks, allow Private networks."
+    return ""
 
 def _drop_session_files(sess):
     # Only temporary copies are removed. Files a phone sent to this computer
@@ -770,9 +881,15 @@ def transfer_start(payload):
     inbox=str(transfer_inbox()) if mode=="receive" else ""
     with TRANSFER_LOCK:
         TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":[],"connected":False}
-    port=start_transfer_server(); ip=lan_ip()
-    warn="" if not ip.startswith("127.") else "This computer does not seem to be on a Wi-Fi/LAN network."
-    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"expires":time.time()+ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}","inbox":inbox,"warning":warn}
+    port=start_transfer_server()
+    addrs=[a for a in lan_addresses() if not a["ip"].startswith("127.")]
+    wanted=str(payload.get("ip") or "").strip()
+    ip=next((a["ip"] for a in addrs if a["ip"]==wanted), addrs[0]["ip"] if addrs else "127.0.0.1")
+    addresses=[{"ip":a["ip"],"label":a["label"],"kind":a["kind"],"likely":a["likely"],"url":f"http://{a['ip']}:{port}/share/{token}"} for a in addrs]
+    if not addrs: warn="This computer is not connected to a Wi-Fi or LAN network, so the phone cannot reach it."
+    elif not addrs[0]["likely"]: warn="Only a VPN or virtual network address was found. Turn the VPN off or connect this computer to the same Wi-Fi as the phone, then start a new session."
+    else: warn=""
+    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"expires":time.time()+ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}","addresses":addresses,"inbox":inbox,"warning":warn,"firewall":firewall_hint()}
 
 def transfer_status(token):
     s=transfer_session(token)
