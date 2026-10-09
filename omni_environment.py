@@ -122,6 +122,13 @@ NATIVE_GROUPS = {
     "unixODBC": ("isql",),
 }
 
+# These clients/utilities are reported by Doctor and health but are not guaranteed
+# by every supported OS installer (for example, psql/mysql/isql on Windows).
+OPTIONAL_NATIVE_GROUPS = frozenset({
+    "ZIP", "Unzip", "gzip", "bzip2", "xz", "tar",
+    "SQLite", "PostgreSQL client", "MySQL client", "unixODBC",
+})
+
 # EasyOCR is supported by the opt-in vision profile, not required by core setup.
 OPTIONAL_PYTHON_IMPORTS = frozenset({"easyocr"})
 NATIVE_TOOL_NAMES = tuple(NATIVE_TOOLS)
@@ -226,4 +233,17 @@ def find_native_tool_path(name: str) -> str | None:
                     return str(candidate)
             except OSError:
                 pass
+    # Console entry points installed inside the project's virtual environment
+    # (notably yt-dlp) may not be on the parent shell's PATH.
+    from pathlib import Path
+    venv_bin = Path(__file__).resolve().parent / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+    suffixes = (".exe", ".cmd", ".bat", "") if os.name == "nt" else ("",)
+    for candidate in _NATIVE_ALIASES.get(name, (name,)):
+        for suffix in suffixes:
+            local_path = venv_bin / f"{candidate}{suffix}"
+            if local_path.is_file():
+                if candidate == "convert" and not _is_imagemagick_convert(str(local_path)):
+                    continue
+                return str(local_path)
+
     return None
