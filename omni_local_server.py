@@ -57,8 +57,15 @@ def cors_origin(handler):
     origin = request_origin(handler)
     return origin if origin in ALLOWED_ORIGINS else ""
 
+def same_origin_browser_request(handler):
+    # Browsers omit the Origin header on same-origin GET/HEAD requests, so a page
+    # served by this engine (the default http://127.0.0.1:8765/ launch) would be
+    # rejected on its own GET API calls. Fetch metadata identifies those requests;
+    # the per-launch token below is still required.
+    return not request_origin(handler) and handler.headers.get("Sec-Fetch-Site", "").lower() == "same-origin"
+
 def authorize(handler):
-    if not origin_allowed(handler):
+    if not (origin_allowed(handler) or same_origin_browser_request(handler)):
         handler.send_json({"ok": False, "error": "Origin not allowed"}, 403)
         return False
     if not secrets.compare_digest(handler.headers.get("X-Omni-Token", ""), TOKEN):
@@ -1529,6 +1536,8 @@ def file_result(path, name, mime=None):
     return {"ok": True, "file_id": fid, "name": name, "size": path.stat().st_size, "mime": mime or mimetypes.guess_type(name)[0] or "application/octet-stream"}
 
 
+ETL_RUN_TIMEOUT = max(30, int(os.environ.get("OMNI_ETL_TIMEOUT", "3600")))
+
 def hop_local_request(path, username, password, timeout=5, max_bytes=65536):
     """Call a fixed loopback Apache Hop endpoint; never accept an upstream URL from the browser."""
     credentials = base64.b64encode((str(username) + ":" + str(password)).encode("utf-8")).decode("ascii")
@@ -1825,9 +1834,13 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("The selected .hpl pipeline was not found inside the OmniETL projects folder.")
                 query = urllib.parse.urlencode({"pipeline": str(candidate), "json": "Y"})
                 try:
-                    code, content_type, body = hop_local_request("/hop/execPipeline?" + query, username, password, timeout=180, max_bytes=65536)
+                    code, content_type, body = hop_local_request("/hop/execPipeline?" + query, username, password, timeout=ETL_RUN_TIMEOUT, max_bytes=65536)
                 except Exception as e:
                     code = getattr(e, "code", None)
+                    reason = getattr(e, "reason", e)
+                    if code is None and isinstance(reason, TimeoutError):
+                        self.send_json({"ok": False, "error": "Hop Server did not finish this pipeline within " + str(ETL_RUN_TIMEOUT) + " seconds. It may still be running; check the Hop Server status page. Set OMNI_ETL_TIMEOUT to allow longer runs."}, 504)
+                        return
                     detail = ""
                     try: detail = e.read(12000).decode("utf-8", "replace") if hasattr(e, "read") else ""
                     except Exception: pass

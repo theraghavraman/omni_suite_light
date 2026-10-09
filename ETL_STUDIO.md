@@ -50,6 +50,7 @@ Refresh the pipeline list in ETL Studio, select a pipeline, and click **Run Pipe
 
 - The bridge calls only `127.0.0.1:8081` and optional `127.0.0.1:8080`; it does not accept a user-supplied upstream hostname.
 - Pipeline execution is restricted to `.hpl` files whose resolved paths remain inside `~/OmniETL/projects`.
+- Hop Server runs a pipeline synchronously, so the bridge waits up to 3600 seconds for it to finish. Set the `OMNI_ETL_TIMEOUT` environment variable (in seconds) before starting the Local Engine to allow longer runs.
 - Hop Server itself must remain bound to loopback for local use. Do not expose its HTTP port to an untrusted network.
 - The Local Engine's existing origin/token checks protect the new endpoints. Hop credentials are sent to the local engine over loopback and then used for HTTP Basic authentication to Hop Server.
 - This is an initial integration: pipeline authoring remains in Apache Hop; the Omni panel connects, discovers and runs existing pipeline files.

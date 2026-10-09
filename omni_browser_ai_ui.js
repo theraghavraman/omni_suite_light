@@ -23,11 +23,12 @@ const PANELS={
  tabDatabaseStudio:["Explain SQL","Review SQL","Suggest SQL improvements"],
  tabDataClean:["Profile data quality","Suggest cleaning steps","Explain anomalies"],
  tabBatchLab:["Explain batch result","Suggest batch strategy"],
+ tabETLStudio:["Explain pipeline result","Suggest pipeline fixes"],
  tabLocalDoctor:["Explain diagnostics","Suggest likely fixes"],
  tabDiagnostics:["Explain diagnostic output","Suggest troubleshooting steps"],
  tabAllTests:["Explain failed tests","Suggest fixes for failures"]
 };
-const LABELS={tabRAGStudio:"Private RAG",tabLanguageStudio:"Language Engine",tabPdf:"PDF Suite",tabWord:"Office Studio",tabEpub:"EPUB Studio",tabImages:"Image Tools",tabOcr:"Image to Text / OCR",tabAudio:"Audio Studio",tabVideo:"Video Studio",tabCompress:"Compressor",tabData:"Data Studio",tabLocal:"Local Engine",tabVizInterchange:"BI Interchange",tabCodeStudio:"Code Studio",tabUniversalData:"Universal Data",tabDatabaseStudio:"Database Studio",tabDataClean:"Data Clean",tabBatchLab:"Batch Lab",tabLocalDoctor:"System Doctor",tabDiagnostics:"Diagnostics",tabAllTests:"All Tests"};
+const LABELS={tabRAGStudio:"Private RAG",tabLanguageStudio:"Language Engine",tabPdf:"PDF Suite",tabWord:"Office Studio",tabEpub:"EPUB Studio",tabImages:"Image Tools",tabOcr:"Image to Text / OCR",tabAudio:"Audio Studio",tabVideo:"Video Studio",tabCompress:"Compressor",tabData:"Data Studio",tabLocal:"Local Engine",tabVizInterchange:"BI Interchange",tabCodeStudio:"Code Studio",tabUniversalData:"Universal Data",tabDatabaseStudio:"Database Studio",tabDataClean:"Data Clean",tabBatchLab:"Batch Lab",tabETLStudio:"ETL Studio",tabLocalDoctor:"System Doctor",tabDiagnostics:"Diagnostics",tabAllTests:"All Tests"};
 function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function css(){
  if(document.getElementById("omni-browser-ai-css"))return;
@@ -213,6 +214,7 @@ function actionDefs(panelId){
   tabDatabaseStudio:[["Explain SQL","generate","Explain the following SQL query, including joins, filters, grouping and likely output."],["Review SQL","generate","Review this SQL for correctness, edge cases and performance risks."],["Improve SQL","generate","Suggest a cleaner or more efficient version of this SQL and explain the changes."]],
   tabDataClean:[["Quality profile","generate","Profile the data for quality issues such as missing values, duplicates, inconsistent types, invalid formats and anomalies."],["Cleaning plan","generate","Create a practical step-by-step data-cleaning plan for this data."],["Semantic vector","embed"]],
   tabBatchLab:[["Explain batch","generate","Explain this batch-processing result and suggest the next action."],["Strategy","generate","Suggest a reliable batch-processing strategy for the current workload."]],
+  tabETLStudio:[["Explain run","generate","Explain this Apache Hop pipeline execution result and what the user should check next."],["Fix plan","generate","Suggest likely causes and fixes for this Apache Hop pipeline or Hop Server connection problem."]],
   tabLocalDoctor:[["Explain diagnostics","generate","Explain these System Doctor diagnostics and rank the likely root causes."],["Fix plan","generate","Create a concise troubleshooting plan from these diagnostics."]],
   tabDiagnostics:[["Explain diagnostics","generate","Explain these browser/runtime diagnostics and distinguish warnings from actionable failures."],["Troubleshoot","generate","Suggest a prioritized troubleshooting plan for these diagnostics."]],
   tabAllTests:[["Explain failures","generate","Explain the failed tests below and identify the most likely root cause for each."],["Fix plan","generate","Create a prioritized fix plan for the failed tests."]]
