@@ -9,6 +9,7 @@ Native engines are installed separately by the platform installer.
 from pathlib import Path
 from urllib.request import Request, urlopen
 import hashlib, os, sys, tempfile, ssl
+from omni_environment import OFFLINE_ASSET_URLS as ASSETS
 
 try:
     import certifi
@@ -20,46 +21,6 @@ except ImportError as exc:
 
 ROOT = Path(__file__).resolve().parent
 VENDOR = ROOT / "vendor"
-ASSETS = {
-    "pdfjs/pdf.min.js": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
-    "pdfjs/pdf.worker.min.js": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
-    "jszip/jszip.min.js": "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
-    "pdf-lib/pdf-lib.min.js": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
-    "tesseract/tesseract.min.js": "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
-    "sheetjs/xlsx.full.min.js": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
-    "jsyaml/js-yaml.min.js": "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js",
-    # Office Tools + Diagram Forge (loaded on demand by omni_vendor_loader.js)
-    "mammoth/mammoth.browser.min.js": "https://cdn.jsdelivr.net/npm/mammoth@1.13.0/mammoth.browser.min.js",
-    "docx/docx.iife.js": "https://cdn.jsdelivr.net/npm/docx@9.9.0/dist/index.iife.js",
-    "pptxgenjs/pptxgen.bundle.js": "https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js",
-    "exceljs/exceljs.min.js": "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js",
-    "formula/parser.min.js": "https://cdn.jsdelivr.net/npm/fast-formula-parser@1.0.19/build/parser.min.js",
-    "formula/formula.min.js": "https://cdn.jsdelivr.net/npm/@formulajs/formulajs@4.6.1/lib/browser/formula.min.js",
-    "dompurify/purify.min.js": "https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js",
-    "mermaid/mermaid.min.js": "https://cdn.jsdelivr.net/npm/mermaid@12.1.0/dist/mermaid.min.js",
-    "dagre/dagre.min.js": "https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.4/dist/dagre.min.js",
-    "tesseract/worker.min.js": "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
-    "tesseract/core/tesseract-core.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js",
-    "tesseract/core/tesseract-core.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm",
-    "tesseract/core/tesseract-core-simd.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd.wasm.js",
-    "tesseract/core/tesseract-core-simd.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd.wasm",
-    "tesseract/core/tesseract-core-lstm.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-lstm.wasm.js",
-    "tesseract/core/tesseract-core-lstm.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-lstm.wasm",
-    "tesseract/core/tesseract-core-simd-lstm.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd-lstm.wasm.js",
-    "tesseract/core/tesseract-core-simd-lstm.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd-lstm.wasm",
-    "tesseract/lang/eng.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/eng.traineddata.gz",
-    "tesseract/lang/hin.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/hin@1.0.0/4.0.0_best_int/hin.traineddata.gz",
-    "tesseract/lang/ben.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/ben@1.0.0/4.0.0_best_int/ben.traineddata.gz",
-    "tesseract/lang/mar.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/mar@1.0.0/4.0.0_best_int/mar.traineddata.gz",
-    "tesseract/lang/tam.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/tam@1.0.0/4.0.0_best_int/tam.traineddata.gz",
-    "tesseract/lang/tel.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/tel@1.0.0/4.0.0_best_int/tel.traineddata.gz",
-    "tesseract/lang/guj.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/guj@1.0.0/4.0.0_best_int/guj.traineddata.gz",
-    "tesseract/lang/pan.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/pan@1.0.0/4.0.0_best_int/pan.traineddata.gz",
-    "tesseract/lang/deu.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/deu@1.0.0/4.0.0_best_int/deu.traineddata.gz",
-    "tesseract/lang/fra.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/fra@1.0.0/4.0.0_best_int/fra.traineddata.gz",
-    "tesseract/lang/spa.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/spa@1.0.0/4.0.0_best_int/spa.traineddata.gz",
-    "tesseract/lang/chi_sim.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0_best_int/chi_sim.traineddata.gz",
-}
 
 def download(rel, url):
     dst = VENDOR / rel
