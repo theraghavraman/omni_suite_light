@@ -1,0 +1,28 @@
+name: Validate Hybrid RAG
+
+on:
+  push:
+    branches: ["main", "feat/hybrid-rag-generation"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  rag-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate RAG Studio JavaScript syntax
+        run: node --check rag_studio.js
+      - name: Validate embedding worker module syntax
+        shell: bash
+        run: node --input-type=module --check < rag_embed_worker.js
+      - name: Validate Render cloud engine Python syntax
+        run: python -m py_compile omni-cloud-engine/app.py
+      - name: Run assistant and RAG regression checks
+        run: node .github/scripts/assistant_rag_regression.mjs
