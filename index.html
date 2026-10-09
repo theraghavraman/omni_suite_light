@@ -4195,13 +4195,16 @@ async function runOptions(clear=true){
          try{
            sel.value=o.value;
            if(sel.value!==o.value) throw new Error('Browser rejected option value');
-           if(hasChange){
+           /* Validation must never invoke real side-effect handlers on export/action selectors.
+              Diagram Forge's #df-export onchange downloads a file for every non-empty option. */
+           const sideEffectSelect = sel.id === 'df-export' || sel.matches('[data-validation-side-effects="true"]');
+           if(hasChange && !sideEffectSelect){
              const beforeErrors=uncaught.length;
              sel.dispatchEvent(new Event('change',{bubbles:true,cancelable:true}));
              if(uncaught.length>beforeErrors) throw new Error('Option change raised: '+uncaught.slice(beforeErrors).join(' | '));
-             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted and its real change-event wiring executed without an error');
-           }else if(controlReferenced){
-             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted; the control is consumed by application logic rather than a dedicated change listener');
+             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS','Option accepted and its change-event wiring executed without an error');
+           }else if(controlReferenced || sideEffectSelect){
+             add(studio,(sel.id||'select')+' option: '+o.textContent.trim(),'PASS',sideEffectSelect ? 'Option verified without firing its real action handler; side-effecting controls are not executed during validation' : 'Option accepted; the control is consumed by application logic rather than a dedicated change listener');
            }else{
              throw new Error('No change listener or application reference found for this control');
            }
