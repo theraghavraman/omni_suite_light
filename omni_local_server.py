@@ -1528,6 +1528,26 @@ def file_result(path, name, mime=None):
     fid = register(path)
     return {"ok": True, "file_id": fid, "name": name, "size": path.stat().st_size, "mime": mime or mimetypes.guess_type(name)[0] or "application/octet-stream"}
 
+
+def hop_local_request(path, username, password, timeout=5, max_bytes=65536):
+    """Call a fixed loopback Apache Hop endpoint; never accept an upstream URL from the browser."""
+    credentials = base64.b64encode((str(username) + ":" + str(password)).encode("utf-8")).decode("ascii")
+    request = urllib.request.Request(
+        "http://127.0.0.1:8081" + path,
+        headers={
+            "Authorization": "Basic " + credentials,
+            "Accept": "application/json, application/xml, text/xml, text/html, */*",
+            "User-Agent": "Redmark-Forge-ETL-Studio/1.0",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        body = response.read(max_bytes + 1)
+        if len(body) > max_bytes:
+            body = body[:max_bytes] + b"\n[response truncated]"
+        return response.status, response.headers.get("Content-Type", ""), body.decode("utf-8", "replace")
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "OmniEngine/1.0"
@@ -1677,6 +1697,27 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/etl/hop/projects":
+            if not authorize(self): return
+            try:
+                root = (Path.home() / "OmniETL" / "projects").resolve()
+                root.mkdir(parents=True, exist_ok=True)
+                pipelines = []
+                for candidate in root.rglob("*.hpl"):
+                    try:
+                        resolved = candidate.resolve()
+                        resolved.relative_to(root)
+                    except (OSError, ValueError):
+                        continue
+                    if resolved.is_file():
+                        pipelines.append({"name": resolved.name, "path": resolved.relative_to(root).as_posix(), "modified": int(resolved.stat().st_mtime)})
+                    if len(pipelines) >= 500:
+                        break
+                pipelines.sort(key=lambda item: item["path"].casefold())
+                self.send_json({"ok": True, "folder": str(root), "pipelines": pipelines, "limit": 500})
+            except Exception as e:
+                self.send_json({"ok": False, "error": "Could not inspect the ETL projects folder: " + str(e)}, 500)
+            return
         if parsed.path not in ("/api/health",) and not parsed.path.startswith("/api/"):
             if self.serve_static(parsed.path):
                 return
@@ -1746,6 +1787,66 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path in ("/api/etl/hop/status", "/api/etl/hop/run"):
+            if not authorize(self): return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 65536:
+                    raise ValueError("ETL request body is missing or too large.")
+                payload = json.loads(self.rfile.read(length) or b"{}")
+                username = str(payload.get("username", "cluster"))[:256]
+                password = str(payload.get("password", "cluster"))[:1024]
+                if not username or not password:
+                    raise ValueError("Enter the Hop Server username and password.")
+                if parsed.path == "/api/etl/hop/status":
+                    try:
+                        code, content_type, body = hop_local_request("/hop/status/?json=Y", username, password, timeout=4, max_bytes=32768)
+                        self.send_json({"ok": True, "reachable": True, "endpoint": "http://127.0.0.1:8081", "http_status": code, "content_type": content_type, "response": body[:12000]})
+                    except Exception as e:
+                        code = getattr(e, "code", None)
+                        if code == 401:
+                            message = "Hop Server rejected these credentials (HTTP 401). Check the username and password."
+                        elif code:
+                            message = "Hop Server returned HTTP " + str(code) + "."
+                        else:
+                            message = "Could not reach Hop Server at 127.0.0.1:8081. Start Hop Server and try again."
+                        self.send_json({"ok": True, "reachable": False, "endpoint": "http://127.0.0.1:8081", "error": message})
+                    return
+                rel = str(payload.get("path", "")).strip()
+                if not rel or "\\" in rel or rel.startswith("/"):
+                    raise ValueError("Choose a pipeline from the local project list.")
+                root = (Path.home() / "OmniETL" / "projects").resolve()
+                candidate = (root / rel).resolve()
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    raise ValueError("Pipeline path must stay inside the OmniETL projects folder.")
+                if candidate.suffix.lower() != ".hpl" or not candidate.is_file():
+                    raise ValueError("The selected .hpl pipeline was not found inside the OmniETL projects folder.")
+                query = urllib.parse.urlencode({"pipeline": str(candidate), "json": "Y"})
+                try:
+                    code, content_type, body = hop_local_request("/hop/execPipeline?" + query, username, password, timeout=180, max_bytes=65536)
+                except Exception as e:
+                    code = getattr(e, "code", None)
+                    detail = ""
+                    try: detail = e.read(12000).decode("utf-8", "replace") if hasattr(e, "read") else ""
+                    except Exception: pass
+                    if code == 401:
+                        message = "Hop Server rejected these credentials (HTTP 401)."
+                    elif code:
+                        message = "Hop Server returned HTTP " + str(code) + "."
+                    else:
+                        message = "Could not reach Hop Server at 127.0.0.1:8081."
+                    self.send_json({"ok": False, "error": message + (("\n" + detail[:12000]) if detail else "")}, 502)
+                    return
+                lowered = body.lower().replace(" ", "")
+                if "<result>error</result>" in lowered or '"result":"error"' in lowered or '"result":"ERROR"' in body:
+                    self.send_json({"ok": False, "error": "Hop Server reported a pipeline execution error.", "response": body[:12000], "http_status": code}, 400)
+                    return
+                self.send_json({"ok": True, "success": True, "message": "Hop Server returned an execution response.", "http_status": code, "content_type": content_type, "response": body[:12000]})
+            except Exception as e:
+                self.send_json({"ok": False, "error": str(e)}, 400)
+            return
         if parsed.path == "/api/upload":
             if not authorize(self):
                 return
