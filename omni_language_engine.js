@@ -50,23 +50,43 @@
     if (!src || !tgt) throw new Error('Source and target languages are required.');
     if (src === tgt) return {text:value, provider:'identity', model:null};
 
-    const local = await localHealth();
-    if (local?.capabilities?.language_translation?.length) {
-      const result = await localProcess({
-        op:'language_translate', text:value, source:src, target:tgt,
-        max_new_tokens:Number(options.max_new_tokens || 512)
-      });
-      state.lastProvider = 'local';
-      return Object.assign({provider:'local', model:result.model || 'IndicTrans2'}, result);
+    // Browser-first: keep supported translations in the browser. Only use the
+    // Local Engine when the browser model does not support the pair or fails.
+    const a = adapter();
+    const browserPairs = new Set((a?.capabilities || []).map(x => String(x).toLowerCase()));
+    const pair = src.replace(/_/g, '-') + '-' + tgt.replace(/_/g, '-');
+    let browserError = null;
+    if (a && typeof a.translate === 'function' && browserPairs.has(pair)) {
+      try {
+        const result = await a.translate(value, src, tgt, options);
+        state.lastProvider = 'browser';
+        return Object.assign({provider:'browser'}, result || {});
+      } catch (err) {
+        browserError = err;
+      }
     }
 
-    const a = adapter();
-    if (a && typeof a.translate === 'function') {
-      const result = await a.translate(value, src, tgt, options);
-      state.lastProvider = 'browser';
-      return Object.assign({provider:'browser'}, result || {});
+    const local = await localHealth();
+    if (local?.capabilities?.language_translation?.length) {
+      try {
+        const result = await localProcess({
+          op:'language_translate', text:value, source:src, target:tgt,
+          max_new_tokens:Number(options.max_new_tokens || 512)
+        });
+        state.lastProvider = 'local';
+        return Object.assign({provider:'local', model:result.model || 'IndicTrans2'}, result);
+      } catch (err) {
+        if (browserError) {
+          throw new Error('Browser translation failed (' + browserError.message + '); Local Engine fallback failed (' + err.message + ').');
+        }
+        throw err;
+      }
     }
-    throw new Error('Omni Language Engine is not installed for this language pair. No text was sent to a web translation service.');
+
+    if (browserError) {
+      throw new Error('Browser translation failed: ' + browserError.message + '. This language pair also needs a compatible Local Engine model for fallback.');
+    }
+    throw new Error('No available translation model supports ' + src + ' → ' + tgt + '. Browser mode currently supports Hindi ↔ English; install/start the Local Engine for other supported Indic language pairs. No text was sent to a web translation service.');
   }
 
   async function transliterate(text, source, targetScript, options = {}) {
