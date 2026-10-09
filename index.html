@@ -4183,6 +4183,16 @@ async function runOptions(clear=true){
  try{
    document.querySelectorAll('.module-panel:not(#tabDiagnostics):not(#tabAllTests)').forEach(panel=>{
      const studio=studioMap[panel.id]||panel.id;
+     /* Diagram Forge contains stateful editor selectors; dispatching synthetic change events
+        can invoke editor actions against the user's current selection. Inventory only. */
+     if(panel.id==='tabDiagramForge'){
+       panel.querySelectorAll('select').forEach(sel=>{
+         const opts=[...sel.options];
+         add(studio,'Option test: '+(sel.id||'select'),'SKIPPED',
+             'Safety skip: Validation Lab inventories '+opts.length+' options without dispatching events into the live diagram editor.');
+       });
+       return;
+     }
      panel.querySelectorAll('select').forEach(sel=>{
        const opts=[...sel.options];
        if(!opts.length){add(studio,'Option wiring: '+(sel.id||'select'),'FAIL','Select has no options');return;}
