@@ -2,98 +2,13 @@
 """Strict local-environment verification for OmniConverter one-click setup."""
 from __future__ import annotations
 import importlib.util
-import shutil
 import subprocess
 import sys
 from pathlib import Path
+from omni_environment import PYTHON_IMPORTS, OPTIONAL_PYTHON_IMPORTS, NATIVE_GROUPS, OFFLINE_ASSETS, find_native_tool_path
 
 ROOT = Path(__file__).resolve().parent
 
-PYTHON_IMPORTS = {
-    "pandas": "pandas",
-    "numpy": "numpy",
-    "pyarrow": "pyarrow",
-    "duckdb": "duckdb",
-    "yaml": "yaml",
-    "sqlglot": "sqlglot",
-    "openpyxl": "openpyxl",
-    "xlrd": "xlrd",
-    "pyxlsb": "pyxlsb",
-    "odfpy": "odf",
-    "tables": "tables",
-    "lxml": "lxml",
-    "fastavro": "fastavro",
-    "pymongo": "pymongo",
-    "msgpack": "msgpack",
-    "tabulate": "tabulate",
-    "pyreadstat": "pyreadstat",
-    "xarray": "xarray",
-    "cftime": "cftime",
-    "netCDF4": "netCDF4",
-    "h5py": "h5py",
-    "h5netcdf": "h5netcdf",
-    "astropy": "astropy",
-    "cdflib": "cdflib",
-    "cfgrib": "cfgrib",
-    "eccodes": "eccodes",
-    "Pillow": "PIL",
-    "fastparquet": "fastparquet",
-    "polars": "polars",
-    "scipy": "scipy",
-    "sympy": "sympy",
-    "sqlalchemy": "sqlalchemy",
-    "psycopg": "psycopg",
-    "mysql_connector": "mysql.connector",
-    "oracledb": "oracledb",
-    "pyodbc": "pyodbc",
-    "py7zr": "py7zr",
-    "rarfile": "rarfile",
-    "imageio": "imageio",
-    "pydub": "pydub",
-    "moviepy": "moviepy",
-    "duckdb_engine": "duckdb_engine",
-    "snowflake_sqlalchemy": "snowflake.sqlalchemy",
-    "google_cloud_bigquery": "google.cloud.bigquery",
-    "databricks_sql_connector": "databricks.sql",
-    "trino": "trino",
-    "clickhouse_sqlalchemy": "clickhouse_sqlalchemy",
-    "sqlalchemy_redshift": "sqlalchemy_redshift",
-    "cassandra_driver": "cassandra",
-    "redis": "redis",
-    "neo4j": "neo4j",
-    "boto3": "boto3",
-    "fsspec": "fsspec",
-    "s3fs": "s3fs",
-    "gcsfs": "gcsfs",
-}
-
-NATIVE_GROUPS = {
-    "FFmpeg": ("ffmpeg",),
-    "FFprobe": ("ffprobe",),
-    "qpdf": ("qpdf",),
-    "Poppler pdftoppm": ("pdftoppm",),
-    "Poppler pdftotext": ("pdftotext",),
-    "ImageMagick": ("magick", "convert"),
-    "rsvg-convert": ("rsvg-convert",),
-    "Ghostscript": ("gs", "gswin64c"),
-    "Tesseract": ("tesseract",),
-    "LibreOffice": ("soffice", "libreoffice"),
-    "Calibre": ("ebook-convert",),
-    "Pandoc": ("pandoc",),
-    "7-Zip": ("7zz", "7z"),
-}
-
-OFFLINE_ASSETS = (
-    "vendor/pdfjs/pdf.min.js",
-    "vendor/pdfjs/pdf.worker.min.js",
-    "vendor/jszip/jszip.min.js",
-    "vendor/pdf-lib/pdf-lib.min.js",
-    "vendor/tesseract/tesseract.min.js",
-    "vendor/tesseract/worker.min.js",
-    "vendor/sheetjs/xlsx.full.min.js",
-    "vendor/jsyaml/js-yaml.min.js",
-    "vendor/OFFLINE_ASSETS.txt",
-)
 
 def check_python() -> dict[str, bool]:
     """Probe optional imports without letting missing parent packages crash the verifier."""
@@ -110,8 +25,14 @@ def check_python() -> dict[str, bool]:
 def check_native() -> dict[str, str | None]:
     result = {}
     for label, candidates in NATIVE_GROUPS.items():
-        result[label] = next((shutil.which(c) for c in candidates if shutil.which(c)), None)
+        result[label] = None
+        for candidate in candidates:
+            path = find_native_tool_path(candidate)
+            if path:
+                result[label] = path
+                break
     return result
+
 
 def check_offline_assets() -> dict[str, bool]:
     return {rel: (ROOT / rel).is_file() and (ROOT / rel).stat().st_size > 0 for rel in OFFLINE_ASSETS}
@@ -135,17 +56,23 @@ def main() -> int:
     assets = check_offline_assets()
     pip_ok, pip_msg = pip_check()
 
-    missing_py = [x for x, ok in py.items() if not ok]
+    missing_py = [x for x, ok in py.items() if not ok and x not in OPTIONAL_PYTHON_IMPORTS]
+    missing_optional_py = [x for x, ok in py.items() if not ok and x in OPTIONAL_PYTHON_IMPORTS]
+    required_total = sum(1 for x in py if x not in OPTIONAL_PYTHON_IMPORTS)
+    required_ready = required_total - len(missing_py)
     missing_native = [x for x, path in native.items() if not path]
     missing_assets = [x for x, ok in assets.items() if not ok]
 
-    print(f"Python packages: {len(py)-len(missing_py)}/{len(py)} ready")
+    print(f"Python packages: {required_ready}/{required_total} required ready")
+    print(f"Optional packages: {len(OPTIONAL_PYTHON_IMPORTS) - len(missing_optional_py)}/{len(OPTIONAL_PYTHON_IMPORTS)} ready")
     print(f"Native tools:    {len(native)-len(missing_native)}/{len(native)} ready")
     print(f"Offline assets:   {len(assets)-len(missing_assets)}/{len(assets)} ready")
     print(f"pip check:        {'PASS' if pip_ok else 'FAIL'}")
 
     if missing_py:
         print("Missing Python packages:", ", ".join(missing_py))
+    if missing_optional_py:
+        print("Optional Python packages not installed (non-blocking):", ", ".join(missing_optional_py))
     if missing_native:
         print("Missing native tools:", ", ".join(missing_native))
     if missing_assets:
