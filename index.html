@@ -3722,7 +3722,70 @@ async function office(f,target,options={}){const e=ext(f.name);if(e==='pdf'&&tar
 function ddb(v){if(Array.isArray(v))return v.map(ddb);if(v&&typeof v==='object'){if('S' in v)return v.S;if('N' in v)return Number(v.N);if('BOOL' in v)return !!v.BOOL;if('NULL' in v)return null;if('B' in v)return v.B;if('SS' in v)return v.SS;if('NS' in v)return v.NS.map(Number);if('BS' in v)return v.BS;if('L' in v)return v.L.map(ddb);if('M' in v)return Object.fromEntries(Object.entries(v.M).map(([k,x])=>[k,ddb(x)]));return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,ddb(x)]))}return v}
 function mongo(v){if(Array.isArray(v))return v.map(mongo);if(v&&typeof v==='object'){if('$oid' in v)return v.$oid;if('$date' in v)return typeof v.$date==='object'?(v.$date.$numberLong||v.$date):v.$date;if('$numberInt' in v)return Number(v.$numberInt);if('$numberLong' in v)return Number(v.$numberLong);if('$numberDouble' in v)return Number(v.$numberDouble);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,mongo(x)]))}return v}
 async function nosql(f,source,target){if(!['json','jsonl','dynamodb-json'].includes(source))return false;const t=await f.text();let v=source==='jsonl'?t.split(/\r?\n/).filter(Boolean).map(JSON.parse):JSON.parse(t);v=source==='dynamodb-json'?ddb(v):mongo(v);const r=rows(v);if(target==='json'){dl(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}),'omni_browser_nosql.json');return true}if(target==='jsonl'){dl(new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'}),'omni_browser_nosql.jsonl');return true}if(target==='csv'||target==='sql')return data(new File([JSON.stringify(v)],'browser.json',{type:'application/json'}),target,'sqlite','nosql_data');if(target==='cql'||target==='cypher'){const fr=r.map(x=>flat(x)),keys=[...new Set(fr.flatMap(x=>Object.keys(x)))];let out;if(target==='cql')out='CREATE TABLE nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')+' text').join(', ')+');\n\n'+fr.map(x=>'INSERT INTO nosql_data ('+keys.map(k=>String(k).replace(/[^A-Za-z0-9_]/g,'_')).join(', ')+') VALUES ('+keys.map(k=>"'"+String(x[k]??'').replace(/'/g,"''")+"'").join(', ')+');').join('\n');else{const ck=k=>'`'+String(k).replace(/`/g,'``')+'`',cv=v=>v===null||v===undefined?'null':typeof v==='number'||typeof v==='boolean'?String(v):"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";out=fr.map(x=>'CREATE (:NoSQLData {'+Object.entries(x).map(([k,v])=>ck(k)+': '+cv(v)).join(', ')+'});').join('\n')}dl(new Blob([out],{type:'text/plain'}),'omni_browser_nosql.'+target+'.txt');return true}return false}
-async function schemaWeb(f,dialect,table){const r=await read(f);const keys=[...new Set(r.flatMap(x=>Object.keys(x)))],id=s=>dialect==='mysql'?'\`'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'\`':dialect==='tsql'?'['+s.replace(/[^A-Za-z0-9_$]/g,'_')+']':'"'+s.replace(/[^A-Za-z0-9_$]/g,'_')+'"';const ddl='CREATE TABLE '+id(table||'data_table')+' ('+keys.map(k=>id(k)+' TEXT').join(', ')+');\n';dl(new Blob([ddl],{type:'application/sql'}),'omni_browser_schema.sql');return true}
+async function schemaWeb(f,dialect,table){
+ const rows=await read(f);
+ const d=String(dialect||'sqlite').toLowerCase();
+ const keySet=new Set();
+ rows.forEach(row=>Object.keys(row||{}).forEach(key=>keySet.add(key)));
+ const keys=[...keySet];
+ if(!keys.length)throw new Error('No columns could be inferred from this file.');
+ const tick=String.fromCharCode(96);
+ const quoteId=name=>{
+   const value=String(name??'').trim()||'column';
+   if(['tsql','mssql','sqlserver','sql_server'].includes(d))return '['+value.replace(/\]/g,']]')+']';
+   if(d==='bigquery')return tick+value.replace(/\\/g,'\\\\').split(tick).join('\\'+tick)+tick;
+   if(['mysql','spark','databricks','hive','clickhouse','singlestore','doris','starrocks'].includes(d))return tick+value.split(tick).join(tick+tick)+tick;
+   return '"'+value.replace(/"/g,'""')+'"';
+ };
+ const typeMap={
+  oracle:{bool:'NUMBER(1)',int:'NUMBER(19)',float:'BINARY_DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR2(4000)'},
+  tsql:{bool:'BIT',int:'BIGINT',float:'FLOAT',datetime:'DATETIME2',date:'DATE',text:'NVARCHAR(MAX)'},
+  postgres:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE PRECISION',datetime:'TIMESTAMP',date:'DATE',text:'TEXT'},
+  mysql:{bool:'TINYINT(1)',int:'BIGINT',float:'DOUBLE',datetime:'DATETIME(6)',date:'DATE',text:'LONGTEXT'},
+  sqlite:{bool:'INTEGER',int:'INTEGER',float:'REAL',datetime:'TEXT',date:'TEXT',text:'TEXT'},
+  duckdb:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'},
+  snowflake:{bool:'BOOLEAN',int:'NUMBER(38,0)',float:'DOUBLE',datetime:'TIMESTAMP_NTZ',date:'DATE',text:'VARCHAR'},
+  bigquery:{bool:'BOOL',int:'INT64',float:'FLOAT64',datetime:'DATETIME',date:'DATE',text:'STRING'},
+  databricks:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'STRING'},
+  redshift:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE PRECISION',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR(65535)'},
+  spark:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'STRING'},
+  trino:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP(6)',date:'DATE',text:'VARCHAR'},
+  presto:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'},
+  clickhouse:{bool:'UInt8',int:'Int64',float:'Float64',datetime:'DateTime64(6)',date:'Date',text:'String'},
+  hive:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'STRING'},
+  teradata:{bool:'BYTEINT',int:'BIGINT',float:'DOUBLE PRECISION',datetime:'TIMESTAMP(6)',date:'DATE',text:'VARCHAR(32000)'},
+  athena:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'},
+  doris:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'DATETIME',date:'DATE',text:'STRING'},
+  drill:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'},
+  druid:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'},
+  materialize:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE PRECISION',datetime:'TIMESTAMP',date:'DATE',text:'TEXT'},
+  singlestore:{bool:'TINYINT(1)',int:'BIGINT',float:'DOUBLE',datetime:'DATETIME(6)',date:'DATE',text:'LONGTEXT'},
+  starrocks:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE',datetime:'DATETIME',date:'DATE',text:'VARCHAR(65533)'},
+  tableau:{bool:'BOOLEAN',int:'BIGINT',float:'DOUBLE PRECISION',datetime:'TIMESTAMP',date:'DATE',text:'VARCHAR'}
+ };
+ const types=typeMap[d]||typeMap.postgres;
+ const valuesFor=key=>rows.map(row=>row?.[key]).filter(value=>value!==null&&value!==undefined&&String(value).trim()!=='');
+ const infer=key=>{
+   const values=valuesFor(key);
+   if(!values.length)return types.text;
+   const asText=value=>String(value).trim();
+   if(values.every(value=>typeof value==='boolean'||/^(true|false)$/i.test(asText(value))))return types.bool;
+   const integer=value=>typeof value==='number'?Number.isSafeInteger(value):/^-?(?:0|[1-9]\d*)$/.test(asText(value));
+   if(values.every(integer))return types.int;
+   const numeric=value=>typeof value==='number'?Number.isFinite(value):/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(asText(value));
+   if(values.every(numeric))return types.float;
+   const dateLike=value=>value instanceof Date&&!Number.isNaN(value.getTime())||/^\d{4}-\d{2}-\d{2}(?:[T ][0-9:.+-]+Z?)?$/.test(asText(value));
+   if(values.every(dateLike)){
+     const hasTime=values.some(value=>value instanceof Date?(value.getHours()!==0||value.getMinutes()!==0||value.getSeconds()!==0||value.getMilliseconds()!==0):/[T ]\d{2}:\d{2}/.test(asText(value)));
+     if(d==='bigquery'&&hasTime&&values.some(value=>/Z|[+-]\d{2}:?\d{2}$/i.test(asText(value))))return 'TIMESTAMP';
+     return hasTime?types.datetime:types.date;
+   }
+   return types.text;
+ };
+ const ddl='CREATE TABLE '+quoteId(table||'data_table')+' (\n  '+keys.map(key=>quoteId(key)+' '+infer(key)).join(',\n  ')+'\n);\n';
+ dl(new Blob([ddl],{type:'application/sql'}),'omni_browser_schema.sql');
+ return true;
+}
 window.OMNI_BROWSER_FIRST={read,dataConvert:data,profile,sql:sqlWeb,office,nosql,schema:schemaWeb,dataCapability:browserDataCapability,dataCapabilities:{browserInputs:[...BROWSER_DATA_INPUTS],browserTargets:[...BROWSER_DATA_TARGETS]}};
 })();
 </script>
@@ -3734,7 +3797,7 @@ const $=id=>document.getElementById(id);
 let token='',dataFile=null,sqlFile=null,schemaFile=null,nosqlFile=null;
 async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token=h.token||'';return h}
 async function upload(file){const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!r.ok)throw new Error((await r.text()).slice(0,500));return r.json()}
-async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
+async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});let j;try{j=await r.json();}catch(_){throw new Error('Local Engine returned invalid JSON (HTTP '+r.status+').');}if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
 async function download(id){const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!r.ok)throw new Error('Output download failed');const blob=await r.blob();return blob}
 function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 function wirePicker(inputId,dropId,setter){
