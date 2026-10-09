@@ -33,7 +33,7 @@ def doctor():
             spec=importlib.util.find_spec(mod)
             python[label]={"installed":bool(spec), "optional":label in OPTIONAL_PYTHON_IMPORTS}
             if spec: python[label]["origin"]=str(spec.origin or "")
-        except Exception: python[label]={"installed":False}
+        except Exception: python[label]={"installed":False, "optional":label in OPTIONAL_PYTHON_IMPORTS}
     native={}
     for label,(cmd,package) in NATIVE_TOOLS.items():
         path=find_native_tool_path(cmd)
