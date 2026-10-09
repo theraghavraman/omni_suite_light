@@ -6077,5 +6077,51 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch,{once:true});else watch();document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.nav-btn'))setTimeout(upd,60);});window.addEventListener('resize',upd);})();</script>
+
+<script id="omni-studio-consolidation-v1">
+(function(){
+  'use strict';
+  const groups = [
+    {parent:'tabWord', child:'tabOfficeTools', label:'Open Office Tools', note:'Additional office editing and creation tools'},
+    {parent:'tabData', child:'tabUniversalData', label:'Open Universal Data', note:'Specialized data and signal representations'},
+    {parent:'tabLocal', child:'tabLocalDoctor', label:'Open System Doctor', note:'Dependency checks and Local Engine diagnostics'},
+    {parent:'tabDiagnostics', child:'tabAllTests', label:'Open Validation Lab', note:'Full control and regression test suite'}
+  ];
+  function init(){
+    const style=document.createElement('style');
+    style.id='omni-studio-consolidation-style';
+    style.textContent=
+      '.nav-bar .nav-btn[data-tab="tabOfficeTools"],'+
+      '.nav-bar .nav-btn[data-tab="tabUniversalData"],'+
+      '.nav-bar .nav-btn[data-tab="tabLocalDoctor"],'+
+      '.nav-bar .nav-btn[data-tab="tabAllTests"]{display:none!important;}'+
+      '.omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--border-color,rgba(120,130,150,.22));border-radius:14px;background:var(--card-bg,rgba(120,130,150,.06));}'+
+      '.omni-consolidated-links .omni-consolidated-copy{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;justify-content:center;}'+
+      '.omni-consolidated-links strong{font-size:.95rem;}'+
+      '.omni-consolidated-links small{opacity:.72;font-size:.8rem;}'+
+      '.omni-consolidated-links button{border:1px solid var(--active-studio-accent,#168C91);border-radius:10px;padding:9px 13px;background:var(--active-studio-soft,rgba(22,140,145,.12));color:inherit;font:inherit;font-weight:650;cursor:pointer;}'+
+      '.omni-consolidated-links button:hover{filter:brightness(.96);transform:translateY(-1px);}';
+    document.head.appendChild(style);
+    groups.forEach(g=>{
+      const parent=document.getElementById(g.parent), childButton=document.querySelector('.nav-bar .nav-btn[data-tab="'+g.child+'"]');
+      if(!parent||!childButton||parent.querySelector('[data-consolidated-child="'+g.child+'"]'))return;
+      const box=document.createElement('div');
+      box.className='omni-consolidated-links';
+      box.dataset.consolidatedChild=g.child;
+      const copy=document.createElement('div');copy.className='omni-consolidated-copy';
+      const title=document.createElement('strong');title.textContent=g.label.replace(/^Open /,'');
+      const note=document.createElement('small');note.textContent=g.note;
+      copy.append(title,note);
+      const button=document.createElement('button');button.type='button';button.textContent=g.label;
+      button.addEventListener('click',()=>childButton.click());
+      box.append(copy,button);
+      const overview=parent.querySelector(':scope > .studio-overview');
+      if(overview&&overview.nextSibling)parent.insertBefore(box,overview.nextSibling);else if(overview)parent.appendChild(box);else parent.insertBefore(box,parent.firstChild);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+
 </body>
 </html>
