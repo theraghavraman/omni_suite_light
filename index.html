@@ -42,6 +42,9 @@
 /* Static studio consolidation: apply before scripts execute. */
 /* Local Engine is a backend service, not a user-facing studio. Keep its DOM and runtime hooks intact. */
 .nav-bar .nav-btn[data-tab="tabLocal"] { display:none !important; }
+/* Navigation can be rebuilt by the late navigation script; keep the Local Engine entry hidden there too. */
+.nav-bar [data-tab="tabLocal"], .nav-bar .nav-btn[data-tab="tabLocal"] { display:none !important; }
+.nav-bar .nav-btn[data-tab="tabLocal"] { visibility:hidden !important; width:0 !important; height:0 !important; min-height:0 !important; padding:0 !important; margin:0 !important; overflow:hidden !important; }
 #tabLocal { display:none !important; }
 .omni-guide-grid .omni-guide-item:nth-child(3) { display:none !important; }
 
