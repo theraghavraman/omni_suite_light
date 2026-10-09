@@ -13,6 +13,8 @@ def main() -> int:
     # group must reference a tool in that same inventory.
     native_names = set(env.NATIVE_TOOLS)
     assert set(env.NATIVE_TOOL_NAMES) == native_names
+    verifier_names = {tool for group in env.NATIVE_GROUPS.values() for tool in group}
+    assert verifier_names == native_names, f"Native inventory mismatch: missing={native_names - verifier_names}, extra={verifier_names - native_names}"
     assert all(tool in native_names for group in env.NATIVE_GROUPS.values() for tool in group)
     assert env.OPTIONAL_NATIVE_GROUPS <= set(env.NATIVE_GROUPS)
 
