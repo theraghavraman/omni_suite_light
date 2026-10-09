@@ -226,42 +226,104 @@ def read_data(path,fmt=None,table=None):
     if fmt=="sav": return pd.read_spss(path)
     raise RuntimeError(f"Unsupported Data Studio input format: {fmt}")
 
-def _literal(value):
+def _literal(value, dialect="sqlite"):
     import math
+    dialect = str(dialect or "sqlite").lower().strip()
     if value is None: return "NULL"
-    if hasattr(value,"item"):
-        try: value=value.item()
+    if hasattr(value, "item"):
+        try: value = value.item()
         except Exception: pass
-    if isinstance(value,bool): return "TRUE" if value else "FALSE"
-    if isinstance(value,(int,float)) and not isinstance(value,bool):
-        if isinstance(value,float) and (math.isnan(value) or math.isinf(value)): return "NULL"
+    if isinstance(value, bool): return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)): return "NULL"
         return str(value)
-    if hasattr(value,"isoformat") and not isinstance(value,str):
-        try: return "'" + value.isoformat(sep=" ").replace("'","''") + "'"
+    if hasattr(value, "isoformat") and not isinstance(value, str):
+        try: value = value.isoformat(sep=" ")
         except Exception: pass
-    return "'" + str(value).replace("'","''") + "'"
+    text = str(value)
+    # These dialects interpret backslash sequences inside ordinary string literals.
+    if dialect in {"mysql", "bigquery", "snowflake", "spark", "databricks", "hive"}:
+        text = text.replace("\\", "\\\\")
+    if dialect == "mysql":
+        text = text.replace("'", "\\'")
+    else:
+        text = text.replace("'", "''")
+    return "'" + text + "'"
 
-def _ident(name,dialect):
-    name=str(name).strip() or "column"
-    if dialect=="mysql": return chr(96)+name.replace(chr(96),chr(96)*2)+chr(96)
-    if dialect=="tsql": return "["+name.replace("]","]]")+"]"
-    return '"'+name.replace('"','""')+'"'
 
-def _type(dtype):
-    s=str(dtype).lower()
-    if "bool" in s: return "BOOLEAN"
-    if "int" in s: return "BIGINT"
-    if "float" in s or "double" in s: return "DOUBLE"
-    if "datetime" in s or "timestamp" in s: return "TIMESTAMP"
-    if "date" in s: return "DATE"
-    return "TEXT"
+def _ident(name, dialect):
+    name = str(name).strip() or "column"
+    dialect = str(dialect or "sqlite").lower().strip()
+    if dialect in {"tsql", "mssql", "sqlserver", "sql_server"}:
+        return "[" + name.replace("]", "]]") + "]"
+    if dialect == "bigquery":
+        return chr(96) + name.replace("\\", "\\\\").replace(chr(96), "\\" + chr(96)) + chr(96)
+    if dialect in {"mysql", "spark", "databricks", "hive", "clickhouse", "singlestore", "doris", "starrocks"}:
+        quote = chr(96)
+        return quote + name.replace(quote, quote * 2) + quote
+    return '"' + name.replace('"', '""') + '"'
 
-def dataframe_sql(df,table,dialect="sqlite"):
-    cols=",\n  ".join(f"{_ident(c,dialect)} {_type(df[c].dtype)}" for c in df.columns)
-    names=", ".join(_ident(c,dialect) for c in df.columns)
-    lines=[f"CREATE TABLE {_ident(table,dialect)} (\n  {cols}\n);"]
-    for row in df.itertuples(index=False,name=None): lines.append(f"INSERT INTO {_ident(table,dialect)} ({names}) VALUES ({', '.join(_literal(v) for v in row)});")
-    return "\n".join(lines)+"\n"
+
+_TYPE_MAPS = {
+    "oracle":      {"bool": "NUMBER(1)", "int": "NUMBER(19)", "float": "BINARY_DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR2(4000)"},
+    "tsql":        {"bool": "BIT", "int": "BIGINT", "float": "FLOAT", "datetime": "DATETIME2", "date": "DATE", "text": "NVARCHAR(MAX)"},
+    "postgres":    {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE PRECISION", "datetime": "TIMESTAMP", "date": "DATE", "text": "TEXT"},
+    "mysql":       {"bool": "TINYINT(1)", "int": "BIGINT", "float": "DOUBLE", "datetime": "DATETIME(6)", "date": "DATE", "text": "LONGTEXT"},
+    "sqlite":      {"bool": "INTEGER", "int": "INTEGER", "float": "REAL", "datetime": "TEXT", "date": "TEXT", "text": "TEXT"},
+    "duckdb":      {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+    "snowflake":   {"bool": "BOOLEAN", "int": "NUMBER(38,0)", "float": "DOUBLE", "datetime": "TIMESTAMP_NTZ", "date": "DATE", "text": "VARCHAR"},
+    "bigquery":    {"bool": "BOOL", "int": "INT64", "float": "FLOAT64", "datetime": "DATETIME", "date": "DATE", "text": "STRING"},
+    "databricks":  {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "STRING"},
+    "redshift":    {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE PRECISION", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR(65535)"},
+    "spark":       {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "STRING"},
+    "trino":       {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP(6)", "date": "DATE", "text": "VARCHAR"},
+    "presto":      {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+    "clickhouse":  {"bool": "UInt8", "int": "Int64", "float": "Float64", "datetime": "DateTime64(6)", "date": "Date", "text": "String"},
+    "hive":        {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "STRING"},
+    "teradata":    {"bool": "BYTEINT", "int": "BIGINT", "float": "DOUBLE PRECISION", "datetime": "TIMESTAMP(6)", "date": "DATE", "text": "VARCHAR(32000)"},
+    "athena":      {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+    "doris":       {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "DATETIME", "date": "DATE", "text": "STRING"},
+    "drill":       {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+    "druid":       {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+    "materialize": {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE PRECISION", "datetime": "TIMESTAMP", "date": "DATE", "text": "TEXT"},
+    "singlestore": {"bool": "TINYINT(1)", "int": "BIGINT", "float": "DOUBLE", "datetime": "DATETIME(6)", "date": "DATE", "text": "LONGTEXT"},
+    "starrocks":   {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE", "datetime": "DATETIME", "date": "DATE", "text": "VARCHAR(65533)"},
+    "tableau":     {"bool": "BOOLEAN", "int": "BIGINT", "float": "DOUBLE PRECISION", "datetime": "TIMESTAMP", "date": "DATE", "text": "VARCHAR"},
+}
+
+
+def _type(dtype, dialect="sqlite"):
+    s = str(dtype).lower()
+    if "bool" in s:
+        kind = "bool"
+    elif "datetime" in s or "timestamp" in s:
+        kind = "datetime"
+    elif "date" in s:
+        kind = "date"
+    elif "int" in s or "uint" in s:
+        kind = "int"
+    elif "float" in s or "double" in s or "decimal" in s:
+        kind = "float"
+    else:
+        kind = "text"
+    dialect = str(dialect or "sqlite").lower().strip()
+    types = _TYPE_MAPS.get(dialect, _TYPE_MAPS["postgres"])
+    if dialect == "bigquery" and kind == "datetime" and any(zone in s for zone in ("utc", "gmt", "+00:00", "tz")):
+        return "TIMESTAMP"
+    return types[kind]
+
+
+def dataframe_sql(df, table, dialect="sqlite", include_data=True):
+    dialect = str(dialect or "sqlite").lower().strip()
+    cols = ",\n  ".join(f"{_ident(c, dialect)} {_type(df[c].dtype, dialect)}" for c in df.columns)
+    names = ", ".join(_ident(c, dialect) for c in df.columns)
+    lines = [f"CREATE TABLE {_ident(table, dialect)} (\n  {cols}\n);"]
+    if include_data:
+        for row in df.itertuples(index=False, name=None):
+            values = ", ".join(_literal(v, dialect) for v in row)
+            lines.append(f"INSERT INTO {_ident(table, dialect)} ({names}) VALUES ({values});")
+    return "\n".join(lines) + "\n"
+
 
 def write_data(df,out,fmt,table="data",dialect="sqlite"):
     fmt=ext(out,fmt)
@@ -368,7 +430,7 @@ def profile(path,fmt=None,table=None):
 def transpile_sql(text,source,target):
     sqlglot=_mod("sqlglot"); return "\n\n".join(sqlglot.transpile(text,read=source,write=target,pretty=True))
 
-def schema(path,fmt,dialect,table): return dataframe_sql(read_data(path,fmt,table),table,dialect)
+def schema(path,fmt,dialect,table): return dataframe_sql(read_data(path,fmt,table),table,dialect,include_data=False)
 
 def _ddb_unwrap(v):
     if isinstance(v,dict) and len(v)==1:
