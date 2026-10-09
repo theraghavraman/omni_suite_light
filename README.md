@@ -460,3 +460,15 @@ The offline setup also vendors the browser conversion engines when prepare_offli
 ## License
 
 OmniConverter Studio source code is released under the MIT License. Third-party dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Apache Hop ETL Studio
+
+Redmark Forge now includes an **ETL Studio bridge for Apache Hop**. The panel checks a local Hop Server, discovers `.hpl` files from `~/OmniETL/projects`, and runs a selected pipeline through the authenticated Omni Local Engine. Pipeline authoring remains in Apache Hop's own designer; the Omni panel is the connection, discovery, and execution surface for this first milestone.
+
+- Start Apache Hop Server on `127.0.0.1:8081` and keep it bound to loopback.
+- Save/copy pipeline files into the ETL projects folder shown in the studio.
+- Enter the Hop Server credentials and use **Check Connection**, **Refresh Pipelines**, and **Run Pipeline**.
+- The bridge only calls fixed loopback endpoints and only executes `.hpl` files whose resolved paths remain within the ETL projects folder.
+
+See [ETL_STUDIO.md](./ETL_STUDIO.md) for setup, requirements, and security notes. Official Apache Hop docs: https://hop.apache.org/manual/latest/installation-configuration.html
+
