@@ -13,6 +13,7 @@ import ipaddress
 import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets, shutil, subprocess, sys, tarfile, tempfile, threading, time, urllib.parse, zipfile, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from omni_environment import NATIVE_TOOLS as ENV_NATIVE_TOOLS, find_native_tool_path
 import omni_data_engine
 import omni_platform
 import omni_code_runner
@@ -73,59 +74,16 @@ def authorize(handler):
         return False
     return True
 
+# The Doctor and verifier use the same canonical native-tool inventory.
 TOOLS = {
-    "ffmpeg": ["ffmpeg", "-version"],
-    "ffprobe": ["ffprobe", "-version"],
-    "yt-dlp": ["yt-dlp", "--version"],
-    "qpdf": ["qpdf", "--version"],
-    "pdftoppm": ["pdftoppm", "-v"],
-    "pdftotext": ["pdftotext", "-v"],
-    "magick": ["magick", "-version"],
-    "convert": ["convert", "-version"],
-    "rsvg-convert": ["rsvg-convert", "--version"],
-    "tesseract": ["tesseract", "--version"],
-    "soffice": ["soffice", "--version"],
-    "libreoffice": ["libreoffice", "--version"],
-    "ebook-convert": ["ebook-convert", "--version"],
-    "pandoc": ["pandoc", "--version"],
-    "zip": ["zip", "-v"],
-    "unzip": ["unzip", "-v"],
-    "7z": ["7z", "--help"],
+    name: [command, "--version"]
+    for name, (command, _package) in ENV_NATIVE_TOOLS.items()
 }
 
+
 def tool_path(name):
-    p = shutil.which(name)
-    if p:
-        return p
+    return find_native_tool_path(name)
 
-    # Windows winget/ZIP installs can land Poppler outside the PATH inherited
-    # by a Python process that was launched before installation.
-    if platform.system().lower() == "windows" and name in {"pdftoppm", "pdftotext"}:
-        candidates = [
-            Path(os.environ.get("PROGRAMFILES", r"C:\\Program Files")) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(os.environ.get("PROGRAMFILES", r"C:\\Program Files")) / "poppler" / "bin" / f"{name}.exe",
-            Path(os.environ.get("LOCALAPPDATA", "")) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(r"C:\\msys64\\mingw64\\bin") / f"{name}.exe",
-            Path(r"C:\\ProgramData\\chocolatey\\bin") / f"{name}.exe",
-        ]
-        local_app = Path(os.environ.get("LOCALAPPDATA", ""))
-        if local_app.exists():
-            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\Library\\bin\\"+f"{name}.exe"))
-            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\bin\\"+f"{name}.exe"))
-        for candidate in candidates:
-            try:
-                if candidate and candidate.is_file():
-                    return str(candidate)
-            except OSError:
-                pass
-
-    if name == "magick":
-        return shutil.which("convert")
-    if name == "soffice":
-        return shutil.which("libreoffice")
-    if name == "libreoffice":
-        return shutil.which("soffice") or shutil.which("libreoffice")
-    return None
 
 def tool_versions():
     out = {}
