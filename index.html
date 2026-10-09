@@ -31,6 +31,7 @@
   <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
 <link rel="stylesheet" href="./diagram_forge_studio.css?v=2">
+<link rel="stylesheet" href="./etl_studio.css?v=1">
 <link rel="stylesheet" href="./office_tools_studio.css?v=2"><link rel="stylesheet" href="./office_find_replace.css?v=1"><link rel="stylesheet" href="./photo_editor.css?v=1">
 <style id="omni-sandbox-style">
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
@@ -1501,6 +1502,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
       <button type="button" class="nav-btn" data-tab="tabDataClean"><span class="studio-icon"><span class="studio-svg">✦</span></span><span class="studio-label">Data Clean</span><small>PRIVACY</small></button>
       <button type="button" class="nav-btn" data-tab="tabSocialMedia"><span class="studio-icon"><span class="studio-svg">▶</span></span><span class="studio-label">Social Media</span><small>IMAGE • VIDEO</small></button>
       <button type="button" class="nav-btn" data-tab="tabBatchLab"><span class="studio-icon"><span class="studio-svg">⇶</span></span><span class="studio-label">Batch Lab</span><small>BULK • RETRY</small></button>
+      <button type="button" class="nav-btn" data-tab="tabETLStudio"><span class="studio-icon"><span class="studio-svg">⇄</span></span><span class="studio-label">ETL Studio</span><small>APACHE HOP • PIPELINES</small></button>
       <button type="button" class="nav-btn" data-tab="tabDiagramForge"><span class="studio-icon"><span class="studio-svg">◇</span></span><span class="studio-label">Diagram Forge</span><small>FLOW • UML • ER</small></button>
       <button type="button" class="nav-btn" data-tab="tabLocalDoctor"><span class="studio-icon"><span class="studio-svg">⚕</span></span><span class="studio-label">System Doctor</span><small>DEPENDENCIES</small></button>
       <button type="button" class="nav-btn" data-tab="tabDiagnostics"><span class="studio-icon"><span class="studio-svg">✓</span></span><span class="studio-label">Diagnostics</span><small>HEALTH • TESTS</small></button>
@@ -3327,6 +3329,65 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
 </div></div>
 <div class="module-panel" id="tabDataClean"><div class="card"><div class="code-kicker">OMNI DATA QUALITY & PRIVACY</div><h2>🧹 Data Cleaning & Privacy Studio</h2><div class="sub">Clean tabular files locally and inspect likely sensitive patterns. Detection is heuristic and should be reviewed before production use.</div></div><div class="card"><div class="dropzone"><input type="file" id="cleanInput" class="file-input" accept=".csv,.tsv,.json,.jsonl,.yaml,.yml,.xlsx,.xls,.xlsb,.ods,.parquet,.feather,.orc,.avro,.sqlite,.db,.duckdb,.dta,.sas,.sav"><h3>Select data file</h3><p id="cleanName">No file selected</p></div><div class="options-grid"><label><input type="checkbox" class="clean-action" value="drop_duplicates"> Remove duplicates</label><label><input type="checkbox" class="clean-action" value="trim_strings"> Trim text</label><label><input type="checkbox" class="clean-action" value="lower_columns"> Normalize column names</label><label><input type="checkbox" class="clean-action" value="drop_empty_rows"> Drop empty rows</label><label><input type="checkbox" class="clean-action" value="fill_numeric_zero"> Fill numeric nulls with 0</label><label><input type="checkbox" class="clean-action" value="sort_columns"> Sort columns</label></div><div class="form-group"><label>Output format</label><select id="cleanTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option></select></div><div class="actions-bar"><button class="btn btn-primary" id="cleanBtn" type="button">Clean & Export</button><button class="btn btn-secondary" id="privacyBtn" type="button">Scan Privacy</button></div><pre id="cleanOutput" class="code-output">Cleaning/privacy results will appear here.</pre></div></div>
 <div class="module-panel" id="tabBatchLab"><div class="card"><div class="code-kicker">OMNI BATCH ENGINE</div><h2>⚡ Batch Lab</h2><div class="sub">Process many files with one operation. Failures are isolated so you can retry only failed files.</div></div><div class="card"><div class="dropzone" id="batchDrop"><input type="file" id="batchInput" class="file-input" multiple><div class="dropzone-icon" aria-hidden="true">⇶</div><h3>Choose files for batch processing</h3><p>Click to select multiple files or drag & drop them here.</p><div id="batchList" class="sub" style="margin-top:10px;margin-bottom:0;">No files selected.</div></div><div class="options-grid"><div class="form-group"><label>Operation</label><select id="batchOp" class="form-select"><option value="data_convert">Data conversion</option><option value="privacy_scan">Privacy scan</option></select></div><div class="form-group"><label>Target</label><select id="batchTarget" class="form-select"><option value="csv">CSV</option><option value="json">JSON</option><option value="jsonl">JSONL</option><option value="xlsx">XLSX</option><option value="parquet">Parquet</option><option value="md">Markdown</option><option value="yaml">YAML</option><option value="xml">XML</option><option value="html">HTML</option><option value="avro">Avro</option><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option><option value="sql">SQL</option></select></div></div><div id="batchCapability" class="sub">Capability: select files to evaluate the route.</div><div class="actions-bar"><button class="btn btn-primary" id="batchRunBtn" type="button">Run Batch</button><button class="btn btn-secondary" id="batchRetryBtn" type="button" disabled>Retry Failed</button><button class="btn btn-secondary" id="batchDownloadBtn" type="button" disabled>Download Manifest</button></div><pre id="batchOutput" class="code-output">Batch results will appear here.</pre></div></div>
+<div class="module-panel" id="tabETLStudio">
+  <div class="etl-shell">
+    <section class="etl-card etl-hero">
+      <div>
+        <div class="etl-kicker">REDMARK FORGE • DATA ENGINEERING</div>
+        <h2>⇄ ETL Studio</h2>
+        <p>Connect Apache Hop to Redmark Forge, discover local pipeline files, and execute existing ETL jobs through your authenticated Local Engine. Apache Hop remains the visual pipeline designer and runtime.</p>
+      </div>
+      <div class="etl-hero-mark" aria-hidden="true">⇄</div>
+      <div class="etl-badge" id="etlConnectionBadge">NOT CONNECTED</div>
+    </section>
+
+    <div class="etl-grid">
+      <section class="etl-card">
+        <div class="etl-card-head">
+          <div><h3>1. Connect to Apache Hop</h3><div class="sub">Hop Server runs on this computer at 127.0.0.1:8081. Omni talks to it through the Local Engine; credentials are not saved by this bridge.</div></div>
+        </div>
+        <div class="etl-fields">
+          <div class="etl-field"><label for="etlUsername">Hop Server username</label><input id="etlUsername" type="text" value="cluster" autocomplete="username" maxlength="256"></div>
+          <div class="etl-field"><label for="etlPassword">Hop Server password</label><input id="etlPassword" type="password" value="cluster" autocomplete="current-password" maxlength="1024"></div>
+        </div>
+        <div class="etl-actions">
+          <button type="button" class="btn btn-primary" id="etlConnect">Check Connection</button>
+          <button type="button" class="btn btn-secondary" id="etlOpenServer">Open Hop Server</button>
+          <button type="button" class="btn btn-secondary" id="etlOpenDesigner">Open Hop Web Designer</button>
+        </div>
+        <div class="etl-status info" id="etlStatus" role="status" aria-live="polite">Start Omni Local Engine and Apache Hop Server, then check the connection.</div>
+      </section>
+
+      <section class="etl-card">
+        <div class="etl-card-head"><div><h3>2. Choose a pipeline</h3><div class="sub">The bridge only lists and runs .hpl files stored inside the local ETL projects folder.</div></div></div>
+        <div class="etl-metric"><strong id="etlPipelineCount">0</strong><span>pipelines discovered</span></div>
+        <div class="etl-folder" id="etlProjectFolder">~/OmniETL/projects</div>
+        <div class="etl-field" style="margin-top:13px"><label for="etlPipeline">Apache Hop pipeline (.hpl)</label><select id="etlPipeline"><option value="">Connect and refresh to list pipelines</option></select></div>
+        <div class="etl-actions">
+          <button type="button" class="btn btn-secondary" id="etlRefresh">Refresh Pipelines</button>
+          <button type="button" class="btn btn-primary" id="etlRun" disabled>Run Pipeline</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="etl-card">
+      <div class="etl-card-head"><div><h3>Execution output</h3><div class="sub">The pipeline can read, transform, and write data using the connections configured inside Apache Hop. Review the target and environment before running.</div></div></div>
+      <pre class="etl-output" id="etlOutput" aria-live="polite">ETL Studio is ready. Connect to Hop Server to begin.</pre>
+    </section>
+
+    <section class="etl-card">
+      <div class="etl-card-head"><div><h3>Quick setup</h3><div class="sub">Apache Hop is an external open-source dependency; it is not bundled into the browser site.</div></div></div>
+      <div class="etl-steps">
+        <div class="etl-step"><b>01 · Install Hop</b><span>Download Apache Hop and install the Java runtime required by your Hop version.</span></div>
+        <div class="etl-step"><b>02 · Start the server</b><span>Run hop-server.sh 127.0.0.1 8081 on macOS/Linux or hop-server.bat 127.0.0.1 8081 on Windows.</span></div>
+        <div class="etl-step"><b>03 · Add a pipeline</b><span>Save or copy .hpl files into the folder shown above, then refresh and run one.</span></div>
+      </div>
+      <div class="etl-actions"><a class="btn btn-secondary" href="https://hop.apache.org/manual/latest/installation-configuration.html" target="_blank" rel="noopener noreferrer">Apache Hop installation guide</a><a class="btn btn-secondary" href="./ETL_STUDIO.md" target="_blank" rel="noopener noreferrer">Full Omni integration guide</a></div>
+      <div class="etl-note">First milestone: connect, discover and run existing Hop pipelines. Pipeline authoring remains in Apache Hop's own desktop/web designer; this panel does not claim to be a native drag-and-drop canvas yet.</div>
+    </section>
+  </div>
+</div>
+
 <div class="module-panel" id="tabDiagramForge" data-tool-count="2">
 <div class="df-shell" id="df-root">
   <header class="df-head">
@@ -4324,7 +4385,7 @@ async function runBrowserTests(){
   ];
   for(const [n,desc,fn] of staticTests) await test('browser',desc,fn);
 
-  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Language Engine','Local Engine']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Language Engine':'tabLanguageStudio','Local Engine':'tabLocal'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
+  for(const label of ['PDF Suite','Office Studio','EPUB Studio','Image Tools','Image to Text / OCR','Audio Studio','Video Studio','Compressor','Language Engine','Local Engine','ETL Studio']){await test('browser',label+' UI module',async()=>{const map={'PDF Suite':'tabPdf','Office Studio':'tabWord','EPUB Studio':'tabEpub','Image Tools':'tabImages','Image to Text / OCR':'tabOcr','Audio Studio':'tabAudio','Video Studio':'tabVideo','Compressor':'tabCompress','Language Engine':'tabLanguageStudio','Local Engine':'tabLocal','ETL Studio':'tabETLStudio'};const panel=$(map[label]);if(!panel)throw new Error('Module panel missing');const button=document.querySelector('.nav-btn[data-tab="'+map[label]+'"]');if(!button)throw new Error('Navigation button missing');return 'Panel and navigation connected';});}
   await test('browser','PDF → PPTX browser conversion',async()=>{
     const pdf=await makePdfBlob();
     const out=await window.OMNI_BROWSER_FIRST.office(new File([pdf],'omni-browser-test.pdf',{type:'application/pdf'}),'pptx',{download:false});
@@ -4607,6 +4668,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./office_tools_studio.js?v=2"></script>
 <script src="./office_find_replace.js?v=1"></script>
 <script src="./diagram_forge_studio.js?v=2"></script>
+<script src="./etl_studio.js?v=1"></script>
 <script src="./omni_browser_epub.js?v=2"></script>
 <script src="./omni_browser_ocr.js?v=1"></script>
 <script src="./omni_browser_images.js?v=1"></script>
