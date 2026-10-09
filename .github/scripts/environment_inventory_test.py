@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Regression checks for the shared Local Engine environment inventories."""
+from pathlib import Path
+import sys
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import omni_environment as env
 
 
