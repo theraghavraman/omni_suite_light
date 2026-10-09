@@ -122,75 +122,9 @@ NATIVE_GROUPS = {
     "unixODBC": ("isql",),
 }
 
+# EasyOCR is supported by the opt-in vision profile, not required by core setup.
 OPTIONAL_PYTHON_IMPORTS = frozenset({"easyocr"})
 NATIVE_TOOL_NAMES = tuple(NATIVE_TOOLS)
-OFFLINE_ASSETS = tuple(f"vendor/{rel}" for rel in OFFLINE_ASSET_URLS) + ("vendor/OFFLINE_ASSETS.txt",)
-
-_NATIVE_ALIASES = {
-    "magick": ("magick", "convert"),
-    "convert": ("convert",),
-    "soffice": ("soffice", "libreoffice"),
-    "libreoffice": ("libreoffice", "soffice"),
-    "gs": ("gs", "gswin64c"),
-    "gswin64c": ("gswin64c", "gs"),
-    "7z": ("7z", "7zz"),
-    "7zz": ("7zz", "7z"),
-}
-
-def _is_imagemagick_convert(path: str) -> bool:
-    """Distinguish ImageMagick's convert from Windows' built-in convert.exe."""
-    import subprocess
-    try:
-        probe = subprocess.run(
-            [path, "-version"], capture_output=True, text=True, timeout=5
-        )
-        output = (probe.stdout or "") + "\n" + (probe.stderr or "")
-        return probe.returncode == 0 and "imagemagick" in output.lower()
-    except (OSError, subprocess.SubprocessError):
-        return False
-
-def find_native_tool_path(name: str) -> str | None:
-    """Resolve native tool aliases consistently for the Doctor, verifier and health API."""
-    import os
-    import shutil
-    candidates = _NATIVE_ALIASES.get(name, (name,))
-    for candidate in candidates:
-        path = shutil.which(candidate)
-        if not path:
-            continue
-        if candidate == "convert" and not _is_imagemagick_convert(path):
-            continue
-        return path
-
-    # Match the engine's existing Windows fallback for common Poppler package locations.
-    if os.name == "nt" and name in {"pdftoppm", "pdftotext"}:
-        import os
-        from pathlib import Path
-        program_files = os.environ.get("PROGRAMFILES", r"C:\Program Files")
-        local_app_text = os.environ.get("LOCALAPPDATA", "")
-        candidates = [
-            Path(program_files) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(program_files) / "poppler" / "bin" / f"{name}.exe",
-            Path(local_app_text) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(r"C:\msys64\mingw64\bin") / f"{name}.exe",
-            Path(r"C:\ProgramData\chocolatey\bin") / f"{name}.exe",
-        ]
-        local_app = Path(local_app_text)
-        if local_app.exists():
-            candidates.extend(local_app.glob(
-                r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\Library\bin\" + f"{name}.exe"
-            ))
-            candidates.extend(local_app.glob(
-                r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\bin\" + f"{name}.exe"
-            ))
-        for candidate in candidates:
-            try:
-                if candidate.is_file():
-                    return str(candidate)
-            except OSError:
-                pass
-    return None
-
 
 OFFLINE_ASSET_URLS = {
     "pdfjs/pdf.min.js": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
@@ -233,9 +167,7 @@ OFFLINE_ASSET_URLS = {
     "tesseract/lang/chi_sim.traineddata.gz": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0_best_int/chi_sim.traineddata.gz",
 }
 
-# EasyOCR is a supported opt-in vision profile, not a core installation requirement.
-OPTIONAL_PYTHON_IMPORTS = frozenset({"easyocr"})
-NATIVE_TOOL_NAMES = tuple(NATIVE_TOOLS)
+# The browser's local/offline profile must validate every asset downloaded by prepare_offline.py.
 OFFLINE_ASSETS = tuple(f"vendor/{rel}" for rel in OFFLINE_ASSET_URLS) + ("vendor/OFFLINE_ASSETS.txt",)
 
 _NATIVE_ALIASES = {
@@ -254,11 +186,10 @@ def _is_imagemagick_convert(path: str) -> bool:
     import subprocess
     try:
         probe = subprocess.run([path, "-version"], capture_output=True, text=True, timeout=5)
-        output = (probe.stdout or "") + "\\n" + (probe.stderr or "")
+        output = (probe.stdout or "") + "\n" + (probe.stderr or "")
         return probe.returncode == 0 and "imagemagick" in output.lower()
     except (OSError, subprocess.SubprocessError):
         return False
-
 
 def find_native_tool_path(name: str) -> str | None:
     """Resolve native tool aliases consistently for Doctor, verifier and health API."""
@@ -276,19 +207,19 @@ def find_native_tool_path(name: str) -> str | None:
     # Match the engine's Windows fallback for common Poppler package locations.
     if os.name == "nt" and name in {"pdftoppm", "pdftotext"}:
         from pathlib import Path
-        program_files = os.environ.get("PROGRAMFILES", r"C:\\Program Files")
+        program_files = os.environ.get("PROGRAMFILES", r"C:\Program Files")
         local_app_text = os.environ.get("LOCALAPPDATA", "")
         candidates = [
             Path(program_files) / "poppler" / "Library" / "bin" / f"{name}.exe",
             Path(program_files) / "poppler" / "bin" / f"{name}.exe",
             Path(local_app_text) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(r"C:\\msys64\\mingw64\\bin") / f"{name}.exe",
-            Path(r"C:\\ProgramData\\chocolatey\\bin") / f"{name}.exe",
+            Path(r"C:\msys64\mingw64\bin") / f"{name}.exe",
+            Path(r"C:\ProgramData\chocolatey\bin") / f"{name}.exe",
         ]
         local_app = Path(local_app_text)
         if local_app.exists():
-            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\Library\\bin\\" + f"{name}.exe"))
-            candidates.extend(local_app.glob(r"Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_*\\**\\bin\\" + f"{name}.exe"))
+            candidates.extend(local_app.glob(r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\Library\bin\" + f"{name}.exe"))
+            candidates.extend(local_app.glob(r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\bin\" + f"{name}.exe"))
         for candidate in candidates:
             try:
                 if candidate.is_file():
