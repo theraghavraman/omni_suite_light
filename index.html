@@ -36,6 +36,18 @@
 .omni-sandbox{margin-top:18px;border:1px solid #cfd8e8;border-radius:18px;background:linear-gradient(145deg,#fff,#f6f8ff);padding:18px;box-shadow:0 14px 34px rgba(53,70,105,.08)}
 .omni-sandbox-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}.omni-sandbox-head h3{font-size:1.08rem;color:#26304b;margin-bottom:5px}.omni-sandbox-head p{font-size:.82rem;line-height:1.5;color:#6c7890;max-width:760px}
 .omni-sandbox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.omni-sandbox-editor{width:100%;min-height:190px;margin-top:12px;padding:12px;border:1px solid #d6dfec;border-radius:12px;background:#0e1628;color:#e7efff;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}.omni-sandbox-output{min-height:150px;margin-top:12px;padding:12px;border-radius:12px;background:#101827;color:#dbe8ff;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow:auto}.omni-sandbox-status{margin-top:10px;padding:9px 11px;border-radius:10px;background:#f1f5f9;color:#66748a;font-size:.76rem}.omni-sandbox-status.ok{background:#ecfbf5;color:#087a5b}.omni-sandbox-status.warn{background:#fff8e7;color:#8a5a00}.omni-sandbox-table-wrap{max-height:270px;overflow:auto;margin-top:12px;border:1px solid #dfe6f1;border-radius:12px;background:#fff}.omni-sandbox-table{width:100%;border-collapse:collapse;font-size:.75rem}.omni-sandbox-table th,.omni-sandbox-table td{padding:7px 8px;border-bottom:1px solid #edf1f6;text-align:left;white-space:nowrap}.omni-sandbox-table th{position:sticky;top:0;background:#f4f7fb;color:#34405a}.omni-sandbox-history{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.omni-sandbox-history button{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;padding:5px 8px;border:1px solid #d6dfec;border-radius:8px;background:#fff;color:#52617a;cursor:pointer}@media(max-width:850px){.omni-sandbox-grid{grid-template-columns:1fr}}
+
+/* Static studio consolidation: apply before scripts execute. */
+.nav-bar .nav-btn[data-tab="tabOfficeTools"],
+.nav-bar .nav-btn[data-tab="tabUniversalData"],
+.nav-bar .nav-btn[data-tab="tabLocalDoctor"],
+.nav-bar .nav-btn[data-tab="tabAllTests"] { display:none !important; }
+.omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--border-color,rgba(120,130,150,.22));border-radius:14px;background:var(--card-bg,rgba(120,130,150,.06));}
+.omni-consolidated-links .omni-consolidated-copy{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;justify-content:center;}
+.omni-consolidated-links strong{font-size:.95rem;}
+.omni-consolidated-links small{opacity:.72;font-size:.8rem;}
+.omni-consolidated-links button{border:1px solid var(--active-studio-accent,#168C91);border-radius:10px;padding:9px 13px;background:var(--active-studio-soft,rgba(22,140,145,.12));color:inherit;font:inherit;font-weight:650;cursor:pointer;}
+
 </style>
 <style id="omni-design-final">
 :root{--ink:#1c1b3a;--ink2:#4a4e73;--mute:#7a7ea3;--violet:#6c5cff;--blue:#2f7bff;--cyan:#10c4d6;--green:#16c48c;--pink:#ff4f9a;--orange:#ff8a3d;--gold:#ffc23d;
@@ -1595,6 +1607,11 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
     </div>
 
 <div class="module-panel" id="tabData">
+      <div class="omni-consolidated-links" data-consolidated-child="tabUniversalData">
+        <div class="omni-consolidated-copy"><strong>Universal Data</strong><small>Specialized data and signal representations</small></div>
+        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabUniversalData&quot;]').click()">Open Universal Data</button>
+      </div>
+
       <div class="card">
         <h2>🧬 9. Data Studio — Structured • Semi-Structured • Unstructured</h2>
         <div class="sub">A local data engineering workbench for tabular files, document data, SQL dialects, schemas, binary columnar formats and NoSQL export bridges. Processing is local through the Local Engine.</div>
@@ -1770,6 +1787,11 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <div class="module-panel" id="tabLocal">
+      <div class="omni-consolidated-links" data-consolidated-child="tabLocalDoctor">
+        <div class="omni-consolidated-copy"><strong>System Doctor</strong><small>Dependency checks and Local Engine diagnostics</small></div>
+        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabLocalDoctor&quot;]').click()">Open System Doctor</button>
+      </div>
+
       <div class="card">
         <h2>10. Local Native Engine</h2>
         <div class="sub">For large or demanding jobs, this panel can send files to the optional local engine and use native FFmpeg, qpdf, Poppler, ImageMagick and Tesseract tools on the user's computer.</div><div style="margin:10px 0 14px;padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #f0d9a3;color:#6d5520;"><b>Browser/mobile note:</b> GitHub Pages can process browser-capable files, but it cannot launch desktop programs. FFmpeg, LibreOffice, Calibre, qpdf, Poppler and other native jobs require the Local Engine running on a Windows/macOS/Linux computer. A phone browser cannot start that desktop engine by itself.</div>
@@ -2153,6 +2175,11 @@ python prepare_language_models.py --transliteration</pre>
 
     <!-- 2. WORD & DOCUMENTS -->
     <div class="module-panel" id="tabWord">
+      <div class="omni-consolidated-links" data-consolidated-child="tabOfficeTools">
+        <div class="omni-consolidated-copy"><strong>Office Tools</strong><small>Additional office editing and creation tools</small></div>
+        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabOfficeTools&quot;]').click()">Open Office Tools</button>
+      </div>
+
       <div class="card">
         <h2>1. DOCX to PDF / TXT</h2>
         <div class="sub">Extracts structured paragraphs and headings directly from the DOCX package and generates a clean, paginated PDF or plain text.</div>
@@ -3130,6 +3157,11 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <div class="module-panel" id="tabDiagnostics">
+      <div class="omni-consolidated-links" data-consolidated-child="tabAllTests">
+        <div class="omni-consolidated-copy"><strong>Validation Lab</strong><small>Full control and regression test suite</small></div>
+        <button type="button" onclick="document.querySelector('.nav-bar .nav-btn[data-tab=&quot;tabAllTests&quot;]').click()">Open Validation Lab</button>
+      </div>
+
       <div class="omni-test-lab">
         <div class="omni-test-head">
           <div>
