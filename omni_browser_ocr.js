@@ -71,7 +71,7 @@ run?.addEventListener('click',async e=>{
         if(retryConfidence>rawConfidence||(!rawText&&retryText))r=retry;
       }
       const finalText=(r.data.text||'').trim();
-      texts.push(pages.length>1?'— '+pg.label+' —\\n'+finalText:finalText);
+      texts.push(pages.length>1?'— '+pg.label+' —\n'+finalText:finalText);
       conf+=Number(r.data.confidence)||0;
       if(r.data.pdf)pdfParts.push(new Uint8Array(r.data.pdf));
     }
