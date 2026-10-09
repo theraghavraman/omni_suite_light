@@ -153,13 +153,87 @@ async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.leng
 function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 function extractiveAnswer(q,r){const stop=new Set("a an the is are was were be to of in on for and or what which who how why when where does do did can with from by this that it as at".split(" "));const terms=[...new Set(String(q).toLowerCase().match(/[\p{L}\p{N}_]+/gu)||[])].filter(t=>!stop.has(t)&&t.length>1);const sents=[];r.slice(0,6).forEach((x,ri)=>String(x.text).split(/(?<=[.!?])\s+|\n+/).forEach(t=>{t=t.trim();if(t.length<12)return;const w=t.toLowerCase();let hit=0;terms.forEach(k=>{if(w.includes(k))hit++});if(hit)sents.push({t,score:hit/Math.max(1,terms.length)+(6-ri)*0.02,src:ri+1})}));sents.sort((a,b)=>b.score-a.score);const top=[];for(const x of sents){if(top.length>=3)break;if(!top.some(y=>y.t===x.t))top.push(x)}const head=top.length?"Answer (extracted from your documents):\n"+top.map(x=>"• "+x.t+" [Source "+x.src+"]").join("\n"):"No sentence matched your question directly — see the closest passages below.";return head+"\n\nRetrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}
+async function browserGenerate(context,q){
+ const m=await loadTransformers();
+ if(!generator){
+  setModelState("llm","busy","Loading Gemma 3 270M…");
+  let device="wasm",dtype="q4";
+  try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}
+  try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}
+  catch(e){if(device==="webgpu")generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"});else throw e}
+  setModelState("llm","ok",device==="webgpu"?"Ready · WebGPU":"Ready · WASM");
+ }
+ const prompt="Use ONLY the supplied sources. If the answer is not supported, say you don't know. Cite sources as [Source N].\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q+"\nANSWER:";
+ const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});
+ const g=Array.isArray(o)?o[0]?.generated_text:null;
+ const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);
+ const answer=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim();
+ if(!answer)throw new Error("The browser model returned an empty answer.");
+ return answer;
+}
+async function cloudGenerate(context,q){
+ const token=(sessionStorage.getItem("omni-cloud-token")||"").trim();
+ if(!token)throw new Error("No Render token is available. Open Run on Render, enter your cloud token, then retry.");
+ const base=(window.OMNI_CLOUD_ENGINE_URL||window.OmniRenderCloud?.url||"https://omni-cloud-engine.onrender.com").replace(/\/+$/,"");
+ const r=await fetch(base+"/api/ai/generate",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Cloud-Token":token},body:JSON.stringify({question:q,context}),credentials:"omit"});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||!data.ok)throw new Error(data.error||("Render LLM request failed (HTTP "+r.status+")."));
+ if(!data.text||!String(data.text).trim())throw new Error("Render LLM returned an empty answer.");
+ return String(data.text).trim();
+}
+async function localGenerate(context,q){
+ const base=($("ragLocalUrl")?.value||"http://127.0.0.1:8765").trim().replace(/\/+$/,"");
+ const statusResponse=await fetch(base+"/api/ai/status",{cache:"no-store",credentials:"omit"});
+ const status=await statusResponse.json().catch(()=>({}));
+ if(!statusResponse.ok||!status.ok||!status.token)throw new Error(status.error||"Local Engine is unavailable or did not provide an authorized session token.");
+ if(!status.available)throw new Error("Local Engine is reachable, but no Ollama or LM Studio model is available.");
+ const prompt="Answer using only the retrieved sources. If they do not support an answer, say you do not know. Cite claims as [Source N].\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q;
+ const r=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":status.token},body:JSON.stringify({op:"ai_chat",messages:[{role:"system",content:"You are Omni RAG. Use only the supplied evidence; do not invent facts. Cite source numbers."},{role:"user",content:prompt}],temperature:0.1,max_tokens:512}),credentials:"omit"});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||!data.ok)throw new Error(data.error||("Local Engine generation failed (HTTP "+r.status+")."));
+ if(!data.text||!String(data.text).trim())throw new Error("Local Engine returned an empty answer.");
+ return String(data.text).trim();
+}
 async function answer(){
  const q=$("ragQuery").value.trim();if(!q)return;
  $("ragAnswer").textContent="Retrieving relevant knowledge…";$("ragSources").innerHTML="";
- try{const r=await search(q);renderResults(r);if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
- const context=r.map((x,i)=>`[Source ${i+1}: ${x.source}]\n${x.text}`).join("\n\n");
- if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading Gemma 3 270M…");let device="wasm",dtype="q4";try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}catch(e){if(device==="webgpu"){generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"})}else throw e};setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent=extractiveAnswer(q,r)}}
- catch(e){$("ragAnswer").textContent="RAG error: "+e.message;$("ragStatus").textContent="Error"}}
+ try{
+  const r=await search(q);renderResults(r);
+  if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
+  const context=r.map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+x.text).join("\n\n");
+  const mode=$("ragUseLLM").value;
+  if(mode==="false"||mode==="retrieval"){
+   $("ragAnswer").textContent=extractiveAnswer(q,r);setModelState("llm","idle","Retrieval-only mode");return;
+  }
+  const attempts=mode==="hybrid"?[
+   ["Render Cloud",()=>cloudGenerate(context,q)],
+   ["Local Engine",()=>localGenerate(context,q)],
+   ["Browser LLM",()=>browserGenerate(context,q)]
+  ]:mode==="cloud"?[["Render Cloud",()=>cloudGenerate(context,q)]]:mode==="local"?[["Local Engine",()=>localGenerate(context,q)]]:[["Browser LLM",()=>browserGenerate(context,q)]];
+  const errors=[];
+  for(const [name,run] of attempts){
+   try{
+    $("ragAnswer").textContent="Generating with "+name+"…";
+    const text=await run();
+    $("ragAnswer").textContent=text;
+    setModelState("llm","ok","Answer generated · "+name);
+    $("ragStatus").textContent="✓ Grounded answer generated with "+name+" from "+r.length+" retrieved passages.";
+    return;
+   }catch(e){
+    errors.push(name+": "+e.message);
+    if(mode!=="hybrid")throw e;
+    $("ragStatus").textContent=name+" unavailable; trying next configured generation path…";
+   }
+  }
+  $("ragAnswer").textContent="All generation paths were unavailable. Retrieved evidence is shown below.\n\n"+r.map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+x.text).join("\n\n");
+  setModelState("llm","warn","Generation unavailable · retrieval remains usable");
+  $("ragStatus").textContent="Retrieval succeeded; generation fallback details: "+errors.join(" | ");
+ }catch(e){
+  $("ragAnswer").textContent="Generation/retrieval issue: "+e.message;
+  $("ragStatus").textContent="RAG issue: "+e.message;
+  setModelState("llm","warn","Generation failed");
+ }
+}
 async function refreshRepo(){
  const status=$("ragStatus"),repo=repoRef();status.textContent="Checking "+repo+" repository version…";
  try{
