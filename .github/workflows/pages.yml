@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Rebuild knowledge-base manifest (every file in knowledge-base/ is assistant knowledge)
+        run: python3 .github/scripts/build_kb_manifest.py
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

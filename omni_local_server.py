@@ -131,6 +131,28 @@ def safe_name(name: str, fallback="input.bin") -> str:
     name = os.path.basename(name or fallback).replace("\\", "_")
     return "".join(c if c.isalnum() or c in "._-" else "_" for c in name)[:180] or fallback
 
+KB_SUPPORTED_EXT = {".md", ".markdown", ".txt", ".text", ".html", ".htm", ".json", ".csv", ".tsv", ".xml", ".yaml", ".yml", ".rst", ".pdf", ".docx"}
+
+def knowledge_manifest(kb: Path) -> dict:
+    """Live manifest: every supported file in knowledge-base/ (same rule as .github/scripts/build_kb_manifest.py)."""
+    titles = {}
+    try:
+        old = json.loads((kb / "manifest.json").read_text("utf-8"))
+        for f in (old if isinstance(old, list) else old.get("files", [])):
+            if isinstance(f, dict) and f.get("path") and f.get("title"):
+                titles[f["path"]] = f["title"]
+    except (OSError, ValueError):
+        pass
+    files = []
+    if kb.is_dir():
+        for p in sorted(kb.rglob("*"), key=lambda x: x.relative_to(kb).as_posix().lower()):
+            rel = p.relative_to(kb).as_posix()
+            if (not p.is_file() or rel == "manifest.json" or p.suffix.lower() not in KB_SUPPORTED_EXT
+                    or any(part.startswith(".") for part in p.relative_to(kb).parts)):
+                continue
+            files.append({"path": rel, "title": titles.get(rel) or p.stem.replace("_", " "), "type": p.suffix.lower().lstrip(".")})
+    return {"version": 4, "rule": "Every supported file in knowledge-base/ is loaded by Omni Assistant.", "files": files}
+
 def new_id(prefix="f"):
     raw = f"{time.time_ns()}-{os.urandom(8).hex()}".encode()
     return prefix + hashlib.sha256(raw).hexdigest()[:20]
@@ -1550,6 +1572,22 @@ class Handler(BaseHTTPRequestHandler):
             target.relative_to(root)
         except ValueError:
             self.send_json({"ok":False,"error":"Forbidden"},403)
+            return True
+        if rel == "knowledge-base/manifest.json":
+            # Every supported file in knowledge-base/ is assistant knowledge, even if
+            # the committed manifest has not been regenerated yet.
+            body = json.dumps(knowledge_manifest(root / "knowledge-base"), ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            origin = cors_origin(self)
+            if origin:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
             return True
         if not target.is_file():
             return False

@@ -1,13 +1,21 @@
 {
-  "version": 3,
+  "version": 4,
+  "rule": "Every supported file in knowledge-base/ is loaded by Omni Assistant.",
   "files": [
     {
       "path": "omni-suite.md",
-      "title": "Omni Suite Product Guide"
+      "title": "Omni Suite Product Guide",
+      "type": "md"
     },
     {
       "path": "omniconverter-guide.md",
-      "title": "OmniConverter Architectural & Practical Guide"
+      "title": "OmniConverter Studio — Architecture & Practical Guide",
+      "type": "md"
+    },
+    {
+      "path": "We by Yevgeny Zamyatin - A Project Gutenberg eBook.pdf",
+      "title": "We by Yevgeny Zamyatin — A Project Gutenberg eBook",
+      "type": "pdf"
     }
   ]
 }

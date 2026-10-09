@@ -8,9 +8,24 @@ import path from "node:path";
 
 const kb = fs.readFileSync(path.join(process.cwd(), "knowledge-base", "omni-suite.md"), "utf8").trim();
 
+// Mirrors split() in omni_assistant.js: "## " sections, long ones re-split on "### " with headings kept.
 function split(text) {
+  text = text.replace(/\r/g, "").trim();
   const sections = text.split(/(?=^##\s+)/m).map(x => x.trim()).filter(Boolean);
-  return sections.length > 1 ? sections.flatMap(x => x.length <= 1100 ? [x] : splitLong(x)) : splitLong(text);
+  if (sections.length <= 1) return splitLong(text);
+  const out = [];
+  for (const sec of sections) {
+    if (sec.length <= 1100) { out.push(sec); continue; }
+    const h2 = /^##\s/.test(sec) ? sec.split("\n", 1)[0] : "";
+    for (const sub of sec.split(/(?=^###\s+)/m).map(x => x.trim()).filter(Boolean)) {
+      const isSub = /^###\s/.test(sub), crumb = isSub && h2 ? h2 + "\n" : "", h3 = isSub ? sub.split("\n", 1)[0] + "\n" : "";
+      const piece = crumb + sub;
+      if (piece.length <= 1100) { out.push(piece); continue; }
+      const prefix = crumb + h3 || (/^##\s/.test(sub) ? h2 + "\n" : "");
+      splitLong(piece).forEach((x, i) => out.push(i ? prefix + x : x));
+    }
+  }
+  return out;
 }
 function splitLong(text) {
   const out = [];
@@ -74,3 +89,40 @@ for (const [question, expected] of cases) {
 }
 if (failures) throw new Error(`${failures}/${cases.length} retrieval regression cases failed`);
 console.log(`Assistant retrieval regression passed: ${cases.length} questions across ${docs.length} entries.`);
+
+// ---- Knowledge-base rule: every supported file in knowledge-base/ must be in manifest.json ----
+const kbDir = path.join(process.cwd(), "knowledge-base");
+const manifest = JSON.parse(fs.readFileSync(path.join(kbDir, "manifest.json"), "utf8"));
+const listed = new Set((Array.isArray(manifest) ? manifest : manifest.files || []).map(f => typeof f === "string" ? f : f.path));
+const KB_FILE = /\.(md|markdown|txt|text|html?|json|csv|tsv|xml|ya?ml|rst|pdf|docx)$/i;
+const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(d => d.name.startsWith(".") ? [] : d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)]);
+const onDisk = walk(kbDir).map(f => path.relative(kbDir, f).split(path.sep).join("/")).filter(f => f !== "manifest.json" && KB_FILE.test(f));
+const missing = onDisk.filter(f => !listed.has(f));
+const ghost = [...listed].filter(f => !onDisk.includes(f));
+if (missing.length || ghost.length) throw new Error(`knowledge-base/manifest.json out of sync. Missing: ${missing.join(", ") || "none"}; listed but absent: ${ghost.join(", ") || "none"}. Run python3 .github/scripts/build_kb_manifest.py`);
+console.log(`Knowledge-base manifest covers all ${onDisk.length} files.`);
+
+// ---- OmniConverter guide: clean structure and retrievable chapters ----
+const guide = fs.readFileSync(path.join(kbDir, "omniconverter-guide.md"), "utf8");
+if (/<PARSED TEXT FOR PAGE|\uFFFE|\u2423/.test(guide)) throw new Error("omniconverter-guide.md still contains PDF extraction artifacts");
+const fences = (guide.match(/^```/gm) || []).length;
+if (fences % 2) throw new Error("omniconverter-guide.md has an unclosed code block");
+const guideDocs = split(guide);
+const orphan = guideDocs.filter(c => /^###\s/.test(c));
+if (orphan.length) throw new Error(`${orphan.length} guide chunks lost their chapter heading`);
+const guideCases = [
+  ["How do I fix WinAnsi cannot encode error?", ["winansi", "sanitizeforwinansi"]],
+  ["What port does the Local Native Engine use?", ["8765"]],
+  ["Passport photo pixel size at 300 DPI", ["413", "531"]],
+  ["How is the WAV header laid out?", ["riff", "44"]],
+  ["Port 8765 address already in use", ["omni_port"]],
+  ["Why do GPL tools not affect the licence?", ["subprocess", "gpl"]],
+  ["What does prepare_offline.py do?", ["vendor", "sha-256"]]
+];
+let guideFailures = 0;
+for (const [question, expected] of guideCases) {
+  const top = guideDocs.map(text => ({ text, score: lex(question, text) })).sort((a, b) => b.score - a.score).slice(0, 8).map(x => x.text.toLowerCase()).join("\n");
+  if (!expected.every(t => top.includes(t))) { guideFailures++; console.error(`FAIL (guide): ${question}\nExpected: ${expected.join(", ")}\n${top.slice(0, 1200)}\n`); }
+}
+if (guideFailures) throw new Error(`${guideFailures}/${guideCases.length} guide retrieval cases failed`);
+console.log(`Guide retrieval passed: ${guideCases.length} questions across ${guideDocs.length} chunks.`);
