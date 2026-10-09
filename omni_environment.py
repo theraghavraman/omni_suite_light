@@ -218,8 +218,8 @@ def find_native_tool_path(name: str) -> str | None:
         ]
         local_app = Path(local_app_text)
         if local_app.exists():
-            candidates.extend(local_app.glob(r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\Library\bin\" + f"{name}.exe"))
-            candidates.extend(local_app.glob(r"Microsoft\WinGet\Packages\oschwartz10612.Poppler_*\**\bin\" + f"{name}.exe"))
+            candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/Library/bin/" + f"{name}.exe"))
+            candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/bin/" + f"{name}.exe"))
         for candidate in candidates:
             try:
                 if candidate.is_file():
