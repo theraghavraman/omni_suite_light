@@ -25,24 +25,34 @@
       password:$('etlPassword')?.value||'cluster'
     };
   }
+  let pageTokenRejected=false;
   async function getToken(){
     if(token)return token;
-    if(window.OMNI_TOKEN){token=window.OMNI_TOKEN;return token;}
+    if(window.OMNI_TOKEN&&!pageTokenRejected){token=window.OMNI_TOKEN;return token;}
     const r=await fetch(BASE+'/api/health',{cache:'no-store'});
+    if(!r.ok&&pageTokenRejected)throw new Error('The Omni Local Engine was restarted. Reload this page to reconnect.');
     if(!r.ok)throw new Error('Omni Local Engine is unavailable (HTTP '+r.status+'). Start it with Omni.command / Omni.bat.');
     const h=await r.json();
     if(!h.token)throw new Error('The Local Engine did not provide an access token. Open Redmark Forge from the current Local Engine build.');
     token=h.token;
     return token;
   }
-  async function api(path,method,payload){
+  async function api(path,method,payload,retried){
     await getToken();
     const options={method:method||'GET',cache:'no-store',headers:{'X-Omni-Token':token}};
     if(payload!==undefined){
       options.headers['Content-Type']='application/json';
       options.body=JSON.stringify(payload);
     }
-    const r=await fetch(BASE+path,options);
+    let r;
+    try{r=await fetch(BASE+path,options);}
+    catch(_){throw new Error('Could not reach Omni Local Engine at '+BASE+'. Start it with Omni.command / Omni.bat, then try again.');}
+    if(r.status===401&&!retried){
+      // The engine issues a new token on every launch; re-pair once after a restart.
+      if(token===window.OMNI_TOKEN)pageTokenRejected=true;
+      token='';
+      return api(path,method,payload,true);
+    }
     let data={};
     try{data=await r.json();}catch(_){data={error:'The Local Engine returned an unreadable response.'};}
     if(!r.ok||data.ok===false)throw new Error(data.error||('Local Engine HTTP '+r.status));
@@ -122,7 +132,8 @@
       if(!silent)status(state.projects.length+' pipeline'+(state.projects.length===1?'':'s')+' found.','success');
       if(!state.projects.length&&!silent)output('No .hpl pipeline files were found.\n\nSave or copy Apache Hop pipeline files into:\n'+(data.folder||'~/OmniETL/projects')+'\n\nThen select Refresh Pipelines.');
     }catch(e){
-      if(!silent)status(e.message,'error');
+      status('Could not list pipelines: '+e.message,'error');
+      output('The pipeline list could not be loaded.\n\n'+e.message+'\n\nConfirm the Omni Local Engine is running, then select Refresh Pipelines.');
     }finally{
       if(button){button.disabled=false;button.textContent='Refresh Pipelines';}
     }
