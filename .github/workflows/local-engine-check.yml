@@ -25,6 +25,8 @@ jobs:
         run: python -m py_compile omni_environment.py omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
       - name: Validate shared environment inventory
         run: python .github/scripts/environment_inventory_test.py
+      - name: Run Omni contract audit
+        run: python .github/scripts/omni_contract_audit.py
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
       - name: Validate Office Tools, Diagram Forge and cloud bridge syntax
