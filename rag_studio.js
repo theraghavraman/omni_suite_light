@@ -171,16 +171,6 @@ async function browserGenerate(context,q){
  if(!answer)throw new Error("The browser model returned an empty answer.");
  return answer;
 }
-async function cloudGenerate(context,q){
- const token=(sessionStorage.getItem("omni-cloud-token")||"").trim();
- if(!token)throw new Error("No Render token is available. Open Run on Render, enter your cloud token, then retry.");
- const base=(window.OMNI_CLOUD_ENGINE_URL||window.OmniRenderCloud?.url||"https://omni-cloud-engine.onrender.com").replace(/\/+$/,"");
- const r=await fetch(base+"/api/ai/generate",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Cloud-Token":token},body:JSON.stringify({question:q,context}),credentials:"omit"});
- const data=await r.json().catch(()=>({}));
- if(!r.ok||!data.ok)throw new Error(data.error||("Render LLM request failed (HTTP "+r.status+")."));
- if(!data.text||!String(data.text).trim())throw new Error("Render LLM returned an empty answer.");
- return String(data.text).trim();
-}
 async function localGenerate(context,q){
  const base=($("ragLocalUrl")?.value||"http://127.0.0.1:8765").trim().replace(/\/+$/,"");
  const statusResponse=await fetch(base+"/api/ai/status",{cache:"no-store",credentials:"omit"});
@@ -205,29 +195,24 @@ async function answer(){
   if(mode==="false"||mode==="retrieval"){
    $("ragAnswer").textContent=extractiveAnswer(q,r);setModelState("llm","idle","Retrieval-only mode");return;
   }
-  const attempts=mode==="hybrid"?[
-   ["Render Cloud",()=>cloudGenerate(context,q)],
-   ["Local Engine",()=>localGenerate(context,q)],
-   ["Browser LLM",()=>browserGenerate(context,q)]
-  ]:mode==="cloud"?[["Render Cloud",()=>cloudGenerate(context,q)]]:mode==="local"?[["Local Engine",()=>localGenerate(context,q)]]:[["Browser LLM",()=>browserGenerate(context,q)]];
-  const errors=[];
-  for(const [name,run] of attempts){
-   try{
-    $("ragAnswer").textContent="Generating with "+name+"…";
-    const text=await run();
-    $("ragAnswer").textContent=text;
-    setModelState("llm","ok","Answer generated · "+name);
-    $("ragStatus").textContent="✓ Grounded answer generated with "+name+" from "+r.length+" retrieved passages.";
-    return;
-   }catch(e){
-    errors.push(name+": "+e.message);
-    if(mode!=="hybrid")throw e;
-    $("ragStatus").textContent=name+" unavailable; trying next configured generation path…";
-   }
+  const run=mode==="local"?localGenerate:mode==="false"||mode==="retrieval"?null:browserGenerate;
+  if(!run){
+   $("ragAnswer").textContent=extractiveAnswer(q,r);
+   setModelState("llm","idle","Retrieval-only mode");
+   return;
   }
-  $("ragAnswer").textContent="All generation paths were unavailable. Retrieved evidence is shown below.\n\n"+r.map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+x.text).join("\n\n");
-  setModelState("llm","warn","Generation unavailable · retrieval remains usable");
-  $("ragStatus").textContent="Retrieval succeeded; generation fallback details: "+errors.join(" | ");
+  const name=mode==="local"?"Local Engine · local-only":"Browser LLM · on-device";
+  $("ragAnswer").textContent="Generating locally with "+name+"…";
+  try{
+   const text=await run(context,q);
+   $("ragAnswer").textContent=text;
+   setModelState("llm","ok","Answer generated · "+name);
+   $("ragStatus").textContent="✓ Grounded answer generated locally with "+name+" from "+r.length+" retrieved passages.";
+  }catch(e){
+   $("ragAnswer").textContent="Local generation unavailable: "+e.message+"\n\nRetrieved evidence remains available below. No cloud service will be used.";
+   $("ragStatus").textContent="Local generation unavailable; no off-device fallback was attempted.";
+   setModelState("llm","warn","Local generation unavailable · retrieval remains usable");
+  }
  }catch(e){
   $("ragAnswer").textContent="Generation/retrieval issue: "+e.message;
   $("ragStatus").textContent="RAG issue: "+e.message;
