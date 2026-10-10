@@ -2736,6 +2736,7 @@ python prepare_language_models.py --transliteration</pre>
               <button type="button" class="pe-tool" data-pe-tool="adjust" role="tab" aria-selected="false"><span>☀</span>Adjust</button>
               <button type="button" class="pe-tool" data-pe-tool="filters" role="tab" aria-selected="false"><span>◑</span>Filters</button>
               <button type="button" class="pe-tool" data-pe-tool="retouch" role="tab" aria-selected="false"><span>◌</span>Blur</button>
+              <button type="button" class="pe-tool" data-pe-tool="background" role="tab" aria-selected="false"><span>▧</span>Background</button>
               <button type="button" class="pe-tool" data-pe-tool="draw" role="tab" aria-selected="false"><span>✎</span>Draw</button>
               <button type="button" class="pe-tool" data-pe-tool="text" role="tab" aria-selected="false"><span>T</span>Text</button>
               <button type="button" class="pe-tool" data-pe-tool="export" role="tab" aria-selected="false"><span>⤓</span>Resize &amp; Save</button>
@@ -2777,6 +2778,16 @@ python prepare_language_models.py --transliteration</pre>
                 <label class="pe-slider"><span>Size</span><input type="range" id="peTextSize" min="10" max="250" value="60" aria-label="Text size"></label>
                 <div class="pe-checks"><label><input type="checkbox" id="peTextBold" checked> Bold</label><label><input type="checkbox" id="peTextShadow" checked> Shadow</label><label><input type="checkbox" id="peTextBg"> Background</label><input type="color" id="peTextBgColor" value="#000000" aria-label="Background colour"></div>
                 <p class="pe-hint">A faded preview follows your pointer; click to place. Undo removes it.</p>
+              </section>
+              <section data-pe-panel="background" id="pePanelBackground" hidden>
+                <h4>Change photo background</h4>
+                <p class="pe-hint">Click a background area in the photo to sample its colour. This browser-only tool replaces similar colours; it is not AI subject detection, so review the result carefully.</p>
+                <div id="peBgSample" style="padding:10px;border:1px solid #dbe2ea;border-radius:10px;background:#f1f5f9;color:#334155;font-weight:800">No colour sampled — click the photo</div>
+                <p class="pe-hint" id="peBgSampleStatus">Choose a background area in the image to begin.</p>
+                <label class="pe-color">Replacement colour<input type="color" id="peBgReplaceColor" value="#ffffff"></label>
+                <label class="pe-slider"><span>Colour tolerance<b id="peBgToleranceVal">32</b></span><input type="range" id="peBgTolerance" min="0" max="120" value="32" aria-label="Background colour tolerance"></label>
+                <div class="pe-actions"><button type="button" class="pe-btn primary" id="peApplyBackground">✓ Replace background colour</button><button type="button" class="pe-btn" id="peResetBackgroundSample">Reset sample</button></div>
+                <p class="pe-hint">Undo restores the previous image. Export as PNG to preserve transparent areas in future versions; this tool currently replaces the sampled colour with a solid colour.</p>
               </section>
               <section data-pe-panel="export" id="pePanelExport" hidden>
                 <h4>Resize</h4>
