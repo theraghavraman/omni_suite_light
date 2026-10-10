@@ -402,6 +402,10 @@ function wire(){
   /* adjust */
   $('peAdjReset').onclick=()=>{if(isDefault())return;pushHist();E.adj={...DEFAULT_ADJ};E.mode='';E.filter='none';syncAdjUI();render();};
   $('peAuto').onclick=autoEnhance;
+  /* background colour replacement */
+  $('peBgTolerance').addEventListener('input',e=>{E.background.tolerance=+e.target.value;$('peBgToleranceVal').textContent=e.target.value;});
+  $('peApplyBackground').onclick=applyBackgroundReplacement;
+  $('peResetBackgroundSample').onclick=()=>{E.background.sample=null;$('peBgSample').textContent='No colour sampled — click the photo';$('peBgSample').style.background='#f1f5f9';$('peBgSample').style.color='#334155';$('peBgSampleStatus').textContent='Choose a background area in the image to begin.';};
   /* retouch */
   $('pePanelRetouch').querySelectorAll('[data-retouch]').forEach(b=>b.onclick=()=>{E.retouch.mode=b.dataset.retouch;$('pePanelRetouch').querySelectorAll('[data-retouch]').forEach(x=>x.classList.toggle('on',x===b));$('peRetouchSizeRow').hidden=!/brush/.test(E.retouch.mode);$('peRetouchStrengthRow').hidden=E.retouch.mode==='redact-box';render();});
   $('peRetouchSize').addEventListener('input',e=>{E.retouch.size=+e.target.value;render();});
