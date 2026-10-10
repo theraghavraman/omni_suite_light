@@ -6192,7 +6192,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
 }
 </style>
   <script src="./file_sharing_studio.js?v=4"></script>
-  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=5">
+  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=6">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch,{once:true});else watch();document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.nav-btn'))setTimeout(upd,60);});window.addEventListener('resize',upd);})();</script>
