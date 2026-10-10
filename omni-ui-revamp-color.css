@@ -187,7 +187,9 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
     background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 28%) !important;
     pointer-events:none !important;z-index:51 !important;
   }
-  #omniAssistantButton{z-index:70 !important}
+  #omniAssistantButton{z-index:70 !important;left:auto !important;right:22px !important}
+  #omniAssistantPanel{left:auto !important;right:22px !important}
+  @media(max-width:600px){#omniAssistantButton{left:auto !important;right:14px !important}#omniAssistantPanel{left:auto !important;right:14px !important}}
 
   #omniStaticStudios{display:none !important}
 }
