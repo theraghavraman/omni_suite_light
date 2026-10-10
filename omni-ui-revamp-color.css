@@ -425,7 +425,7 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   font:600 13px/1 var(--rv-body) !important;padding:11px 16px !important;border-radius:999px !important;
   background-image:none !important;box-shadow:var(--rv-shadow-up) !important;border:1px solid transparent !important;
 }
-#omniAssistantButton{background:var(--rv-ink) !important;color:#fff !important;left:16px !important;bottom:16px !important}
+#omniAssistantButton{position:fixed !important;background:var(--rv-ink) !important;color:#fff !important;left:auto !important;right:22px !important;bottom:22px !important;top:auto !important;width:max-content !important;min-width:0 !important;max-width:calc(100vw - 32px) !important;margin:0 !important;flex:0 0 auto !important;z-index:9999 !important}
 #omniAssistantButton span{color:#fff !important}
 #omniRenderCloudBtn{background:var(--rv-surface) !important;color:var(--rv-ink) !important;border-color:var(--rv-line-strong) !important;right:16px !important;bottom:16px !important}
 
