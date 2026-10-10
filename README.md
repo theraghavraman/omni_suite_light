@@ -28,7 +28,9 @@ After installation, `verify_local_environment.py` runs a strict check of Python 
 
 **One-command rule:** use `Omni.bat` on Windows or `Omni.command` on macOS/Linux. Those launchers automatically start the full installer when the local environment is not ready.
 
-## 0.5 Platform layer
+## Version 1.0.0 — Platform layer
+
+Omni Suite follows **Semantic Versioning (SemVer)** for the platform release: `MAJOR.MINOR.PATCH`. The current UI release is **1.0.0**, matching the package version in `package.json`. Release history is maintained in [`CHANGELOG.md`](./CHANGELOG.md); release tags use the matching `vMAJOR.MINOR.PATCH` form.
 
 The suite now includes a **Local Engine Doctor**, dynamic capability routing, **Batch Lab** with isolated failures/retry, **Database Studio**, **Data Cleaning & Privacy Studio**, and a static CI contract audit. The Doctor reports Python packages and native executables separately so the UI can distinguish a real local capability from an unavailable dependency.
 
