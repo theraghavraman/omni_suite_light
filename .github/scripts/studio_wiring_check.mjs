@@ -27,7 +27,7 @@ for (const asset of ['office_tools_studio.css', 'diagram_forge_studio.css', 'off
 }
 if (html.indexOf('src="./omni_vendor_loader.js') > html.indexOf('src="./office_tools_studio.js')) failures.push('omni_vendor_loader.js must load before office_tools_studio.js');
 
-const offlineAssets = new Map([...environment.matchAll(/^\s*"([^"\n]+)"\s*:\s*"([^"\n]+)"\s*,?\s*$/gm)].map(m => [m[1], m[2]));
+const offlineAssets = new Map([...environment.matchAll(/^\s*"([^"\n]+)"\s*:\s*"([^"\n]+)"\s*,?\s*$/gm)].map(m => [m[1], m[2]]));
 for (const m of loader.matchAll(/local:'([^']+)',cdn:'([^']+)'/g)) {
   const [, local, cdn] = m;
   if (!/@\d+\.\d+\.\d+|\/\d+\.\d+\.\d+\/|xlsx-\d+\.\d+\.\d+/.test(cdn)) failures.push(`unpinned CDN URL: ${cdn}`);
