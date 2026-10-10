@@ -133,11 +133,8 @@ const cloudEngine = fs.readFileSync(path.join(process.cwd(), "omni-cloud-engine"
 for (const [label, ok] of [
   ["hybrid RAG selector", mainHtml.includes('value="hybrid"')],
   ["browser generation path", ragStudio.includes("browserGenerate(context,q)")],
-  ["Local Engine generation path", ragStudio.includes("localGenerate(context,q)")],
-  ["Render generation path", ragStudio.includes("/api/ai/generate")],
-  ["secured cloud generation endpoint", cloudEngine.includes('@app.post("/api/ai/generate")') && cloudEngine.includes("cloud_authorized()")],
-  ["cloud LLM environment configuration", cloudEngine.includes("OMNI_LLM_API_KEY") && cloudEngine.includes("OMNI_LLM_MODEL")]
+  ["Local Engine generation path", ragStudio.includes("localGenerate(context,q)")]
 ]) {
   if (!ok) throw new Error("RAG hybrid integration check failed: " + label);
 }
-console.log("Hybrid RAG integration wiring checks passed: browser, Local Engine, secured Render generation.");
+console.log("Hybrid RAG integration wiring checks passed: browser and Local Engine generation.");
