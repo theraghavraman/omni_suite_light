@@ -129,7 +129,6 @@ console.log(`Guide retrieval passed: ${guideCases.length} questions across ${gui
 
 const ragStudio = fs.readFileSync(path.join(process.cwd(), "rag_studio.js"), "utf8");
 const mainHtml = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
-const cloudEngine = fs.readFileSync(path.join(process.cwd(), "omni-cloud-engine", "app.py"), "utf8");
 for (const [label, ok] of [
   ["hybrid RAG selector", mainHtml.includes('value="hybrid"')],
   ["browser generation path", ragStudio.includes("browserGenerate(context,q)")],
