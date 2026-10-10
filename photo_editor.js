@@ -36,7 +36,7 @@ const E={name:'photo',original:null,base:null,proxy:null,origProxy:null,adj:{...
   hist:[],fut:[],adjDirty:false,tool:'crop',view:null,preview:null,previewKey:'',layout:null,
   crop:null,aspect:'free',straighten:0,drag:null,comparing:false,effectCache:null,
   retouch:{mode:'blur-brush',size:40,strength:50},draw:{mode:'pen',color:'#ff3b30',size:12},text:{value:'',font:'sans',size:60,color:'#ffffff',bg:false,bgColor:'#000000',bold:true,shadow:true},
-  hover:null,points:null,busy:false};
+  hover:null,points:null,busy:false,background:{sample:null,color:'#ffffff',tolerance:32}};
 
 /* ------------------------------------------------------------------ canvas helpers */
 function mk(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
@@ -215,6 +215,7 @@ function hitHandle(p){const c=E.crop||{x:0,y:0,w:E.base.width,h:E.base.height};c
 const CURSORS={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize',move:'move'};
 function onDown(e){
   if(!E.base||e.button!==0||E.busy)return;const p=toImg(e);E.view.setPointerCapture(e.pointerId);
+  if(E.tool==='background'){sampleBackground(p);return;}
   if(E.tool==='crop'){const h=hitHandle(p);if(h){if(!E.crop)E.crop={x:0,y:0,w:E.base.width,h:E.base.height};E.drag={h,p,c:{...E.crop}};}return;}
   if(E.tool==='retouch'){
     if(/brush/.test(E.retouch.mode)){const work=copyCanvas(E.base);E.drag={work,last:p};setBusyCursor(true);paintBrush(p,p);}
@@ -247,6 +248,44 @@ function paintBrush(a,b){
   E.proxy.getContext('2d').drawImage(work,x0,y0,x1-x0,y1-y0,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k);E.previewKey='';
 }
 function setBusyCursor(on){E.view.style.cursor=on?'crosshair':'';}
+
+/* Color-based background replacement. This intentionally stays local and opt-in:
+ * sample a background colour, tune tolerance, preview the selected sample, then apply.
+ * Similar colours anywhere in the image can also be replaced; this is not AI segmentation. */
+function sampleBackground(p){
+  const x=clamp(Math.floor(p.x),0,E.base.width-1),y=clamp(Math.floor(p.y),0,E.base.height-1);
+  const d=E.base.getContext('2d').getImageData(x,y,1,1).data;
+  E.background.sample=[d[0],d[1],d[2]];
+  const hex='#'+E.background.sample.map(v=>v.toString(16).padStart(2,'0')).join('');
+  const swatch=$('peBgSample');if(swatch){swatch.style.background=hex;swatch.textContent='Sampled '+hex;swatch.style.color=(d[0]*.299+d[1]*.587+d[2]*.114)>150?'#111827':'#ffffff';}
+  const status=$('peBgSampleStatus');if(status)status.textContent='Sampled RGB '+E.background.sample.join(', ')+'. Choose a replacement colour, then apply.';
+  render();
+}
+function applyBackgroundReplacement(){
+  if(!E.base||!E.background.sample){notify('Click a background area in the photo to sample its colour first.',true);return;}
+  const b=E.base,w=b.width,h=b.height,n=w*h,tol=E.background.tolerance,src=E.background.sample;
+  if(n>MAX_PIXELS){notify('This image exceeds the editor pixel limit.',true);return;}
+  setBusy(true,'Replacing sampled background colour…');
+  setTimeout(()=>{
+    try{
+      const out=copyCanvas(b),ctx=out.getContext('2d'),im=ctx.getImageData(0,0,w,h),d=im.data;
+      const rgb=$('peBgReplaceColor').value||'#ffffff';
+      const rr=parseInt(rgb.slice(1,3),16),gg=parseInt(rgb.slice(3,5),16),bb=parseInt(rgb.slice(5,7),16);
+      const limit=tol*tol*3;
+      for(let i=0;i<d.length;i+=4){
+        const dr=d[i]-src[0],dg=d[i+1]-src[1],db=d[i+2]-src[2],dist=dr*dr+dg*dg+db*db;
+        if(dist<=limit){
+          // Blend near the tolerance boundary to soften colour fringes.
+          const blend=tol===0?1:clamp((tol+1-Math.sqrt(dist/3))/Math.max(1,tol*0.25),0,1);
+          d[i]=Math.round(d[i]*(1-blend)+rr*blend);d[i+1]=Math.round(d[i+1]*(1-blend)+gg*blend);d[i+2]=Math.round(d[i+2]*(1-blend)+bb*blend);
+        }
+      }
+      ctx.putImageData(im,0,0);commitBase(out);
+      notify('Background colour replaced. Use Undo if the result affects the subject.');
+    }catch(e){notify('Background replacement failed: '+e.message,true);}
+    finally{setBusy(false);}
+  },20);
+}
 
 /* ------------------------------------------------------------------ resize & export */
 function applyResize(){
