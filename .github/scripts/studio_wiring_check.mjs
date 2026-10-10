@@ -1,11 +1,11 @@
 // Static checks for the browser-only Office Tools and Diagram Forge studios.
 // - every element id the studio scripts look up exists in index.html
 // - studio stylesheets and scripts referenced by index.html exist on disk
-// - every on-demand library is pinned to an exact version and listed in prepare_offline.py
+// - every on-demand library is pinned to an exact version and matches the shared offline asset inventory in omni_environment.py
 import { readFileSync, existsSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
-const offline = readFileSync('prepare_offline.py', 'utf8');
+const environment = readFileSync('omni_environment.py', 'utf8');
 const loader = readFileSync('omni_vendor_loader.js', 'utf8');
 const failures = [];
 
@@ -27,11 +27,14 @@ for (const asset of ['office_tools_studio.css', 'diagram_forge_studio.css', 'off
 }
 if (html.indexOf('src="./omni_vendor_loader.js') > html.indexOf('src="./office_tools_studio.js')) failures.push('omni_vendor_loader.js must load before office_tools_studio.js');
 
+const offlineAssets = new Map([...environment.matchAll(/^\s*"([^"\n]+)"\s*:\s*"([^"\n]+)"\s*,?\s*$/gm)].map(m => [m[1], m[2]));
 for (const m of loader.matchAll(/local:'([^']+)',cdn:'([^']+)'/g)) {
   const [, local, cdn] = m;
   if (!/@\d+\.\d+\.\d+|\/\d+\.\d+\.\d+\/|xlsx-\d+\.\d+\.\d+/.test(cdn)) failures.push(`unpinned CDN URL: ${cdn}`);
   const rel = local.replace(/^vendor\//, '');
-  if (!offline.includes(`"${rel}"`)) failures.push(`prepare_offline.py does not download ${rel}`);
+  const inventoryUrl = offlineAssets.get(rel);
+  if (!inventoryUrl) failures.push(`omni_environment.py OFFLINE_ASSET_URLS does not include ${rel}`);
+  else if (inventoryUrl !== cdn) failures.push(`offline/CDN URL mismatch for ${rel}: loader=${cdn}, inventory=${inventoryUrl}`);
 }
 
 if (failures.length) {
