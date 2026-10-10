@@ -29,7 +29,7 @@ LOCK = threading.Lock()
 FILES: dict[str, Path] = {}
 MAX_UPLOAD = int(os.environ.get("OMNI_MAX_UPLOAD", str(8 * 1024**3)))
 TOKEN = os.environ.get("OMNI_TOKEN") or secrets.token_urlsafe(32)
-ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765", "https://theraghavraman.github.io"}
+ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765", "https://theraghavraman.github.io", "https://redmarkforge.pages.dev"}
 ALLOWED_ORIGINS.update(origin.strip().rstrip("/") for origin in os.environ.get("OMNI_ALLOWED_ORIGINS", "").split(",") if origin.strip())
 
 def request_origin(handler):
