@@ -647,3 +647,22 @@ body,body.studio-mode{
 .card h2::before,.module-panel .card > h2::before{content:none !important;display:none !important}
 /* Private RAG: stats live inside the status card, so the top row is one column */
 #tabRAGStudio .rag-top-grid{grid-template-columns:minmax(0,1fr) !important}
+
+
+/* Ask Omni must float independently at the viewport's bottom-right, never stretch as a footer/sidebar bar. */
+html body #omniAssistantButton{
+  position:fixed !important;left:auto !important;right:22px !important;top:auto !important;bottom:22px !important;
+  width:max-content !important;min-width:0 !important;max-width:calc(100vw - 32px) !important;
+  height:auto !important;min-height:0 !important;max-height:none !important;
+  margin:0 !important;inset-inline-start:auto !important;inset-inline-end:22px !important;
+  flex:0 0 auto !important;transform:none;z-index:9999 !important;border-radius:18px !important;
+}
+html body #omniAssistantPanel{
+  position:fixed !important;left:auto !important;right:22px !important;top:auto !important;bottom:78px !important;
+  width:min(430px,calc(100vw - 28px)) !important;max-width:calc(100vw - 28px) !important;
+  margin:0 !important;inset-inline-start:auto !important;inset-inline-end:22px !important;z-index:9998 !important;
+}
+@media(max-width:600px){
+  html body #omniAssistantButton{right:14px !important;inset-inline-end:14px !important;bottom:14px !important}
+  html body #omniAssistantPanel{right:14px !important;inset-inline-end:14px !important;bottom:70px !important}
+}
