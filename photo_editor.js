@@ -255,33 +255,70 @@ function setBusyCursor(on){E.view.style.cursor=on?'crosshair':'';}
 function sampleBackground(p){
   const x=clamp(Math.floor(p.x),0,E.base.width-1),y=clamp(Math.floor(p.y),0,E.base.height-1);
   const d=E.base.getContext('2d').getImageData(x,y,1,1).data;
+  const transparent=d[3]<128;
   E.background.sample=[d[0],d[1],d[2]];
+  E.background.sampleTransparent=transparent;
+  E.background.seed=[x,y];
   const hex='#'+E.background.sample.map(v=>v.toString(16).padStart(2,'0')).join('');
-  const swatch=$('peBgSample');if(swatch){swatch.style.background=hex;swatch.textContent='Sampled '+hex;swatch.style.color=(d[0]*.299+d[1]*.587+d[2]*.114)>150?'#111827':'#ffffff';}
-  const status=$('peBgSampleStatus');if(status)status.textContent='Sampled RGB '+E.background.sample.join(', ')+'. Choose a replacement colour, then apply.';
+  const swatch=$('peBgSample');
+  if(swatch){
+    swatch.style.background=transparent?'repeating-conic-gradient(#e5e7eb 0 25%,#fff 0 50%) 0 0/12px 12px':hex;
+    swatch.textContent=transparent?'Sampled transparent area':'Sampled '+hex;
+    swatch.style.color=transparent?'#111827':((d[0]*.299+d[1]*.587+d[2]*.114)>150?'#111827':'#ffffff');
+  }
+  const status=$('peBgSampleStatus');
+  if(status)status.textContent=transparent?'Transparent area selected. Choose a replacement colour, then apply to fill it.':'Sampled RGB '+E.background.sample.join(', ')+'. Choose a replacement colour, then apply.';
   render();
 }
 function applyBackgroundReplacement(){
-  if(!E.base||!E.background.sample){notify('Click a background area in the photo to sample its colour first.',true);return;}
-  const b=E.base,w=b.width,h=b.height,n=w*h,tol=E.background.tolerance,src=E.background.sample;
+  if(!E.base||!E.background.sample||!E.background.seed){notify('Click a background area in the photo to sample it first.',true);return;}
+  const b=E.base,w=b.width,h=b.height,n=w*h,tol=E.background.tolerance,src=E.background.sample,transparent=!!E.background.sampleTransparent;
+  const wholeImage=!!($('peBgWholeImage')&&$('peBgWholeImage').checked);
   if(n>MAX_PIXELS){notify('This image exceeds the editor pixel limit.',true);return;}
-  setBusy(true,'Replacing sampled background colour…');
+  setBusy(true,'Replacing background…');
   setTimeout(()=>{
     try{
       const out=copyCanvas(b),ctx=out.getContext('2d'),im=ctx.getImageData(0,0,w,h),d=im.data;
       const rgb=$('peBgReplaceColor').value||'#ffffff';
       const rr=parseInt(rgb.slice(1,3),16),gg=parseInt(rgb.slice(3,5),16),bb=parseInt(rgb.slice(5,7),16);
       const limit=tol*tol*3;
-      for(let i=0;i<d.length;i+=4){
-        const dr=d[i]-src[0],dg=d[i+1]-src[1],db=d[i+2]-src[2],dist=dr*dr+dg*dg+db*db;
-        if(dist<=limit){
-          // Blend near the tolerance boundary to soften colour fringes.
-          const blend=tol===0?1:clamp((tol+1-Math.sqrt(dist/3))/Math.max(1,tol*0.25),0,1);
-          d[i]=Math.round(d[i]*(1-blend)+rr*blend);d[i+1]=Math.round(d[i+1]*(1-blend)+gg*blend);d[i+2]=Math.round(d[i+2]*(1-blend)+bb*blend);
+      // Transparent samples match transparent pixels only; opaque samples never match transparent pixels.
+      const matches=i=>{
+        if(transparent)return d[i+3]<128;
+        if(d[i+3]<128)return false;
+        const dr=d[i]-src[0],dg=d[i+1]-src[1],db=d[i+2]-src[2];
+        return dr*dr+dg*dg+db*db<=limit;
+      };
+      const region=new Uint8Array(n);
+      if(wholeImage){
+        for(let p=0;p<n;p++)region[p]=matches(p*4)?1:0;
+      }else{
+        // Flood-fill from the clicked pixel so only the connected background changes, not similar colours in the subject.
+        const queue=new Int32Array(n);let head=0,tail=0;
+        const start=E.background.seed[1]*w+E.background.seed[0];
+        if(matches(start*4)){queue[tail++]=start;region[start]=1;}
+        while(head<tail){
+          const p=queue[head++],x=p%w,y=(p-x)/w;
+          if(x>0&&!region[p-1]&&matches((p-1)*4)){region[p-1]=1;queue[tail++]=p-1;}
+          if(x<w-1&&!region[p+1]&&matches((p+1)*4)){region[p+1]=1;queue[tail++]=p+1;}
+          if(y>0&&!region[p-w]&&matches((p-w)*4)){region[p-w]=1;queue[tail++]=p-w;}
+          if(y<h-1&&!region[p+w]&&matches((p+w)*4)){region[p+w]=1;queue[tail++]=p+w;}
         }
       }
+      let changed=0;
+      for(let p=0;p<n;p++){
+        if(!region[p])continue;
+        changed++;
+        const i=p*4;
+        if(transparent){d[i]=rr;d[i+1]=gg;d[i+2]=bb;d[i+3]=255;continue;}
+        const dr=d[i]-src[0],dg=d[i+1]-src[1],db=d[i+2]-src[2],dist=dr*dr+dg*dg+db*db;
+        // Blend near the tolerance boundary to soften colour fringes.
+        const blend=tol===0?1:clamp((tol+1-Math.sqrt(dist/3))/Math.max(1,tol*0.25),0,1);
+        d[i]=Math.round(d[i]*(1-blend)+rr*blend);d[i+1]=Math.round(d[i+1]*(1-blend)+gg*blend);d[i+2]=Math.round(d[i+2]*(1-blend)+bb*blend);
+      }
+      if(!changed){notify('Nothing matched the sampled area. Increase the tolerance or sample again.',true);return;}
       ctx.putImageData(im,0,0);commitBase(out);
-      notify('Background colour replaced. Use Undo if the result affects the subject.');
+      notify(transparent?'Transparent area filled with the replacement colour.':'Background colour replaced. Use Undo if the result affects the subject.');
     }catch(e){notify('Background replacement failed: '+e.message,true);}
     finally{setBusy(false);}
   },20);
