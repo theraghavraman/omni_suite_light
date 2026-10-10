@@ -2787,7 +2787,7 @@ python prepare_language_models.py --transliteration</pre>
                 <label class="pe-color">Replacement colour<input type="color" id="peBgReplaceColor" value="#ffffff"></label>
                 <label class="pe-slider"><span>Colour tolerance<b id="peBgToleranceVal">32</b></span><input type="range" id="peBgTolerance" min="0" max="120" value="32" aria-label="Background colour tolerance"></label>
                 <div class="pe-actions"><button type="button" class="pe-btn primary" id="peApplyBackground">✓ Replace background colour</button><button type="button" class="pe-btn" id="peResetBackgroundSample">Reset sample</button></div>
-                <p class="pe-hint">Undo restores the previous image. Export as PNG to preserve transparent areas in future versions; this tool currently replaces the sampled colour with a solid colour.</p>
+                <p class="pe-hint">Undo restores the previous image. This replaces the sampled colour with a solid colour; it does not create transparency or automatically detect the subject.</p>
               </section>
               <section data-pe-panel="export" id="pePanelExport" hidden>
                 <h4>Resize</h4>
