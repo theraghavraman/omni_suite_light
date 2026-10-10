@@ -334,7 +334,7 @@ async function openFile(file){
     let w=img.width||img.naturalWidth,h=img.height||img.naturalHeight;if(!w||!h)throw new Error('This image has no size (an SVG without width/height?).');
     let k=1;if(w*h>MAX_PIXELS){k=Math.sqrt(MAX_PIXELS/(w*h));notify('Large photo ('+w+'×'+h+') — working at '+Math.round(w*k)+'×'+Math.round(h*k)+' to stay within browser limits.');}
     const c=mk(w*k,h*k);const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,c.width,c.height);img.close?.();
-    E.name=file.name.replace(/\.[^.]+$/,'')||'photo';E.original=c;E.origProxy=scaled(c,PROXY_EDGE);E.hist=[];E.fut=[];E.adj={...DEFAULT_ADJ};E.mode='';E.filter='none';E.straighten=0;E.aspect='free';
+    E.name=file.name.replace(/\.[^.]+$/,'')||'photo';E.background.sample=null;$('peBgSample').textContent='No colour sampled — click the photo';$('peBgSample').style.background='#f1f5f9';$('peBgSample').style.color='#334155';$('peBgSampleStatus').textContent='Choose a background area in the image to begin.';E.original=c;E.origProxy=scaled(c,PROXY_EDGE);E.hist=[];E.fut=[];E.adj={...DEFAULT_ADJ};E.mode='';E.filter='none';E.straighten=0;E.aspect='free';
     setBase(copyCanvas(c));
     $('peDrop').hidden=true;$('peApp').hidden=false;$('peFileName').value=E.name+'-edited';
     const fmt=/png$/i.test(file.type)?'png':/webp/i.test(file.type)?'webp':'jpeg';$('peFormat').value=fmt;syncFormatUI();
