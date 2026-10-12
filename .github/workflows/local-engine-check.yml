@@ -54,6 +54,36 @@ jobs:
         run: node .github/scripts/studio_wiring_check.mjs
       - name: Validate assistant retrieval regression
         run: node .github/scripts/assistant_rag_regression.mjs
+      - name: Install Python runtime used by the native smoke test and audit
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install -r requirements-local.txt -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
+
+      - name: Run representative native smoke test
+        if: runner.os == 'Linux'
+        run: python .github/scripts/native_smoke_test.py
+
+      - name: Generate resolved Python license inventory and SBOM
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install pip-audit pip-licenses cyclonedx-bom
+          pip-licenses --format=json --with-urls --with-description --output-file=licenses-resolved.json
+          cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+      - name: Check dependency consistency and vulnerabilities
+        if: runner.os == 'Linux'
+        run: |
+          pip check
+          pip-audit -r requirements-local.txt -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
+      - name: Upload dependency audit evidence
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omni-suite-dependency-audit
+          path: |
+            licenses-resolved.json
+            sbom.cdx.json
+          if-no-files-found: warn
+
       - name: Install native dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
@@ -106,36 +136,6 @@ jobs:
             $cmd = Get-Command convert -ErrorAction Stop
             Write-Host "convert -> $($cmd.Source)"
           }
-
-      - name: Install Python runtime used by the native smoke test and audit
-        if: runner.os == 'Linux'
-        run: |
-          python -m pip install -r requirements-local.txt -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
-
-      - name: Run representative native smoke test
-        if: runner.os == 'Linux'
-        run: python .github/scripts/native_smoke_test.py
-
-      - name: Generate resolved Python license inventory and SBOM
-        if: runner.os == 'Linux'
-        run: |
-          python -m pip install pip-audit pip-licenses cyclonedx-bom
-          pip-licenses --format=json --with-urls --with-description --output-file=licenses-resolved.json
-          cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
-      - name: Check dependency consistency and vulnerabilities
-        if: runner.os == 'Linux'
-        run: |
-          pip check
-          pip-audit -r requirements-local.txt -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
-      - name: Upload dependency audit evidence
-        if: runner.os == 'Linux' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: omni-suite-dependency-audit
-          path: |
-            licenses-resolved.json
-            sbom.cdx.json
-          if-no-files-found: warn
 
       - name: Verify native executables (Unix)
         if: runner.os != 'Windows'
