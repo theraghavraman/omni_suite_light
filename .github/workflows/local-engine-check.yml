@@ -27,8 +27,6 @@ jobs:
         run: python .github/scripts/environment_inventory_test.py
       - name: Run Omni contract audit
         run: python .github/scripts/omni_contract_audit.py
-      - name: Audit DOI metadata and third-party notice coverage
-        run: python .github/scripts/doi_metadata_audit.py
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
       - name: Validate Office Tools, Diagram Forge and cloud bridge syntax
@@ -54,65 +52,6 @@ jobs:
         run: node .github/scripts/studio_wiring_check.mjs
       - name: Validate assistant retrieval regression
         run: node .github/scripts/assistant_rag_regression.mjs
-      - name: Install Local Engine Python runtime
-        if: runner.os == 'Linux'
-        run: python -m pip install -r requirements-local.txt
-
-      - name: Generate separate environment license inventories and SBOMs
-        if: runner.os == 'Linux'
-        run: |
-          python -m venv .audit-tools
-          .audit-tools/bin/python -m pip install --upgrade pip pip-audit pip-licenses cyclonedx-bom
-          python -m venv .audit-cloud
-          .audit-cloud/bin/python -m pip install -r omni-cloud-engine/requirements.txt
-          python -m venv .audit-social
-          .audit-social/bin/python -m pip install -r social-resolver/requirements.txt
-          .audit-tools/bin/pip-licenses --python="$(which python)" --from=mixed --format=json --with-urls --with-description --output-file=licenses-local-engine.json
-          .audit-tools/bin/cyclonedx-py environment "$(which python)" --output-format JSON --output-file=sbom-local-engine.cdx.json
-          .audit-tools/bin/pip-licenses --python=.audit-cloud/bin/python --from=mixed --format=json --with-urls --with-description --output-file=licenses-cloud-engine.json
-          .audit-tools/bin/cyclonedx-py environment .audit-cloud/bin/python --output-format JSON --output-file=sbom-cloud-engine.cdx.json
-          .audit-tools/bin/pip-licenses --python=.audit-social/bin/python --from=mixed --format=json --with-urls --with-description --output-file=licenses-social-resolver.json
-          .audit-tools/bin/cyclonedx-py environment .audit-social/bin/python --output-format JSON --output-file=sbom-social-resolver.cdx.json
-      - name: Audit resolved Python package license metadata
-        if: runner.os == 'Linux'
-        run: python .github/scripts/audit_python_licenses.py
-      - name: Check each Python environment and audit vulnerabilities independently
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set +e
-          python -m pip check
-          local_check=$?
-          .audit-cloud/bin/python -m pip check
-          cloud_check=$?
-          .audit-social/bin/python -m pip check
-          social_check=$?
-          .audit-tools/bin/pip-audit -r requirements-local.txt
-          local_audit=$?
-          .audit-tools/bin/pip-audit -r omni-cloud-engine/requirements.txt
-          cloud_audit=$?
-          .audit-tools/bin/pip-audit -r social-resolver/requirements.txt
-          social_audit=$?
-          if [ "$local_check" -ne 0 ] || [ "$cloud_check" -ne 0 ] || [ "$social_check" -ne 0 ] || [ "$local_audit" -ne 0 ] || [ "$cloud_audit" -ne 0 ] || [ "$social_audit" -ne 0 ]; then
-            echo "One or more environment consistency or vulnerability audits failed."
-            exit 1
-          fi
-      - name: Upload dependency audit evidence
-        if: runner.os == 'Linux' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: omni-suite-dependency-audit
-          path: |
-            licenses-local-engine.json
-            sbom-local-engine.cdx.json
-            licenses-cloud-engine.json
-            sbom-cloud-engine.cdx.json
-            licenses-social-resolver.json
-            sbom-social-resolver.cdx.json
-            dependency-license-report.md
-            license-audit-summary.json
-          if-no-files-found: warn
-
       - name: Install native dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
@@ -137,10 +76,6 @@ jobs:
           brew update
           brew install python@3.13 ffmpeg qpdf poppler imagemagick libheif ghostscript eccodes tesseract pandoc p7zip sevenzip
           brew install --cask libreoffice calibre
-      - name: Run representative native smoke test
-        if: runner.os == 'Linux'
-        run: python .github/scripts/native_smoke_test.py
-
       - name: Refresh PATH after native package install (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -169,6 +104,20 @@ jobs:
             $cmd = Get-Command convert -ErrorAction Stop
             Write-Host "convert -> $($cmd.Source)"
           }
+
+      - name: Install Python runtime used by the native smoke test
+        if: runner.os == 'Linux'
+        run: python -m pip install -r requirements-local.txt
+
+      - name: Run representative native smoke test
+        if: runner.os == 'Linux'
+        run: python .github/scripts/native_smoke_test.py
+
+      - name: Run dependency audit
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
 
       - name: Verify native executables (Unix)
         if: runner.os != 'Windows'

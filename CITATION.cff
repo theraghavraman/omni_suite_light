@@ -6,7 +6,7 @@ authors:
   - family-names: "Raman"
     given-names: "Raghav"
 version: "1.0.0"
-date-released: "2026-10-10"
+date-released: "2026-10-12"
 license: MIT
 repository-code: "https://github.com/theraghavraman/omni_suite_light"
 url: "https://theraghavraman.github.io/omni_suite_light/"

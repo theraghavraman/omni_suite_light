@@ -1,7 +1,0 @@
-{
-  "flask-cors": {
-    "license": "MIT",
-    "source": "https://pypi.org/project/flask-cors/",
-    "note": "PyPI's verified project metadata declares MIT; pip-licenses returned UNKNOWN from the installed distribution metadata."
-  }
-}

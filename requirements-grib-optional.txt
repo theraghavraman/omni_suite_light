@@ -1,5 +1,0 @@
-# Optional GRIB / meteorological data support.
-# Review THIRD_PARTY_NOTICES.md before installing: ecCodes wheels can include bundled
-# native components whose notices/source obligations differ from the Python wrapper.
-cfgrib>=0.9.15
-eccodes>=2.38
