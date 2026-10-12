@@ -73,12 +73,6 @@ jobs:
           .audit-tools/bin/cyclonedx-py environment .audit-cloud/bin/python --output-format JSON --output-file=sbom-cloud-engine.cdx.json
           .audit-tools/bin/pip-licenses --python=.audit-social/bin/python --from=mixed --format=json --with-urls --with-description --output-file=licenses-social-resolver.json
           .audit-tools/bin/cyclonedx-py environment .audit-social/bin/python --output-format JSON --output-file=sbom-social-resolver.cdx.json
-      - name: Generate resolved Python license inventory and SBOM
-        if: runner.os == 'Linux'
-        run: |
-          python -m pip install pip-audit pip-licenses cyclonedx-bom
-          pip-licenses --format=json --with-urls --with-description --output-file=licenses-resolved.json
-          cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
       - name: Check each Python environment and audit vulnerabilities independently
         if: runner.os == 'Linux'
         shell: bash
