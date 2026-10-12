@@ -27,6 +27,18 @@ Office Tools and Diagram Forge load these libraries on demand through `omni_vend
 
 The exact download URLs and pinned versions are defined in `prepare_offline.py`. Outfit is loaded at runtime from Google Fonts for the public UI; its SIL Open Font License 1.1 permits use and redistribution subject to the license terms. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
 
+## Optional GRIB / meteorological data support
+
+GRIB support is not installed by the default Local Engine dependency profile. Install it separately with `pip install -r requirements-grib-optional.txt` only after reviewing this section.
+
+| Dependency | Python package license | Distribution caveat | Role |
+|---|---|---|---|
+| cfgrib | Apache License 2.0 | Depends on ecCodes for GRIB decoding | GRIB data access through xarray |
+| eccodes / eccodeslib | Apache License 2.0 for the ECMWF Python bindings / package metadata | Some binary-wheel distributions report bundled GPL-licensed toolchain/copyleft components; review the exact wheel, included license texts, and corresponding source obligations before redistributing a container or binary bundle | GRIB/BUFR decoding |
+| eckitlib | Apache License 2.0 for upstream package metadata | Some binary-wheel distributions report bundled GPL-licensed toolchain/copyleft components; review the exact wheel, included license texts, and corresponding source obligations before redistribution | ECMWF native support library |
+
+The optional GRIB stack is intentionally excluded from the default Local Engine and container dependency set while this binary-bundle review remains separate. Do not represent the optional GRIB distribution as fully license-cleared without checking the exact platform wheels and their included notices/source obligations.
+
 ## Native tools installed separately
 
 | Tool | Typical license | Used for |
