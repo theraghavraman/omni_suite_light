@@ -68,7 +68,7 @@ def main() -> int:
                 "url": str(entry.get("URL", "")),
                 "note": str(entry.get("AuditNote", "")),
             })
-        path.write_text(json.dumps(entries, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+        path.write_text(json.dumps(entries, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
         "# Resolved Python dependency license inventory",
@@ -100,7 +100,7 @@ def main() -> int:
         "The optional GRIB caveat does not mean the default profiles include those packages.",
         "",
     ]
-    REPORT.write_text("\\n".join(lines), encoding="utf-8")
+    REPORT.write_text("\n".join(lines), encoding="utf-8")
 
     summary = {
         "schema_version": 1,
@@ -117,7 +117,7 @@ def main() -> int:
         ],
         "default_python_profiles_license_metadata": "pass" if not unresolved else "fail",
     }
-    SUMMARY.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+    SUMMARY.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     if unresolved:
         print(f"[FAIL] {len(unresolved)} package entries have unresolved license metadata:")
