@@ -113,11 +113,23 @@ jobs:
         if: runner.os == 'Linux'
         run: python .github/scripts/native_smoke_test.py
 
-      - name: Run dependency audit
+      - name: Run dependency vulnerability, license and SBOM audit
         if: runner.os == 'Linux'
         run: |
-          python -m pip install pip-audit
-          pip-audit -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
+          python -m pip install pip-audit pip-licenses cyclonedx-bom
+          pip-audit -r requirements-local.txt -r omni-cloud-engine/requirements.txt -r social-resolver/requirements.txt
+          pip check
+          pip-licenses --format=json --with-urls --with-description --output-file=licenses-resolved.json
+          cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+      - name: Upload dependency audit evidence
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omni-suite-dependency-audit
+          path: |
+            licenses-resolved.json
+            sbom.cdx.json
+          if-no-files-found: warn
 
       - name: Verify native executables (Unix)
         if: runner.os != 'Windows'
