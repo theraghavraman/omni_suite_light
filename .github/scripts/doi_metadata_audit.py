@@ -64,6 +64,9 @@ def main() -> int:
         "exceljs", "fast-formula-parser", "@formulajs/formulajs", "dompurify",
         "mermaid", "dagre", "sheetjs community edition", "gemma terms of use",
         "deepseek license", "apache license 2.0", "sil open font license 1.1",
+        "mysql-connector-python", "psycopg", "py7zr", "pyxlsb", "certifi",
+        "oauthlib", "requirements-grib-optional.txt", "universal foss exception",
+        "lgpl-3.0-only", "mpl-2.0",
     ]
     missing = [name for name in expected_notice_entries if name not in notices]
     require(not missing, "third-party notices cover pinned browser dependencies and model license categories"
