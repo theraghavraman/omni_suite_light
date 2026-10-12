@@ -13,7 +13,8 @@ py7zr>=0.22
 rarfile>=4.2
 imageio>=2.36
 pydub>=0.25
-moviepy>=2.1
+# MoviePy currently pins Pillow<12 and blocks security-fixed Pillow 12.3.0.
+# Omni's conversion path uses native FFmpeg; MoviePy is omitted until upstream compatibility is fixed.
 
 # EasyOCR is intentionally separate: it pulls a large ML runtime.
 # Install manually when desired: pip install easyocr
