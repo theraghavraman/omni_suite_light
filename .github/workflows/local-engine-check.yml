@@ -73,6 +73,9 @@ jobs:
           .audit-tools/bin/cyclonedx-py environment .audit-cloud/bin/python --output-format JSON --output-file=sbom-cloud-engine.cdx.json
           .audit-tools/bin/pip-licenses --python=.audit-social/bin/python --from=mixed --format=json --with-urls --with-description --output-file=licenses-social-resolver.json
           .audit-tools/bin/cyclonedx-py environment .audit-social/bin/python --output-format JSON --output-file=sbom-social-resolver.cdx.json
+      - name: Audit resolved Python package license metadata
+        if: runner.os == 'Linux'
+        run: python .github/scripts/audit_python_licenses.py
       - name: Check each Python environment and audit vulnerabilities independently
         if: runner.os == 'Linux'
         shell: bash
@@ -106,6 +109,8 @@ jobs:
             sbom-cloud-engine.cdx.json
             licenses-social-resolver.json
             sbom-social-resolver.cdx.json
+            dependency-license-report.md
+            license-audit-summary.json
           if-no-files-found: warn
 
       - name: Install native dependencies (Ubuntu)
