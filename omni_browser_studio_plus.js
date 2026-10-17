@@ -189,7 +189,8 @@ intercept('blobBridgeRun',{async run(){
 /* ---------- 5. Data Clean and privacy scan ---------- */
 rememberFile('cleanInput',null,f=>cleanFile=f);
 const cleanReadable=()=>cleanFile&&BROWSER_READ.has(ext(cleanFile.name));
-function snake(k){return String(k).trim().replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase()||'column';}
+// keeps Unicode letters/marks so Hindi, Tamil, accented… headers are not all collapsed to "column"
+function snake(k){return String(k).trim().replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/[^\p{L}\p{M}\p{N}]+/gu,'_').replace(/^_+|_+$/g,'').toLowerCase()||'column';}
 const isEmpty=v=>v===null||v===undefined||(typeof v==='string'&&v.trim()==='');
 const isNumLike=v=>typeof v==='number'||(typeof v==='string'&&v.trim()!==''&&!isNaN(Number(v.trim())));
 function cleanRows(rows,actions){
@@ -199,6 +200,7 @@ function cleanRows(rows,actions){
   if(actions.includes('drop_empty_rows')){const before=rows.length;rows=rows.filter(r=>cols.some(c=>!isEmpty(r[c])));report.drop_empty_rows={removed:before-rows.length};}
   if(actions.includes('drop_duplicates')){const before=rows.length,seen=new Set();rows=rows.filter(r=>{const key=JSON.stringify(cols.map(c=>r[c]??null));if(seen.has(key))return false;seen.add(key);return true;});report.drop_duplicates={removed:before-rows.length};}
   if(actions.includes('fill_numeric_zero')){const numeric=cols.filter(c=>{const v=rows.map(r=>r[c]).filter(x=>!isEmpty(x));return v.length&&v.every(isNumLike);});let n=0;rows=rows.map(r=>{const o={...r};numeric.forEach(c=>{if(isEmpty(o[c])){o[c]=0;n++;}});return o;});report.fill_numeric_zero={columns:numeric,cells_filled:n};}
+  if(actions.includes('mask_pii')){let n=0;const dets=DETECTORS.filter(d=>d.risk!=='low');rows=rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>{if(typeof v!=='string'&&typeof v!=='number')return [k,v];let s=String(v);for(const d of dets){s=s.replace(d.re,m=>{if(d.ok&&!d.ok(m.trim()))return m;n++;return mask(m);});}return [k,typeof v==='number'&&s===String(v)?v:s];})));report.mask_pii={values_masked:n,types:dets.map(d=>d.type)};}
   if(actions.includes('sort_columns')){cols=[...cols].sort((a,b)=>String(a).localeCompare(String(b)));rows=rows.map(r=>Object.fromEntries(cols.map(c=>[c,r[c]??null])));report.sort_columns={order:cols};}
   return {rows,report};
 }

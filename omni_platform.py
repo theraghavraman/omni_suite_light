@@ -78,7 +78,18 @@ def clean_dataframe(df, actions):
         elif name=="drop_empty_rows": out=out.dropna(how="all")
         elif name=="fill_numeric_zero": out[out.select_dtypes(include="number").columns]=out.select_dtypes(include="number").fillna(0)
         elif name=="sort_columns": out=out.reindex(sorted(out.columns),axis=1)
+        elif name=="mask_pii":
+            masked=[PRIVACY_PATTERNS[k] for k in ("email","pan_india","aadhaar_like","credit_card_like","phone")]
+            def _mask_text(x):
+                if not isinstance(x,str): return x
+                for rx in masked: x=rx.sub(lambda m:_mask_value(m.group(0)),x)
+                return x
+            for c in out.select_dtypes(include=["object","string"]).columns: out[c]=out[c].map(_mask_text)
     return out
+
+def _mask_value(v):
+    s=str(v)
+    return "****" if len(s)<=4 else s[:2]+"*"*max(2,len(s)-4)+s[-2:]
 
 def _validate_database_url(url):
     from urllib.parse import urlsplit
