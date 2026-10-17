@@ -44,15 +44,21 @@
 #tabRAGStudio .rag-model-item{grid-template-columns:minmax(0,1fr) auto !important}
 
 /* Static studio consolidation: apply before scripts execute. */
+/* The theme forces `.nav-bar .nav-btn{display:flex!important}` inside @layer omni-revamp, and layered
+   !important beats unlayered !important, so these hide rules live in the earlier-declared
+   redmark-studio-fixes layer (first declared by office_tools_studio.css) or they have no effect. */
+@layer redmark-studio-fixes{
 /* Local Engine is an internal backend; remove only its navigation row. */
 .nav-bar .nav-btn[data-tab="tabLocal"] { display:none !important; }
 #tabLocal { display:none !important; }
 .omni-guide-grid .omni-guide-item:nth-child(3) { display:none !important; }
 
+/* Child studios open from a link box in their parent studio. */
 .nav-bar .nav-btn[data-tab="tabOfficeTools"],
 .nav-bar .nav-btn[data-tab="tabUniversalData"],
 .nav-bar .nav-btn[data-tab="tabLocalDoctor"],
 .nav-bar .nav-btn[data-tab="tabAllTests"] { display:none !important; }
+}
 .omni-consolidated-links{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px;padding:14px;border:1px solid var(--line,rgba(27,42,73,.12));border-radius:14px;background:rgba(255,255,255,.72);}
 .omni-consolidated-links .omni-consolidated-copy{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;justify-content:center;}
 .omni-consolidated-links strong{font-size:.95rem;}
@@ -1794,10 +1800,7 @@ python prepare_language_models.py --transliteration</pre>
     </div>
 
     <div class="module-panel" id="tabLocal">
-      <div class="omni-consolidated-links" data-consolidated-child="tabLocalDoctor">
-        <div class="omni-consolidated-copy"><strong>System Doctor</strong><small>Dependency checks and Local Engine diagnostics</small></div>
-        <button type="button" data-open-studio="tabLocalDoctor">Open System Doctor</button>
-      </div>
+      
 
       <div class="card">
         <h2>Local Native Engine</h2>
@@ -3185,6 +3188,10 @@ python prepare_language_models.py --transliteration</pre>
       <div class="omni-consolidated-links" data-consolidated-child="tabAllTests">
         <div class="omni-consolidated-copy"><strong>Validation Lab</strong><small>Full control and regression test suite</small></div>
         <button type="button" data-open-studio="tabAllTests">Open Validation Lab</button>
+      </div>
+      <div class="omni-consolidated-links" data-consolidated-child="tabLocalDoctor">
+        <div class="omni-consolidated-copy"><strong>System Doctor</strong><small>Dependency checks and Local Engine diagnostics</small></div>
+        <button type="button" data-open-studio="tabLocalDoctor">Open System Doctor</button>
       </div>
 
       <div class="omni-test-lab">
@@ -6230,7 +6237,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(){
   'use strict';
   // Child studios are hidden from the nav (static CSS) and opened from a link box in their parent studio.
-  const parentOf={tabOfficeTools:'tabWord',tabUniversalData:'tabData',tabLocalDoctor:'tabLocal',tabAllTests:'tabDiagnostics'};
+  const parentOf={tabOfficeTools:'tabWord',tabUniversalData:'tabData',tabLocalDoctor:'tabDiagnostics',tabAllTests:'tabDiagnostics'};
   const navBtn=id=>document.querySelector('.nav-bar .nav-btn[data-tab="'+id+'"]');
   function markParent(id){
     const parent=parentOf[id];
