@@ -89,11 +89,14 @@
       const parts = rangeStr.split(',');
       for (const part of parts) {
         const clean = part.trim();
+        if (!clean) continue;
         if (clean.includes('-')) {
-          const [startStr, endStr] = clean.split('-');
-          const start = parseInt(startStr, 10);
-          const end = parseInt(endStr, 10);
+          // Supports "2-5", open ranges "3-" / "-4" and reversed ranges "5-2".
+          const [startStr, endStr] = clean.split('-').map(x => x.trim());
+          let start = startStr === '' ? 1 : parseInt(startStr, 10);
+          let end = endStr === '' ? totalPages : parseInt(endStr, 10);
           if (!isNaN(start) && !isNaN(end)) {
+            if (start > end) [start, end] = [end, start];
             for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) pages.add(p);
           }
         } else {
@@ -570,25 +573,45 @@
 
     // Large-file PDF transport. PDF.js requests only the byte ranges it needs,
     // avoiding a full-file ArrayBuffer for large local PDFs.
-    class FileRangeTransport extends pdfjsLib.PDFDataRangeTransport {
-      constructor(file) {
-        super(file.size, null, true);
-        this.file = file;
+    // Built lazily: a top-level `extends pdfjsLib...` would abort the whole core
+    // (every studio wired below) whenever the PDF.js CDN/vendor script fails to load.
+    function requirePdfJs() {
+      if (!window.pdfjsLib) throw new Error('The PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
+      return window.pdfjsLib;
+    }
+    let FileRangeTransportClass = null;
+    function createFileRangeTransport(file) {
+      const lib = requirePdfJs();
+      if (!FileRangeTransportClass) {
+        FileRangeTransportClass = class extends lib.PDFDataRangeTransport {
+          constructor(f) {
+            super(f.size, null, true);
+            this.file = f;
+          }
+          requestDataRange(begin, end) {
+            this.file.slice(begin, end).arrayBuffer().then(buffer => {
+              this.onDataRange(begin, new Uint8Array(buffer));
+            }).catch(err => {
+              console.error('PDF range read failed', err);
+              this.onDataRange(begin, new Uint8Array(0));
+            });
+          }
+        };
       }
-      requestDataRange(begin, end) {
-        this.file.slice(begin, end).arrayBuffer().then(buffer => {
-          this.onDataRange(begin, new Uint8Array(buffer));
-        }).catch(err => {
-          console.error('PDF range read failed', err);
-          this.onDataRange(begin, new Uint8Array(0));
-        });
-      }
+      return new FileRangeTransportClass(file);
     }
 
     let currentPdfDoc = null;
     let currentPdfFile = null;
     let pdfConvertedImgs = [];
     let pdfLoadPromise = null;
+    let pdf2imgObjectUrls = [];
+    function clearPdf2ImgResults() {
+      pdf2imgObjectUrls.forEach(u => URL.revokeObjectURL(u));
+      pdf2imgObjectUrls = [];
+      pdfConvertedImgs = [];
+      pdf2imgGrid.innerHTML = '';
+    }
     const rangeError = (value, total) => `No pages match "${value}". This PDF has ${total} page${total === 1 ? '' : 's'} — use numbers between 1 and ${total}, e.g. 1-3, 5.`;
 
     // AVIF: Chromium can decode AVIF but cannot encode it from a canvas; mark the option honestly.
@@ -612,15 +635,25 @@
       return pdfLoadPromise;
     }
     async function openPdfForImg(file) {
+      if (currentPdfDoc && currentPdfDoc.destroy) currentPdfDoc.destroy().catch(() => {});
       currentPdfDoc = null;
       currentPdfFile = file;
+      clearPdf2ImgResults();
+      pdf2imgResultsSection.style.display = 'none';
       pdf2imgDropzone.style.display = 'none';
       pdf2imgControls.style.display = 'flex';
       pdf2imgName.textContent = file.name;
       pdf2imgMeta.textContent = 'Opening large-file PDF engine…';
 
       try {
-        const transport = new FileRangeTransport(file);
+        requirePdfJs();
+      } catch (e) {
+        alert(e.message);
+        resetPdf2Img();
+        return;
+      }
+      try {
+        const transport = createFileRangeTransport(file);
         currentPdfDoc = await pdfjsLib.getDocument({
           range: transport,
           length: file.size,
@@ -645,13 +678,13 @@
 
     pdf2imgReset.addEventListener('click', resetPdf2Img);
     function resetPdf2Img() {
+      if (currentPdfDoc && currentPdfDoc.destroy) currentPdfDoc.destroy().catch(() => {});
       currentPdfDoc = null;
       currentPdfFile = null;
-      pdfConvertedImgs = [];
+      clearPdf2ImgResults();
       pdf2imgDropzone.style.display = 'block';
       pdf2imgControls.style.display = 'none';
       pdf2imgResultsSection.style.display = 'none';
-      pdf2imgGrid.innerHTML = '';
       pdf2imgInput.value = '';
     }
 
@@ -667,8 +700,7 @@
       const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
       if (!pages.length) { alert(rangeError(pdf2imgPages.value, currentPdfDoc.numPages)); return; }
       pdf2imgBtn.disabled = true;
-      pdfConvertedImgs = [];
-      pdf2imgGrid.innerHTML = '';
+      clearPdf2ImgResults();
 
       try {
       for (let i = 0; i < pages.length; i++) {
@@ -699,9 +731,11 @@
           omniNotify('Requested image codec is unavailable; exported JPG instead.', false);
         }
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (!blob) throw new Error('Browser could not encode page ' + pNum);
         const filename = `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_page_${pNum}.${ext}`;
-        pdfConvertedImgs.push({ pNum, blob, dataUrl, filename, ext });
+        pdfConvertedImgs.push({ pNum, blob, filename, ext });
+        // Release the full-resolution canvas immediately; previews reuse the encoded blob.
+        canvas.width = 1; canvas.height = 1;
         if (page.cleanup) page.cleanup();
         pdf2imgCount.textContent = `Converted ${i + 1} / ${pages.length} pages`;
       }
@@ -711,10 +745,11 @@
         const card = document.createElement('div');
         card.className = 'page-card';
         const pw=document.createElement('div'); pw.className='page-preview-wrapper';
-        const pic=document.createElement('img'); pic.src=img.dataUrl; pic.alt='PDF page '+img.pNum; pw.appendChild(pic);
+        const url=URL.createObjectURL(img.blob); pdf2imgObjectUrls.push(url);
+        const pic=document.createElement('img'); pic.src=url; pic.loading='lazy'; pic.decoding='async'; pic.alt='PDF page '+img.pNum; pw.appendChild(pic);
         const pm=document.createElement('div'); pm.className='page-meta';
         const pn=document.createElement('div'); pn.className='page-num'; pn.textContent='Page '+img.pNum;
-        const save=document.createElement('a'); save.className='btn-download-single'; save.href=URL.createObjectURL(img.blob); save.download=img.filename; save.textContent='Save .'+img.ext.toUpperCase();
+        const save=document.createElement('a'); save.className='btn-download-single'; save.href=url; save.download=img.filename; save.textContent='Save .'+img.ext.toUpperCase();
         pm.append(pn,save); card.append(pw,pm);
         pdf2imgGrid.appendChild(card);
       });
@@ -724,7 +759,7 @@
       } finally {
         pdf2imgBtn.disabled = false;
       }
-      pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
+      if (pdfConvertedImgs.length) pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
     });
 
     pdf2imgDownloadAll.addEventListener('click', async () => {
@@ -734,6 +769,7 @@
         alert('The output is ' + formatFileSize(totalBytes) + '. Individual page downloads remain available; ZIP is disabled for this large job to prevent browser memory exhaustion.');
         return;
       }
+      if (!window.JSZip) { alert('The ZIP engine did not load. Use the individual Save buttons instead.'); return; }
       const zip = new JSZip();
       pdfConvertedImgs.forEach(item => zip.file(item.filename, item.blob, { compression: 'STORE' }));
       const zipBlob = await zip.generateAsync({ type: 'blob', streamFiles: true });
@@ -808,23 +844,60 @@
     // Merge PDFs
     const pdfMergeInput = document.getElementById('pdfMergeInput');
     const pdfMergeBtn = document.getElementById('pdfMergeBtn');
+    // Merge order list: the file picker's order is OS-dependent, so let the user reorder.
+    let pdfMergeQueue = [];
+    const pdfMergeOrder = document.createElement('ol');
+    pdfMergeOrder.id = 'pdfMergeOrder';
+    pdfMergeOrder.setAttribute('aria-label', 'Merge order');
+    pdfMergeOrder.style.cssText = 'margin:8px 0 0;padding-left:22px;font-size:.82rem;display:none';
+    pdfMergeInput.insertAdjacentElement('afterend', pdfMergeOrder);
+    function renderPdfMergeOrder() {
+      pdfMergeOrder.innerHTML = '';
+      pdfMergeOrder.style.display = pdfMergeQueue.length ? 'block' : 'none';
+      pdfMergeQueue.forEach((file, i) => {
+        const li = document.createElement('li');
+        li.style.cssText = 'display:list-item;margin:3px 0';
+        const name = document.createElement('span');
+        name.textContent = file.name + ' (' + formatFileSize(file.size) + ') ';
+        li.appendChild(name);
+        [['↑', 'Move up', i > 0, () => { [pdfMergeQueue[i - 1], pdfMergeQueue[i]] = [pdfMergeQueue[i], pdfMergeQueue[i - 1]]; }],
+         ['↓', 'Move down', i < pdfMergeQueue.length - 1, () => { [pdfMergeQueue[i + 1], pdfMergeQueue[i]] = [pdfMergeQueue[i], pdfMergeQueue[i + 1]]; }],
+         ['✕', 'Remove', true, () => { pdfMergeQueue.splice(i, 1); }]].forEach(([label, title, enabled, act]) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = label; b.title = title + ': ' + file.name; b.setAttribute('aria-label', title + ' ' + file.name);
+          b.disabled = !enabled;
+          b.style.cssText = 'padding:1px 8px;margin-left:4px;min-height:0;font-size:.75rem';
+          b.addEventListener('click', () => { act(); renderPdfMergeOrder(); });
+          li.appendChild(b);
+        });
+        pdfMergeOrder.appendChild(li);
+      });
+    }
+    pdfMergeInput.addEventListener('change', () => {
+      pdfMergeQueue = Array.from(pdfMergeInput.files || []);
+      renderPdfMergeOrder();
+    });
     pdfMergeBtn.addEventListener('click', async () => {
-      const files = Array.from(pdfMergeInput.files);
+      const files = pdfMergeQueue.length ? pdfMergeQueue.slice() : Array.from(pdfMergeInput.files);
       if (files.length < 2) { alert('Please select at least 2 PDF files.'); return; }
+      if (!window.PDFLib) { alert('The PDF editing engine (pdf-lib) did not load. Check your connection or use the Local Engine offline bundle.'); return; }
       pdfMergeBtn.disabled = true;
+      let current = '';
       try {
         const merged = await PDFLib.PDFDocument.create();
         for (const file of files) {
+          current = file.name;
           const ab = await file.arrayBuffer();
           const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
           const pages = await merged.copyPages(doc, doc.getPageIndices());
           pages.forEach(p => merged.addPage(p));
         }
+        current = '';
         const bytes = await merged.save();
         downloadBlob(new Blob([bytes], { type: 'application/pdf' }), 'merged.pdf');
         omniNotify(`Merged ${merged.getPageCount()} pages from ${files.length} files.`);
       } catch (e) {
-        alert('Merge error: ' + e.message);
+        alert('Merge error' + (current ? ' in "' + current + '"' : '') + ': ' + e.message);
       } finally {
         pdfMergeBtn.disabled = false;
       }
@@ -837,6 +910,7 @@
     pdfSplitBtn.addEventListener('click', async () => {
       const file = pdfSplitInput.files[0];
       if (!file) { alert('Please choose a PDF to split.'); return; }
+      if (!window.PDFLib) { alert('The PDF editing engine (pdf-lib) did not load. Check your connection or use the Local Engine offline bundle.'); return; }
       pdfSplitBtn.disabled = true;
       try {
         const ab = await file.arrayBuffer();

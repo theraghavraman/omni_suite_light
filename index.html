@@ -16,6 +16,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- CDN unreachable (offline / filtered network): fall back to the prepare_offline.py vendor copies. -->
+  <script>window.pdfjsLib||document.write('<script src="./vendor/pdfjs/pdf.min.js"><\/script><script>window.pdfjsLib&&(window.OMNI_PDF_WORKER=window.OMNI_PDF_WORKER||"./vendor/pdfjs/pdf.worker.min.js")<\/script>')</script>
+  <script>window.JSZip||document.write('<script src="./vendor/jszip/jszip.min.js"><\/script>')</script>
+  <script>window.PDFLib||document.write('<script src="./vendor/pdf-lib/pdf-lib.min.js"><\/script>')</script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <script src="./omni_language_engine.js?v=4"></script>
   <script src="./omni_language_browser.js?v=1"></script>
@@ -1900,7 +1904,7 @@ python prepare_language_models.py --transliteration</pre>
                 <option value="jpg" selected>JPG (JPEG)</option>
                 <option value="png">PNG (Lossless)</option>
                 <option value="webp">WebP</option>
-                <option value="avif">AVIF (browser-dependent)</option></option>
+                <option value="avif">AVIF (browser-dependent)</option>
               </select>
             </div>
             <div class="form-group">
@@ -3596,7 +3600,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=docs1"></script>
+<script src="./omni-core.js?v=pdf2"></script>
 
 
 <script id="omni-browser-first">
