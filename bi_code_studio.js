@@ -291,29 +291,38 @@ function pseudoCode(text){
   out.push('END PROGRAM');
   return out.join('\n');
 }
+// Replace string/template literals with identifier-like placeholders while operators are rewritten,
+// so words such as "not", "and", "true" inside text are left alone.
+function withMaskedStrings(e,fn){const lits=[];const masked=String(e).replace(/`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,m=>'__OMNISTR'+(lits.push(m)-1)+'__');return fn(masked).replace(/__OMNISTR(\d+)__/g,(_,i)=>lits[+i]);}
 function pyExprToJs(e){
-  return e
-    .replace(/\bf(["'])(.*?)\1/g,(m,q,b)=>'`'+b.replace(/`/g,'\\`').replace(/\{([^}]+)\}/g,'${$1}')+'`')
-    .replace(/\s+is\s+not\s+None\b/g,' !== null').replace(/\s+is\s+None\b/g,' === null').replace(/\s+not\s+in\s+/g,' NOTIN ')
+  e=e.replace(/\bf(["'])(.*?)\1/g,(m,q,b)=>'`'+b.replace(/`/g,'\\`').replace(/\{([^}]+)\}/g,'${$1}')+'`');
+  return withMaskedStrings(e,x=>x
+    .replace(/\bnot\s+([\w.]+)\s+is\s+None\b/g,'$1 !== null').replace(/\s+is\s+not\s+None\b/g,' !== null').replace(/\s+is\s+None\b/g,' === null').replace(/\s+not\s+in\s+/g,' NOTIN ')
     .replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false').replace(/\bNone\b/g,'null')
-    .replace(/\bnot\s+/g,'!').replace(/(\S+) NOTIN (\S+)/g,'!$2.includes($1)').replace(/(\w+|'[^']*'|"[^"]*")\s+in\s+(\w+)(?=\s*($|\)|&&|\|\|))/g,'$2.includes($1)').replace(/\s+and\s+/g,' && ').replace(/\s+or\s+/g,' || ')
+    .replace(/\s+and\s+/g,' && ').replace(/\s+or\s+/g,' || ')
+    .replace(/\bnot\s+/g,'!').replace(/([\w.]+) NOTIN ([\w.]+)/g,'!$2.includes($1)').replace(/([\w.]+)\s+in\s+([\w.]+)(?=\s*($|\)|&&|\|\|))/g,'$2.includes($1)')
     .replace(/\blen\(([^()]+)\)/g,'$1.length').replace(/\bstr\(([^()]+)\)/g,'String($1)')
     .replace(/\bint\(([^()]+)\)/g,'parseInt($1, 10)').replace(/\bfloat\(([^()]+)\)/g,'parseFloat($1)')
-    .replace(/\.append\(/g,'.push(').replace(/(\S)\s*\/\/\s*(\S+)/g,'Math.floor($1 / $2)')
+    .replace(/\.append\(/g,'.push(').replace(/([\w.]+(?:\([^()]*\))?|\))\s*\/\/\s*([\w.]+(?:\([^()]*\))?)/g,'Math.floor($1 / $2)')
     .replace(/\bprint\((.*)\)$/,'console.log($1)').replace(/\.upper\(\)/g,'.toUpperCase()').replace(/\.lower\(\)/g,'.toLowerCase()').replace(/\.strip\(\)/g,'.trim()')
-    ;
+    );
 }
+// strip a trailing "# comment" without touching '#' inside string literals
+function stripPyComment(l){let q=null;for(let i=0;i<l.length;i++){const c=l[i];if(q){if(c==='\\'){i++;continue;}if(c===q)q=null;}else if(c==='"'||c==="'")q=c;else if(c==='#')return l.slice(0,i).trimEnd();}return l;}
 function pythonToJs(text,ts){
-  const rows=codeIndentBlocks(text),out=[],open=[],declared=new Set();
+  const rows=codeIndentBlocks(text),out=[],open=[];
+  // Python variables are function-scoped: track declarations per function, add parameters, and use `var`
+  // for names first assigned inside a nested block so they stay visible after it (JS `let` would not).
+  const scopes=[{depth:-1,body:0,names:new Set()}];const scope=()=>scopes[scopes.length-1];
   const pad=d=>'  '.repeat(d);
-  const close=d=>{while(open.length&&open[open.length-1]>=d)out.push(pad(open.pop())+'}');};
+  const close=d=>{while(open.length&&open[open.length-1]>=d){const od=open.pop();out.push(pad(od)+'}');if(scope().depth===od&&scopes.length>1)scopes.pop();}};
   for(const {depth,text:l0} of rows){
-    let l=l0.replace(/\s+#.*$/,''),m;
+    let l=stripPyComment(l0),m;
     if(/^#/.test(l0)){close(depth);out.push(pad(depth)+'// '+l0.replace(/^#\s?/,''));continue;}
     const cont=/^(elif|else)\b/.test(l)||/^(except|finally)\b/.test(l);
     if(cont){close(depth+1);if(open.length&&open[open.length-1]===depth){open.pop();}}else close(depth);
     const pre=cont?pad(depth)+'} ':pad(depth);
-    if((m=l.match(/^def\s+(\w+)\s*\((.*?)\)\s*(?:->\s*[\w\[\], ]+)?:$/))){const params=m[2].split(',').map(x=>x.trim()).filter(x=>x&&x!=='self').map(x=>ts?x.replace(/:\s*int|:\s*float/,': number').replace(/:\s*str/,': string').replace(/:\s*bool/,': boolean'):x.replace(/:\s*[\w\[\], ]+/,'')).join(', ');out.push(pre+'function '+m[1]+'('+params+') {');open.push(depth);continue;}
+    if((m=l.match(/^def\s+(\w+)\s*\((.*?)\)\s*(?:->\s*[\w\[\], ]+)?:$/))){const raw=m[2].split(',').map(x=>x.trim()).filter(x=>x&&x!=='self');const params=raw.map(x=>ts?x.replace(/:\s*int|:\s*float/,': number').replace(/:\s*str/,': string').replace(/:\s*bool/,': boolean'):x.replace(/:\s*[\w\[\], ]+/,'')).join(', ');out.push(pre+'function '+m[1]+'('+params+') {');open.push(depth);scopes.push({depth,body:depth+1,names:new Set(raw.map(x=>x.replace(/^\*+/,'').split(/[:=]/)[0].trim()))});continue;}
     if((m=l.match(/^class\s+(\w+)(?:\((\w+)\))?:$/))){out.push(pre+'class '+m[1]+(m[2]&&m[2]!=='object'?' extends '+m[2]:'')+' {');open.push(depth);continue;}
     if((m=l.match(/^if\s+(.+):$/))){out.push(pre+'if ('+pyExprToJs(m[1])+') {');open.push(depth);continue;}
     if((m=l.match(/^elif\s+(.+):$/))){out.push(pre+'else if ('+pyExprToJs(m[1])+') {');open.push(depth);continue;}
@@ -328,20 +337,20 @@ function pythonToJs(text,ts){
     if(/^finally:$/.test(l)){out.push(pre+'finally {');open.push(depth);continue;}
     if(/^pass$/.test(l)){out.push(pad(depth)+'// pass');continue;}
     if(/^(import|from)\s/.test(l)){out.push(pad(depth)+'// TODO (import): '+l);continue;}
-    if((m=l.match(/^(\w+)\s*=\s*(.+)$/))&&!/^(==)/.test(m[2])){const key=depth+':'+m[1];const kw=declared.has(m[1])?'':'let ';declared.add(m[1]);out.push(pad(depth)+kw+m[1]+' = '+pyExprToJs(m[2])+';');continue;}
+    if((m=l.match(/^(\w+)\s*=\s*(.+)$/))&&!/^(==)/.test(m[2])){const sc=scope();const kw=sc.names.has(m[1])?'':(depth>sc.body?'var ':'let ');sc.names.add(m[1]);out.push(pad(depth)+kw+m[1]+' = '+pyExprToJs(m[2])+';');continue;}
     out.push(pad(depth)+pyExprToJs(l)+(/[;{}]$/.test(l)?'':';'));
   }
   close(0);
   return out.join('\n');
 }
 function jsExprToPy(e){
-  return e
-    .replace(/`([^`]*)`/g,(m,b)=>'f"'+b.replace(/"/g,'\\"').replace(/\$\{([^}]+)\}/g,'{$1}')+'"')
+  e=e.replace(/`([^`]*)`/g,(m,b)=>'f"'+b.replace(/"/g,'\\"').replace(/\$\{([^}]+)\}/g,'{$1}')+'"');
+  return withMaskedStrings(e,x=>x
     .replace(/===/g,'==').replace(/!==/g,'!=').replace(/&&/g,' and ').replace(/\|\|/g,' or ').replace(/!(?!=)\s*/g,'not ')
     .replace(/\btrue\b/g,'True').replace(/\bfalse\b/g,'False').replace(/\b(null|undefined)\b/g,'None')
     .replace(/(\w+(?:\.\w+)*)\.length\b/g,'len($1)').replace(/\.push\(/g,'.append(').replace(/\bString\(/g,'str(').replace(/\bparseInt\(([^,()]+)(?:,\s*10)?\)/g,'int($1)').replace(/\bparseFloat\(/g,'float(')
     .replace(/\.toUpperCase\(\)/g,'.upper()').replace(/\.toLowerCase\(\)/g,'.lower()').replace(/\.trim\(\)/g,'.strip()').replace(/\bMath\.floor\(([^()]+)\s*\/\s*([^()]+)\)/g,'$1 // $2')
-    .replace(/\bconsole\.log\(/g,'print(').replace(/\s+/g,' ').trim();
+    .replace(/\bconsole\.log\(/g,'print(').replace(/\s+/g,' ').trim());
 }
 function jsToPython(text){
   const rows=codeIndentBlocks(text),out=[];let last=-1;
@@ -421,13 +430,13 @@ function codeRun(pseudo=false){
   const detected=detectLanguage(text,$('codeFileName')?.value||'');
   const src=($('codeSourceLanguage')?.value||'auto')==='auto'?detected:$('codeSourceLanguage').value;
   const target=pseudo?'Pseudo Code':($('codeTargetLanguage')?.value||'Pseudo Code');
-  code.result=pseudo?pseudoCode(text):translateSyntax(text,src,target);
+  code.result=pseudo?pseudoCode(text):translateSyntax(text,src,target);code.target=target;
   $('codeOutput').textContent=code.result;
   $('codeMeta').textContent='Detected/source: '+src+' • Target: '+target+' • Browser heuristic translation';
   $('codeAudit').innerHTML='<div class="viz-rules"><span>✓ Syntax-level conversion attempted</span><span>✓ Program logic preserved where recognizable</span><span>△ Libraries/APIs need review</span><span>△ Not a compiler</span></div>';
   $('codeDownloadBtn').disabled=false;
 }
-function codeDownload(){if(!code.result)return;const target=($('codeTargetLanguage')?.value||'Pseudo Code');const extn={'Pseudo Code':'txt','Python':'py','JavaScript':'js','TypeScript':'ts','Java':'java','C#':'cs','C++':'cpp','C':'c','Go':'go','Rust':'rs','Kotlin':'kt','Swift':'swift','PHP':'php','Ruby':'rb','Bash':'sh','SQL':'sql'}[target]||'txt';download(new Blob([code.result],{type:'text/plain;charset=utf-8'}),'omni-translated.'+extn);}
+function codeDownload(){if(!code.result)return;const target=code.target||($('codeTargetLanguage')?.value||'Pseudo Code');const extn={'Pseudo Code':'txt','Python':'py','JavaScript':'js','TypeScript':'ts','Java':'java','C#':'cs','C++':'cpp','C':'c','Go':'go','Rust':'rs','Kotlin':'kt','Swift':'swift','PHP':'php','Ruby':'rb','Bash':'sh','SQL':'sql'}[target]||'txt';download(new Blob([code.result],{type:'text/plain;charset=utf-8'}),'omni-translated.'+extn);}
 function codeReset(){code.file=null;code.result='';$('codeInput').value='';$('codeFileName').value='';$('codeSource').value='';$('codeOutput').textContent='Your translated code or pseudo code will appear here.';$('codeMeta').textContent='No source analyzed yet.';$('codeAudit').innerHTML='';$('codeDownloadBtn').disabled=true;$('codeDrop').style.display='block';}
 
 function init(){
