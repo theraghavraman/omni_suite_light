@@ -790,7 +790,7 @@ function applyCellStyle(patch){
   xMutate(()=>forEachSel((r,c)=>{const k=A1(r,c);const cell=sh.cells[k]||{};const s={...(cell.s||{})};Object.entries(patch).forEach(([p,v])=>{if(v==null||v===false||v==='')delete s[p];else s[p]=v;});if(Object.keys(s).length)cell.s=s;else delete cell.s;if(cell.v==null&&cell.f==null&&!cell.s&&!cell.nf)delete sh.cells[k];else sh.cells[k]=cell;}));
 }
 function toggleStyle(key){const cell=curSheet().cells[A1(X.sel.r,X.sel.c)];applyCellStyle({[key]:!cell?.s?.[key]});}
-function setNumFmt(nf){const sh=curSheet();xMutate(()=>forEachSel((r,c)=>{const k=A1(r,c);const cell=sh.cells[k]||{};if(nf)cell.nf=nf;else delete cell.nf;if(cell.v==null&&cell.f==null&&!cell.s&&!cell.nf)delete sh.cells[k];else sh.cells[k]=cell;}));}
+function setNumFmt(nf){ensureWorkbook();const sh=curSheet();xMutate(()=>forEachSel((r,c)=>{const k=A1(r,c);const cell=sh.cells[k]||{};if(nf)cell.nf=nf;else delete cell.nf;if(cell.v==null&&cell.f==null&&!cell.s&&!cell.nf)delete sh.cells[k];else sh.cells[k]=cell;}));}
 function clearSelection(contentsOnly=true){const sh=curSheet();xMutate(()=>forEachSel((r,c)=>{const k=A1(r,c);const cell=sh.cells[k];if(!cell)return;if(contentsOnly&&(cell.s||cell.nf)){delete cell.v;delete cell.f;delete cell.cached;delete cell.text;if(!cell.s&&!cell.nf)delete sh.cells[k];}else delete sh.cells[k];}));}
 function selectionTSV(){const {r0,r1,c0,c1}=selRange();const lines=[];for(let r=r0;r<=r1;r++){const row=[];for(let c=c0;c<=c1;c++){const cell=curSheet().cells[A1(r,c)];let t=cell?formatValue(cellValue(X.active,r,c),cell.nf):'';if(/[\t\n"]/.test(t))t='"'+t.replace(/"/g,'""')+'"';row.push(t);}lines.push(row.join('\t'));}return lines.join('\n');}
 function parseTSV(text){const rows=[];let row=[],f='',q=false;text=String(text).replace(/\r\n?/g,'\n');if(text.endsWith('\n'))text=text.slice(0,-1);for(let i=0;i<text.length;i++){const ch=text[i];if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=ch;}else if(ch==='"'&&f==='')q=true;else if(ch==='\t'){row.push(f);f='';}else if(ch==='\n'){row.push(f);rows.push(row);row=[];f='';}else f+=ch;}row.push(f);rows.push(row);return rows;}
@@ -1035,7 +1035,8 @@ function renderDeck(){
   thumbs.querySelector('.ot-thumb.active')?.scrollIntoView({block:'nearest'});
 }
 const refreshThumb=debounce(i=>{const li=$('ot-thumbs')?.querySelector('.ot-thumb[data-i="'+i+'"] .ot-thumb-view');if(li&&P.deck.slides[i])li.innerHTML=slideHTML(P.deck.slides[i]);},250);
-function deckMutate(fn){fn();markDirty('powerpoint');renderDeck();}
+// controls can fire before a deck exists (e.g. changing the theme first): create the default deck instead of throwing
+function deckMutate(fn){if(!P.deck||!Array.isArray(P.deck.slides)||!P.deck.slides.length)newDeck(true);if(!curSlide())P.cur=0;fn();markDirty('powerpoint');renderDeck();}
 async function setSlideImage(file){
   try{const src=await normaliseImageFile(file,2400);const img=await loadImage(src);deckMutate(()=>{const s=curSlide();s.image={src,w:img.naturalWidth,h:img.naturalHeight};if(s.layout==='title'||s.layout==='section'||s.layout==='two')s.layout='content';});}
   catch(e){notify('Could not add image: '+e.message,true);}
