@@ -52,7 +52,7 @@
     kind.textContent=info.type==='video'?'Video':'Media';
     meta.textContent=info.title||'Public media';
     const seconds=Math.round(Number(info.duration)||0);
-    const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
+    const dur=seconds?[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map((v,i)=>i?String(v).padStart(2,'0'):String(v)).join(':'):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
      const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>safeHttpUrl(u.startsWith('http')?u:RESOLVER+u)).filter(Boolean);
      const mediaKind=(d)=>{
@@ -108,8 +108,9 @@
     if(!r.ok)throw new Error('Browser resolver HTTP '+r.status);
     const text=await r.text(); const urls=findMediaUrls(text,target);
     if(!urls.length)throw new Error('No public media URL found');
-    const media=urls.find(u=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
-    const thumb=urls.find(u=/\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
+    // arrow functions: `u=/re/.test(u)` was an assignment that threw "u is not defined" in strict mode
+    const media=urls.find(u=>/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
+    const thumb=urls.find(u=>/\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
     return {mediaUrl:media,thumbnail:thumb};
   }
 
