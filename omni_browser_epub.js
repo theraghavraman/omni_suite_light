@@ -16,6 +16,9 @@ const notify=(m,e)=>{if(window.omniNotify)window.omniNotify(m,e);};
 const plainRuns=t=>[{text:String(t??'')}];
 const runsText=r=>(r||[]).map(x=>x.text).join('');
 const safeName=s=>String(s||'book').replace(/[\\/:*?"<>|]+/g,'_').trim()||'book';
+// crypto.randomUUID only exists in secure contexts (https / localhost); LAN http:// needs a fallback.
+const uuid=()=>{try{if(crypto.randomUUID)return crypto.randomUUID();const b=crypto.getRandomValues(new Uint8Array(16));b[6]=b[6]&15|64;b[8]=b[8]&63|128;const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);}catch(_){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}};
+const DC='http://purl.org/dc/elements/1.1/';
 
 /* ---------- images ---------- */
 async function normalizeImage(bytes,mime){
@@ -29,14 +32,15 @@ async function normalizeImage(bytes,mime){
 const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',bmp:'image/bmp',avif:'image/avif'};
 
 /* ---------- EPUB reader ---------- */
-function resolvePath(dir,href){const parts=(dir?dir.split('/'):[]).concat(String(href).split('#')[0].split('/'));const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(decodeURIComponent(p));}return out.join('/');}
+function resolvePath(dir,href){const parts=(dir?dir.split('/'):[]).concat(String(href).split('#')[0].split('/'));const out=[];for(const p of parts){if(!p||p==='.')continue;if(p==='..')out.pop();else{let d=p;try{d=decodeURIComponent(p);}catch(_){/* keep a literal % in malformed hrefs */}out.push(d);}}return out.join('/');}
 async function readEpub(file){
   const z=await JSZip.loadAsync(await file.arrayBuffer());const P=(s,t)=>new DOMParser().parseFromString(s,t||'application/xml');
   const cont=z.file('META-INF/container.xml');let opfPath=cont?P(await cont.async('text')).querySelector('rootfile')?.getAttribute('full-path'):null;
   if(!opfPath)opfPath=Object.keys(z.files).find(n=>n.endsWith('.opf'));if(!opfPath)throw new Error('Not a valid EPUB (no package document).');
   const opf=P(await z.file(opfPath).async('text'));const dir=opfPath.includes('/')?opfPath.slice(0,opfPath.lastIndexOf('/')):'';
-  const meta=t=>opf.getElementsByTagName(t)[0]?.textContent?.trim()||'';
-  const title=meta('dc:title'),author=meta('dc:creator'),lang=meta('dc:language')||'en';
+  // match Dublin Core by namespace, not by the literal "dc:" prefix some packages do not use
+  const meta=t=>(opf.getElementsByTagNameNS(DC,t)[0]||opf.getElementsByTagName('dc:'+t)[0])?.textContent?.trim()||'';
+  const title=meta('title'),author=meta('creator'),lang=meta('language')||'en';
   const items={};for(const it of opf.getElementsByTagName('item'))items[it.getAttribute('id')]={href:it.getAttribute('href'),type:it.getAttribute('media-type'),props:it.getAttribute('properties')||''};
   let spine=[...opf.getElementsByTagName('itemref')].map(r=>items[r.getAttribute('idref')]).filter(Boolean).filter(x=>/html/.test(x.type)&&!/\bnav\b/.test(x.props));
   if(!spine.length)spine=Object.values(items).filter(x=>/html/.test(x.type)&&!/\bnav\b/.test(x.props));
@@ -60,7 +64,8 @@ async function readFb2(file){
   const walk=(el,depth)=>{for(const c of el.children){const n=c.localName;if(n==='section'){walk(c,depth+1);}else if(n==='title'){blocks.push({type:'heading',level:Math.min(6,Math.max(1,depth)),runs:plainRuns(c.textContent.trim().replace(/\s+/g,' '))});}else if(n==='p'||n==='subtitle'||n==='text-author'){const r=runs(c);if(runsText(r).trim())blocks.push({type:'para',runs:r});}else if(n==='image'){const id=(c.getAttribute('l:href')||c.getAttributeNS('http://www.w3.org/1999/xlink','href')||'').replace('#','');if(bins[id])blocks.push({type:'image',src:id,...bins[id]});}else if(n==='poem'||n==='cite'||n==='epigraph'||n==='stanza')walk(c,depth);else if(n==='v'){blocks.push({type:'para',runs:runs(c)});}else if(n==='table'){const rows=[...c.getElementsByTagName('tr')].map(tr=>[...tr.children].map(td=>td.textContent.trim()));blocks.push({type:'table',rows,header:true});}}};
   for(const body of doc.getElementsByTagName('body'))if(body.getAttribute('name')!=='notes')walk(body,0);
   for(const b of blocks)if(b.type==='image'&&b.bytes){const n=await normalizeImage(b.bytes,b.mime);if(n)Object.assign(b,n);}
-  return {title,author,lang:'en',blocks:blocks.filter(b=>b.type!=='image'||b.width)};
+  const lang=(T(T(doc,'title-info'),'lang')?.textContent||'').trim()||'en';
+  return {title,author,lang,blocks:blocks.filter(b=>b.type!=='image'||b.width)};
 }
 function writeFb2(model){
   const p=runs=>'<p>'+(runs||[]).map(r=>{let t=xmlEsc(r.text);if(r.italic)t='<emphasis>'+t+'</emphasis>';if(r.bold)t='<strong>'+t+'</strong>';return t;}).join('')+'</p>';
@@ -68,7 +73,7 @@ function writeFb2(model){
   for(const b of model.blocks){if(b.type==='heading'&&b.level<=2){close();body+='<section><title>'+p(b.runs)+'</title>';open=true;continue;}if(!open){body+='<section>';open=true;}
     if(b.type==='heading')body+='<subtitle>'+xmlEsc(runsText(b.runs))+'</subtitle>';else if(b.type==='para')body+=p(b.runs);else if(b.type==='list')body+=b.items.map(it=>p([{text:(b.ordered?'':'• ')},...it.runs])).join('');else if(b.type==='code')body+=b.text.split('\n').map(l=>'<p><code>'+xmlEsc(l)+'</code></p>').join('');else if(b.type==='table')body+='<table>'+b.rows.map(r=>'<tr>'+r.map(c=>'<td>'+xmlEsc(c)+'</td>').join('')+'</tr>').join('')+'</table>';else if(b.type==='image'&&b.bytes){n++;let s='';for(let i=0;i<b.bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.bytes.subarray(i,i+0x8000));bins+='<binary id="img'+n+'" content-type="'+b.mime+'">'+btoa(s)+'</binary>';body+='<image l:href="#img'+n+'"/>';}else if(b.type==='slide'){body+='<subtitle>'+xmlEsc(b.title)+'</subtitle>'+b.items.map(it=>'<p>• '+xmlEsc(it.text)+'</p>').join('');}}
   close();const [first,...rest]=String(model.author||'').split(' ');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink"><description><title-info><genre>nonfiction</genre><author><first-name>'+xmlEsc(first||'Unknown')+'</first-name><last-name>'+xmlEsc(rest.join(' '))+'</last-name></author><book-title>'+xmlEsc(model.title||'Untitled')+'</book-title><lang>'+xmlEsc(model.lang||'en')+'</lang></title-info><document-info><program-used>Redmark Forge</program-used><date>'+new Date().toISOString().slice(0,10)+'</date><id>'+crypto.randomUUID?.()+'</id><version>1.0</version></document-info></description><body>'+body+'</body>'+bins+'</FictionBook>';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink"><description><title-info><genre>nonfiction</genre><author><first-name>'+xmlEsc(first||'Unknown')+'</first-name><last-name>'+xmlEsc(rest.join(' '))+'</last-name></author><book-title>'+xmlEsc(model.title||'Untitled')+'</book-title><lang>'+xmlEsc(model.lang||'en')+'</lang></title-info><document-info><program-used>Redmark Forge</program-used><date>'+new Date().toISOString().slice(0,10)+'</date><id>'+uuid()+'</id><version>1.0</version></document-info></description><body>'+body+'</body>'+bins+'</FictionBook>';
 }
 
 /* ---------- RTF writer (Unicode-safe) ---------- */
@@ -88,7 +93,7 @@ async function writeEpub(model,{title,author,lang,fixed=false,pageImages=null}={
   z.file('mimetype','application/epub+zip',{compression:'STORE'});
   z.file('META-INF/container.xml','<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
   z.file('OEBPS/style.css',EPUB_CSS);
-  const uid='urn:uuid:'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));const manifest=[],spine=[],toc=[];let imgN=0;
+  const uid='urn:uuid:'+uuid();const manifest=[],spine=[],toc=[];let imgN=0;
   const page=(t,body,extraHead='')=>'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="'+xmlEsc(lang)+'" lang="'+xmlEsc(lang)+'"><head><meta charset="UTF-8"/><title>'+xmlEsc(t)+'</title>'+extraHead+'<link rel="stylesheet" type="text/css" href="style.css"/></head><body>'+body+'</body></html>';
   const addImage=b=>{imgN++;const e=b.mime==='image/png'?'png':'jpg';const href='images/img'+imgN+'.'+e;z.file('OEBPS/'+href,b.bytes);manifest.push('<item id="img'+imgN+'" href="'+href+'" media-type="'+b.mime+'"/>');return href;};
   const hr=rs=>(rs||[]).map(r=>{let t=xmlEsc(r.text).replace(/\n/g,'<br/>');if(r.code)t='<code>'+t+'</code>';if(r.italic)t='<em>'+t+'</em>';if(r.bold)t='<strong>'+t+'</strong>';return t;}).join('');
@@ -121,7 +126,7 @@ async function writeEpub(model,{title,author,lang,fixed=false,pageImages=null}={
 async function readCbz(file){const z=await JSZip.loadAsync(await file.arrayBuffer());const names=Object.keys(z.files).filter(n=>!z.files[n].dir&&/\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(n)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));if(!names.length)throw new Error('No images found in the comic archive.');const pages=[];for(const n of names){const im=await normalizeImage(await z.file(n).async('uint8array'),MIME[ext(n)]);if(im)pages.push(im);}return pages;}
 
 /* ---------- PDF pages as images ---------- */
-async function pdfPagesToImages(pdfBytes,scale=2,onProgress){const pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;const out=[];for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const vp=p.getViewport({scale});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await p.render({canvasContext:g,viewport:vp}).promise;const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));out.push({bytes:new Uint8Array(await b.arrayBuffer()),mime:'image/jpeg',width:c.width,height:c.height});if(onProgress)onProgress(i,pdf.numPages);if(p.cleanup)p.cleanup();}return out;}
+async function pdfPagesToImages(pdfBytes,scale=2,onProgress){if(!window.pdfjsLib)throw new Error('The PDF engine (PDF.js) did not load. Check your connection or use the Local Engine offline bundle.');const pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;const out=[];try{for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const vp=p.getViewport({scale});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await p.render({canvasContext:g,viewport:vp}).promise;const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));out.push({bytes:new Uint8Array(await b.arrayBuffer()),mime:'image/jpeg',width:c.width,height:c.height});c.width=c.height=1;if(onProgress)onProgress(i,pdf.numPages);if(p.cleanup)p.cleanup();}}finally{pdf.destroy?.();}return out;}
 
 /* ---------- unified ebook read / write ---------- */
 async function readEbook(file){const e=ext(file.name);
@@ -136,9 +141,12 @@ async function writeEbook(model,target,name){
   if(t==='epub'){if(model.pages)return {blob:await writeEpub(model,{fixed:true,pageImages:model.pages}),name:b+'.epub'};return {blob:await writeEpub(model,{}),name:b+'.epub'};}
   if(t==='fb2')return {blob:new Blob([writeFb2(model)],{type:'application/x-fictionbook+xml'}),name:b+'.fb2'};
   if(t==='rtf')return {blob:new Blob([writeRtf(model)],{type:'application/rtf'}),name:b+'.rtf'};
-  if(t==='htmlz'||t==='zip'){const z=new JSZip();let n=0;const m={...model,blocks:model.blocks.map(x=>x)};let html=D().writeHtml({...m,blocks:m.blocks.filter(x=>x.type!=='image')});
-    // keep images: write them beside index.html and reference them in order
-    const imgs=m.blocks.filter(x=>x.type==='image'&&x.bytes);if(imgs.length){let parts='';imgs.forEach(im=>{n++;const f='images/img'+n+'.'+(im.mime==='image/png'?'png':'jpg');z.file(f,im.bytes);parts+='<figure><img src="'+f+'" style="max-width:100%"/></figure>';});html=html.replace('</body>',parts+'</body>');}
+  if(t==='htmlz'||t==='zip'){const z=new JSZip();let n=0;
+    // writeHtml has no image support: put a unique placeholder paragraph where each image sits, then swap in <figure>.
+    const token='OMNIIMG'+Date.now().toString(36)+'X';const figs=[];
+    const blocks=model.blocks.map(x=>{if(x.type!=='image')return x;if(!x.bytes)return null;n++;const f='images/img'+n+'.'+(x.mime==='image/png'?'png':'jpg');z.file(f,x.bytes);figs.push('<figure><img src="'+f+'" alt="'+xmlEsc(x.alt||'')+'" style="max-width:100%"/></figure>');return {type:'para',runs:plainRuns(token+(figs.length-1))};}).filter(Boolean);
+    let html=D().writeHtml({...model,blocks});
+    html=html.replace(new RegExp('<p>'+token+'(\\d+)</p>','g'),(_,i)=>figs[+i]||'');
     z.file('index.html',html);z.file('metadata.opf','<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>'+xmlEsc(model.title||b)+'</dc:title><dc:creator>'+xmlEsc(model.author||'')+'</dc:creator></metadata></package>');
     return {blob:await z.generateAsync({type:'blob'}),name:b+'.'+t};}
   const r=await D().writeDocument(model,t);if(r)return {blob:r.blob,name:b+'.'+r.ext,note:r.note};
