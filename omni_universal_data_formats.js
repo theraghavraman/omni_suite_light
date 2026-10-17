@@ -122,6 +122,8 @@ function wireLegacy(){
 }
 function build(){
  const panel=$('tabUniversalData');if(!panel)return;
+ // build() is reached from both the immediate call and DOMContentLoaded: wire the listeners only once
+ if(panel.dataset.udsFormatsBuilt)return;panel.dataset.udsFormatsBuilt='1';
  let card=$('udsFormatExplorer');
  if(!card){
  card=document.createElement('div');card.className='card';card.id='udsFormatExplorer';
@@ -143,7 +145,8 @@ const style=document.createElement('style');style.textContent='.uds-xbar{display
 window.OMNI_UDS_FORMATS={registry:REGISTRY,allExtensions:allExts,browserOpen:[...browserOpen],browserConvert:[...browserConvert]};
 window.OMNI_UNIVERSAL_DATA=window.OMNI_UNIVERSAL_DATA||{};
 window.OMNI_UNIVERSAL_DATA.formats=REGISTRY;
-window.OMNI_UNIVERSAL_DATA.exportAs=async function(fileOrBlob,target){
+// exportAs(fmt) belongs to universal_data_studio.js; expose file conversion under its own name
+window.OMNI_UNIVERSAL_DATA.convertFile=async function(fileOrBlob,target){
   const file=fileOrBlob instanceof File?fileOrBlob:new File([fileOrBlob],'omni-input.dat');
   return convertBrowser(file,String(target||'json').replace(/^\\./,''));
 };

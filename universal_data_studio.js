@@ -59,11 +59,18 @@ function minMaxBy(items,getValue){let min=Infinity,max=-Infinity;for(const item 
 function numericFields(rows){if(!rows.length)return[];return [...new Set(rows.flatMap(r=>Object.entries(r).filter(([k,v])=>k[0]!=='_'&&v!==''&&Number.isFinite(Number(v))).map(([k])=>k)))].slice(0,40);}
 function parseGPX(text){const pts=[];const re=/<trkpt[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/gi;let m,i=0;while((m=re.exec(text))){const s=m[3];const tm=(s.match(/<time>([^<]+)/i)||[])[1];const ele=(s.match(/<ele>([^<]+)/i)||[])[1];pts.push({lat:+m[1],lon:+m[2],time:tm||'',elevation:ele?+ele:null,_index:i++});}return pts;}
 function parseKML(text){const pts=[];const re=/<Placemark[\s\S]*?<coordinates>([^<]+)<\/coordinates>[\s\S]*?<\/Placemark>/gi;let m,i=0;while((m=re.exec(text))){const parts=m[1].trim().split(/\s+/);parts.forEach(p=>{const a=p.split(',');if(a.length>=2)pts.push({lon:+a[0],lat:+a[1],elevation:a[2]?+a[2]:null,_index:i++});});}return pts;}
+function parseStructured(name,text){
+ if(ext(name)==='xml'){const d=new DOMParser().parseFromString(text,'application/xml');if(d.querySelector('parsererror'))throw new Error('XML parse failed: the file is not well-formed.');const kids=[...d.documentElement.children];
+   return normalize(kids.length?kids.map(n=>{const o={};[...n.attributes].forEach(a=>o['@'+a.name]=a.value);[...n.children].forEach(c=>{o[c.tagName]=c.children.length?c.textContent.trim().replace(/\s+/g,' '):c.textContent;});if(!n.children.length&&!n.attributes.length)o.value=n.textContent;return o;}):[{value:d.documentElement.textContent}]);}
+ if(!window.jsyaml)throw new Error('The YAML engine did not load. Check your connection and reload.');
+ return normalize(window.jsyaml.load(text));
+}
 function parseInput(name,text,buf){
  const k=guessKind(name,text);if(k!=='audio')state.audio=null;state.kind=k;
  if(k==='table')state.records=parseCSV(text,ext(name)==='tsv'?'\t':',');
  else if(k==='records'){try{const j=ext(name)==='ndjson'||ext(name)==='jsonl'?text.split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x)):JSON.parse(text);state.records=normalize(j);}catch(e){state.records=[];throw new Error('JSON/NDJSON parse failed: '+e.message);}}
  else if(k==='geo'){if(ext(name)==='gpx')state.records=parseGPX(text);else if(ext(name)==='kml')state.records=parseKML(text);else state.records=normalize(JSON.parse(text));}
+ else if(k==='structured'){state.records=parseStructured(name,text);}
  else if(k==='text'){state.records=text.split(/\r?\n/).filter(Boolean).map((line,i)=>({_index:i,line}));}
  else if(k==='binary'||k==='scientific-binary'){state.records=[];}
  else if(k==='audio'){state.audio=buf;state.records=[];}
@@ -71,7 +78,7 @@ function parseInput(name,text,buf){
  state.raw=text;state.sourceName=name;state.meta={bytes:buf?.byteLength||text.length,kind:state.kind,rows:state.records.length,numeric:numericFields(state.records)};
  renderPreview();updateControls();
 }
-async function loadFile(f){const buf=await f.arrayBuffer();let text='';if(!['audio','binary','scientific-binary'].includes(guessKind(f.name,''))){text=new TextDecoder().decode(buf);}else if(['txt','csv','json','geojson','gpx','kml','ndjson','jsonl','tsv'].includes(ext(f.name))){text=new TextDecoder().decode(buf);}parseInput(f.name,text,buf);}
+async function loadFile(f){state.audioPeaks=null;const buf=await f.arrayBuffer();let text='';if(!['audio','binary','scientific-binary'].includes(guessKind(f.name,''))){text=new TextDecoder().decode(buf);}else if(['txt','csv','json','geojson','gpx','kml','ndjson','jsonl','tsv'].includes(ext(f.name))){text=new TextDecoder().decode(buf);}parseInput(f.name,text,buf);}
 function renderPreview(){
  const meta=$('udsMeta');if(meta)meta.innerHTML='<div class="uds-pill"><b>'+esc(state.kind.toUpperCase())+'</b><span>'+prettyBytes(state.meta.bytes||0)+'</span></div><div class="uds-pill"><b>'+state.records.length+'</b><span>normalized rows</span></div><div class="uds-pill"><b>'+state.meta.numeric.length+'</b><span>numeric fields</span></div>';
  const p=$('udsPreview');if(!p)return;
@@ -187,7 +194,15 @@ function draw(){
  x.fillText('Y: '+fieldTitle,chartLeft,20);
  if(xField){x.fillStyle='#65718a';x.font='12px system-ui,sans-serif';x.fillText('X values from '+niceField(xField),chartLeft+190,20);}
 }
-function drawWave(x,w,h){const u=state.audio;if(!u)return;const a=new Uint8Array(u);let step=Math.max(1,Math.floor(a.length/(w*2)));x.strokeStyle='#ec4899';x.beginPath();for(let i=0;i<w;i++){let lo=255,hi=0;for(let j=0;j<step&&i*step+j<a.length;j++){const v=a[i*step+j];lo=Math.min(lo,v);hi=Math.max(hi,v);}const y1=h/2+(lo-128)/128*(h*.42),y2=h/2+(hi-128)/128*(h*.42);x.moveTo(i,y1);x.lineTo(i,y2);}x.stroke();}
+async function decodePeaks(){
+ if(state.audioPeaks||!state.audio)return state.audioPeaks;const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return null;
+ const ctx=new Ctx();try{const b=await ctx.decodeAudioData(state.audio.slice(0));const d=b.getChannelData(0),n=2000,step=Math.max(1,Math.floor(d.length/n)),peaks=new Float32Array(n*2);
+   for(let i=0;i<n;i++){let lo=1,hi=-1;for(let j=i*step,e=Math.min(d.length,j+step);j<e;j+=Math.max(1,step>>6)){const v=d[j];if(v<lo)lo=v;if(v>hi)hi=v;}peaks[i*2]=lo>hi?0:lo;peaks[i*2+1]=lo>hi?0:hi;}
+   state.audioPeaks=peaks;return peaks;}catch(_){return null;}finally{try{ctx.close();}catch(_){}}
+}
+function drawWave(x,w,h){const u=state.audio;if(!u)return;
+ if(state.audioPeaks){const p=state.audioPeaks,n=p.length/2;x.strokeStyle='#ec4899';x.beginPath();for(let i=0;i<w;i++){const k=Math.floor(i/w*n);x.moveTo(i+.5,h/2-p[k*2+1]*h*.42);x.lineTo(i+.5,h/2-p[k*2]*h*.42);}x.stroke();return;}
+ decodePeaks().then(p=>{if(p)draw();});const a=new Uint8Array(u);let step=Math.max(1,Math.floor(a.length/(w*2)));x.strokeStyle='#ec4899';x.beginPath();for(let i=0;i<w;i++){let lo=255,hi=0;for(let j=0;j<step&&i*step+j<a.length;j++){const v=a[i*step+j];lo=Math.min(lo,v);hi=Math.max(hi,v);}const y1=h/2+(lo-128)/128*(h*.42),y2=h/2+(hi-128)/128*(h*.42);x.moveTo(i,y1);x.lineTo(i,y2);}x.stroke();}
 function sonify(duration=8){
  const vals=state.records.map(r=>Number(r[$('udsField')?.value])).filter(Number.isFinite);if(!vals.length)throw new Error('Select a numeric field first.');
  const sr=44100,n=sr*duration,buf=new ArrayBuffer(44+n*2),dv=new DataView(buf);function w(o,s){for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i));}w(0,'RIFF');dv.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,sr,true);dv.setUint32(28,sr*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,n*2,true);
@@ -200,24 +215,27 @@ async function exportVideo(){
  const c=$('udsCanvas');if(!c)throw new Error('Visualization canvas unavailable.');
  const fps=24,seconds=Math.max(2,Math.min(20,Number($('udsVideoDuration')?.value||8)));
  const stream=c.captureStream(fps);const chunks=[];
- const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});
+ const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t));
+ if(!window.MediaRecorder||!mime)throw new Error('Video recording is not supported in this browser — export PNG instead.');
+ const rec=new MediaRecorder(stream,{mimeType:mime});
  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
  const done=new Promise((resolve,reject)=>{rec.onstop=resolve;rec.onerror=reject});
  rec.start();
  const start=performance.now();
  function frame(t){const p=Math.min(1,(t-start)/(seconds*1000));draw();if(state.records.length){const old=state.records;const n=Math.max(1,Math.floor(p*old.length));state.records=old.slice(0,n);draw();state.records=old;}if(p<1)requestAnimationFrame(frame);else rec.stop();}
- requestAnimationFrame(frame);await done;downloadBlob(new Blob(chunks,{type:'video/webm'}),'omni-data-visualization.webm');
+ requestAnimationFrame(frame);await done;const vext=mime.startsWith('video/mp4')?'mp4':'webm';downloadBlob(new Blob(chunks,{type:mime.split(';')[0]}),stem()+'-visualization.'+vext);
 }
+function stem(){return (state.sourceName||'omni-data').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]+/g,'_')||'omni-data';}
 async function exportAs(fmt){
  if(fmt==='json'){downloadBlob(new Blob([JSON.stringify(rowsForExport(),null,2)],{type:'application/json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.json');}
  else if(fmt==='csv'){downloadBlob(new Blob([csvOut(rowsForExport())],{type:'text/csv'}),state.sourceName.replace(/\.[^.]+$/,'')+'.csv');}
  else if(fmt==='geojson'){downloadBlob(new Blob([JSON.stringify(geoJSON(),null,2)],{type:'application/geo+json'}),state.sourceName.replace(/\.[^.]+$/,'')+'.geojson');}
- else if(fmt==='svg'){const pts=state.records.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));if(!pts.length)throw new Error('SVG map requires latitude/longitude records.');const bx=minMaxBy(pts,r=>r.lon),by=minMaxBy(pts,r=>r.lat),minx=bx.min,maxx=bx.max,miny=by.min,maxy=by.max,sx=maxx-minx||1,sy=maxy-miny||1;const circles=pts.map(r=>'<circle cx="'+(20+(r.lon-minx)/sx*760).toFixed(1)+'" cy="'+(380-(r.lat-miny)/sy*340).toFixed(1)+'" r="3"/>').join('');downloadBlob(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="100%" height="100%" fill="#f7f9ff"/><g fill="#635bff">'+circles+'</g></svg>'],{type:'image/svg+xml'}),'omni-map.svg');}
- else if(fmt==='png'){draw();const c=$('udsCanvas');const b=await new Promise(r=>c.toBlob(r,'image/png'));downloadBlob(b,'omni-data-visualization.png');}
- else if(fmt==='wav'){downloadBlob(sonify(Number($('udsDuration')?.value||8)),'omni-data-sonification.wav');}
+ else if(fmt==='svg'){const pts=state.records.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon));if(!pts.length)throw new Error('SVG map requires latitude/longitude records.');const bx=minMaxBy(pts,r=>r.lon),by=minMaxBy(pts,r=>r.lat),minx=bx.min,maxx=bx.max,miny=by.min,maxy=by.max,sx=maxx-minx||1,sy=maxy-miny||1;const circles=pts.map(r=>'<circle cx="'+(20+(r.lon-minx)/sx*760).toFixed(1)+'" cy="'+(380-(r.lat-miny)/sy*340).toFixed(1)+'" r="3"/>').join('');downloadBlob(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="100%" height="100%" fill="#f7f9ff"/><g fill="#635bff">'+circles+'</g></svg>'],{type:'image/svg+xml'}),stem()+'-map.svg');}
+ else if(fmt==='png'){draw();const c=$('udsCanvas');const b=await new Promise(r=>c.toBlob(r,'image/png'));downloadBlob(b,stem()+'-visualization.png');}
+ else if(fmt==='wav'){downloadBlob(sonify(Number($('udsDuration')?.value||8)),stem()+'-sonification.wav');}
  else if(fmt==='webm'){await exportVideo();}
- else if(fmt==='html'){downloadBlob(new Blob([htmlReport()],{type:'text/html'}),'omni-data-report.html');}
- else if(fmt==='txt'){downloadBlob(new Blob([state.records.map(r=>Object.entries(r).map(([k,v])=>k+'='+v).join(' | ')).join('\n')],{type:'text/plain'}),'omni-data.txt');}
+ else if(fmt==='html'){downloadBlob(new Blob([htmlReport()],{type:'text/html'}),stem()+'-report.html');}
+ else if(fmt==='txt'){downloadBlob(new Blob([rowsForExport().map(r=>Object.entries(r).map(([k,v])=>k+'='+(v&&typeof v==='object'?JSON.stringify(v):v)).join(' | ')).join('\n')],{type:'text/plain'}),stem()+'.txt');}
 }
 async function fetchURL(){
  const u=$('udsUrl')?.value.trim();if(!u)throw new Error('Enter a public URL/API endpoint.');setStatus('Fetching…');const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status+' — the source may not permit browser CORS.');const ct=r.headers.get('content-type')||'';const buf=await r.arrayBuffer();const name=(u.split('/').pop()||'remote-data').split('?')[0]||'remote-data';const text=/json|text|csv|xml|geo\+json|gpx|kml/i.test(ct)?new TextDecoder().decode(buf):'';if(/audio\//i.test(ct))state.audio=buf;parseInput(name,text,buf);setStatus('Fetched '+name);}
@@ -238,6 +256,14 @@ function encodedConvert(){
  $('udsEncodedOutput').value=out;
  const blob=new Blob([out],{type:'text/plain'});$('udsEncodedDownload').onclick=()=>downloadBlob(blob,'omni-encoded-conversion.txt');
 }
+function resetStudio(){
+ Object.assign(state,{raw:null,sourceName:'',kind:'unknown',records:[],meta:{bytes:0,kind:'unknown',rows:0,numeric:[]},audio:null,audioPeaks:null,animation:null,file:null});
+ if(audioPreviewUrl){URL.revokeObjectURL(audioPreviewUrl);audioPreviewUrl=null;audioPreviewBuffer=null;}
+ const i=$('udsInput');if(i)i.value='';['udsMeta','udsPreview'].forEach(id=>{const e=$(id);if(e)e.innerHTML='';});
+ const sel=$('udsField');if(sel)sel.innerHTML='<option value="">Auto</option>';
+ const c=$('udsCanvas');if(c){const x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);}
+ setStatus('Ready — load a file or fetch a URL.');
+}
 function bind(){
  if(__udsBound)return;
  const d=$('udsDrop'),i=$('udsInput');if(!d||!i){console.warn('[OMNI Universal Data] controls not found');return;}
@@ -247,8 +273,8 @@ function bind(){
  $('udsFetch')?.addEventListener('click',()=>fetchURL().catch(e=>setStatus(e.message,false)));
  $('udsVisualize')?.addEventListener('click',()=>{draw();setStatus('Visualization rendered');});
  $('udsExport')?.addEventListener('click',()=>exportAs($('udsFormat').value).catch(e=>setStatus(e.message,false)));
- $('udsSonify')?.addEventListener('click',()=>{try{downloadBlob(sonify(Number($('udsDuration').value||8)),'omni-data-sonification.wav');setStatus('Sonification generated');}catch(e){setStatus(e.message,false)}});
- $('udsReset')?.addEventListener('click',()=>location.reload());
+ $('udsSonify')?.addEventListener('click',()=>{try{downloadBlob(sonify(Number($('udsDuration').value||8)),stem()+'-sonification.wav');setStatus('Sonification generated');}catch(e){setStatus(e.message,false)}});
+ $('udsReset')?.addEventListener('click',resetStudio);
  $('udsPreset')?.addEventListener('change',e=>{const v=e.target.value;if(v)$('udsUrl').value=v;});
  $('udsEncodedRun')?.addEventListener('click',()=>{try{encodedConvert();setStatus('Encoded data converted.')}catch(e){setStatus(e.message,false)}});
  window.addEventListener('resize',()=>{if(state.records.length||state.audio)draw();});
