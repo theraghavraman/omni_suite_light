@@ -41,7 +41,17 @@ async function prepare(source){
   const span=Math.max(1,hi-lo);for(let i=0;i<p.length;i+=4){const v=Math.max(0,Math.min(255,(p[i]-lo)*255/span));p[i]=p[i+1]=p[i+2]=v;}
   g.putImageData(d,0,0);return c;
 }
-async function pdfPages(file){const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:2.5});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:vp}).promise;out.push({canvas:c,label:file.name+' — page '+i});if(pg.cleanup)pg.cleanup();}return out;}
+// PDF pages are listed up front but rendered one at a time while recognising, so a long scan never
+// holds every 2.5x page canvas in memory at once.
+async function pdfPages(file){
+  if(!window.pdfjsLib)throw new Error('The PDF engine (PDF.js) did not load, so '+file.name+' cannot be read. Check your connection or use the Local Engine offline bundle.');
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  for(let i=1;i<=pdf.numPages;i++)out.push({pdf,pageNum:i,last:i===pdf.numPages,label:file.name+' — page '+i});
+  return out;
+}
+async function renderPdfPage(p){const pg=await p.pdf.getPage(p.pageNum);const vp=pg.getViewport({scale:2.5});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:vp}).promise;if(pg.cleanup)pg.cleanup();return c;}
+// Tesseract cannot decode HEIC/TIFF/SVG; reuse the Image Tools decoder for those.
+async function ocrSource(f){if(/\.(heic|heif|tiff?|svg)$/i.test(f.name)||/heic|heif|tiff|svg/.test(f.type||'')){if(!window.OMNI_IMAGES)throw new Error(f.name+' needs the Image Tools decoder, which did not load.');return window.OMNI_IMAGES.decode(f);}return f;}
 
 const run=$('ocrRunBtn');
 run?.addEventListener('click',async e=>{
@@ -58,7 +68,7 @@ run?.addEventListener('click',async e=>{
     worker=await Tesseract.createWorker(lang,1,Object.assign({},window.OMNI_TESSERACT_OPTIONS||{},{logger:m=>{if(m.status==='recognizing text'&&typeof m.progress==='number')prog(8+92*(current+m.progress)/pages.length,'Page '+(current+1)+' of '+pages.length+' • recognizing text');else if(m.status&&current===0&&typeof m.progress==='number')prog(2+6*m.progress,m.status);}}));
     const texts=[],pdfParts=[];let conf=0;
     for(current=0;current<pages.length;current++){
-      const pg=pages[current],source=pg.canvas||pg.file;
+      const pg=pages[current],source=pg.pdf?await renderPdfPage(pg):await ocrSource(pg.file);
       // First pass: let Tesseract read the original image without preprocessing.
       let r=await worker.recognize(source,{},{text:true,pdf:true});
       const rawText=(r.data.text||'').trim(),rawConfidence=Number(r.data.confidence)||0;
@@ -74,6 +84,8 @@ run?.addEventListener('click',async e=>{
       texts.push(pages.length>1?'— '+pg.label+' —\n'+finalText:finalText);
       conf+=Number(r.data.confidence)||0;
       if(r.data.pdf)pdfParts.push(new Uint8Array(r.data.pdf));
+      if(source instanceof HTMLCanvasElement){source.width=source.height=1;}
+      if(pg.pdf&&pg.last)pg.pdf.destroy?.();
     }
     await worker.terminate();worker=null;
     // merge per-page searchable PDFs
