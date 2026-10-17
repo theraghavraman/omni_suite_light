@@ -27,7 +27,7 @@ function canvasOf(w,h){const c=document.createElement('canvas');c.width=Math.max
 async function decode(file){
   if(isHeic(file)){const conv=await heic();const out=await conv({blob:file,toType:'image/png'});file=Array.isArray(out)?out[0]:out;}
   if(isTiff(file)){const U=await utif();const buf=await file.arrayBuffer();const ifds=U.decode(buf);if(!ifds.length)throw new Error('No image inside the TIFF.');U.decodeImage(buf,ifds[0]);const rgba=U.toRGBA8(ifds[0]);const c=canvasOf(ifds[0].width,ifds[0].height);c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba.buffer),c.width,c.height),0,0);return c;}
-  if(isSvg(file)){let txt=await file.text();const doc=new DOMParser().parseFromString(txt,'image/svg+xml');const svg=doc.documentElement;let w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));const vb=(svg.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);if(!(w>0&&h>0)){w=vb[2]||512;h=vb[3]||512;}const k=Math.max(1,1024/Math.max(w,h));svg.setAttribute('width',w*k);svg.setAttribute('height',h*k);txt=new XMLSerializer().serializeToString(svg);
+  if(isSvg(file)){let txt=await file.text();const doc=new DOMParser().parseFromString(txt,'image/svg+xml');const svg=doc.documentElement;const abs=v=>/%|em$|ex$|vw$|vh$/.test(String(v||'').trim())?NaN:parseFloat(v);let w=abs(svg.getAttribute('width')),h=abs(svg.getAttribute('height'));const vb=(svg.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);if(!(w>0&&h>0)){w=vb[2]||512;h=vb[3]||512;}const k=Math.max(1,1024/Math.max(w,h));svg.setAttribute('width',w*k);svg.setAttribute('height',h*k);txt=new XMLSerializer().serializeToString(svg);
     const url=URL.createObjectURL(new Blob([txt],{type:'image/svg+xml'}));try{const im=new Image();await new Promise((r,j)=>{im.onload=r;im.onerror=()=>j(new Error('This SVG could not be rendered.'));im.src=url;});const c=canvasOf(w*k,h*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c;}finally{URL.revokeObjectURL(url);}}
   let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'});}
   catch(_){const url=URL.createObjectURL(file);try{const im=new Image();await new Promise((r,j)=>{im.onload=r;im.onerror=()=>j(new Error('This browser cannot decode '+file.name+'. Formats like JPEG XL, PSD or RAW need the Local Engine.'));im.src=url;});bmp=im;}finally{URL.revokeObjectURL(url);}}
@@ -74,18 +74,21 @@ window.OMNI_IMAGES={decode,encode,encodeUnder,setDpi};
 /* ================= 1. batch converter ================= */
 let batch=[],results=[];const inp=$('imgInput');
 if(inp){inp.setAttribute('accept','image/*,.heic,.heif,.tif,.tiff,.svg,.bmp,.ico');}
-const pickBatch=list=>{batch=[...list];setTimeout(()=>{const s=$('imgSummary');if(s&&batch.length){$('imgDropzone')&&($('imgDropzone').style.display='none');$('imgControls')&&($('imgControls').style.display='flex');s.textContent=batch.length+' image(s) selected';}},0);};
+let batchUrls=[];const revokeBatch=()=>{batchUrls.forEach(u=>URL.revokeObjectURL(u));batchUrls=[];};
+const pickBatch=list=>{batch=[...list];window.imgFiles=batch.slice();setTimeout(()=>{const s=$('imgSummary');if(s&&batch.length){$('imgDropzone')&&($('imgDropzone').style.display='none');$('imgControls')&&($('imgControls').style.display='flex');s.textContent=batch.length+' image(s) selected';}},0);};
 inp?.addEventListener('change',()=>pickBatch(inp.files||[]));$('imgDropzone')?.addEventListener('drop',e=>{if(e.dataTransfer?.files?.length)pickBatch(e.dataTransfer.files);});
-$('imgResetBtn')?.addEventListener('click',()=>{batch=[];results=[];});
+$('imgResetBtn')?.addEventListener('click',()=>{batch=[];results=[];revokeBatch();});
 // mark AVIF honestly: it now works via a WebAssembly encoder
 const avifOpt=$('imgTargetFmt')&&[...$('imgTargetFmt').options].find(o=>o.value==='avif');if(avifOpt)avifOpt.textContent='AVIF (smallest files)';
 $('imgRunBtn')?.addEventListener('click',async e=>{
-  if(!batch.length)return;e.stopImmediatePropagation();e.preventDefault();const btn=$('imgRunBtn');if(btn.dataset.busy)return;btn.dataset.busy='1';btn.disabled=true;const label=btn.textContent;
-  const fmt=$('imgTargetFmt')?.value||'png',q=parseFloat($('imgQualitySelect')?.value)||0.92;const grid=$('imgGrid');results=[];if(grid)grid.innerHTML='';const fails=[];let inBytes=0,outBytes=0;
+  const fmt=$('imgTargetFmt')?.value||'png';
+  // formats the browser cannot write (HEIC) are left to the Local Engine bridge registered after this script
+  if(!batch.length||!ENCODERS.has(fmt))return;e.stopImmediatePropagation();e.preventDefault();const btn=$('imgRunBtn');if(btn.dataset.busy)return;btn.dataset.busy='1';btn.disabled=true;const label=btn.textContent;
+  const q=parseFloat($('imgQualitySelect')?.value)||0.92;const grid=$('imgGrid');results=[];revokeBatch();if(grid)grid.innerHTML='';const fails=[];let inBytes=0,outBytes=0;
   try{for(let i=0;i<batch.length;i++){const f=batch[i];btn.textContent='Converting '+(i+1)+'/'+batch.length+'…';
       try{const c=await decode(f);const blob=await encode(c,fmt,{quality:q});const oe=fmt==='jpeg'?'jpg':fmt;let name=base(f.name)+'.'+oe;if(results.some(r=>r.name===name))name=base(f.name)+'_'+ext(f.name)+'.'+oe;let k=2;while(results.some(r=>r.name===name))name=base(f.name)+'_'+(k++)+'.'+oe;results.push({name,blob});inBytes+=f.size;outBytes+=blob.size;
         if(grid){const card=document.createElement('div');card.className='page-card';const pw=document.createElement('div');pw.className='page-preview-wrapper';const im=document.createElement('img');im.alt=name;const prev=canvasOf(Math.min(400,c.width),Math.min(400,c.width)*c.height/c.width);prev.getContext('2d').drawImage(c,0,0,prev.width,prev.height);im.src=prev.toDataURL('image/jpeg',0.8);pw.appendChild(im);
-          const pm=document.createElement('div');pm.className='page-meta';const pn=document.createElement('div');pn.className='page-num';pn.style.fontSize='0.8rem';pn.textContent=name+' • '+fmtSize(blob.size);const a=document.createElement('a');a.className='btn-download-single';a.href=URL.createObjectURL(blob);a.download=name;a.textContent='Save';pm.append(pn,a);card.append(pw,pm);grid.appendChild(card);}
+          const pm=document.createElement('div');pm.className='page-meta';const pn=document.createElement('div');pn.className='page-num';pn.style.fontSize='0.8rem';pn.textContent=name+' • '+fmtSize(blob.size);const a=document.createElement('a');a.className='btn-download-single';a.href=URL.createObjectURL(blob);batchUrls.push(a.href);a.download=name;a.textContent='Save';pm.append(pn,a);card.append(pw,pm);grid.appendChild(card);}
       }catch(err){console.warn('Image conversion failed',f.name,err);fails.push(f.name+': '+(err.message||err));}
       await new Promise(r=>setTimeout(r,0));}
     const sec=$('imgResultsSection');if(sec&&results.length){sec.style.display='block';sec.scrollIntoView({behavior:'smooth'});}
@@ -100,13 +103,18 @@ let rFile=null;$('imgResizeInput')?.addEventListener('change',()=>{rFile=$('imgR
 // optional size limit field (form uploads: e.g. photo ≤ 50 KB, signature ≤ 20 KB)
 const dpiBtn=$('imgResizeDpiBtn');let maxKbInput=$('imgResizeMaxKb');
 if(dpiBtn&&!maxKbInput){const holder=$('imgResizeOutput')?.closest('.form-group')||$('imgResizeOutput')?.parentElement;if(holder){const g=document.createElement('div');g.className=holder.className||'form-group';g.innerHTML='<label for="imgResizeMaxKb">Max file size (KB, optional)</label><input type="number" id="imgResizeMaxKb" class="form-input" min="5" step="1" placeholder="e.g. 50 for photo, 20 for signature">';holder.insertAdjacentElement('afterend',g);maxKbInput=$('imgResizeMaxKb');}}
+let resizeUrl=null;
 async function renderResized(w,h,mode,title,dpi){
-  if(!rFile)return;const src=await decode(rFile);w=Math.max(1,Math.min(12000,Math.round(w)));h=Math.max(1,Math.min(12000,Math.round(h)));const c=canvasOf(w,h),g=c.getContext('2d');g.imageSmoothingQuality='high';
+  if(!rFile)return;const src=await decode(rFile);
+  w=Number(w);h=Number(h);
+  if(!(w>0)&&!(h>0))throw new Error('Enter a width or a height (the other side follows the image\'s aspect ratio).');
+  if(!(w>0))w=h*src.width/src.height;else if(!(h>0))h=w*src.height/src.width;
+  w=Math.max(1,Math.min(12000,Math.round(w)));h=Math.max(1,Math.min(12000,Math.round(h)));const c=canvasOf(w,h),g=c.getContext('2d');g.imageSmoothingQuality='high';
   if(mode==='cover'){const k=Math.max(w/src.width,h/src.height);g.drawImage(src,(w-src.width*k)/2,(h-src.height*k)/2,src.width*k,src.height*k);}else if(mode==='contain'){const out=$('imgResizeOutput')?.value;if(out==='jpg'){g.fillStyle='#fff';g.fillRect(0,0,w,h);}const k=Math.min(w/src.width,h/src.height);g.drawImage(src,(w-src.width*k)/2,(h-src.height*k)/2,src.width*k,src.height*k);}else g.drawImage(src,0,0,w,h);
   const fmt=$('imgResizeOutput')?.value||'jpg';const maxKb=parseFloat(maxKbInput?.value||'');let blob,note='';
   if(maxKb>0&&fmt!=='png'){const r=await encodeUnder(c,fmt,maxKb*1024,{dpi});blob=r.blob;if(r.scaled){note=' • dimensions reduced to fit '+maxKb+' KB';w=r.canvas.width;h=r.canvas.height;}}
   else{blob=await encode(c,fmt,{quality:0.94,dpi});if(maxKb>0&&blob.size>maxKb*1024)note=' • PNG cannot be compressed to '+maxKb+' KB; choose JPG';}
-  const name=base(rFile.name)+'_'+w+'x'+h+'px'+(dpi?'_'+dpi+'dpi':'')+'.'+fmt;const url=URL.createObjectURL(blob);const grid=$('imgResizeGrid');
+  const name=base(rFile.name)+'_'+w+'x'+h+'px'+(dpi?'_'+dpi+'dpi':'')+'.'+fmt;if(resizeUrl)URL.revokeObjectURL(resizeUrl);const url=resizeUrl=URL.createObjectURL(blob);const grid=$('imgResizeGrid');
   if(grid){grid.innerHTML='';const card=document.createElement('div');card.className='page-card';const pw=document.createElement('div');pw.className='page-preview-wrapper';const im=document.createElement('img');im.src=url;im.alt='Resized preview';pw.appendChild(im);const pm=document.createElement('div');pm.className='page-meta';const left=document.createElement('div');const pn=document.createElement('div');pn.className='page-num';pn.textContent=w+' × '+h+' px';const fm=document.createElement('div');fm.className='file-meta';fm.textContent=title;left.append(pn,fm);const a=document.createElement('a');a.className='btn-download-single';a.href=url;a.download=name;a.textContent='Save';pm.append(left,a);card.append(pw,pm);grid.appendChild(card);}
   const res=$('imgResizeResults');if(res){res.style.display='block';res.scrollIntoView({behavior:'smooth',block:'nearest'});}
   const t=$('imgResizeResultTitle');if(t)t.textContent=title;const m=$('imgResizeResultMeta');if(m)m.textContent=w+' × '+h+' px • '+fmtSize(blob.size)+(dpi?' • '+dpi+' DPI saved in the file':'')+note;

@@ -339,7 +339,8 @@ function exportBlob(){
   const fmt=$('peFormat').value;const q=+$('peQuality').value/100;const mime={jpeg:'image/jpeg',png:'image/png',webp:'image/webp',avif:'image/avif'}[fmt];
   let c=finalCanvas();
   if(fmt==='jpeg'){const f=mk(c.width,c.height);const x=f.getContext('2d');x.fillStyle=$('peBg').value||'#ffffff';x.fillRect(0,0,f.width,f.height);x.drawImage(c,0,0);c=f;}
-  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('This browser cannot encode '+fmt.toUpperCase()+'.')),mime,fmt==='png'?undefined:q));
+  // toBlob silently falls back to PNG for codecs the browser cannot write; never save PNG bytes as .avif/.webp
+  return new Promise((res,rej)=>c.toBlob(b=>b&&b.type===mime?res(b):rej(new Error('This browser cannot encode '+fmt.toUpperCase()+'. Choose JPEG or PNG.')),mime,fmt==='png'?undefined:q));
 }
 async function download(){
   try{setBusy(true,'Preparing download…');await tick();const b=await exportBlob();const ext={jpeg:'jpg',png:'png',webp:'webp',avif:'avif'}[$('peFormat').value];
