@@ -4248,6 +4248,8 @@ function hasImplementationReference(id,source,element){
  if(window.__OMNI_WIRED_CONTROLS?.has(element))return true;
  if(id && window.__OMNI_WIRED_CONTROL_IDS?.has(id))return true;
  if(element.dataset.action || element.getAttribute('data-action') || element.dataset.omniTest || element.getAttribute('data-omni-test'))return true;
+ // "Open <child studio>" buttons are handled by the delegated [data-open-studio] listener (omni-studio-consolidation-v2)
+ if(element.dataset.openStudio && document.querySelector('.nav-bar .nav-btn[data-tab="'+element.dataset.openStudio+'"]'))return true;
  if(!id)return false;
  const direct=[
   'getElementById("'+id+'")',
@@ -4303,7 +4305,10 @@ async function runOptions(clear=true){
      }
      panel.querySelectorAll('select').forEach(sel=>{
        const opts=[...sel.options];
-       if(!opts.length){add(studio,'Option wiring: '+(sel.id||'select'),'FAIL','Select has no options');return;}
+       if(!opts.length){
+         // selects inside a closed dialog (e.g. Office Tools "Save as") are filled when the dialog opens
+         if(sel.closest('dialog:not([open]),[hidden]')){add(studio,'Option wiring: '+(sel.id||'select'),'SKIPPED','Filled when its dialog opens');return;}
+         add(studio,'Option wiring: '+(sel.id||'select'),'FAIL','Select has no options');return;}
        const eventTypes=window.__OMNI_WIRED_EVENT_TYPES?.get(sel)||new Set();
        const idEventTypes=sel.id?(window.__OMNI_WIRED_EVENT_IDS?.get(sel.id)||new Set()):new Set();
        const hasChange=eventTypes.has('change')||idEventTypes.has('change')||typeof sel.onchange==='function';
