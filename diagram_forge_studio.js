@@ -446,8 +446,10 @@ function canvasToMermaid(){
 function stripComments(code){return code.split('\n').map(l=>l.replace(/%%.*$/,'')).join('\n');}
 function decodeMmLabel(s){s=String(s??'').trim();if(/^".*"$/s.test(s))s=s.slice(1,-1);if(/^`.*`$/s.test(s))s=s.slice(1,-1);return s.replace(/#quot;/g,'"').replace(/<br\s*\/?>/gi,'\n').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/^\*\*(.*)\*\*$/,'$1');}
 const FC_SHAPES=[['(((',')))','ellipse'],['((','))','ellipse'],['([','])','round'],['[[',']]','rect'],['[(',')]','cylinder'],['{{','}}','hexagon'],['[/','/]','parallelogram'],['[\\','\\]','parallelogram'],['[/','\\]','rect'],['[\\','/]','rect'],['(',')','round'],['[',']','rect'],['{','}','diamond'],['>',']','rect']];
+// split Mermaid statements on newlines and on ";" outside quotes/brackets ("Load; validate" stays one label)
+function splitStatements(code){const out=[];let cur='',q=null,depth=0;for(const ch of code){if(q){cur+=ch;if(ch===q)q=null;continue;}if(ch==='"'||ch==='`'){q=ch;cur+=ch;continue;}if('[({'.includes(ch))depth++;else if('])}'.includes(ch))depth=Math.max(0,depth-1);if(ch==='\n'||(ch===';'&&!depth)){out.push(cur);cur='';continue;}cur+=ch;}out.push(cur);return out;}
 function parseFlowchart(code){
-  const lines=stripComments(code).split(/\n|;/).map(l=>l.trim()).filter(Boolean);
+  const lines=splitStatements(stripComments(code)).map(l=>l.trim()).filter(Boolean);
   const hdr=/^(flowchart|graph)\b\s*(TB|TD|BT|RL|LR)?/i.exec(lines[0]||'');if(!hdr)return null;
   const dir=({TD:'TB'})[(hdr[2]||'TB').toUpperCase()]||(hdr[2]||'TB').toUpperCase();
   const nodes=new Map(),edges=[],styles=new Map(),classDefs=new Map(),classOf=new Map();
@@ -640,9 +642,13 @@ function styleMap(s){const o={};String(s||'').split(';').forEach(p=>{if(!p)retur
 function htmlToText(v){if(!/[<&]/.test(v))return v;const d=new DOMParser().parseFromString('<div>'+String(v).replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li)>/gi,'\n')+'</div>','text/html');return (d.body.textContent||'').replace(/\n{2,}/g,'\n').trim();}
 async function fromDrawio(xmlText){
   let x=new DOMParser().parseFromString(xmlText,'application/xml');if(x.querySelector('parsererror'))throw new Error('This is not valid draw.io XML.');
+  const pages=x.querySelectorAll('diagram').length;if(pages>1)notify('This draw.io file has '+pages+' pages; the first page was imported.');
   let model=x.querySelector('mxGraphModel');
   if(!model){const dg=x.querySelector('diagram');if(!dg)throw new Error('No diagram found in this file.');const inner=await inflateDrawio(dg.textContent||'');x=new DOMParser().parseFromString(inner,'application/xml');model=x.querySelector('mxGraphModel');}
   if(!model)throw new Error('No mxGraphModel found.');
+  // Shapes with links, tooltips or custom properties are stored as <UserObject|object id label><mxCell/></...>:
+  // the id and label live on the wrapper, so copy them onto the cell (otherwise labels vanish and edges are dropped).
+  model.querySelectorAll('mxCell').forEach(c=>{const w=c.parentElement;if(!w||!/^(UserObject|object)$/i.test(w.localName))return;if(!c.getAttribute('id')&&w.getAttribute('id'))c.setAttribute('id',w.getAttribute('id'));if(!c.hasAttribute('value'))c.setAttribute('value',w.getAttribute('label')||'');});
   const cells=[...model.querySelectorAll('mxCell')];const byId=new Map(cells.map(c=>[c.getAttribute('id'),c]));
   const abs=c=>{let ox=0,oy=0;let p=byId.get(c.getAttribute('parent'));while(p&&p.getAttribute('vertex')==='1'){const g=p.querySelector(':scope>mxGeometry');ox+=+(g?.getAttribute('x')||0);oy+=+(g?.getAttribute('y')||0);p=byId.get(p.getAttribute('parent'));}return {ox,oy};};
   const nodes=[],edges=[],edgeLabels=new Map();
