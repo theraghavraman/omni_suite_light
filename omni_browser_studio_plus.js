@@ -286,7 +286,12 @@ async function deliver(ok,op){
   if(window.JSZip){const z=new window.JSZip();const used=new Set();fresh.forEach(r=>{let n=r.output;if(used.has(n)){r.output=n=base(r.input)+'_'+ext(r.input)+'.'+ext(n);}let i=2;while(used.has(n))n=base(r.output)+'_'+(i++)+'.'+ext(r.output);used.add(n);z.file(n,r._blob);});z.file('omni-batch-manifest.json',lastManifest);save(await z.generateAsync({type:'blob'}),'omni-batch-output.zip');}
   else fresh.forEach(r=>save(r._blob,r.output));
 }
-intercept('batchRunBtn',{async run(){
+intercept('batchRunBtn',{
+  // Targets/inputs the browser cannot handle (Avro, DuckDB, native formats) go to the Local Engine batch handler
+  // instead of failing every file with "needs the Local Engine".
+  plan(){const files=batchFiles.length?batchFiles:[...($('batchInput')?.files||[])];if(!files.length)return {};const op=$('batchOp')?.value||'data_convert',t=$('batchTarget')?.value||'csv';
+    if(files.some(f=>!BROWSER_READ.has(ext(f.name)))||(op!=='privacy_scan'&&!BROWSER_WRITE.has(t)))return null;return {};},
+  async run(){
   try{const files=batchFiles.length?batchFiles:[...($('batchInput')?.files||[])];if(!files.length)throw new Error('Choose one or more files first.');
     const op=$('batchOp')?.value||'data_convert',target=$('batchTarget')?.value||'csv';
     const results=await runBatch(files,op,target);
