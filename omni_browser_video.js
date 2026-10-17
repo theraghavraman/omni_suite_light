@@ -79,10 +79,12 @@ function toCanvas(src){const c=document.createElement('canvas');c.width=src.widt
 const canvasBlob=(c,type,q)=>new Promise(r=>c.toBlob(r,type,q));
 async function frameAt(file,t,width){const {M,input}=await openInput(file);const v=await input.getPrimaryVideoTrack();if(!v)throw new Error('No video track.');const sink=new M.CanvasSink(v,width?{width,fit:'contain'}:{});const w=await sink.getCanvas(Math.max(0,t))||await sink.getCanvas(await v.getFirstTimestamp());if(!w)throw new Error('Could not decode a frame at '+fmtTime(t)+'.');return toCanvas(w.canvas);}
 async function framesZip(file,o,onProg){const {M,input}=await openInput(file);const v=await input.getPrimaryVideoTrack();if(!v)throw new Error('No video track.');const dur=await input.computeDuration();
-  const start=Math.max(0,o.start||0),end=Math.min(dur,o.end>0?o.end:dur),step=Math.max(0.04,o.interval||1);const ts=[];for(let t=start;t<end-1e-6&&ts.length<600;t+=step)ts.push(+t.toFixed(3));
-  const sink=new M.CanvasSink(v,o.width?{width:o.width,fit:'contain'}:{});const Z=await jszip();const z=new Z();let i=0;const type=o.format==='png'?'image/png':'image/jpeg';
+  const start=Math.max(0,o.start||0),end=Math.min(dur,o.end>0?o.end:dur),step=Math.max(0.04,o.interval||1);const ts=[];let capped=false;for(let t=start;t<end-1e-6;t+=step){if(ts.length>=600){capped=true;break;}ts.push(+t.toFixed(3));}
+  // size from the requested height and the video's own aspect ratio (portrait videos stay portrait); never upscale
+  let size={};if(o.height&&o.height<v.displayHeight)size={width:Math.max(2,Math.round(o.height*v.displayWidth/v.displayHeight)),height:o.height,fit:'contain'};
+  const sink=new M.CanvasSink(v,size);const Z=await jszip();const z=new Z();let i=0;const type=o.format==='png'?'image/png':'image/jpeg';
   for await(const w of sink.canvasesAtTimestamps(ts)){if(w){const b=await canvasBlob(toCanvas(w.canvas),type,0.92);z.file(base(file.name)+'_'+String(i+1).padStart(4,'0')+'_'+ts[i].toFixed(2).replace('.','s')+'.'+(o.format==='png'?'png':'jpg'),b);}i++;onProg&&onProg(i/ts.length);}
-  return {blob:await z.generateAsync({type:'blob'}),count:i};}
+  return {blob:await z.generateAsync({type:'blob'}),count:i,capped};}
 async function makeGif(file,o,onProg){const {M,input}=await openInput(file);const v=await input.getPrimaryVideoTrack();if(!v)throw new Error('No video track.');const dur=await input.computeDuration();
   const start=Math.max(0,o.start||0);let end=Math.min(dur,o.end>0?o.end:dur);if(end-start>30)end=start+30;const fps=o.fps||10,ts=[];for(let t=start;t<end-1e-6;t+=1/fps)ts.push(t);
   const {GIFEncoder,quantize,applyPalette}=await gifenc();const sink=new M.CanvasSink(v,{width:o.width||480,fit:'contain'});const g=GIFEncoder();let i=0,pal=null;
@@ -147,7 +149,7 @@ runBtn?.addEventListener('click',async e=>{
   const a=actionEl?.value||'trim_video',start=+startEl.value||0,end=+endEl.value||duration,res=+($('videoResolution')?.value||0)||0;const t0=performance.now();
   try{
     if(a==='snapshot'){const t=player&&!isNaN(player.currentTime)?player.currentTime:start;const c=await frameAt(file,t);const f=$('videoImageFormat')?.value||'png';const b=await canvasBlob(c,f==='png'?'image/png':'image/jpeg',0.95);save(b,base(file.name)+'_frame_'+t.toFixed(2).replace('.','s')+'.'+f);notify('Saved frame at '+fmtTime(t)+' • '+c.width+'×'+c.height);}
-    else if(a==='frames'){prog(0,'Exporting frames…');const r=await framesZip(file,{start,end,interval:+($('videoFrameInterval')?.value||1),format:$('videoImageFormat')?.value||'png',width:res?Math.round(res*16/9):0},p=>prog(p,'Exporting frames…'));save(r.blob,base(file.name)+'_frames.zip');notify('Exported '+r.count+' frames • '+fmtSize(r.blob.size));}
+    else if(a==='frames'){prog(0,'Exporting frames…');const r=await framesZip(file,{start,end,interval:+($('videoFrameInterval')?.value||1),format:$('videoImageFormat')?.value||'png',height:res},p=>prog(p,'Exporting frames…'));save(r.blob,base(file.name)+'_frames.zip');notify('Exported '+r.count+' frames • '+fmtSize(r.blob.size)+(r.capped?' • limited to 600 frames — choose a longer interval or a shorter selection for the rest':''),r.capped);}
     else if(a==='gif'){prog(0,'Making GIF…');const r=await makeGif(file,{start,end,width:+($('videoGifWidth')?.value||480),fps:+($('videoGifFps')?.value||12)},p=>prog(p,'Making GIF…'));save(r.blob,base(file.name)+'.gif');notify('GIF ready • '+r.frames+' frames • '+fmtSize(r.blob.size)+(r.clipped?' • limited to the first 30 s of the selection':''));}
     else if(a==='extract_audio'){prog(0,'Extracting audio…');const f=$('videoAudioFormat')?.value||'m4a';const b=await extractAudio(file,{start,end,format:f},p=>prog(p,'Extracting audio…'));save(b,base(file.name)+'_audio.'+f);notify('Audio saved • '+f.toUpperCase()+' • '+fmtSize(b.size));}
     else{const speed=parseFloat(speedEl?.value)||1;const fmt=$('videoOutFormat')?.value||'mp4';prog(0,'Converting…');
