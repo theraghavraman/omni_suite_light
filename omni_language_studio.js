@@ -11,16 +11,16 @@
   };
 
   function pairSupported(source,target){
-    const src=String(source||'').trim().toLowerCase().replace('-','_');
-    const tgt=String(target||'').trim().toLowerCase().replace('-','_');
+    const src=String(source||'').trim().toLowerCase().replace(/-/g,'_');
+    const tgt=String(target||'').trim().toLowerCase().replace(/-/g,'_');
     if(!src||!tgt||src===tgt)return true;
-    if(state.browserPairs.has(src.replace('_','-')+'-'+tgt.replace('_','-')))return true;
+    if(state.browserPairs.has(src.replace(/_/g,'-')+'-'+tgt.replace(/_/g,'-')))return true;
     if(src==='en')return state.localRoutes.has('en_indic');
     if(tgt==='en')return state.localRoutes.has('indic_en');
     return state.localRoutes.has('indic_indic');
   }
 
-  function updateLanguageChoices(){
+  function updateLanguageChoices(updateHint=true){
     const source=$('languageSource'),target=$('languageTarget');
     if(!source||!target)return;
     [...source.options].forEach(option=>{
@@ -34,7 +34,7 @@
       option.title=available?'Available with the currently detected translation engines':'Not available for the selected source with the currently detected models';
     });
     const hint=$('languageTranslateStatus');
-    if(hint&&!hint.dataset.running){
+    if(updateHint&&hint&&!hint.dataset.running){
       if(pairSupported(source.value,target.value)){
         hint.textContent=state.localDetected
           ?'Runs in the browser when supported, otherwise on the Local Engine.'
@@ -70,7 +70,7 @@
         :'not installed';
       setStatus('languageEngineStatus',[
         'Engine: '+s.engine+' '+s.version,
-        'Isolation: Assistant '+(s.isolated_from_assistant?'OFF':'UNKNOWN')+' • RAG '+(s.isolated_from_rag?'OFF':'UNKNOWN'),
+        'Isolation: '+(s.isolated_from_assistant?'separate from Assistant':'Assistant isolation unknown')+' • '+(s.isolated_from_rag?'separate from RAG':'RAG isolation unknown'),
         'Local Engine: '+(s.local?'detected':'not running'),
         'Translation models: '+routeSummary,
         'Transliteration model: '+transliterationSummary,
@@ -79,7 +79,7 @@
         'Browser cache: '+(s.browser?.cache||'not configured'),
         'Network translation API: disabled'
       ].join('\n'));
-      updateLanguageChoices();
+      updateLanguageChoices(!$('languageTranslateStatus')?.dataset.shown);
     }catch(e){
       state.localRoutes.clear();
       state.localDetected=false;
@@ -92,6 +92,10 @@
     const input=$('languageInputText')?.value?.trim();
     if(!input){setStatus('languageTranslateStatus','Enter text first.');return;}
     const source=$('languageSource'),target=$('languageTarget');
+    if(source.value===target.value){
+      setStatus('languageTranslateStatus','Source and target are the same language — choose a different "Translate to" language.');
+      return;
+    }
     if(!pairSupported(source.value,target.value)){
       setStatus('languageTranslateStatus','This language pair is not available in the detected models. Refresh Local Engine status or choose another pair.');
       return;
@@ -106,8 +110,9 @@
       $('languageTranslateOutput').value=r.text||'';
       $('languageTranslateOutput').style.display='block';
       setStatus('languageTranslateStatus',(r.model||'Language Engine')+' • '+(r.provider||'local')+' • isolated from Assistant/RAG');
-    }catch(e){setStatus('languageTranslateStatus','Translation unavailable: '+(e.message||e));}
-    finally{btn.disabled=false;if(hint)delete hint.dataset.running;updateLanguageChoices();}
+      if(hint)hint.dataset.shown='1';
+    }catch(e){setStatus('languageTranslateStatus','Translation unavailable: '+(e.message||e));if(hint)hint.dataset.shown='1';}
+    finally{btn.disabled=false;if(hint)delete hint.dataset.running;updateLanguageChoices(false);}
   }
 
   async function transliterate(){
@@ -125,12 +130,23 @@
     finally{btn.disabled=false;}
   }
 
+  function swapLanguages(){
+    const source=$('languageSource'),target=$('languageTarget'),input=$('languageInputText'),output=$('languageTranslateOutput');
+    if(!source||!target)return;
+    const s=source.value;source.value=target.value;target.value=s;
+    if(output&&output.value&&output.style.display!=='none'&&input){input.value=output.value;output.value='';output.style.display='none';}
+    const h=$('languageTranslateStatus');if(h)delete h.dataset.shown;
+    updateLanguageChoices();
+  }
+
   function init(){
     $('languageRefreshStatus')?.addEventListener('click',refresh);
+    $('languageSwapBtn')?.addEventListener('click',swapLanguages);
     $('languageTranslateBtn')?.addEventListener('click',translate);
     $('languageTranslitBtn')?.addEventListener('click',transliterate);
-    $('languageSource')?.addEventListener('change',updateLanguageChoices);
-    $('languageTarget')?.addEventListener('change',updateLanguageChoices);
+    const changed=()=>{const h=$('languageTranslateStatus');if(h)delete h.dataset.shown;updateLanguageChoices();};
+    $('languageSource')?.addEventListener('change',changed);
+    $('languageTarget')?.addEventListener('change',changed);
     updateLanguageChoices();
     refresh();
   }

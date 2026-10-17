@@ -21,9 +21,9 @@
   <script>window.JSZip||document.write('<script src="./vendor/jszip/jszip.min.js"><\/script>')</script>
   <script>window.PDFLib||document.write('<script src="./vendor/pdf-lib/pdf-lib.min.js"><\/script>')</script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-  <script src="./omni_language_engine.js?v=4"></script>
-  <script src="./omni_language_browser.js?v=1"></script>
-  <script src="./omni_language_studio.js?v=4"></script>
+  <script src="./omni_language_engine.js?v=5"></script>
+  <script src="./omni_language_browser.js?v=2"></script>
+  <script src="./omni_language_studio.js?v=5"></script>
   <script src="./omni_browser_media_ai.js?v=1"></script>
   <script src="./omni_browser_ai.js?v=6"></script>
   <script src="./omni_deepseek_code_ai.js?v=1"></script>
@@ -1747,12 +1747,13 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
           <div class="form-group">
             <label for="languageTarget">Translate to</label>
             <select id="languageTarget" class="form-select">
-              <option value="en" selected>English</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="mr">Marathi</option><option value="ne">Nepali</option><option value="or">Odia</option><option value="pa">Punjabi</option><option value="si">Sinhala</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="ur">Urdu</option><option value="asm">Assamese</option><option value="brx">Bodo</option><option value="doi">Dogri</option><option value="gom">Konkani</option><option value="mai">Maithili</option><option value="mni">Manipuri</option><option value="sa">Sanskrit</option><option value="sat">Santali</option><option value="sd">Sindhi</option><option value="ks">Kashmiri</option>
+              <option value="en">English</option><option value="hi" selected>Hindi</option><option value="bn">Bengali</option><option value="gu">Gujarati</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="mr">Marathi</option><option value="ne">Nepali</option><option value="or">Odia</option><option value="pa">Punjabi</option><option value="si">Sinhala</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="ur">Urdu</option><option value="asm">Assamese</option><option value="brx">Bodo</option><option value="doi">Dogri</option><option value="gom">Konkani</option><option value="mai">Maithili</option><option value="mni">Manipuri</option><option value="sa">Sanskrit</option><option value="sat">Santali</option><option value="sd">Sindhi</option><option value="ks">Kashmiri</option>
             </select>
           </div>
         </div>
         <div class="actions-bar">
           <button type="button" class="btn btn-primary" id="languageTranslateBtn">Translate</button>
+            <button type="button" class="btn btn-secondary" id="languageSwapBtn" title="Swap source and target languages">⇄ Swap languages</button>
         </div>
         <div id="languageTranslateStatus" class="form-hint">Hindi ↔ English runs in this browser (the model downloads once). Other Indic pairs use the Local Engine.</div>
         <textarea id="languageTranslateOutput" class="form-textarea" style="display:none;margin-top:10px;width:100%;min-height:150px;" readonly></textarea>

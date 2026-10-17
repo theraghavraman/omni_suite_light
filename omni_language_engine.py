@@ -6,6 +6,7 @@ It performs no network access at inference time.
 """
 from __future__ import annotations
 import os
+import re
 import threading
 from pathlib import Path
 
@@ -29,7 +30,8 @@ INDIC_TAGS = {
     "or":"ory_Orya","ori":"ory_Orya","pa":"pan_Guru","pan":"pan_Guru",
     "sa":"san_Deva","san":"san_Deva","sat":"sat_Olck","si":"sin_Sinh",
     "sd":"snd_Arab","ta":"tam_Taml","te":"tel_Telu","ur":"urd_Arab",
-    "urd":"urd_Arab","kas":"kas_Arab","snd":"snd_Arab"
+    "urd":"urd_Arab","kas":"kas_Arab","ks":"kas_Arab","snd":"snd_Arab",
+    "as":"asm_Beng"
 }
 _lock = threading.RLock()
 _translation_cache = {}
@@ -70,6 +72,25 @@ def _load_translation(route):
         _translation_cache[route] = (tokenizer, model, device)
         return _translation_cache[route]
 
+_SENTENCE_END = re.compile(r"(?<=[.!?\u0964\u0965\u06d4])\s+")
+
+def _segments(paragraph, limit=400):
+    """Split one paragraph into sentence-sized pieces (IndicTrans2 truncates at 256 tokens)."""
+    out, current = [], ""
+    for sentence in _SENTENCE_END.split(paragraph):
+        while len(sentence) > limit:
+            cut = sentence.rfind(" ", 0, limit)
+            if cut < limit // 2: cut = limit
+            if current.strip(): out.append(current.strip()); current = ""
+            out.append(sentence[:cut].strip()); sentence = sentence[cut:]
+        if len((current + " " + sentence).strip()) > limit:
+            if current.strip(): out.append(current.strip())
+            current = sentence
+        else:
+            current = (current + " " + sentence).strip() if current else sentence
+    if current.strip(): out.append(current.strip())
+    return [x for x in out if x]
+
 def _translate_indictrans(text, source, target, max_new_tokens=512):
     route, target_tag = _route(source, target)
     if route == "identity": return text
@@ -80,12 +101,21 @@ def _translate_indictrans(text, source, target, max_new_tokens=512):
         raise RuntimeError("IndicTransToolkit is missing. Install requirements-language.txt.") from exc
     processor = IndicProcessor(inference=True)
     src_tag = _tag(source)
-    pre = processor.preprocess_batch([text], src_lang=src_tag, tgt_lang=target_tag)
-    inputs = tokenizer(pre, padding="longest", truncation=True, return_tensors="pt").to(device)
-    generated = model.generate(**inputs, max_length=max(32, min(int(max_new_tokens), 2048)), num_beams=4, early_stopping=True)
-    decoded = tokenizer.batch_decode(generated, skip_special_tokens=True)
-    post = processor.postprocess_batch(decoded, lang=target_tag)
-    return post[0] if post else ""
+    paragraphs = str(text).replace("\r", "").split("\n")
+    pieces = [(p, seg) for p, para in enumerate(paragraphs) for seg in _segments(para)]
+    translated = [""] * len(pieces)
+    for start in range(0, len(pieces), 8):
+        batch = [seg for _, seg in pieces[start:start + 8]]
+        pre = processor.preprocess_batch(batch, src_lang=src_tag, tgt_lang=target_tag)
+        inputs = tokenizer(pre, padding="longest", truncation=True, return_tensors="pt").to(device)
+        generated = model.generate(**inputs, max_length=max(32, min(int(max_new_tokens), 2048)), num_beams=4, early_stopping=True)
+        decoded = tokenizer.batch_decode(generated, skip_special_tokens=True)
+        post = processor.postprocess_batch(decoded, lang=target_tag)
+        translated[start:start + len(post)] = post
+    joined = [[] for _ in paragraphs]
+    for (p, _), out in zip(pieces, translated):
+        joined[p].append(str(out).strip())
+    return "\n".join(" ".join(x) for x in joined).strip()
 
 XLIT_TAGS = {
     "asm":"as", "as":"as", "bn":"bn", "brx":"brx", "gu":"gu", "hi":"hi",
@@ -112,12 +142,20 @@ def _load_xlit_roman():
 def transliterate(text, source, target="Latn", topk=4):
     value, src, tgt = str(text or "").strip(), _norm(source), _norm(target)
     if not value: raise ValueError("No text was supplied for transliteration.")
+    # XlitEngine.translit_sentence() has no top-k option (that is translit_word); topk is accepted for API compatibility.
     if tgt in {"latn","latin","roman","en"}:
-        engine = _load_xlit_native(XLIT_TAGS.get(src, src))
-        out = engine.translit_sentence(value, lang_code=XLIT_TAGS.get(src, src), topk=max(1, int(topk)))
+        lang = XLIT_TAGS.get(src)
+        if not lang:
+            raise ValueError("Indic → Roman transliteration needs an Indic source language; choose the language the text is written in.")
+        engine = _load_xlit_native(lang)
+        out = engine.translit_sentence(value, lang_code=lang)
         return {"text":out, "model":"IndicXlit", "direction":"indic-to-roman"}
+    lang = XLIT_TAGS.get(tgt)
+    if not lang:
+        raise ValueError("Unsupported transliteration target script: " + str(target))
     engine = _load_xlit_roman()
-    out = engine.translit_sentence(value, lang_code=src, topk=max(1, int(topk)))
+    # Roman → Indic: the output script is the selected *target* language, not the source.
+    out = engine.translit_sentence(value, lang_code=lang)
     return {"text":out, "model":"IndicXlit", "direction":"roman-to-indic"}
 
 def translate(text, source, target, max_new_tokens=512):

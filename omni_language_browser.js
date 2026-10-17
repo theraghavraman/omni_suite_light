@@ -61,15 +61,53 @@
     return promise;
   }
 
+  // Marian models translate roughly one sentence well and truncate long input
+  // (~512 tokens), so long text is translated in sentence-sized segments.
+  const SENTENCE_END = /(?<=[.!?\u0964\u0965\u06D4])\s+/;
+  function segmentParagraph(paragraph, max) {
+    const out = [];
+    let current = '';
+    const push = piece => { if (piece.trim()) out.push(piece.trim()); };
+    for (const sentence of paragraph.split(SENTENCE_END)) {
+      if (sentence.length > max) {
+        push(current); current = '';
+        let rest = sentence;
+        while (rest.length > max) {
+          let cut = rest.lastIndexOf(' ', max);
+          if (cut < max / 2) cut = max;
+          push(rest.slice(0, cut));
+          rest = rest.slice(cut);
+        }
+        current = rest;
+      } else if ((current + ' ' + sentence).trim().length > max) {
+        push(current); current = sentence;
+      } else {
+        current = current ? current + ' ' + sentence : sentence;
+      }
+    }
+    push(current);
+    return out;
+  }
+
   const adapter = {
     capabilities: Object.keys(MODELS),
-    async translate(text, source, target) {
+    async translate(text, source, target, options = {}) {
       const k = key(source, target);
       const pipe = await getPipeline(source, target);
-      const result = await pipe(String(text || ''), {max_new_tokens:256, num_beams:2});
-      const first = Array.isArray(result) ? result[0] : result;
+      const maxTokens = Math.max(32, Math.min(512, Number(options.max_new_tokens) || 256));
+      const paragraphs = String(text || '').replace(/\r/g, '').split('\n');
+      const translated = [];
+      for (const paragraph of paragraphs) {
+        const parts = [];
+        for (const segment of segmentParagraph(paragraph, 350)) {
+          const result = await pipe(segment, {max_new_tokens:maxTokens, num_beams:2});
+          const first = Array.isArray(result) ? result[0] : result;
+          parts.push(String(first?.translation_text || first?.text || '').trim());
+        }
+        translated.push(parts.join(' '));
+      }
       return {
-        text: first?.translation_text || first?.text || '',
+        text: translated.join('\n').trim(),
         model: MODELS[k],
         provider: 'browser-mini-model',
         local_in_browser: true
