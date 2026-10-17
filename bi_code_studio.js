@@ -83,7 +83,8 @@ async function biAnalyze(){
     sources.push({name:file.name,format:e||'unknown',bytes:file.size});
     if(e==='pbix'){notes.push(file.name+': PBIX is proprietary binary; browser analysis is limited. Use PBIP/PBIR/TMDL for portable semantics.');continue;}
     let m;
-    if(['json','pbip','pbir'].includes(e)){try{m=extractJsonModel(JSON.parse(text));}catch{m=extractXmlNames(text);}}
+    if(e==='tmdl'||/^\s*(?:createOrReplace\s+)?table\s+\S/m.test(text)&&/^\s*(?:column|measure)\s+\S/m.test(text)){m=extractTmdl(text)||extractXmlNames(text);}
+    else if(['json','pbip','pbir'].includes(e)){try{m=extractJsonModel(JSON.parse(text));}catch{m=extractXmlNames(text);}}
     else m=(/<workbook|<datasource/i.test(text)&&extractTableauXml(text))||extractXmlNames(text);
     for(const k of ['fields','measures','dimensions','filters','visuals','tables','columns'])aggregate[k].push(...(m[k]||[]));
   }
@@ -120,6 +121,30 @@ function extractTableauXml(text){
   const measures=columns.filter(c=>c.role==='measure').map(c=>c.name),dimensions=columns.filter(c=>c.role!=='measure').map(c=>c.name);
   return {fields:[...new Set(columns.map(c=>c.name))],measures:[...new Set(measures)],dimensions:[...new Set(dimensions)],filters,visuals,tables,columns};
 }
+/* Power BI TMDL (text model): table / column / measure blocks with indented properties and DAX. */
+function extractTmdl(text){
+  const unq=v=>{v=String(v||'').trim();return /^'.*'$/.test(v)?v.slice(1,-1).replace(/''/g,"'"):v;};
+  const NAME="('(?:[^']|'')+'|[^\\s=]+)";
+  const lines=String(text).replace(/\r/g,'').split('\n'),tables=[],columns=[];let table='',cur=null,curIndent=-1,exprIndent=-1;
+  const indentOf=l=>l.match(/^[\t ]*/)[0].replace(/\t/g,'    ').length;
+  for(const raw of lines){
+    if(!raw.trim()||/^\s*\/\//.test(raw))continue;
+    const ind=indentOf(raw),l=raw.trim();let m;
+    if(cur&&exprIndent>=0&&ind>curIndent&&!/^[a-zA-Z]+\s*:/.test(l)){cur.formula+=(cur.formula?' ':'')+l;continue;}
+    exprIndent=-1;
+    if((m=l.match(new RegExp('^(?:createOrReplace\\s+)?table\\s+'+NAME)))){table=unq(m[1]);if(!tables.includes(table))tables.push(table);cur=null;continue;}
+    if((m=l.match(new RegExp('^measure\\s+'+NAME+'\\s*=\\s*(.*)$')))){cur={table,name:unq(m[1]),role:'measure',datatype:'',aggregation:'',formula:m[2].trim()};columns.push(cur);curIndent=ind;if(!cur.formula)exprIndent=ind;continue;}
+    if((m=l.match(new RegExp('^column\\s+'+NAME+'(?:\\s*=\\s*(.*))?$')))){cur={table,name:unq(m[1]),role:'dimension',datatype:'string',aggregation:'',formula:(m[2]||'').trim()};columns.push(cur);curIndent=ind;continue;}
+    if(cur&&ind>curIndent&&(m=l.match(/^(dataType|summarizeBy)\s*:\s*(.+)$/))){
+      if(m[1]==='dataType')cur.datatype=m[2].trim().toLowerCase();
+      else{const a=m[2].trim().toLowerCase();if(a&&a!=='none'&&cur.role!=='measure'){cur.role='measure';cur.aggregation={sum:'Sum',average:'Avg',count:'Count',distinctcount:'CountD',min:'Min',max:'Max'}[a]||'Sum';}}
+      continue;}
+    if(/^(partition|hierarchy|relationship|annotation|role|perspective|expression|culture)\b/.test(l))cur=null;
+  }
+  if(!tables.length&&!columns.length)return null;
+  const measures=columns.filter(c=>c.role==='measure').map(c=>c.name),dimensions=columns.filter(c=>c.role!=='measure').map(c=>c.name);
+  return {fields:[...new Set(columns.map(c=>c.name))],measures:[...new Set(measures)],dimensions:[...new Set(dimensions)],filters:[],visuals:[],tables,columns};
+}
 function biQuote(name,dialect){
   const d=String(dialect||'').toLowerCase();
   if(/sql server|t-sql|tsql/.test(d))return '['+String(name).replace(/]/g,']]')+']';
@@ -153,9 +178,14 @@ function biSql(){
 }
 function biExcel(){
   const m=bi.model?.semantic;if(!m)throw new Error('Analyze the BI definition first.');
-  const table=($('vizExcelTable')?.value||'Data').replace(/[^A-Za-z0-9_]/g,'_');
+  const typed=($('vizExcelTable')?.value||'').trim();
+  // same rule as the SQL output: the placeholder "Data" defers to the table found in the model
+  const table=((typed&&typed!=='Data')?typed:(m.tables?.[0]||typed||'Data')).replace(/[^\p{L}\p{N}_]/gu,'_');
   const rows=['Excel reconstruction template','Source table: '+table,''];
-  (m.measures||[]).forEach((x,i)=>rows.push('Measure '+(i+1)+': '+x+'  =  '+table+'[['+x+']]'));
+  const agg={sum:'SUM',avg:'AVERAGE',average:'AVERAGE',count:'COUNTA',countd:'COUNTA(UNIQUE',min:'MIN',max:'MAX',median:'MEDIAN'};
+  const byName=Object.fromEntries((m.columns||[]).map(c=>[c.name,c]));
+  (m.measures||[]).forEach((x,i)=>{const c=byName[x];if(c&&c.formula){rows.push('Measure '+(i+1)+': '+x+'  →  translate: '+c.formula.replace(/\s+/g,' '));return;}
+    const f=agg[String(c?.aggregation||'sum').toLowerCase()]||'SUM';const ref=table+'[['+x+']]';rows.push('Measure '+(i+1)+': '+x+'  →  '+(f==='COUNTA(UNIQUE'?'=COUNTA(UNIQUE('+ref+'))':'='+f+'('+ref+')'));});
   (m.dimensions||[]).forEach((x,i)=>rows.push('Dimension '+(i+1)+': '+x+'  →  '+table+'[['+x+']]'));
   rows.push('','Use structured-reference formulas and validate aggregation semantics before production use.');
   return rows.join('\n');
