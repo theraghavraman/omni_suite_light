@@ -35,6 +35,8 @@ function timeStretch(chs,speed){
   const out=chs.map(()=>new Float32Array(outLen+W)),norm=new Float32Array(outLen+W);
   let prev=0;const maxPos=len-W;
   for(let o=0,k=0;o<outLen;o+=N,k++){
+    // past the end of the input the window would be clamped to maxPos and repeated (audible stutter)
+    if(k>0&&Math.round(o*speed)>maxPos)break;
     const nominal=Math.min(maxPos,Math.round(o*speed));let pos=nominal;
     if(k>0){const target=Math.min(maxPos,prev+N);const tl=N/ds,t0=Math.floor(target/ds);let best=-Infinity,bd=0;
       for(let d=-tol;d<=tol;d+=ds){const p=nominal+d;if(p<0||p>maxPos)continue;const p0=Math.floor(p/ds);let s=0,e=1e-9;for(let i=0;i<tl;i++){const a=md[p0+i]||0;s+=a*(md[t0+i]||0);e+=a*a;}const sc=s/Math.sqrt(e);if(sc>best){best=sc;bd=d;}}
@@ -163,10 +165,16 @@ runBtn?.addEventListener('click',async e=>{
     runBtn.textContent=Math.abs(speed-1)>1e-3&&keepPitchEl?.checked!==false?'Stretching tempo…':'Processing…';await tick();
     const out=await processAudio(abuf,{start:+startEl.value||0,end:+endEl.value||abuf.duration,speed,keepPitch:keepPitchEl?keepPitchEl.checked:true,channels:$('audioChannels')?.value,sampleRate:+($('audioSampleRate')?.value||0)||0,fadeIn:+($('audioFadeIn')?.value||0),fadeOut:+($('audioFadeOut')?.value||0),normalize:!!$('audioNormalize')?.checked});
     runBtn.textContent='Encoding '+fmt.toUpperCase()+'…';await tick();
-    const blob=await encodeAudio(out,fmt,{kbps:+($('audioBitrate')?.value||192),onProgress:p=>{runBtn.textContent='Encoding '+fmt.toUpperCase()+' '+Math.round(p*100)+'%';}});
+    let blob,ext=OUT_EXT[fmt];
+    try{blob=await encodeAudio(out,fmt,{kbps:+($('audioBitrate')?.value||192),onProgress:p=>{runBtn.textContent='Encoding '+fmt.toUpperCase()+' '+Math.round(p*100)+'%';}});}
+    catch(encErr){
+      // offline / blocked CDN: the processed audio is ready, so offer lossless WAV instead of losing the work
+      if(!/Could not load/.test(encErr.message||'')||!confirm(fmt.toUpperCase()+' encoder could not be downloaded ('+encErr.message+').\n\nSave this result as WAV instead?'))throw encErr;
+      blob=encodeWav(out);ext='wav';
+    }
     const tag=[];if(Math.abs(speed-1)>1e-3)tag.push(speed+'x');if((+startEl.value||0)>0.01||(+endEl.value||0)<abuf.duration-0.05)tag.push('cut');
-    save(blob,base(file.name)+(tag.length?'_'+tag.join('_'):'_edited')+'.'+OUT_EXT[fmt]);
-    notify('Saved '+OUT_EXT[fmt].toUpperCase()+' • '+fmtTime(out.duration)+' • '+fmtSize(blob.size));
+    save(blob,base(file.name)+(tag.length?'_'+tag.join('_'):'_edited')+'.'+ext);
+    notify('Saved '+ext.toUpperCase()+' • '+fmtTime(out.duration)+' • '+fmtSize(blob.size));
   }catch(err){console.error(err);alert('Audio error: '+(err.message||err));}
   finally{runBtn.disabled=false;runBtn.textContent=label;delete runBtn.dataset.busy;}
 },true);
@@ -186,7 +194,7 @@ nRun?.addEventListener('click',async e=>{
   try{let buf;try{buf=await decodeFile(nFile);}catch(_){fallback='This browser cannot decode '+ext(nFile.name).toUpperCase()+' — trying the Local Engine.';}
     if(buf&&t==='m4a'&&!(await webCodecsSupported('mp4a.40.2',44100,2)))fallback='AAC encoding is not available in this browser — trying the Local Engine.';
     if(!fallback){const blob=await encodeAudio(buf,t,{kbps:t==='mp3'?192:160,onProgress:p=>{nRun.textContent='Converting '+Math.round(p*100)+'%';}});save(blob,base(nFile.name)+'.'+OUT_EXT[t]);notify('Converted to '+OUT_EXT[t].toUpperCase()+' in your browser • '+fmtSize(blob.size));}
-  }catch(err){alert('Audio conversion error: '+(err.message||err));}
+  }catch(err){if(/Could not load/.test(err.message||''))fallback=t.toUpperCase()+' encoder could not be downloaded — trying the Local Engine.';else alert('Audio conversion error: '+(err.message||err));}
   finally{nRun.disabled=false;nRun.textContent=label;delete nRun.dataset.busy;}
   if(fallback){if(t==='webm')alert(fallback.replace(' — trying the Local Engine.','.'));else toEngine(fallback);}
 },true);
