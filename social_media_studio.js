@@ -13,6 +13,7 @@
 
   const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const REMOTE_READER='https://r.jina.ai/';
+  const HOSTED_TIMEOUT_MS=45000,LOCAL_PROBE_MS=1500,READER_TIMEOUT_MS=15000;
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -32,15 +33,16 @@
   async function hostedResolve(url){
     if(!RESOLVER)throw new Error('Hosted resolver is not configured.');
     const controller=new AbortController();activeController=controller;
-    const timer=setTimeout(()=>controller.abort(),210000);
-    const t0=Date.now();const tick=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);if(s>=4)msg('Resolving public media… '+s+' s'+(s>=10?' — the resolver may be waking up; the first request after a quiet period can take up to a minute.':''),'working');},1000);
+    // Capped so a slow or blocked platform (Instagram often hangs from cloud IPs) cannot stall the studio for minutes.
+    const timer=setTimeout(()=>controller.abort(),HOSTED_TIMEOUT_MS);
+    const t0=Date.now();const tick=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);if(s>=4)msg('Resolving public media… '+s+' s'+(s>=10?' — the hosted resolver may be waking up (gives up after '+Math.round(HOSTED_TIMEOUT_MS/1000)+' s).':''),'working');},1000);
     try{
       const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
       return j;
     }catch(e){
-      if(e&&e.name==='AbortError')throw new Error(controller.cancelled?'Cancelled':'Hosted resolver timed out after 210 seconds');
+      if(e&&e.name==='AbortError')throw new Error(controller.cancelled?'Cancelled':'Hosted resolver timed out after '+Math.round(HOSTED_TIMEOUT_MS/1000)+' seconds');
       throw e;
     }finally{
       clearTimeout(timer);clearInterval(tick);if(activeController===controller)activeController=null;
@@ -104,7 +106,8 @@
 
   async function browserResolve(url){
     const target=url.split('#')[0];
-    const r=await fetch(REMOTE_READER+target,{cache:'no-store',headers:{'X-Return-Format':'html'}});
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),READER_TIMEOUT_MS);let r;
+    try{r=await fetch(REMOTE_READER+target,{cache:'no-store',headers:{'X-Return-Format':'html'},signal:ctl.signal});}finally{clearTimeout(t);}
     if(!r.ok)throw new Error('Browser resolver HTTP '+r.status);
     const text=await r.text(); const urls=findMediaUrls(text,target);
     if(!urls.length)throw new Error('No public media URL found');
@@ -170,8 +173,10 @@
     setButtons(false);hint.style.display='none';msg('Paste a social post URL or a direct image/video URL.');
     input.value='';
   }
-  async function localHealth(){
-    const r=await fetch(BASE+'/api/health',{cache:'no-store'});
+  async function localHealth(probeMs){
+    // a short probe when used to decide the route, so a missing Local Engine costs ~1.5 s, not a hang
+    const ctl=probeMs?new AbortController():null,t=ctl?setTimeout(()=>ctl.abort(),probeMs):0;let r;
+    try{r=await fetch(BASE+'/api/health',{cache:'no-store',signal:ctl?.signal});}finally{if(t)clearTimeout(t);}
     if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
     const j=await r.json();
     if(Number(j.engine_api_version||0)<4)throw new Error('Outdated Local Engine. Restart the current Omni Suite Local Engine.');
@@ -242,9 +247,17 @@
     msg('Resolving public media…','working');preview.innerHTML='<div style="padding:28px">Finding public media…</div>';preview.className='social-preview empty';
     if(direct(url)&&await analyzeDirect(url)){return;}
     if(stale())return;
+    // 1. Local Engine first: yt-dlp on the user's own connection is not blocked like cloud/datacenter IPs.
+    try{
+      await localHealth(LOCAL_PROBE_MS); if(stale())return;
+      msg('Resolving with the Local Engine on this computer…','working');
+      const info=await localJob({op:'social_download',url,info_only:true}); if(stale())return; currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
+    }catch(e){if(stale())return;console.warn('[Social Media Studio] Local Engine:',e);}
+    // 2. Hosted resolver (capped wait).
     try{
       const info=await hostedResolve(url); if(stale())return; renderHosted(info,url); return;
     }catch(e){if(stale())return;console.warn('[Social Media Studio] Hosted resolver:',e);}
+    // 3. Public page reader: last resort (it is often rate-limited for big platforms).
     try{
       const x=await browserResolve(url); if(stale())return; currentUrl=x.mediaUrl;
       kind.textContent=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
@@ -253,13 +266,10 @@
       preview.className='social-preview';hint.style.display='block';hint.innerHTML='<b>Browser mode active.</b> Public media resolved without the Local Engine. Private, login-only and DRM content is not supported.';
       setButtons(true);download.textContent='⬇ Download Media';download.onclick=()=>downloadDirectResolved(x.mediaUrl);msg('Public media found. Ready to download.','ok');return;
     }catch(e){console.warn('[Social Media Studio] Direct browser resolver:',e);}
-    try{
-      await localHealth(); const info=await localJob({op:'social_download',url,info_only:true}); if(stale())return; currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
-    }catch(e){console.warn('[Social Media Studio] Local Engine unavailable:',e);}
     if(stale())return;
     if(!direct(url)&&await analyzeDirect(url))return;
     if(stale())return;
-    currentUrl=url;kind.textContent='Social / page URL';meta.textContent='No public media link found';preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Nothing to download</strong></div>';hint.style.display='block';hint.innerHTML='<b>Could not resolve this public page.</b> It may be private, login-gated, blocked, or temporarily unsupported. If you have a direct link to the image or video file, paste that instead.';msg('No public media URL could be resolved in browser mode.','warn');
+    currentUrl=url;kind.textContent='Social / page URL';meta.textContent='No public media link found';preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Nothing to download</strong></div>';hint.style.display='block';hint.innerHTML='<b>Could not resolve this public page.</b> It may be private, login-gated, or blocked for cloud services (YouTube and Instagram often refuse hosted downloaders). Start the Omni Local Engine on this computer — it downloads over your own connection — or paste a direct link to the image or video file.';msg('No public media URL could be resolved in browser mode.','warn');
     }finally{if(my===runId){busy=false;if(analyzeBtn){analyzeBtn.disabled=false;analyzeBtn.textContent='Analyze Link';}}}
   }
   async function downloadDirectResolved(url){
