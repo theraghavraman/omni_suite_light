@@ -104,9 +104,17 @@ const dH=$('decompressDropzone')?.querySelector('h3');if(dH)dH.textContent='Drop
 if(dBtn&&!$('decompressPassword')){const w=document.createElement('div');w.className='form-group';w.id='decompressPasswordWrap';w.style.cssText='display:none;width:100%;margin:6px 0';w.innerHTML='<label for="decompressPassword">This archive is password-protected</label><input type="password" id="decompressPassword" class="form-input" autocomplete="off" placeholder="Enter the password, then press Extract again">';dBtn.parentElement.parentElement.insertBefore(w,dBtn.parentElement);}
 dIn?.addEventListener('change',()=>{dFile=dIn.files?.[0]||null;items=[];const pw=$('decompressPasswordWrap');if(pw)pw.style.display='none';});
 $('decompressDropzone')?.addEventListener('drop',e=>{dFile=e.dataTransfer?.files?.[0]||dFile;items=[];});
-$('decompressReset')?.addEventListener('click',()=>{dFile=null;items=[];});
+$('decompressReset')?.addEventListener('click',()=>{dFile=null;items=[];clearRows();});
+let rowUrls=[];
+function clearRows(){rowUrls.forEach(u=>URL.revokeObjectURL(u));rowUrls=[];dList.innerHTML='';}
+// Used when the 7-Zip WebAssembly engine cannot be downloaded: ZIP via JSZip, GZIP via DecompressionStream.
+async function extractWithoutSevenZip(file,kind){
+  if(kind==='zip'&&window.JSZip){const z=await JSZip.loadAsync(await file.arrayBuffer());const out=[];for(const f of Object.values(z.files)){if(f.dir)continue;out.push({path:f.name,data:await f.async('arraybuffer')});}return out;}
+  if(kind==='gz'&&window.DecompressionStream){const data=await new Response(file.stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();return [{path:file.name.replace(/\.t?gz$/i,m=>m.toLowerCase()==='.tgz'?'.tar':'')||'extracted',data}];}
+  return null;
+}
 function addRow(name,blob){const row=document.createElement('div');row.className='item-row';const body=document.createElement('div');const t=document.createElement('div');t.className='item-row-title';t.textContent=name;const m=document.createElement('div');m.className='item-row-meta';m.textContent=fmtSize(blob.size);
-  const acts=document.createElement('div');acts.className='item-row-actions';const a=document.createElement('a');a.className='btn-download-single';a.href=URL.createObjectURL(blob);a.download=name.split('/').pop();a.textContent='Save';body.append(t,m);acts.appendChild(a);row.append(body,acts);dList.appendChild(row);}
+  const acts=document.createElement('div');acts.className='item-row-actions';const a=document.createElement('a');a.className='btn-download-single';a.href=URL.createObjectURL(blob);rowUrls.push(a.href);a.download=name.split('/').pop();a.textContent='Save';body.append(t,m);acts.appendChild(a);row.append(body,acts);dList.appendChild(row);}
 async function sniff(file){const b=new Uint8Array(await file.slice(0,262).arrayBuffer());const h=(...x)=>x.every((v,i)=>b[i]===v);
   if(h(0x50,0x4b))return 'zip';if(h(0x37,0x7a,0xbc,0xaf))return '7z';if(h(0x52,0x61,0x72,0x21))return 'rar';if(h(0x1f,0x8b))return 'gz';if(h(0xfd,0x37,0x7a,0x58,0x5a))return 'xz';if(h(0x42,0x5a,0x68))return 'bz2';
   if(b[257]===0x75&&b[258]===0x73&&b[259]===0x74&&b[260]===0x61&&b[261]===0x72)return 'tar';return '';}
@@ -114,14 +122,21 @@ dBtn?.addEventListener('click',async e=>{
   if(!dFile)return;const lower=dFile.name.toLowerCase();
   if(/\.(br|deflate)$/.test(lower))return; // raw streams: keep the built-in stream decompressor
   e.stopImmediatePropagation();e.preventDefault();if(dBtn.dataset.busy)return;dBtn.dataset.busy='1';dBtn.disabled=true;const label=dBtn.textContent;dBtn.textContent='Extracting…';
-  dList.innerHTML='';items=[];if(dSaveAll)dSaveAll.style.display='none';
+  clearRows();items=[];if(dSaveAll)dSaveAll.style.display='none';
   try{const kind=await sniff(dFile);const pass=$('decompressPassword')?.value||'';const src='/src/'+(dFile.name.replace(/[\/\\]/g,'_')||'archive');
-    const r=await run7z([{path:src,file:dFile}],[{mkdir:'/x'},{args:['x','-o/x','-y','-p'+pass,src]}],['/x']);
+    let r;
+    try{r=await run7z([{path:src,file:dFile}],[{mkdir:'/x'},{args:['x','-o/x','-y','-p'+pass,src]}],['/x']);}
+    catch(loadErr){
+      // offline / blocked CDN: plain ZIP and GZIP can still be opened with built-in engines
+      const local=!pass&&/7-Zip engine|workers are blocked/i.test(loadErr.message||'')?await extractWithoutSevenZip(dFile,kind).catch(()=>null):null;
+      if(!local)throw loadErr;
+      r={ok:true,out:local,codes:[0],log:[]};notify('7-Zip engine unavailable — extracted with the built-in '+(kind==='zip'?'ZIP':'GZIP')+' reader.');
+    }
     if(!r.ok){if(needsPassword(r)){const w=$('decompressPasswordWrap');if(w)w.style.display='';throw new Error(pass?'Wrong password — please try again.':'This archive is password-protected. Type the password above and press Extract again.');}throw new Error(errText(r)+(kind?'':' — this does not look like an archive 7-Zip can open.'));}
     let out=r.out;
     // tar.gz / tar.xz / tar.bz2: unpack the inner TAR too
     if(out.length===1&&/\.tar$/i.test(out[0].path)||out.length===1&&['gz','xz','bz2'].includes(kind)&&/\.(tgz|tbz2?|txz)$/i.test(lower)){
-      const inner=new File([out[0].data],out[0].path.split('/').pop());const r2=await run7z([{path:'/src/inner.tar',file:inner}],[{mkdir:'/x'},{args:['x','-o/x','-y','/src/inner.tar']}],['/x']);if(r2.ok&&r2.out.length)out=r2.out;}
+      const inner=new File([out[0].data],out[0].path.split('/').pop());const r2=await run7z([{path:'/src/inner.tar',file:inner}],[{mkdir:'/x'},{args:['x','-o/x','-y','/src/inner.tar']}],['/x']).catch(()=>null);if(r2&&r2.ok&&r2.out.length)out=r2.out;}
     if(!out.length)throw new Error('The archive is empty.');
     out.sort((a,b)=>a.path.localeCompare(b.path));for(const o of out){const blob=new Blob([o.data]);items.push({name:o.path,blob});addRow(o.path,blob);}
     const total=items.reduce((n,x)=>n+x.blob.size,0);const m=$('decompressMeta');if(m)m.textContent=items.length+' file'+(items.length===1?'':'s')+' extracted • '+fmtSize(total);
