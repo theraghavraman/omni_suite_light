@@ -181,18 +181,31 @@ function scriptOfCp(cp){for(const [a,b,s] of SCRIPT_RANGES)if(cp>=a&&cp<=b)retur
 const UNSUPPORTED_RE=/[֐-ࣿ぀-ヿ㐀-鿿가-힯豈-﫿]|[\u{1F300}-\u{1FAFF}]/u;
 let fontLib=null;
 async function ensurePdfLibs(){
-  if(!window.PDFLib)await loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js');
-  if(!window.regeneratorRuntime)await loadScript('https://cdn.jsdelivr.net/npm/regenerator-runtime@0.14.1/runtime.js');
-  if(!window.fontkit)await loadScript('https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js');
+  if(!window.PDFLib){try{await loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js');}catch(e){await loadScript('./vendor/pdf-lib/pdf-lib.min.js').catch(()=>{throw e;});}}
+  // fontkit (and the TTF fonts) are optional: without them writePdf falls back to the built-in PDF fonts.
+  try{
+    if(!window.regeneratorRuntime)await loadScript('https://cdn.jsdelivr.net/npm/regenerator-runtime@0.14.1/runtime.js');
+    if(!window.fontkit)await loadScript('https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js');
+  }catch(e){console.warn('fontkit unavailable; PDF will use built-in fonts',e);}
 }
+// Built-in (non-embedded) PDF fonts used when the TTF fonts cannot be downloaded (offline / filtered network).
+const STANDARD_FONTS={latn:{r:'Helvetica',b:'HelveticaBold',i:'HelveticaOblique',bi:'HelveticaBoldOblique'},mono:{r:'Courier',b:'CourierBold',i:'CourierOblique',bi:'CourierBoldOblique'}};
 const fontBytesCache={};
 async function fontBytes(path){if(!fontBytesCache[path])fontBytesCache[path]=fetch(FONT_CDN+path).then(r=>{if(!r.ok)throw new Error('Font download failed ('+r.status+')');return r.arrayBuffer();}).catch(e=>{delete fontBytesCache[path];throw e;});return fontBytesCache[path];}
 async function writePdf(model,opts={}){
   await ensurePdfLibs();
-  const {PDFDocument,rgb}=window.PDFLib;const pdf=await PDFDocument.create();const pdfDoc=pdf;let rastered=false;pdf.registerFontkit(window.fontkit);
+  const {PDFDocument,rgb,StandardFonts}=window.PDFLib;const pdf=await PDFDocument.create();const pdfDoc=pdf;let rastered=false;
+  let fallbackFonts=!window.fontkit;if(window.fontkit)pdf.registerFontkit(window.fontkit);
   if(model.title)pdf.setTitle(model.title);pdf.setCreator('Redmark Forge (browser)');
   const embedded={};let missing=0;
-  const fontFor=async(script,style)=>{const fam=FONTS[script]||FONTS.latn;const key=fam[style]?style:(style==='bi'?(fam.b?'b':'r'):'r');const k=script+':'+key;if(!embedded[k])embedded[k]=pdf.embedFont(await fontBytes(fam[key]),{subset:true});return embedded[k];};
+  const standardFont=(script,style)=>{const fam=script==='mono'?STANDARD_FONTS.mono:STANDARD_FONTS.latn;const k='std:'+(script==='mono'?'mono':'latn')+':'+style;if(!embedded[k])embedded[k]=pdf.embedFont(StandardFonts[fam[style]||fam.r]);return embedded[k];};
+  const fontFor=async(script,style)=>{
+    if(fallbackFonts)return standardFont(script,style);
+    const fam=FONTS[script]||FONTS.latn;const key=fam[style]?style:(style==='bi'?(fam.b?'b':'r'):'r');const k=script+':'+key;
+    if(!embedded[k])embedded[k]=fontBytes(fam[key]).then(b=>pdf.embedFont(b,{subset:true}));
+    try{return await embedded[k];}
+    catch(e){console.warn('PDF font download failed; switching to built-in fonts',e);delete embedded[k];fallbackFonts=true;return standardFont(script,style);}
+  };
   const slides=model.blocks.some(b=>b.type==='slide');
   const PW=slides?842:595,PH=slides?595:842,M=slides?48:56,CW=PW-2*M;
   let page=null,y=0;const pages=[];
@@ -207,7 +220,7 @@ async function writePdf(model,opts={}){
   // word wrapping over mixed-font runs
   async function layout(runs,size,width,{bold=false,mono=false}={}){
     const words=[];// [{segs,width,space}]
-    for(const r of runs){const st=bold?(r.italic?'bi':'b'):styleOf(r);const parts=String(r.text).split(/(\s+)/);for(const p of parts){if(!p)continue;if(/^\s+$/.test(p)){if(p.includes('\n')){words.push({br:true});continue;}if(words.length)words[words.length-1].space=true;continue;}const ss=segs(p,st,mono||r.code);let w=0;for(const s of ss){if(RASTER.has(s.script)){s.raster=true;s.w=await rasterMeasure(s.text,s.script,s.style,size);}else{s.font=await fontFor(s.script,s.style);s.w=s.font.widthOfTextAtSize(s.text,size);}w+=s.w;}words.push({segs:ss,width:w});}}
+    for(const r of runs){const st=bold?(r.italic?'bi':'b'):styleOf(r);const parts=String(r.text).split(/(\s+)/);for(const p of parts){if(!p)continue;if(/^\s+$/.test(p)){if(p.includes('\n')){words.push({br:true});continue;}if(words.length)words[words.length-1].space=true;continue;}const ss=segs(p,st,mono||r.code);let w=0;for(const s of ss){let raster=RASTER.has(s.script);if(!raster){s.font=await fontFor(s.script,s.style);if(fallbackFonts&&s.script!=='latn'&&s.script!=='mono')raster=true;else{try{s.w=s.font.widthOfTextAtSize(s.text,size);}catch(_){raster=true;}}}if(raster){s.raster=true;s.font=null;s.w=await rasterMeasure(s.text,s.script,s.style,size);}w+=s.w;}words.push({segs:ss,width:w});}}
     const spaceW=(await fontFor('latn','r')).widthOfTextAtSize(' ',size);const lines=[];let line=[],lw=0;
     for(const w of words){if(w.br){lines.push(line);line=[];lw=0;continue;}const add=(line.length?spaceW:0)+w.width;if(line.length&&lw+add>width){lines.push(line);line=[];lw=0;}
       if(!line.length&&w.width>width){// hard-break very long words
@@ -254,7 +267,7 @@ async function writePdf(model,opts={}){
   // footer page numbers
   const ff=await fontFor('latn','r');pages.forEach((p,i)=>{const t=(i+1)+' / '+pages.length;p.drawText(t,{x:PW/2-ff.widthOfTextAtSize(t,8.5)/2,y:24,size:8.5,font:ff,color:rgb(0.5,0.53,0.57)});});
   const bytes=await pdf.save();
-  return {blob:new Blob([bytes],{type:'application/pdf'}),pages:pages.length,missing,rastered};
+  return {blob:new Blob([bytes],{type:'application/pdf'}),pages:pages.length,missing,rastered,fallbackFonts};
 }
 
 /* ================= DOCX writer ================= */
@@ -383,7 +396,7 @@ const busy=(id,t)=>{const el=$(id);if(el)el.textContent=t;};
 // 1. DOCX → PDF / TXT
 let w2pFile=null;rememberFile('w2pInput','w2pDropzone',f=>w2pFile=f);
 $('w2pResetBtn')?.addEventListener('click',()=>{w2pFile=null;});
-intercept('w2pRunBtn',{label:'DOCX → PDF',plan(){return w2pFile?{}:null;},async run(){busy('w2pRunBtn','Building PDF…');const m=await readDocx(w2pFile);if(!m.blocks.length)throw new Error('No readable content found in this DOCX.');const r=await writePdf(m);save(r.blob,base(w2pFile.name)+'.pdf');notify('PDF created • '+r.pages+' page'+(r.pages===1?'':'s')+(r.missing?' • '+r.missing+' unsupported characters replaced':''));}});
+intercept('w2pRunBtn',{label:'DOCX → PDF',plan(){return w2pFile?{}:null;},async run(){busy('w2pRunBtn','Building PDF…');const m=await readDocx(w2pFile);if(!m.blocks.length)throw new Error('No readable content found in this DOCX.');const r=await writePdf(m);save(r.blob,base(w2pFile.name)+'.pdf');notify('PDF created • '+r.pages+' page'+(r.pages===1?'':'s')+(r.missing?' • '+r.missing+' unsupported characters replaced':'')+(r.fallbackFonts?' • web fonts unavailable, used built-in PDF fonts':''));}});
 intercept('w2pTxtBtn',{label:'DOCX → TXT',plan(){return w2pFile?{}:null;},async run(){const m=await readDocx(w2pFile);save(new Blob([writeText(m)],{type:'text/plain;charset=utf-8'}),base(w2pFile.name)+'.txt');notify('Text exported.');}});
 
 // 2. Text / Markdown → DOCX / PDF

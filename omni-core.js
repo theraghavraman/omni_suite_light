@@ -108,7 +108,8 @@
     }
 
     function escapeXml(str) {
-      return String(str || '').replace(/[<>&'"]/g, (c) => {
+      // XML 1.0 forbids most C0 control characters; PDF text layers often contain them.
+      return String(str || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '').replace(/[<>&'"]/g, (c) => {
         switch (c) {
           case '<': return '&lt;';
           case '>': return '&gt;';

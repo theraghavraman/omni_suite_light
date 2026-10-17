@@ -3601,7 +3601,7 @@ SELECT department,COUNT(*) AS people,ROUND(AVG(salary),2) AS avg_salary FROM emp
   }
 })();
 </script>
-<script src="./omni-core.js?v=pdf2"></script>
+<script src="./omni-core.js?v=office3"></script>
 
 
 <script id="omni-browser-first">
@@ -4643,7 +4643,11 @@ async function convert(forcedTarget){
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   const fmt=forcedTarget||target.value;
   if(fmt==='pdf' && ['pdf'].includes(ext)){alert('The selected file is already PDF.');return}
+  if(fmt===ext){alert('The selected file is already '+fmt.toUpperCase()+'.');return}
   try{
+    // Same browser-first route as the dedicated areas: spreadsheet<->spreadsheet, PDF->PPTX and
+    // PPTX-family conversions work without the Local Engine (e.g. on GitHub Pages).
+    try{if(window.OMNI_BROWSER_FIRST&&await window.OMNI_BROWSER_FIRST.office(file,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
     const op=(ext==='pdf'&&fmt==='pptx')?'pdf_to_ppt':'office_convert';
     await health(op);
     const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)};
@@ -4671,7 +4675,7 @@ async function convertDedicated(fileObj,targetId,label){
   const fmt=$(targetId).value;
   if(fmt===ext){alert('The selected file is already '+fmt.toUpperCase()+'.');return}
   try{
-    try{if(await window.OMNI_BROWSER_FIRST.office(fileObj,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
+    try{if(window.OMNI_BROWSER_FIRST&&await window.OMNI_BROWSER_FIRST.office(fileObj,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
     await health(ext==='pdf' && fmt!=='pdf'?'pdf_to_ppt':'office_convert');
     const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:fileObj});
@@ -4727,9 +4731,9 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 <script src="./omni_assistant.js?v=fast8"></script>
 <script src="./bi_code_studio.js?v=2"></script>
 <script src="./omni_browser_studio_plus.js?v=5"></script>
-<script src="./omni_browser_docs.js?v=5"></script>
+<script src="./omni_browser_docs.js?v=6"></script>
 <script src="./omni_vendor_loader.js?v=1"></script>
-<script src="./office_tools_studio.js?v=2"></script>
+<script src="./office_tools_studio.js?v=3"></script>
 <script src="./office_find_replace.js?v=1"></script>
 <script src="./diagram_forge_studio.js?v=2"></script>
 <script src="./omni_browser_epub.js?v=2"></script>

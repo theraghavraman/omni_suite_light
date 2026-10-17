@@ -644,13 +644,37 @@ function cellInputText(cell){if(!cell)return '';if(cell.f!=null)return '='+cell.
 
 /* Reference rewriting for copy/paste, sort and insert/delete (string literals are skipped). */
 const REF_RE=/(?<![A-Za-z0-9_.$])((?:'(?:[^']|'')+'|[A-Za-z_][\w.]*)!)?(\$?)([A-Za-z]{1,3})(\$?)(\d+)(?![\w(!])/g;
+/* fn receives each reference with role 'start' | 'end' | 'single' (A1:B9 ranges) and, for an end,
+ * the already-mapped start as prev — so callers can shrink a range instead of breaking it. */
 function mapRefs(f,fn){
-  return String(f).split(/("(?:[^"]|"")*")/).map((part,i)=>{if(i%2)return part;let lastSheet=null,lastEnd=-1;return part.replace(REF_RE,(all,sh,cAbs,col,rAbs,row,off)=>{let sheet=sh?sh.slice(0,-1).replace(/^'|'$/g,'').replace(/''/g,"'"):null;if(!sheet&&off===lastEnd+1&&part[lastEnd]===':')sheet=lastSheet;const c=colIndex(col);if(c>16383)return all;const res=fn({sheet,c,r:+row-1,cAbs:!!cAbs,rAbs:!!rAbs});lastSheet=sheet;lastEnd=off+all.length;if(res==null)return all;if(res==='#REF!')return '#REF!';return (sh||'')+(res.cAbs?'$':'')+colName(res.c)+(res.rAbs?'$':'')+(res.r+1);});}).join('');
+  return String(f).split(/("(?:[^"]|"")*")/).map((part,i)=>{if(i%2)return part;let lastSheet=null,lastEnd=-1,lastRes=null;return part.replace(REF_RE,(all,sh,cAbs,col,rAbs,row,off)=>{let sheet=sh?sh.slice(0,-1).replace(/^'|'$/g,'').replace(/''/g,"'"):null;const isEnd=off===lastEnd+1&&part[lastEnd]===':';if(!sheet&&isEnd)sheet=lastSheet;const c=colIndex(col);if(c>16383)return all;const isStart=!isEnd&&/^:\$?[A-Za-z]{1,3}\$?\d+/.test(part.slice(off+all.length));const ref={sheet,c,r:+row-1,cAbs:!!cAbs,rAbs:!!rAbs,role:isEnd?'end':isStart?'start':'single',prev:isEnd?lastRes:null};const res=fn(ref);lastSheet=sheet;lastEnd=off+all.length;lastRes=res==null?ref:res;if(res==null)return all;if(res==='#REF!')return '#REF!';return (sh||'')+(res.cAbs?'$':'')+colName(res.c)+(res.rAbs?'$':'')+(res.r+1);});}).join('');
 }
 const translateFormula=(f,dr,dc)=>mapRefs(f,ref=>{const r=ref.rAbs?ref.r:ref.r+dr,c=ref.cAbs?ref.c:ref.c+dc;if(r<0||c<0)return '#REF!';return {...ref,r,c};});
+/* Shift one coordinate for an insert (delta>0) or delete (delta<0) at index `at`. Range endpoints inside a
+ * deleted band snap to the surviving edge (Excel: deleting row 1 turns A1:A10 into A1:A9); only a range
+ * that is deleted entirely, or a single deleted reference, becomes #REF!. Returns null when unchanged. */
+function shiftIndex(k,role,prevK,at,delta){
+  if(delta<0&&k>=at&&k<at-delta){
+    if(role==='start')return at;
+    if(role==='end'){const nk=at-1;return prevK==null||nk<prevK?'#REF!':nk;}
+    return '#REF!';
+  }
+  return k<at?null:k+delta;
+}
 function shiftFormula(f,ownerSheet,targetSheet,axis,at,delta){
   return mapRefs(f,ref=>{const sheet=ref.sheet||ownerSheet;if(sheet.toLowerCase()!==targetSheet.toLowerCase())return null;const k=axis==='r'?ref.r:ref.c;
-    if(delta<0&&k>=at&&k<at-delta)return '#REF!';if(k<at)return null;const nk=k+delta;return axis==='r'?{...ref,r:nk}:{...ref,c:nk};});
+    const p=ref.prev&&ref.prev!=='#REF!'?(axis==='r'?ref.prev.r:ref.prev.c):null;
+    const nk=shiftIndex(k,ref.role,p,at,delta);if(nk==null||nk==='#REF!')return nk;return axis==='r'?{...ref,r:nk}:{...ref,c:nk};});
+}
+/* Shift a merge such as "B2:D4"; returns null when the merge no longer spans more than one cell. */
+function shiftMerge(range,axis,at,delta){
+  const [a,b]=String(range).split(':');const s=parseA1(a),e=parseA1(b||a);if(!s||!e)return null;
+  const k0=axis==='r'?s.r:s.c,k1=axis==='r'?e.r:e.c;
+  let n0=shiftIndex(k0,'start',null,at,delta);if(n0==null)n0=k0;
+  let n1=shiftIndex(k1,'end',n0,at,delta);if(n1==null)n1=k1;if(n1==='#REF!')return null;
+  const ns=axis==='r'?{r:n0,c:s.c}:{r:s.r,c:n0},ne=axis==='r'?{r:n1,c:e.c}:{r:e.r,c:n1};
+  if(ns.r===ne.r&&ns.c===ne.c)return null;
+  return A1(ns.r,ns.c)+':'+A1(ne.r,ne.c);
 }
 
 /* ---------- undo ---------- */
@@ -793,7 +817,7 @@ function moveCellsAxis(axis,at,delta){
   sh.cells=moved;
   X.wb.sheets.forEach(s=>{for(const cell of Object.values(s.cells))if(cell.f!=null)cell.f=shiftFormula(cell.f,s.name,sh.name,axis,at,delta);});
   if(axis==='c'){const cols={};Object.entries(sh.cols).forEach(([c,w])=>{c=+c;if(delta<0&&c>=at&&c<at-delta)return;cols[c>=at?c+delta:c]=w;});sh.cols=cols;}
-  sh.merges=[];
+  sh.merges=(sh.merges||[]).map(m=>shiftMerge(m,axis,at,delta)).filter(Boolean);
 }
 function insertRows(){const {r0,r1}=selRange();const n=r1-r0+1;xMutate(()=>moveCellsAxis('r',r0,n));}
 function insertCols(){const {c0,c1}=selRange();const n=c1-c0+1;xMutate(()=>moveCellsAxis('c',c0,n));}
