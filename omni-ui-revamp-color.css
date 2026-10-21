@@ -82,13 +82,17 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 .omni-ready i{background:var(--rv-ok) !important}
 /* 03 · Shell: fixed sidebar of studios (desktop and tablet landscape) */
 @media (min-width:1024px){
+  /* width:auto + stretch: the container fills the space right of the sidebar. With the base width:100%
+     it was a full viewport wide plus the sidebar margin, so the centred body pushed it 124px under the
+     sidebar and 124px off the right edge (clipped text, sideways scroll on 1280-1440px laptops). */
   .container{
+    width:auto !important;align-self:stretch !important;
     max-width:none !important;
     margin:0 0 0 var(--rv-side) !important;
     padding:24px clamp(20px,3vw,40px) 64px !important;
   }
   .container > :not(.nav-bar){max-width:1180px;margin-left:auto !important;margin-right:auto !important}
-  body > footer{margin-left:var(--rv-side) !important}
+  body > footer{margin-left:var(--rv-side) !important;align-self:stretch !important}
 
   .nav-bar{
     position:fixed !important;z-index:50 !important;
@@ -194,7 +198,10 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   #omniStaticStudios{display:none !important}
 }
 /* 04 · Welcome band, getting-started guide, studio header, tool jump bar */
+/* .hero-render is hidden in this theme, so drop its grid track: the empty >=420px column squeezed the
+   welcome copy into a narrow strip on 1024-1440px windows. */
 .hero-header{
+  grid-template-columns:minmax(0,1fr) !important;
   min-height:0 !important;margin:0 0 16px !important;padding:24px 28px !important;
   background:var(--rv-surface) !important;border:1px solid var(--rv-line) !important;
   border-radius:var(--rv-r-lg) !important;box-shadow:var(--rv-shadow) !important;
@@ -229,7 +236,8 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 }
 
 .omni-guide{margin:0 0 24px !important;padding:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important}
-.omni-guide-grid{gap:12px !important}
+/* the third guide card (Local mode) is hidden in index.html; keep two tracks so the row is not one-third empty */
+.omni-guide-grid{gap:12px !important;grid-template-columns:1.4fr 1fr !important}
 .omni-guide-item{
   background:var(--rv-surface) !important;border:1px solid var(--rv-line) !important;border-left:1px solid var(--rv-line) !important;
   border-radius:var(--rv-r) !important;box-shadow:none !important;padding:16px 18px !important;
