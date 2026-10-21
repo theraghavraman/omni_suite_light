@@ -314,6 +314,7 @@ function bind(){
  $("ragEmbed").onclick=indexPendingFiles;
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }
-async function start(){await initDB();chunks=await getAll();updateStats();bind();$("ragStatus").textContent=chunks.length?"Local RAG index ready.":"Ready — add documents to create a private knowledge base."}
+// Style the studio before touching IndexedDB: opening it can be slow, and it throws when site data is blocked.
+async function start(){css();let stored=true;try{await initDB();chunks=await getAll();}catch(e){stored=false;console.warn("Private RAG: browser storage unavailable",e);}updateStats();bind();$("ragStatus").textContent=!stored?"Browser storage is blocked here (private window or site-data setting), so the knowledge base cannot be saved.":chunks.length?"Local RAG index ready.":"Ready — add documents to create a private knowledge base."}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
 })();
