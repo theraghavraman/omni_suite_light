@@ -1,4 +1,16 @@
 fastapi>=0.115
 uvicorn[standard]>=0.34
 yt-dlp==2026.8.19
-instagrapi[curl]==3.0.20
+
+# instagrapi is installed separately with --no-deps (see requirements-instagrapi.txt).
+# Every instagrapi release up to 3.1.0 declares Pillow<13, but Pillow 12.x has eight
+# CVEs that are only fixed in 13.0.0. The resolver only calls media_info_gql, which
+# never touches Pillow, so instagrapi's runtime dependencies are listed here directly
+# (same ranges it declares) with the patched Pillow.
+curl_cffi>=0.15.0
+curl-adapter>=1.2.3
+requests>=2.34.2,<3
+PySocks>=1.7.1,<2
+pydantic>=2.12.5,<2.14
+pycryptodomex>=3.23.0,<4
+Pillow==13.0.0
