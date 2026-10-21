@@ -1599,9 +1599,11 @@ class Handler(BaseHTTPRequestHandler):
             if local_ready:
                 html = data.decode("utf-8")
                 html = html.replace(
-                    "./vendor/sheetjs/xlsx.full.min.js", "./vendor/sheetjs/xlsx.full.min.js"
+                    "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
+                    "./vendor/sheetjs/xlsx.full.min.js"
                 ).replace(
-                    "./vendor/jsyaml/js-yaml.min.js", "./vendor/jsyaml/js-yaml.min.js"
+                    "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js",
+                    "./vendor/jsyaml/js-yaml.min.js"
                 ).replace(
                     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
                     "./vendor/pdfjs/pdf.min.js"

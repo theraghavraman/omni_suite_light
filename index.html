@@ -5,22 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Web fonts never block the first paint: system fonts show until they arrive (or forever if fonts.googleapis.com is filtered). -->
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"></noscript>
   <title>Redmark Forge Studio - Universal File & Data Engineering</title>
   <link rel="icon" href="./favicon.svg?v=2" type="image/svg+xml">
   <link rel="icon" href="./favicon-32.png?v=2" type="image/png" sizes="32x32">
   <link rel="alternate icon" href="./favicon.ico?v=2">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=2">
   <meta name="theme-color" content="#E11D48">
-  <!-- Core Engines with Offline Fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <!-- CDN unreachable (offline / filtered network): fall back to the prepare_offline.py vendor copies. -->
-  <script>window.pdfjsLib||document.write('<script src="./vendor/pdfjs/pdf.min.js"><\/script><script>window.pdfjsLib&&(window.OMNI_PDF_WORKER=window.OMNI_PDF_WORKER||"./vendor/pdfjs/pdf.worker.min.js")<\/script>')</script>
-  <script>window.JSZip||document.write('<script src="./vendor/jszip/jszip.min.js"><\/script>')</script>
-  <script>window.PDFLib||document.write('<script src="./vendor/pdf-lib/pdf-lib.min.js"><\/script>')</script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <!-- Core engines load in parallel and never block the first paint. A CDN that stalls (filtered network,
+       captive portal) is raced against the prepare_offline.py ./vendor/ copy after a few seconds, so the
+       interface always renders. window.OMNI_LIBS.wait('PDFLib') resolves when a library is usable. -->
+  <script id="omni-core-libs">
+  (function(){
+    var LIBS=[
+      ['pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','./vendor/pdfjs/pdf.min.js'],
+      ['JSZip','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','./vendor/jszip/jszip.min.js'],
+      ['PDFLib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','./vendor/pdf-lib/pdf-lib.min.js'],
+      ['Tesseract','https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','./vendor/tesseract/tesseract.min.js'],
+      ['XLSX','https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','./vendor/sheetjs/xlsx.full.min.js'],
+      ['jsyaml','https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js','./vendor/jsyaml/js-yaml.min.js']
+    ];
+    var PDF_WORKER_CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Offline copies only exist on a local install, so try them first there and skip a guaranteed 404 on GitHub Pages.
+    var localFirst=location.protocol==='file:'||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    var FALLBACK_AFTER_MS=6000;
+    var state={},waiters={};
+    function settle(name,ok,src){
+      if(state[name])return;state[name]=ok?'loaded':'failed';
+      if(ok&&name==='pdfjsLib'&&window.pdfjsLib.GlobalWorkerOptions){
+        if(!window.OMNI_PDF_WORKER&&/^\.\/vendor\//.test(src))window.OMNI_PDF_WORKER='./vendor/pdfjs/pdf.worker.min.js';
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc=window.OMNI_PDF_WORKER||PDF_WORKER_CDN;
+      }
+      (waiters[name]||[]).forEach(function(w){w(ok)});delete waiters[name];
+    }
+    function inject(src,done){
+      var s=document.createElement('script');s.src=src;s.async=true;
+      s.onload=function(){done(true)};s.onerror=function(){s.remove();done(false)};
+      document.head.appendChild(s);
+    }
+    var all=LIBS.map(function(lib){
+      var name=lib[0],order=localFirst?[lib[2],lib[1]]:[lib[1],lib[2]];
+      if(order[0]===order[1])order.pop(); // Local Engine rewrites the CDN URL to the vendor copy
+      return new Promise(function(resolve){
+        var failed=0,started=0,timer=null;
+        function attempt(){
+          if(started>=order.length||state[name])return;
+          var src=order[started++];
+          inject(src,function(ok){
+            if(ok&&window[name]){settle(name,true,src);clearTimeout(timer);resolve(true);return;}
+            if(++failed>=order.length){settle(name,false);resolve(false);return;}
+            attempt();
+          });
+        }
+        attempt();
+        timer=setTimeout(attempt,FALLBACK_AFTER_MS); // CDN still pending: race the offline copy
+      });
+    });
+    window.OMNI_LIBS={
+      state:state,
+      wait:function(name){
+        if(window[name]||!LIBS.some(function(l){return l[0]===name}))return Promise.resolve(window[name]);
+        if(state[name]==='failed')return Promise.reject(new Error(name+' could not be loaded. Check your internet connection and reload.'));
+        return new Promise(function(res,rej){(waiters[name]=waiters[name]||[]).push(function(ok){ok?res(window[name]):rej(new Error(name+' could not be loaded. Check your internet connection and reload.'))})});
+      },
+      ready:Promise.all(all).then(function(){document.dispatchEvent(new CustomEvent('omni:libs-ready',{detail:state}));return state})
+    };
+  })();
+  </script>
   <script src="./omni_language_engine.js?v=5"></script>
   <script src="./omni_language_browser.js?v=2"></script>
   <script src="./omni_language_studio.js?v=5"></script>
@@ -29,10 +82,6 @@
   <script src="./omni_deepseek_code_ai.js?v=1"></script>
   <script src="./omni_browser_ai_ui.js?v=4"></script>
   <!-- Browser-first conversion engines; Local Engine is fallback for unsupported/heavy formats. -->
-  <script src="./vendor/sheetjs/xlsx.full.min.js"></script>
-  <script>window.XLSX||document.write('<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"><\/script>')</script>
-  <script src="./vendor/jsyaml/js-yaml.min.js"></script>
-  <script>window.jsyaml||document.write('<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"><\/script>')</script>
   
 <link rel="stylesheet" href="./diagram_forge_studio.css?v=2">
 <link rel="stylesheet" href="./office_tools_studio.css?v=2"><link rel="stylesheet" href="./office_find_replace.css?v=1"><link rel="stylesheet" href="./photo_editor.css?v=1">

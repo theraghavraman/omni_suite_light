@@ -44,6 +44,8 @@ function load(name){
   if(pending[name])return pending[name];
   const isFile=location.protocol==='file:';
   pending[name]=(async()=>{
+    // XLSX/JSZip are also core libraries already loading from index.html; wait for that copy first.
+    if(window.OMNI_LIBS){try{const g=await window.OMNI_LIBS.wait(lib.global);if(g)return g;}catch(e){}}
     const order=[lib.local,lib.cdn];
     let lastErr=null;
     for(const src of order){

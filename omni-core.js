@@ -65,12 +65,24 @@
       if (!blob || !blob.size) throw new Error('No output was generated.');
       downloadBlob(blob, filename);
     }
+    // Core engines load asynchronously (see #omni-core-libs); a click that beats them gets a clear message.
+    const ENGINE_NAMES = { pdfjsLib: 'PDF reader', PDFLib: 'PDF writer', JSZip: 'ZIP', Tesseract: 'OCR', XLSX: 'spreadsheet', jsyaml: 'YAML' };
+    function engineNotReady(err) {
+      const m = /\b(pdfjsLib|PDFLib|JSZip|Tesseract|XLSX|jsyaml)\b(?: is not defined|' is undefined)|Can't find variable: (pdfjsLib|PDFLib|JSZip|Tesseract|XLSX|jsyaml)\b/.exec(String(err && (err.message || err) || ''));
+      if (!m) return false;
+      const lib = m[1] || m[2];
+      const failed = window.OMNI_LIBS && window.OMNI_LIBS.state[lib] === 'failed';
+      omniNotify(failed ? `The ${ENGINE_NAMES[lib]} engine could not be downloaded. Check your connection and reload the page.` : `The ${ENGINE_NAMES[lib]} engine is still loading. Try again in a moment.`, true);
+      return true;
+    }
     window.addEventListener('error', e => {
       console.error('OmniConverter error:', e.error || e.message);
+      if (engineNotReady(e.error || e.message)) return;
       omniNotify('A tool error occurred. Check the selected file/format and try again.', true);
     });
     window.addEventListener('unhandledrejection', e => {
       console.error('OmniConverter promise error:', e.reason);
+      if (engineNotReady(e.reason)) return;
       omniNotify('A conversion step failed. Please try again with the same file or a smaller one.', true);
     });
 
