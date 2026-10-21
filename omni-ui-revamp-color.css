@@ -82,7 +82,13 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 .omni-ready i{background:var(--rv-ok) !important}
 /* 03 · Shell: fixed sidebar of studios (desktop and tablet landscape) */
 @media (min-width:1024px){
+  /* body is a centred flex column and the base rule gives .container width:100%,
+     so the sidebar margin pushed it past the viewport and centring slid it ~124px
+     left, under the sidebar (clipped "REDMARK FORGE", horizontal scroll). Let the
+     container fill only the space beside the sidebar instead. */
   .container{
+    width:auto !important;min-width:0 !important;box-sizing:border-box !important;
+    align-self:stretch !important;
     max-width:none !important;
     margin:0 0 0 var(--rv-side) !important;
     padding:24px clamp(20px,3vw,40px) 64px !important;
