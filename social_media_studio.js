@@ -15,6 +15,8 @@
   const REMOTE_READER='https://r.jina.ai/';
   const HOSTED_TIMEOUT_MS=45000,LOCAL_PROBE_MS=1500,READER_TIMEOUT_MS=15000;
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
+  // Sent only on the /api/resolve fetch; the media and download URLs are <img>/<a> sources that cannot carry a header.
+  const resolverHeaders=()=>window.OMNI_SOCIAL_RESOLVER_TOKEN?{'X-Omni-Social-Token':window.OMNI_SOCIAL_RESOLVER_TOKEN}:{};
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function safeHttpUrl(v){
@@ -37,7 +39,7 @@
     const timer=setTimeout(()=>controller.abort(),HOSTED_TIMEOUT_MS);
     const t0=Date.now();const tick=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);if(s>=4)msg('Resolving public media… '+s+' s'+(s>=10?' — the hosted resolver may be waking up (gives up after '+Math.round(HOSTED_TIMEOUT_MS/1000)+' s).':''),'working');},1000);
     try{
-      const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
+      const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json',...resolverHeaders()},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
       return j;
