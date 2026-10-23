@@ -1388,7 +1388,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabFileSharing{--fs:#0F766E;--fs2:#14B8A6;--fssoft:rgba(15,118,110,.10);--fsline:rgba(23,43,77,.12);--fsink:#172B4D;--fsmuted:#5E6B7A}
 #tabFileSharing .fs-head{background:linear-gradient(120deg,#0F766E,#14B8A6)!important;box-shadow:0 24px 44px -22px #0F766E!important}
 #tabFileSharing [hidden]{display:none!important}
-#tabFileSharing .fs-share-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
+#tabFileSharing .fs-share-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 18px}
 #tabFileSharing .fs-share-option{position:relative;display:grid;grid-template-columns:48px 1fr 26px;align-items:center;gap:14px;width:100%;padding:16px 18px;text-align:left;font:inherit;color:inherit;border:1.5px solid var(--fsline);border-radius:18px;background:#fffdf8;box-shadow:0 10px 24px rgba(23,43,77,.05);cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease}
 #tabFileSharing .fs-share-option:hover{transform:translateY(-2px);border-color:rgba(15,118,110,.45)}
 #tabFileSharing .fs-share-option:focus-visible{outline:3px solid rgba(20,184,166,.35);outline-offset:2px}
@@ -1402,6 +1402,27 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabFileSharing .fs-share-check{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;color:#fff;background:var(--fs);opacity:0;transform:scale(.6);transition:.2s ease}
 #tabFileSharing .fs-share-option-transfer .fs-share-check{background:#D9571F}
 #tabFileSharing .fs-share-option.selected .fs-share-check{opacity:1;transform:none}
+#tabFileSharing .fs-share-option-scan .fs-share-option-icon{background:rgba(36,88,165,.12);color:#2458A5}
+#tabFileSharing .fs-share-option-scan.selected{border-color:#2458A5;background:linear-gradient(135deg,#fff,#f0f5ff);box-shadow:0 16px 30px -14px rgba(36,88,165,.4)}
+#tabFileSharing .fs-share-option-scan .fs-share-check{background:#2458A5}
+#tabFileSharing .fs-scan-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;align-items:start}
+#tabFileSharing .fs-scan-card h2,#tabFileSharing .fs-scan-result h2{margin:2px 0 6px}
+#tabFileSharing .fs-scan-stage{position:relative;aspect-ratio:4/3;margin-top:14px;border-radius:18px;overflow:hidden;background:#0B2422;display:grid;place-items:center;border:1px solid var(--fsline)}
+#tabFileSharing .fs-scan-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#tabFileSharing .fs-scan-stage video.mirror{transform:scaleX(-1)}
+#tabFileSharing .fs-scan-stage.live video{display:block}#tabFileSharing .fs-scan-stage.live .fs-scan-idle{display:none}
+#tabFileSharing .fs-scan-frame{position:absolute;width:52%;aspect-ratio:1;border-radius:22px;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 999px rgba(0,0,0,.28);pointer-events:none;display:none}
+#tabFileSharing .fs-scan-stage.live .fs-scan-frame{display:block}
+#tabFileSharing .fs-scan-stage.dragover{outline:3px dashed #14B8A6;outline-offset:-10px}
+#tabFileSharing .fs-scan-stage .fs-scan-idle{color:#cfe3e0;max-width:300px}#tabFileSharing .fs-scan-stage .fs-scan-idle b{color:rgba(207,227,224,.55)}
+#tabFileSharing .fs-scan-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+#tabFileSharing .fs-scan-actions .form-select{width:auto;flex:1 1 180px;min-width:0}
+#tabFileSharing .fs-scan-note{margin:10px 0 0;font-size:.84rem;color:#536275;line-height:1.45}
+#tabFileSharing .fs-scan-fields{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:12px 0 0;font-size:.85rem}
+#tabFileSharing .fs-scan-fields dt{font-weight:800;color:#536275}#tabFileSharing .fs-scan-fields dd{margin:0;color:var(--fsink);font-family:"Fira Code",monospace;word-break:break-all}
+#tabFileSharing .fs-link{display:block;margin-top:10px;padding:0;border:0;background:none;font:inherit;font-size:.8rem;font-weight:800;color:var(--fs);text-align:left;cursor:pointer}
+#tabFileSharing .fs-link:hover{text-decoration:underline}
+#tabFileSharing .fs-drop .fs-drop-hint{max-width:420px;font-size:.72rem;line-height:1.4}
 #tabFileSharing .fs-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;align-items:start}
 #tabFileSharing .fs-card h2,#tabFileSharing .fs-session h2,#tabFileSharing .fs-qr-result h2,#tabFileSharing .fs-transfer-setup h2{margin:2px 0 6px}
 #tabFileSharing .fs-card .form-group{margin-top:14px}
@@ -1472,8 +1493,9 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
 #tabFileSharing .fs-security-list{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--fsline);color:#536275;font-size:.76rem}
 .nav-bar .nav-btn[data-tab="tabFileSharing"]{--c:#0F766E;--c2:#14B8A6;--cs:rgba(15,118,110,.14)}
 @media(max-width:980px){#tabFileSharing .fs-transfer-setup{grid-template-columns:1fr}#tabFileSharing .fs-transfer-intro{grid-row:auto}#tabFileSharing .fs-transfer-grid{grid-template-columns:1fr}}
-@media(max-width:850px){#tabFileSharing .fs-grid,#tabFileSharing .fs-qr-result{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{justify-self:center}}
-@media(max-width:620px){#tabFileSharing .fs-share-options{grid-template-columns:1fr 1fr;gap:10px}#tabFileSharing .fs-share-option{grid-template-columns:1fr;justify-items:start;gap:8px;padding:13px}#tabFileSharing .fs-share-option-text>span{display:none}#tabFileSharing .fs-share-option-icon{width:38px;height:38px;font-size:19px}#tabFileSharing .fs-share-check{position:absolute;top:10px;right:10px;width:22px;height:22px}#tabFileSharing .fs-special,#tabFileSharing .fs-design-grid{grid-template-columns:1fr}#tabFileSharing .fs-colors{grid-template-columns:1fr 1fr 1fr}#tabFileSharing .fs-colors label{flex-direction:column;align-items:flex-start;gap:5px}#tabFileSharing .fs-direction{grid-template-columns:1fr}#tabFileSharing .fs-security-list{grid-template-columns:1fr}#tabFileSharing .fs-actions .btn,#tabFileSharing .fs-transfer-actions .btn{flex:1}}
+@media(max-width:1180px){#tabFileSharing .fs-share-option{grid-template-columns:1fr;justify-items:start;gap:8px;padding:14px}#tabFileSharing .fs-share-option-icon{width:40px;height:40px;font-size:20px}#tabFileSharing .fs-share-check{position:absolute;top:12px;right:12px;width:22px;height:22px}}
+@media(max-width:850px){#tabFileSharing .fs-grid,#tabFileSharing .fs-qr-result,#tabFileSharing .fs-scan-grid{grid-template-columns:1fr}#tabFileSharing .fs-qr-preview{justify-self:center}}
+@media(max-width:620px){#tabFileSharing .fs-share-options{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#tabFileSharing .fs-share-option strong{font-size:.84rem}#tabFileSharing .fs-share-option{grid-template-columns:1fr;justify-items:start;gap:8px;padding:13px}#tabFileSharing .fs-share-option-text>span{display:none}#tabFileSharing .fs-share-option-icon{width:38px;height:38px;font-size:19px}#tabFileSharing .fs-share-check{position:absolute;top:10px;right:10px;width:22px;height:22px}#tabFileSharing .fs-special,#tabFileSharing .fs-design-grid{grid-template-columns:1fr}#tabFileSharing .fs-colors{grid-template-columns:1fr 1fr 1fr}#tabFileSharing .fs-colors label{flex-direction:column;align-items:flex-start;gap:5px}#tabFileSharing .fs-direction{grid-template-columns:1fr}#tabFileSharing .fs-security-list{grid-template-columns:1fr}#tabFileSharing .fs-actions .btn,#tabFileSharing .fs-transfer-actions .btn{flex:1}}
 </style></head>
 <body>
   <button type="button" id="omniStaticStudios" aria-label="Back to Studios"><span>←</span><span class="studio-back-label">Studios</span></button>
@@ -6281,7 +6303,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
   box-shadow:0 2px 0 #42BFA8,0 14px 28px -14px rgba(20,160,140,.6) !important;
 }
 </style>
-  <script src="./file_sharing_studio.js?v=5"></script>
+  <script src="./file_sharing_studio.js?v=6"></script>
   <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=6">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}

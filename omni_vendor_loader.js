@@ -17,7 +17,8 @@ const LIBS={
   mermaid:{global:'mermaid',local:'vendor/mermaid/mermaid.min.js',cdn:'https://cdn.jsdelivr.net/npm/mermaid@12.1.0/dist/mermaid.min.js'},
   dagre:{global:'dagre',local:'vendor/dagre/dagre.min.js',cdn:'https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.4/dist/dagre.min.js'},
   xlsx:{global:'XLSX',local:'vendor/sheetjs/xlsx.full.min.js',cdn:'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'},
-  jszip:{global:'JSZip',local:'vendor/jszip/jszip.min.js',cdn:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'}
+  jszip:{global:'JSZip',local:'vendor/jszip/jszip.min.js',cdn:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'},
+  jsqr:{global:'jsQR',local:'vendor/jsqr/jsQR.js',cdn:'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'}
 };
 const pending={};
 function inject(src){

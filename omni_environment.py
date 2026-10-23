@@ -151,6 +151,8 @@ OFFLINE_ASSET_URLS = {
     "dompurify/purify.min.js": "https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js",
     "mermaid/mermaid.min.js": "https://cdn.jsdelivr.net/npm/mermaid@12.1.0/dist/mermaid.min.js",
     "dagre/dagre.min.js": "https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.4/dist/dagre.min.js",
+    # File Sharing QR scanner fallback for browsers without BarcodeDetector (Windows/Linux Chrome, Firefox, Safari)
+    "jsqr/jsQR.js": "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
     "tesseract/worker.min.js": "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
     "tesseract/core/tesseract-core.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js",
     "tesseract/core/tesseract-core.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm",

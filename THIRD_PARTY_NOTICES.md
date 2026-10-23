@@ -95,3 +95,4 @@ Verify the upstream model repository/license before redistributing model weights
 |---|---|---|
 | qrcode-generator 1.4.4 by Kazuhiko Arase (`qrcode_generator.js`, bundled unmodified) | MIT | Offline QR encoder for the LAN transfer pairing code and the offline fallback of the static QR designer |
 | qr-code-styling 1.9.2 (loaded from jsDelivr when online) | MIT | Styled dots, corners and logo in the static QR designer |
+| jsQR 1.4.0 by Cosmo Wolfe (loaded on demand from `vendor/jsqr/` or jsDelivr) | Apache-2.0 | QR scanner decoding on browsers without a built-in `BarcodeDetector` |

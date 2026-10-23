@@ -135,8 +135,17 @@ def register(path):
         FILES[fid] = path
     return fid
 
+_LAST_CLEANUP = 0.0
+
 def cleanup_old():
-    cutoff = time.time() - 6 * 3600
+    # Runs on every request, and File Sharing polls every couple of seconds; scanning the whole
+    # work folder that often is wasted disk I/O for files that only expire after 6 hours.
+    global _LAST_CLEANUP
+    now = time.time()
+    if now - _LAST_CLEANUP < 60:
+        return
+    _LAST_CLEANUP = now
+    cutoff = now - 6 * 3600
     stale_paths = set()
     for p in ROOT.iterdir():
         try:
@@ -390,6 +399,9 @@ TRANSFER_LOCK = threading.Lock()
 TRANSFER_HTTPD = None
 TRANSFER_PORT = None
 TRANSFER_CHUNK = 1024 * 1024
+# Originals chosen in this computer's own file dialog, shared in place. Never deleted by Omni.
+TRANSFER_PICKED = {}
+TRANSFER_PICK_LOCK = threading.Lock()
 
 def transfer_inbox():
     """Folder where files sent from a phone land on this computer.
@@ -417,25 +429,74 @@ def transfer_unique_path(folder: Path, name: str) -> Path:
     return candidate
 
 def content_disposition(name: str) -> str:
-    ascii_name = safe_name(name, "download.bin")
+    # http.server encodes headers as Latin-1, so a Hindi/CJK/emoji letter that safe_name keeps
+    # (isalnum) crashed the response mid-download. filename* carries the real UTF-8 name.
+    ascii_name = "".join(c if c.isascii() else "_" for c in safe_name(name, "download.bin"))
     return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{urllib.parse.quote(name)}"
 
+def byte_range(header, size):
+    """(start, end) inclusive for a single "bytes=" Range, None to send the whole file.
+
+    Raises ValueError when the range cannot be satisfied (HTTP 416). Multi-range
+    requests are answered with the whole file, which RFC 9110 allows."""
+    import re
+    m = re.fullmatch(r"\s*bytes=(\d*)-(\d*)\s*", header or "")
+    if not m or not (m.group(1) or m.group(2)):
+        return None
+    if m.group(1):
+        start = int(m.group(1))
+        end = min(int(m.group(2)) if m.group(2) else size - 1, size - 1)
+    else:
+        start, end = max(0, size - int(m.group(2))), size - 1
+    if start > end:
+        raise ValueError("Range not satisfiable")
+    return start, end
+
 def stream_file(handler, path: Path, extra_headers=None, name=None):
+    """Serve a file with resume support (Range) and, where the OS has it, zero-copy sendfile.
+
+    A phone whose Wi-Fi drops mid-way can resume instead of starting a multi-GB
+    download again, and the kernel moves the bytes from disk to the socket
+    without a Python read/write loop holding a CPU core busy."""
     size = path.stat().st_size
-    handler.send_response(200)
+    try:
+        rng = byte_range(handler.headers.get("Range"), size)
+    except ValueError:
+        handler.send_response(416)
+        handler.send_header("Content-Range", f"bytes */{size}")
+        handler.send_header("Content-Length", "0")
+        for k, v in (extra_headers or {}).items():
+            handler.send_header(k, v)
+        handler.end_headers()
+        return
+    start, end = rng or (0, size - 1)
+    length = end - start + 1
+    handler.send_response(206 if rng else 200)
     handler.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
-    handler.send_header("Content-Length", str(size))
+    handler.send_header("Content-Length", str(length))
+    handler.send_header("Accept-Ranges", "bytes")
+    if rng:
+        handler.send_header("Content-Range", f"bytes {start}-{end}/{size}")
     handler.send_header("Content-Disposition", content_disposition(name or path.name))
     handler.send_header("Cache-Control", "no-store")
     for k, v in (extra_headers or {}).items():
         handler.send_header(k, v)
     handler.end_headers()
+    if length <= 0:
+        return
     with open(path, "rb") as src:
-        while True:
-            chunk = src.read(TRANSFER_CHUNK)
+        if hasattr(os, "sendfile"):
+            handler.connection.sendfile(src, start, length)
+            return
+        # Windows has no os.sendfile; socket.sendfile would fall back to 8 KB sends there.
+        src.seek(start)
+        remaining = length
+        while remaining:
+            chunk = src.read(min(TRANSFER_CHUNK, remaining))
             if not chunk:
                 break
             handler.wfile.write(chunk)
+            remaining -= len(chunk)
 
 def _default_route_ip():
     """Address the OS would use to reach the internet. Behind a VPN, proxy TUN
@@ -561,6 +622,74 @@ def firewall_hint():
     if system == "Windows":
         return "If Windows asks whether Python may communicate on networks, allow Private networks."
     return ""
+
+def _native_pick_paths(title="Choose files to send to your phone"):
+    """Open this computer's file dialog and return the chosen paths ([] when cancelled).
+
+    Raises NotImplementedError when no dialog is available, so the browser can
+    fall back to its own file picker."""
+    system = platform.system()
+    if system == "Darwin":
+        cmd = ["osascript", "-e", "tell me to activate",
+               "-e", f'set picked to choose file with prompt "{title}" with multiple selections allowed',
+               "-e", 'set out to ""',
+               "-e", "repeat with f in picked",
+               "-e", "set out to out & POSIX path of f & linefeed",
+               "-e", "end repeat",
+               "-e", "return out"]
+    elif system == "Windows":
+        cmd = ["powershell", "-NoProfile", "-STA", "-Command",
+               "Add-Type -AssemblyName System.Windows.Forms;[Console]::OutputEncoding=[Text.Encoding]::UTF8;"
+               "$o=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};"
+               f"$d=New-Object System.Windows.Forms.OpenFileDialog -Property @{{Multiselect=$true;Title='{title}'}};"
+               "if($d.ShowDialog($o) -eq [System.Windows.Forms.DialogResult]::OK){$d.FileNames -join [char]10}"]
+    elif shutil.which("zenity"):
+        cmd = ["zenity", "--file-selection", "--multiple", "--separator=\n", "--title=" + title]
+    elif shutil.which("kdialog"):
+        cmd = ["kdialog", "--getopenfilename", str(Path.home()), "--multiple", "--separate-output", "--title", title]
+    else:
+        cmd = [sys.executable, "-c",
+               "import sys,tkinter,tkinter.filedialog as d;r=tkinter.Tk();r.withdraw();r.attributes('-topmost',True);"
+               "sys.stdout.write('\\n'.join(d.askopenfilenames(title=sys.argv[1])))", title]
+    try:
+        cp = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900)
+    except subprocess.TimeoutExpired:
+        return []
+    except OSError as e:
+        raise NotImplementedError("No file chooser is available on this computer: " + str(e))
+    # Cancel is exit 1 for zenity/kdialog and AppleScript error -128; PowerShell and tkinter exit 0.
+    cancelled = cp.returncode == 1 and (cmd[0] in ("zenity", "kdialog") or "-128" in cp.stderr)
+    if cp.returncode and not cancelled:
+        detail = cp.stderr.strip().splitlines()[-1] if cp.stderr.strip() else ""
+        raise NotImplementedError("The file chooser could not be opened" + (": " + detail if detail else "."))
+    return [line for line in cp.stdout.splitlines() if line.strip()]
+
+def transfer_pick():
+    """Let the user choose files in the native dialog and share them without copying.
+
+    Files dropped into the browser have to be streamed into the engine first
+    (a full copy of every byte); files picked here are served straight from
+    where they already are on disk."""
+    if not TRANSFER_PICK_LOCK.acquire(blocking=False):
+        raise ValueError("A file chooser is already open on this computer.")
+    try:
+        paths = _native_pick_paths()
+    finally:
+        TRANSFER_PICK_LOCK.release()
+    out = []
+    for raw in paths:
+        p = Path(raw).expanduser()
+        try:
+            if not p.is_file():
+                continue
+            size = p.stat().st_size
+        except OSError:
+            continue
+        pid = new_id("p")
+        with TRANSFER_LOCK:
+            TRANSFER_PICKED[pid] = p
+        out.append({"id": pid, "name": p.name, "size": size})
+    return {"ok": True, "files": out}
 
 def _drop_session_files(sess):
     # Only temporary copies are removed. Files a phone sent to this computer
@@ -711,7 +840,7 @@ var $=function(id){return document.getElementById(id)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var fmt=function(n){n=+n||0;var u=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<4){n/=1024;i++}return (n<10&&i?n.toFixed(1):Math.round(n))+' '+u[i]};
 var ext=function(n){var m=/\.([a-z0-9]{1,5})$/i.exec(n||'');return m?m[1]:'file'};
-var mode=null, expires=0, ended=false, poll=null, busy=false, toastTimer=null, uploaded=0;
+var mode=null, expires=0, ended=false, poll=null, busy=false, toastTimer=null, uploaded=0, listSig='';
 function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.className='toast'},3800)}
 function conn(state,label){var c=$('conn');c.className='conn '+state;c.lastChild.textContent=label}
 function tick(){if(!expires||ended)return;var s=Math.max(0,Math.round(expires-Date.now()/1000));$('left').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');if(!s)end('This session has expired.')}
@@ -731,11 +860,13 @@ function renderRecv(files){
   $('recvList').innerHTML=files.slice().reverse().map(function(f){return '<div class="file"><span class="ext">'+esc(ext(f.name))+'</span><div class="fname"><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><span class="tag">Saved</span></div>'}).join('')||'<div class="empty">Nothing sent yet.</div>';
 }
 function refresh(){
-  if(ended)return Promise.resolve();
+  if(ended||document.hidden)return Promise.resolve();
   return fetch('/api/status/'+encodeURIComponent(TOKEN),{cache:'no-store'}).then(function(r){return r.json().then(function(j){return {r:r,j:j}})}).then(function(x){
     if(!x.r.ok){end(x.j&&x.j.error);return}
     var j=x.j;if(!mode)setup(j);expires=j.expires||0;$('pin').textContent=j.pin||'—';tick();
     conn('on','Connected');
+    /* Rebuild the list only when it changed: re-rendering every poll recreated the Save links under the user's finger. */
+    var sig=JSON.stringify(j.files||[]);if(sig===listSig)return;listSig=sig;
     if(mode==='send')renderSend(j.files||[]);else renderRecv(j.files||[]);
   }).catch(function(){conn('off','Offline')});
 }
@@ -767,6 +898,7 @@ function run(){
 }
 $('dlAll').addEventListener('click',function(){var links=Array.prototype.slice.call(document.querySelectorAll('#sendList a.btn'));links.forEach(function(a,i){setTimeout(function(){a.click()},i*900)})});
 window.addEventListener('beforeunload',function(e){if(busy||queue.length){e.preventDefault();e.returnValue=''}});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)refresh()});
 refresh();poll=setInterval(refresh,2500);setInterval(tick,1000);
 })();
 </script></body></html>"""
@@ -777,7 +909,9 @@ def transfer_html(token):
 class LANTransferHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "OmniLANTransfer/1.1"
-    def log_message(self, fmt, *args): print("[OmniLAN]", fmt % args, flush=True)
+    def log_message(self, fmt, *args):
+        if "/api/status/" in getattr(self, "path", ""): return  # the phone polls this every few seconds
+        print("[OmniLAN]", fmt % args, flush=True)
     def send_bytes(self, data, ctype="text/plain; charset=utf-8", status=200, extra=None):
         self.send_response(status); self.send_header("Content-Type",ctype); self.send_header("Cache-Control","no-store")
         self.send_header("X-Content-Type-Options","nosniff"); self.send_header("Referrer-Policy","no-referrer")
@@ -857,9 +991,19 @@ def transfer_start(payload):
     if mode not in ("send","receive"): raise ValueError("Transfer mode must be send or receive")
     file_ids=list(payload.get("file_ids") or [])
     names=list(payload.get("names") or [])
-    file_map={}; display={}
+    file_map={}; display={}; owned=[]
     for i,fid in enumerate(file_ids):
-        p=get_file(fid); key=new_id("f"); file_map[key]=p
+        with TRANSFER_LOCK: p=TRANSFER_PICKED.get(fid)
+        if p is not None:
+            if not p.is_file(): raise ValueError(p.name+" was moved or deleted. Select it again.")
+        elif str(fid).startswith("p"):
+            raise ValueError("The Local Engine restarted since these files were chosen. Remove them and select them again.")
+        else:
+            # A copy the browser streamed in through /api/upload: it only exists for this
+            # session, so it is deleted when the session stops instead of lingering for hours.
+            p=get_file(fid); owned.append(p)
+            with LOCK: FILES.pop(fid,None)
+        key=new_id("f"); file_map[key]=p
         if i<len(names) and names[i]: display[key]=transfer_display_name(names[i])
     if mode=="send" and not file_map: raise ValueError("Select at least one file to share.")
     token=secrets.token_urlsafe(24).replace("-","").replace("_","")
@@ -867,7 +1011,7 @@ def transfer_start(payload):
     ttl=max(60,min(3600,int(payload.get("ttl",TRANSFER_TTL))))
     inbox=str(transfer_inbox()) if mode=="receive" else ""
     with TRANSFER_LOCK:
-        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":[],"connected":False}
+        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":owned,"connected":False}
     port=start_transfer_server()
     addrs=[a for a in lan_addresses() if not a["ip"].startswith("127.")]
     wanted=str(payload.get("ip") or "").strip()
@@ -1850,6 +1994,12 @@ class Handler(BaseHTTPRequestHandler):
                 length=int(self.headers.get("Content-Length","0"))
                 if length>1024*1024: raise ValueError("Transfer metadata too large")
                 payload=json.loads(self.rfile.read(length) or b"{}"); self.send_json(transfer_start(payload))
+            except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
+            return
+        if parsed.path == "/api/transfer/pick":
+            if not authorize(self): return
+            try: self.send_json(transfer_pick())
+            except NotImplementedError as e: self.send_json({"ok":False,"error":str(e),"fallback":True},501)
             except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
             return
         if parsed.path == "/api/transfer/status":
