@@ -1,16 +1,18 @@
 import os
 import re
+import time
 import tempfile
 import shutil
 import ipaddress
 from pathlib import Path
 from urllib.parse import urlparse, quote, unquote
+from secrets import compare_digest
 import html as html_lib
 import urllib.request
 import json
 
 import yt_dlp
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
@@ -19,6 +21,53 @@ APP_NAME = "Omni Social Resolver"
 MAX_DURATION = int(os.getenv("MAX_DURATION", "900"))
 MAX_DOWNLOAD_MB = int(os.getenv("MAX_DOWNLOAD_MB", "300"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "https://theraghavraman.github.io")
+
+# Abuse controls. The service is called from the public page, so a token shipped to that
+# page is not a real secret: it is a rotatable gate that blocks casual direct use, while the
+# per-IP rate limit is the substantive protection against this becoming an open download proxy.
+# SOCIAL_TOKEN is enforced only when set, so an existing deployment keeps working until it is
+# configured on the Render service and pasted into social_resolver_config.js.
+SOCIAL_TOKEN = os.getenv("SOCIAL_TOKEN", "").strip()
+RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+RATE_WINDOW = 60
+_RATE_BUCKET: dict[str, list[float]] = {}
+
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get("X-Forwarded-For", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return (request.client.host if request.client else "") or "unknown"
+
+
+def rate_ok(ip: str) -> bool:
+    now = time.time()
+    bucket = [t for t in _RATE_BUCKET.get(ip, []) if now - t < RATE_WINDOW]
+    if len(bucket) >= RATE_LIMIT:
+        _RATE_BUCKET[ip] = bucket
+        return False
+    bucket.append(now)
+    _RATE_BUCKET[ip] = bucket
+    if len(_RATE_BUCKET) > 4096:  # bound memory: drop buckets with no live hits
+        for key in [k for k, v in _RATE_BUCKET.items() if not any(now - t < RATE_WINDOW for t in v)]:
+            _RATE_BUCKET.pop(key, None)
+    return True
+
+
+def guard(request: Request, require_token: bool = True) -> None:
+    """Reject before any upstream work: per-IP rate limit, plus the optional token.
+
+    The token can only be enforced on /api/resolve, which the page reaches with fetch() and
+    can set a header on. The media-proxy and download URLs are consumed as <img>/<video>/<a>
+    sources, where the browser cannot attach a custom header, so those rely on the rate limit
+    and the existing host allow-lists instead.
+    """
+    if require_token and SOCIAL_TOKEN:
+        supplied = request.headers.get("X-Omni-Social-Token", "")
+        if not compare_digest(supplied, SOCIAL_TOKEN):
+            raise HTTPException(401, "Missing or invalid social-resolver token.")
+    if not rate_ok(client_ip(request)):
+        raise HTTPException(429, "Rate limit exceeded. Please wait a minute and try again.")
 
 SUPPORTED_HOSTS = {
     "instagram.com", "facebook.com", "fb.watch", "tiktok.com",
@@ -35,7 +84,7 @@ app.add_middleware(
     allow_origins=[ALLOWED_ORIGIN],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-Omni-Social-Token"],
 )
 
 
@@ -769,7 +818,8 @@ def health():
 
 
 @app.post("/api/resolve")
-def resolve(body: ResolveRequest):
+def resolve(body: ResolveRequest, request: Request):
+    guard(request)
     url = validate_public_url(str(body.url))
 
     # Instagram needs its post-specific public resolver first. yt-dlp can be
@@ -818,8 +868,9 @@ def resolve(body: ResolveRequest):
 
 
 @app.get("/api/media-proxy")
-def media_proxy(url: str = Query(...)):
+def media_proxy(request: Request, url: str = Query(...)):
     """Proxy a short-lived public CDN media URL so browser CORS does not block downloads."""
+    guard(request, require_token=False)
     target = unquote(url)
     if not is_allowed_media_url(target):
         raise HTTPException(400, "Media URL is not an allowed public CDN URL.")
@@ -855,7 +906,8 @@ def media_proxy(url: str = Query(...)):
 
 
 @app.get("/api/download")
-def download(url: str = Query(...), quality: str = Query("Best")):
+def download(request: Request, url: str = Query(...), quality: str = Query("Best")):
+    guard(request, require_token=False)
     source = validate_public_url(url)
     info = extract_info(source)
 

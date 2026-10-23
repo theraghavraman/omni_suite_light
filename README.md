@@ -149,6 +149,26 @@ The Local Engine listens only on 127.0.0.1:8765. Mutating/processing API request
 
 The browser UI checks http://127.0.0.1:8765/api/health and uses that response to pair the published UI with the running local engine.
 
+### Security note — the hosted site can drive your Local Engine
+
+To make that pairing work, the published GitHub Pages origin (`https://theraghavraman.github.io`) is trusted by default: a page from it can read the per-launch token from `/api/health` and then call the engine, including the code-and-native-tool operations. That is the intended bridge, but it has a cost worth understanding:
+
+- The token gives the calling page the engine's full capability, which includes running code and native programs on your computer.
+- Every site you publish under `theraghavraman.github.io` shares that one origin, so a scripting flaw (XSS) on **any** of those pages — not just OmniConverter — could reach a running Local Engine the same way.
+- Modern browsers now prompt before a public page contacts a loopback address (Private/Local Network Access), so this is not silent, but do not rely on that prompt as the only safeguard.
+
+Practical guidance:
+
+- The Local Engine only has these powers while it is running. Close its window when you are not using it, and always use the engine's own UI at `http://127.0.0.1:8765/` for sensitive work rather than driving it from the hosted site.
+- For the strongest isolation, make the engine trust **only its own local UI**. `OMNI_ALLOWED_ORIGINS` is _added_ to the defaults, so it cannot remove the public origin on its own; to drop it, edit the `ALLOWED_ORIGINS` set near the top of `omni_local_server.py` so it lists only the loopback origins:
+
+  ```python
+  ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765"}
+  ```
+
+  The local UI keeps working; only the hosted GitHub Pages site stops being able to reach your engine.
+- Treat a custom domain for the published site (so it does not share an origin with your other sites) as the better long-term fix.
+
 If the engine is not running, the browser UI remains usable for browser-capable tools.
 
 ## 7. When Local Engine is required

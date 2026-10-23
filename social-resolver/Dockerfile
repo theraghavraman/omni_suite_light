@@ -10,8 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY requirements.txt .
-RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+COPY requirements.txt requirements-instagrapi.txt ./
+RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt \
+    && python -m pip install --no-deps -r requirements-instagrapi.txt
 
 COPY app.py .
 

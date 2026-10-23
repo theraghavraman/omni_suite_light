@@ -20,10 +20,10 @@
   <script id="omni-core-libs">
   (function(){
     var LIBS=[
-      ['pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','./vendor/pdfjs/pdf.min.js'],
-      ['JSZip','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','./vendor/jszip/jszip.min.js'],
-      ['PDFLib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','./vendor/pdf-lib/pdf-lib.min.js'],
-      ['Tesseract','https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','./vendor/tesseract/tesseract.min.js'],
+      ['pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','./vendor/pdfjs/pdf.min.js','sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'],
+      ['JSZip','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','./vendor/jszip/jszip.min.js','sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG'],
+      ['PDFLib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','./vendor/pdf-lib/pdf-lib.min.js','sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI'],
+      ['Tesseract','https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','./vendor/tesseract/tesseract.min.js','sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'],
       ['XLSX','https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','./vendor/sheetjs/xlsx.full.min.js'],
       ['jsyaml','https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js','./vendor/jsyaml/js-yaml.min.js']
     ];
@@ -40,8 +40,11 @@
       }
       (waiters[name]||[]).forEach(function(w){w(ok)});delete waiters[name];
     }
-    function inject(src,done){
+    // LIBS rows are [global, CDN url, offline copy, SHA-384 of the CDN file]. A CDN copy that does not match its
+    // pinned hash is refused by the browser and counts as a failed attempt, so the offline copy is tried next.
+    function inject(src,done,sri){
       var s=document.createElement('script');s.src=src;s.async=true;
+      if(sri&&/^https:/.test(src)){s.integrity=sri;s.crossOrigin='anonymous';}
       s.onload=function(){done(true)};s.onerror=function(){s.remove();done(false)};
       document.head.appendChild(s);
     }
@@ -57,7 +60,7 @@
             if(ok&&window[name]){settle(name,true,src);clearTimeout(timer);resolve(true);return;}
             if(++failed>=order.length){settle(name,false);resolve(false);return;}
             attempt();
-          });
+          },lib[3]);
         }
         attempt();
         timer=setTimeout(attempt,FALLBACK_AFTER_MS); // CDN still pending: race the offline copy
@@ -6304,7 +6307,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
 }
 </style>
   <script src="./file_sharing_studio.js?v=6"></script>
-  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=6">
+  <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=8">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch,{once:true});else watch();document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.nav-btn'))setTimeout(upd,60);});window.addEventListener('resize',upd);})();</script>

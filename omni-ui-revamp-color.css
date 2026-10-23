@@ -86,7 +86,8 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
      it was a full viewport wide plus the sidebar margin, so the centred body pushed it 124px under the
      sidebar and 124px off the right edge (clipped text, sideways scroll on 1280-1440px laptops). */
   .container{
-    width:auto !important;align-self:stretch !important;
+    width:auto !important;min-width:0 !important;box-sizing:border-box !important;
+    align-self:stretch !important;
     max-width:none !important;
     margin:0 0 0 var(--rv-side) !important;
     padding:24px clamp(20px,3vw,40px) 64px !important;
