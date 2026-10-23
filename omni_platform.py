@@ -57,6 +57,18 @@ def capability(source=None,target=None):
 def _read_text(path):
     return Path(path).read_text(encoding="utf-8-sig",errors="replace")
 
+_ISO_DATE = re.compile(r"^\d{4}[-./]\d{1,2}[-./]\d{1,2}$")
+
+def _valid_phone(text):
+    digits = re.sub(r"\D", "", text)
+    return 10 <= len(digits) <= 15 and not _ISO_DATE.match(text.strip())
+
+PRIVACY_VALIDATORS = {"phone": _valid_phone}
+
+def _mask(value):
+    v = str(value)
+    return v if len(v) <= 4 else v[:2] + "*" * (len(v) - 4) + v[-2:]
+
 def privacy_scan(path, max_bytes=8_000_000):
     p=Path(path); raw=p.read_bytes()[:max_bytes]
     text=raw.decode("utf-8",errors="replace")
