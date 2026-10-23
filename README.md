@@ -65,7 +65,7 @@ Desktop users can also drag files onto upload areas. Browser file inputs and dra
 
 ## 2. Typography
 
-The interface uses a system-safe sans-serif font stack. No external web-font request is required by the application, so typography does not create an offline network dependency.
+The interface requests three Google Fonts (Bricolage Grotesque, Figtree, Fira Code) when online. Every font has a system fallback, so offline use is unaffected: if the request fails, the system sans-serif and monospace fonts are used and nothing else depends on the network.
 
 ## 3. Browser mode vs Local Engine
 
@@ -120,7 +120,7 @@ Open PowerShell in the project folder and run:
 
 Then open:
 
-    http://127.0.0.1:8765/
+    http://localhost:8765/
 
 ### Windows native components
 The installer attempts to obtain Python, FFmpeg, qpdf, Poppler, ImageMagick, Tesseract OCR, LibreOffice, Calibre and Pandoc, then installs both the core Data/Scientific stack and the optional extended Python stack.
@@ -159,7 +159,8 @@ To make that pairing work, the published GitHub Pages origin (`https://theraghav
 
 Practical guidance:
 
-- The Local Engine only has these powers while it is running. Close its window when you are not using it, and always use the engine's own UI at `http://127.0.0.1:8765/` for sensitive work rather than driving it from the hosted site.
+- The Local Engine only has these powers while it is running. Close its window when you are not using it, and always use the engine's own UI at `http://localhost:8765/` for sensitive work rather than driving it from the hosted site.
+- Code execution (`code_execute`) is refused for requests from any origin other than the engine's own UI, even with a valid token. Set `OMNI_ALLOW_REMOTE_CODE=1` only if you deliberately want the hosted site to run code locally.
 - For the strongest isolation, make the engine trust **only its own local UI**. `OMNI_ALLOWED_ORIGINS` is _added_ to the defaults, so it cannot remove the public origin on its own; to drop it, edit the `ALLOWED_ORIGINS` set near the top of `omni_local_server.py` so it lists only the loopback origins:
 
   ```python
@@ -292,7 +293,7 @@ Conversions: Canvas → Mermaid flowchart, and Mermaid → Canvas for flowchart,
 
 Offline: run `prepare_offline.py` once to place every library these studios use into `vendor/`; `omni_vendor_loader.js` loads the local copy first and falls back to the pinned CDN URL.
 
-## 8. Diagnostics and full option testing
+## 9. Diagnostics and full option testing
 
 The guide area includes **Run Browser Diagnostics** for a quick runtime check of the core browser libraries and capabilities.
 
@@ -309,7 +310,7 @@ The All Tests screen covers:
 - Compressor
 - Local Engine
 
-## 9. Browser upload troubleshooting
+## 10. Browser upload troubleshooting
 
 If an upload area does nothing:
 1. Hard-refresh the page.
@@ -324,7 +325,7 @@ The application uses a direct user-gesture file-picker path with showPicker() wh
 
 If a library is missing, the browser may be blocked from loading a CDN resource. Use the local launcher and prepare_offline.py.
 
-## 10. Mobile use
+## 11. Mobile use
 
 For Android/iPhone:
 - Tap the upload area rather than trying to drag files.
@@ -335,7 +336,7 @@ For Android/iPhone:
 
 The browser receives a File object supplied by the user's selection; it does not receive the device's private filesystem path.
 
-## 11. Large-file guidance
+## 12. Large-file guidance
 
 Browser processing can become memory-intensive because large binaries may need to be decoded, rendered or held in browser memory.
 
@@ -343,7 +344,7 @@ Prefer Local Engine for very large PDFs, large image batches, long audio, long/h
 
 The Local Engine streams uploads/downloads and uses temporary processing files outside the website directory.
 
-## 12. Security model
+## 13. Security model
 
 The public Render Cloud Engine is authenticated with the `OMNI_CLOUD_TOKEN` environment secret. The browser Cloud bridge keeps the operator-supplied token in `sessionStorage` only and sends it as `X-Omni-Cloud-Token`; never commit the token or hard-code it into the public site.
 
@@ -355,7 +356,7 @@ The Local Engine binds to 127.0.0.1, exposes predefined operations rather than a
 
 Do not change the server binding to 0.0.0.0 unless you understand the security consequences.
 
-## 13. Local Engine operations
+## 14. Local Engine operations
 
 The predefined local operations include:
 - media
@@ -379,7 +380,7 @@ The predefined local operations include:
 
 The UI is the primary interface; users should not need to construct API requests manually.
 
-## 14. Repository files
+## 15. Repository files
 
 | File | Purpose |
 |---|---|
@@ -397,7 +398,7 @@ The UI is the primary interface; users should not need to construct API requests
 | omni_data_engine.py | Structured/semi-structured data and SQL/NoSQL conversion engine |
 | .github/workflows/local-engine-check.yml | Static/Python/native validation workflow |
 
-## 15. Troubleshooting checklist
+## 16. Troubleshooting checklist
 
 ### Upload area does not open
 - Hard refresh.
@@ -414,6 +415,8 @@ The UI is the primary interface; users should not need to construct API requests
 - If the operation is native, start Local Engine.
 
 ### Local Engine says disconnected
+Open the UI at http://localhost:8765/ (the launchers now do this). Older builds rejected the page's own health check when it was opened at http://127.0.0.1:8765/.
+
 Windows: start_omni.bat or setup_and_start.bat.
 macOS/Linux: bash start_omni.command or bash setup_and_start.command.
 
@@ -438,7 +441,7 @@ Then restart the local server.
 ### GitHub Pages works but local features do not
 This is expected until the local Python engine is running. GitHub Pages is a browser environment and cannot launch FFmpeg, LibreOffice, Calibre, qpdf or other programs installed on your computer.
 
-## 15. Development / validation
+## 17. Development / validation
 
 The repository includes GitHub Actions checks for Python syntax, required setup files and native smoke tests on Windows, macOS and Ubuntu. The native matrix now exercises representative SVG/GIF image, audio, MPEG-4/MKV video, Office and ebook paths; it does not replace testing every OS release or every optional codec/delegate.
 
@@ -478,6 +481,14 @@ The offline setup also vendors the browser conversion engines when prepare_offli
 - MDN Using files from web applications — file inputs and drag/drop.
 - MDN showPicker() — user-gesture file picker behavior.
 - MDN User Activation — protected APIs require user activation.
+
+## Python package (`omni-engine`)
+
+`pip install omni-converter-studio` installs `omni-engine` (`version`, `doctor`, `serve`). The wheel has the engine but not the UI, so `serve` is API-only unless run as `omni-engine serve --ui /path/to/omni_suite_light` (or with `OMNI_UI_ROOT` set). The engine never serves files from its install directory.
+
+## Phone ↔ computer transfer (File Sharing)
+
+File Sharing uses plain HTTP on the Wi-Fi interface and an unguessable, expiring link (`OMNI_TRANSFER_TTL`, default 15 minutes). The phone must enter the 6-digit PIN shown on the computer before listing, downloading or uploading. Five wrong PINs end the session. Use only on trusted networks.
 
 ## License
 

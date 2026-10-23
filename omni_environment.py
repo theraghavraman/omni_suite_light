@@ -153,6 +153,9 @@ OFFLINE_ASSET_URLS = {
     "dagre/dagre.min.js": "https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.4/dist/dagre.min.js",
     # File Sharing QR scanner fallback for browsers without BarcodeDetector (Windows/Linux Chrome, Firefox, Safari)
     "jsqr/jsQR.js": "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
+    "sqljs/sql-wasm.js": "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/sql-wasm.js",
+    "sqljs/sql-wasm.wasm": "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/sql-wasm.wasm",
+    "typescript/typescript.min.js": "https://cdnjs.cloudflare.com/ajax/libs/typescript/5.9.2/typescript.min.js",
     "tesseract/worker.min.js": "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
     "tesseract/core/tesseract-core.wasm.js": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js",
     "tesseract/core/tesseract-core.wasm": "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm",

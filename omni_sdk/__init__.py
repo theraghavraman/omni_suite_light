@@ -9,7 +9,7 @@ from omni_platform import (
     database_query, database_tables, batch_manifest,
 )
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 def profile(path, fmt=None, table=None):
     """Profile a tabular/data file using the Omni Data Studio engine."""

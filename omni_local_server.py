@@ -29,7 +29,12 @@ LOCK = threading.Lock()
 FILES: dict[str, Path] = {}
 MAX_UPLOAD = int(os.environ.get("OMNI_MAX_UPLOAD", str(8 * 1024**3)))
 TOKEN = os.environ.get("OMNI_TOKEN") or secrets.token_urlsafe(32)
-ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765", "https://theraghavraman.github.io", "https://redmarkforge.pages.dev"}
+LOCAL_UI_ORIGINS = {f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"}
+# Directory that holds index.html. Defaults to this file's folder (repository checkout);
+# a pip-installed engine must be pointed at a checkout with OMNI_UI_ROOT or `omni-engine serve --ui`.
+UI_ROOT = Path(os.environ.get("OMNI_UI_ROOT") or Path(__file__).resolve().parent).resolve()
+UI_AVAILABLE = (UI_ROOT / "index.html").is_file()
+ALLOWED_ORIGINS = {*LOCAL_UI_ORIGINS, "https://theraghavraman.github.io", "https://redmarkforge.pages.dev"}
 ALLOWED_ORIGINS.update(origin.strip().rstrip("/") for origin in os.environ.get("OMNI_ALLOWED_ORIGINS", "").split(",") if origin.strip())
 
 def request_origin(handler):
@@ -48,7 +53,7 @@ def host_allowed(handler):
     host = handler.headers.get("Host", "").split(":", 1)
     hostname = host[0].strip().lower().strip("[]")
     port = host[1] if len(host) == 2 else "80"
-    return hostname in {"127.0.0.1", "localhost", "::1"} and port == "8765"
+    return hostname in {"127.0.0.1", "localhost", "::1"} and port == str(PORT)
 
 def origin_allowed(handler):
     origin = request_origin(handler)
@@ -64,6 +69,16 @@ def same_origin_browser_request(handler):
     # rejected on its own GET API calls. Fetch metadata identifies those requests;
     # the per-launch token below is still required.
     return not request_origin(handler) and handler.headers.get("Sec-Fetch-Site", "").lower() == "same-origin"
+
+# Operations that run arbitrary code are refused when the request comes from a remote
+# (e.g. GitHub Pages) origin, even with a valid token, unless explicitly re-enabled.
+REMOTE_BLOCKED_OPS = {"code_execute"}
+ALLOW_REMOTE_CODE = os.environ.get("OMNI_ALLOW_REMOTE_CODE", "").strip().lower() in {"1", "true", "yes"}
+
+def local_ui_request(handler):
+    if ALLOW_REMOTE_CODE:
+        return True
+    return request_origin(handler) in LOCAL_UI_ORIGINS or same_origin_browser_request(handler)
 
 def authorize(handler):
     if not (origin_allowed(handler) or same_origin_browser_request(handler)):
@@ -399,6 +414,7 @@ TRANSFER_LOCK = threading.Lock()
 TRANSFER_HTTPD = None
 TRANSFER_PORT = None
 TRANSFER_CHUNK = 1024 * 1024
+TRANSFER_MAX_PIN_FAILURES = 5
 # Originals chosen in this computer's own file dialog, shared in place. Never deleted by Omni.
 TRANSFER_PICKED = {}
 TRANSFER_PICK_LOCK = threading.Lock()
@@ -717,6 +733,21 @@ def transfer_session(token):
 def transfer_file_name(s, fid, p):
     return (s.get("names") or {}).get(fid) or p.name
 
+def transfer_cookie_name(token):
+    return "omni_tx_" + token[:12]
+
+def transfer_unlocked(handler, token, s):
+    """True when the phone has entered this session's PIN (proved by an HttpOnly cookie)."""
+    jar = handler.headers.get("Cookie", "")
+    want = transfer_cookie_name(token) + "="
+    for part in jar.split(";"):
+        part = part.strip()
+        if part.startswith(want):
+            key = part[len(want):]
+            with TRANSFER_LOCK:
+                return any(secrets.compare_digest(key, k) for k in s.get("unlock_keys", ()))
+    return False
+
 def transfer_files_json(s):
     with TRANSFER_LOCK:
         files = list(s.get("files", []))
@@ -811,7 +842,16 @@ main{max-width:640px;margin:auto;padding:16px 16px calc(28px + env(safe-area-ins
 <header class="top"><div class="top-row"><div class="brand"><span class="logo">&#8644;</span>Omni Transfer</div><span id="conn" class="conn"><i></i><span>Connecting</span></span></div></header>
 <main>
   <section class="intro"><h1 id="title">Loading&hellip;</h1><p id="lead">Private transfer over your Wi-Fi. Nothing goes to the internet.</p>
-    <div class="meta"><span class="chip">PIN <b id="pin">&mdash;</b></span><span class="chip">Ends in <b id="left">&mdash;</b></span></div></section>
+    <div class="meta"><span class="chip">Ends in <b id="left">&mdash;</b></span></div></section>
+
+  <section id="pinView" hidden>
+    <div class="card"><h2>Enter the PIN</h2>
+      <p class="note" style="text-align:left;margin:0 0 10px">Type the 6-digit PIN shown on your computer to unlock this transfer.</p>
+      <form id="pinForm"><input id="pinInput" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="000000"
+        style="width:100%;font-size:28px;letter-spacing:8px;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:inherit">
+      <button class="btn" type="submit" style="width:100%;margin-top:12px">Unlock</button></form>
+      <p id="pinErr" class="note" style="color:var(--warn)"></p></div>
+  </section>
 
   <section id="sendView" hidden>
     <div class="card"><h2>Files on your computer <small id="sendCount"></small></h2><div id="sendList" class="list"></div>
@@ -859,11 +899,17 @@ function renderRecv(files){
   $('recvCount').textContent=files.length?files.length+(files.length>1?' files':' file'):'';
   $('recvList').innerHTML=files.slice().reverse().map(function(f){return '<div class="file"><span class="ext">'+esc(ext(f.name))+'</span><div class="fname"><b>'+esc(f.name)+'</b><small>'+fmt(f.size)+'</small></div><span class="tag">Saved</span></div>'}).join('')||'<div class="empty">Nothing sent yet.</div>';
 }
+function showPin(msg){$('pinView').hidden=false;$('sendView').hidden=true;$('recvView').hidden=true;$('title').textContent='Unlock transfer';$('lead').textContent='Private transfer over your Wi-Fi. Nothing goes to the internet.';$('pinErr').textContent=msg&&!/^Enter the PIN/.test(msg)?msg:'';conn('off','Locked');setTimeout(function(){$('pinInput').focus()},50)}
+$('pinForm').addEventListener('submit',function(e){e.preventDefault();var pin=$('pinInput').value.trim();if(!/^\d{6}$/.test(pin)){$('pinErr').textContent='The PIN has 6 digits.';return}
+  fetch('/api/unlock/'+encodeURIComponent(TOKEN),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pin}),credentials:'same-origin'}).then(function(r){return r.json().then(function(j){return {r:r,j:j}})}).then(function(x){
+    $('pinInput').value='';if(x.r.ok){$('pinView').hidden=true;mode=null;listSig='';refresh();return}
+    if(x.r.status===401){$('pinErr').textContent=x.j.error||'Wrong PIN.';return}end(x.j&&x.j.error)}).catch(function(){$('pinErr').textContent='Connection lost. Check you are on the same Wi-Fi.'})});
 function refresh(){
-  if(ended||document.hidden)return Promise.resolve();
-  return fetch('/api/status/'+encodeURIComponent(TOKEN),{cache:'no-store'}).then(function(r){return r.json().then(function(j){return {r:r,j:j}})}).then(function(x){
+  if(ended||document.hidden||!$('pinView').hidden)return Promise.resolve();
+  return fetch('/api/status/'+encodeURIComponent(TOKEN),{cache:'no-store',credentials:'same-origin'}).then(function(r){return r.json().then(function(j){return {r:r,j:j}})}).then(function(x){
+    if(x.r.status===401&&x.j&&x.j.pin_required){showPin(x.j.error);return}
     if(!x.r.ok){end(x.j&&x.j.error);return}
-    var j=x.j;if(!mode)setup(j);expires=j.expires||0;$('pin').textContent=j.pin||'—';tick();
+    var j=x.j;if(!mode)setup(j);expires=j.expires||0;tick();
     conn('on','Connected');
     /* Rebuild the list only when it changed: re-rendering every poll recreated the Save links under the user's finger. */
     var sig=JSON.stringify(j.files||[]);if(sig===listSig)return;listSig=sig;
@@ -891,7 +937,7 @@ function run(){
   xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;var pc=Math.round(e.loaded/e.total*100),sec=(Date.now()-t0)/1000;bar.style.width=pc+'%';tag.textContent=pc+'%';small.textContent=fmt(e.loaded)+' of '+fmt(e.total)+(sec>1?' · '+fmt(e.loaded/sec)+'/s':'')};
   xhr.onload=function(){var j={};try{j=JSON.parse(xhr.responseText)}catch(_){}
     if(xhr.status>=200&&xhr.status<300){bar.style.width='100%';tag.className='tag';tag.textContent='Sent';small.textContent=fmt(f.size)+' · saved as '+(j.name||f.name);uploaded++;refresh()}
-    else{tag.className='tag err';tag.textContent='Failed';small.textContent=j.error||('Upload failed ('+xhr.status+')');toast(j.error||'Upload failed',true);if(xhr.status===404)end(j.error)}
+    else{tag.className='tag err';tag.textContent='Failed';small.textContent=j.error||('Upload failed ('+xhr.status+')');toast(j.error||'Upload failed',true);if(xhr.status===404)end(j.error);if(xhr.status===401&&j.pin_required)showPin(j.error)}
     busy=false;run()};
   xhr.onerror=function(){tag.className='tag err';tag.textContent='Failed';small.textContent='Connection lost. Check you are on the same Wi-Fi.';toast('Connection lost while sending '+f.name,true);busy=false;run()};
   xhr.send(f);
@@ -931,12 +977,16 @@ class LANTransferHandler(BaseHTTPRequestHandler):
                 self.send_bytes(transfer_html(parts[1]).encode(),"text/html; charset=utf-8"); return
             if len(parts)==3 and parts[0]=="api" and parts[1]=="status":
                 s=transfer_session(parts[2])
+                if not transfer_unlocked(self, parts[2], s):
+                    self.send_json({"ok":False,"pin_required":True,"error":"Enter the PIN shown on your computer."},401); return
                 with TRANSFER_LOCK:
                     s["connected"]=True; s["last_seen"]=time.time()
-                    mode=s["mode"]; pin=s.get("pin",""); expires=s.get("expires",0)
-                self.send_json({"ok":True,"mode":mode,"pin":pin,"expires":expires,"max_upload":TRANSFER_MAX_UPLOAD,"files":transfer_files_json(s)}); return
+                    mode=s["mode"]; expires=s.get("expires",0)
+                self.send_json({"ok":True,"mode":mode,"expires":expires,"max_upload":TRANSFER_MAX_UPLOAD,"files":transfer_files_json(s)}); return
             if len(parts)==4 and parts[0]=="api" and parts[1]=="download":
                 s=transfer_session(parts[2])
+                if not transfer_unlocked(self, parts[2], s):
+                    self.send_json({"ok":False,"pin_required":True,"error":"Enter the PIN shown on your computer."},401); return
                 with TRANSFER_LOCK: p=s.get("file_map",{}).get(parts[3])
                 if not p or not p.exists(): raise ValueError("File not found")
                 stream_file(self, p, name=transfer_file_name(s, parts[3], p)); return
@@ -950,8 +1000,31 @@ class LANTransferHandler(BaseHTTPRequestHandler):
         part=None
         try:
             parsed=urllib.parse.urlparse(self.path); parts=[p for p in parsed.path.split("/") if p]
+            if len(parts)==3 and parts[0]=="api" and parts[1]=="unlock":
+                s=transfer_session(parts[2])
+                length=int(self.headers.get("Content-Length","0"))
+                if length<=0 or length>256: raise ValueError("Invalid PIN request.")
+                pin=str(json.loads(self.rfile.read(length) or b"{}").get("pin","")).strip()
+                with TRANSFER_LOCK:
+                    ok=secrets.compare_digest(pin, s["pin"])
+                    if not ok:
+                        s["pin_failures"]=s.get("pin_failures",0)+1
+                        left=TRANSFER_MAX_PIN_FAILURES-s["pin_failures"]
+                    else:
+                        key=secrets.token_urlsafe(24); s["unlock_keys"].add(key); max_age=max(1,int(s["expires"]-time.time()))
+                if not ok:
+                    if left<=0:
+                        with TRANSFER_LOCK: dead=TRANSFER_SESSIONS.pop(parts[2], None)
+                        if dead: _drop_session_files(dead)
+                        self.send_json({"ok":False,"error":"Too many wrong PINs. This session has ended."},404); return
+                    self.send_json({"ok":False,"pin_required":True,"error":f"Wrong PIN. {left} attempt(s) left."},401); return
+                self.send_bytes(json.dumps({"ok":True}).encode(),"application/json; charset=utf-8",200,
+                    {"Set-Cookie":f"{transfer_cookie_name(parts[2])}={key}; Max-Age={max_age}; Path=/; HttpOnly; SameSite=Strict"}); return
             if len(parts)==3 and parts[0]=="api" and parts[1]=="upload":
                 s=transfer_session(parts[2])
+                if not transfer_unlocked(self, parts[2], s):
+                    self.close_connection=True  # the unread upload body must not be parsed as the next request
+                    self.send_json({"ok":False,"pin_required":True,"error":"Enter the PIN shown on your computer."},401); return
                 if s["mode"]!="receive": raise ValueError("This session only shares files from the computer.")
                 length=int(self.headers.get("Content-Length","0"))
                 if length<=0: raise ValueError("The selected file is empty.")
@@ -1011,7 +1084,7 @@ def transfer_start(payload):
     ttl=max(60,min(3600,int(payload.get("ttl",TRANSFER_TTL))))
     inbox=str(transfer_inbox()) if mode=="receive" else ""
     with TRANSFER_LOCK:
-        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":owned,"connected":False}
+        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"unlock_keys":set(),"pin_failures":0,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":owned,"connected":False}
     port=start_transfer_server()
     addrs=[a for a in lan_addresses() if not a["ip"].startswith("127.")]
     wanted=str(payload.get("ip") or "").strip()
@@ -1694,7 +1767,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def serve_static(self, parsed_path):
-        root = Path(__file__).resolve().parent
+        if not UI_AVAILABLE:
+            return False  # never fall back to serving arbitrary files (e.g. site-packages)
+        root = UI_ROOT
         rel = urllib.parse.unquote(parsed_path.lstrip("/"))
         if not rel or rel.endswith("/"):
             rel = "index.html"
@@ -1794,6 +1869,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Vary", "Origin")
         self.send_header("Content-Length", str(size))
         self.end_headers()
+        if self.command == "HEAD":
+            return True
         if data is not None:
             self.wfile.write(data)
         else:
@@ -1803,6 +1880,15 @@ class Handler(BaseHTTPRequestHandler):
                     if not chunk: break
                     self.wfile.write(chunk)
         return True
+
+    def do_HEAD(self):
+        # Diagnostics probes ./vendor assets with HEAD; without this handler the stdlib answers 501.
+        if not host_allowed(self):
+            self.send_response(403); self.send_header("Content-Length", "0"); self.end_headers(); return
+        parsed = urllib.parse.urlparse(self.path)
+        if not parsed.path.startswith("/api/") and self.serve_static(parsed.path):
+            return
+        self.send_response(404); self.send_header("Content-Length", "0"); self.end_headers()
 
     def do_GET(self):
         cleanup_old(); transfer_cleanup()
@@ -1835,16 +1921,18 @@ class Handler(BaseHTTPRequestHandler):
             if self.serve_static(parsed.path):
                 return
         if parsed.path == "/api/ai/status":
-            if not origin_allowed(self):
+            if not (origin_allowed(self) or same_origin_browser_request(self)):
                 self.send_json({"ok":False,"error":"Origin not allowed"},403); return
             s=local_ai_capabilities(); s["token"]=TOKEN; self.send_json({"ok":True, **s}); return
         if parsed.path in ("/", "/api/health"):
-            if not origin_allowed(self):
+            # Same-origin fetches from the engine's own UI carry no Origin header; accept them.
+            # That page already has the token injected, so returning it below discloses nothing new.
+            if not (origin_allowed(self) or same_origin_browser_request(self)):
                 self.send_json({"ok": False, "error": "Origin not allowed"}, 403)
                 return
             health = process_job({"op":"health"})
             # Never disclose the engine token to requests without an allowed browser Origin.
-            if request_origin(self):
+            if request_origin(self) or same_origin_browser_request(self):
                 health["token"] = TOKEN
             self.send_json(health)
             return
@@ -2035,6 +2123,10 @@ class Handler(BaseHTTPRequestHandler):
                 if length > 10*1024*1024:
                     raise ValueError("Job metadata is unexpectedly large")
                 payload = json.loads(self.rfile.read(length) or b"{}")
+                if payload.get("op") in REMOTE_BLOCKED_OPS and not local_ui_request(self):
+                    self.send_json({"ok": False, "error": "Code execution is only allowed from the Local Engine's own UI "
+                                    "(http://localhost:8765/). Set OMNI_ALLOW_REMOTE_CODE=1 to allow it from other trusted origins."}, 403)
+                    return
                 result = process_job(payload)
                 self.send_json(result)
             except Exception as e:
@@ -2043,12 +2135,17 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json({"ok":False,"error":"Not found"},404)
 
 def main():
+    ui_host = "localhost" if HOST in ("127.0.0.1", "::1") else HOST
     print("OmniConverter Local Engine")
-    print(f"Local UI: http://{HOST}:{PORT}/")
+    if UI_AVAILABLE:
+        print(f"Local UI: http://{ui_host}:{PORT}/   (serving {UI_ROOT})")
+    else:
+        print("Local UI: not available - running API-only. Point OMNI_UI_ROOT (or `omni-engine serve --ui PATH`) at a checkout containing index.html.")
     print(f"API:      http://{HOST}:{PORT}/api/health")
     print("Installed engines:", json.dumps(tool_versions(), indent=2))
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
-    threading.Timer(0.8, lambda: webbrowser.open(f"http://{HOST}:{PORT}/")).start()
+    if UI_AVAILABLE:
+        threading.Timer(0.8, lambda: webbrowser.open(f"http://{ui_host}:{PORT}/")).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

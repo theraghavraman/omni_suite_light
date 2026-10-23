@@ -37,7 +37,7 @@ const base=n=>String(n||'data').replace(/\.[^.]+$/,'')||'data';
 function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src+' (check your internet connection).'));document.head.appendChild(s);});}
 let sqlPromise=null;
-function sqlJs(){if(!sqlPromise)sqlPromise=(async()=>{if(!window.initSqlJs)await loadScript(SQLJS+'sql-wasm.js');return window.initSqlJs({locateFile:f=>SQLJS+f});})().catch(e=>{sqlPromise=null;throw e;});return sqlPromise;}
+function sqlJs(){if(window.OMNI_VENDOR&&window.OMNI_VENDOR.sqlJs)return window.OMNI_VENDOR.sqlJs();if(!sqlPromise)sqlPromise=(async()=>{if(!window.initSqlJs)await loadScript(SQLJS+'sql-wasm.js');return window.initSqlJs({locateFile:f=>SQLJS+f});})().catch(e=>{sqlPromise=null;throw e;});return sqlPromise;}
 let pqWrite=null,pqRead=null;
 async function parquetWriter(){if(!pqWrite)pqWrite=import(PARQUET_WRITER).catch(e=>{pqWrite=null;throw new Error('Parquet writer could not load: '+e.message);});return pqWrite;}
 async function parquetReader(){if(!pqRead)pqRead=import(PARQUET_READER).catch(e=>{pqRead=null;throw new Error('Parquet reader could not load: '+e.message);});return pqRead;}

@@ -12,7 +12,9 @@ DATA_BROWSER = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","ht
 DATABASE_FORMATS = {"sqlite","db","duckdb","sql","parquet","csv","json","jsonl","xlsx","ods"}
 PRIVACY_PATTERNS = {
     "email": re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",re.I),
-    "phone": re.compile(r"(?<!\d)(?:\+?\d[\d\s().-]{8,}\d)(?!\d)"),
+    # Separators are limited to space/dot/dash/parentheses on ONE line (no \n, \t or commas),
+    # so values in adjacent CSV cells or rows are never glued together. Validated by _valid_phone().
+    "phone": re.compile(r"(?<![\w+])(?<!\d[ ().-])\+?\(?(?:\d[ ().-]{0,2}){9,14}\d(?!\w)(?![ ().-]{1,2}\d)"),
     "ipv4": re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
     "url": re.compile(r'\bhttps?://[^\s<>"]+',re.I),
     "pan_india": re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b",re.I),
@@ -60,9 +62,11 @@ def privacy_scan(path, max_bytes=8_000_000):
     text=raw.decode("utf-8",errors="replace")
     findings=[]
     for kind,rx in PRIVACY_PATTERNS.items():
-        matches=list(rx.finditer(text))
+        check=PRIVACY_VALIDATORS.get(kind)
+        matches=[m for m in rx.finditer(text) if not check or check(m.group(0))]
         if matches:
-            findings.append({"type":kind,"count":len(matches),"samples":[m.group(0)[:80] for m in matches[:3]]})
+            # Samples are masked so the report itself does not leak the personal data it found.
+            findings.append({"type":kind,"count":len(matches),"samples":[_mask(m.group(0)[:80]) for m in matches[:3]]})
     sha256=hashlib.sha256(raw).hexdigest()
     return {"file":p.name,"bytes_scanned":len(raw),"sha256":sha256,"findings":findings,
             "risk":"high" if any(x["type"] in {"credit_card_like","aadhaar_like","pan_india"} for x in findings) else ("medium" if findings else "low")}

@@ -18,8 +18,27 @@ const LIBS={
   dagre:{global:'dagre',local:'vendor/dagre/dagre.min.js',cdn:'https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.4/dist/dagre.min.js'},
   xlsx:{global:'XLSX',local:'vendor/sheetjs/xlsx.full.min.js',cdn:'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'},
   jszip:{global:'JSZip',local:'vendor/jszip/jszip.min.js',cdn:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'},
-  jsqr:{global:'jsQR',local:'vendor/jsqr/jsQR.js',cdn:'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'}
+  jsqr:{global:'jsQR',local:'vendor/jsqr/jsQR.js',cdn:'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'},
+  typescript:{global:'ts',local:'vendor/typescript/typescript.min.js',cdn:'https://cdnjs.cloudflare.com/ajax/libs/typescript/5.9.2/typescript.min.js'}
 };
+/* sql.js needs its .wasm next to the script, so remember which base actually loaded. */
+const SQLJS_BASES=['vendor/sqljs/','https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/'];
+let sqlJsPromise=null;
+function sqlJs(){
+  if(sqlJsPromise)return sqlJsPromise;
+  sqlJsPromise=(async()=>{
+    let lastErr=null;
+    for(const base of SQLJS_BASES){
+      try{
+        if(!window.initSqlJs)await injectGlobal(base+'sql-wasm.js');
+        if(!window.initSqlJs)continue;
+        return await window.initSqlJs({locateFile:f=>base+f});
+      }catch(e){lastErr=e;try{delete window.initSqlJs;}catch(_){window.initSqlJs=undefined;}}
+    }
+    throw new Error('sql.js could not be loaded. Run prepare_offline.py once for offline use, or check your internet connection.'+(lastErr?' ('+lastErr.message+')':''));
+  })().catch(e=>{sqlJsPromise=null;throw e;});
+  return sqlJsPromise;
+}
 const pending={};
 function inject(src){
   return new Promise((resolve,reject)=>{
@@ -59,5 +78,5 @@ function load(name){
   return pending[name];
 }
 function loadAll(names){return Promise.all(names.map(load));}
-window.OMNI_VENDOR={load,loadAll,libs:LIBS};
+window.OMNI_VENDOR={load,loadAll,sqlJs,libs:LIBS};
 })();
