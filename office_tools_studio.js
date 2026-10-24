@@ -939,7 +939,7 @@ async function sheetExport(fmt){
     const cols=[];Object.entries(sh.cols).forEach(([c,w])=>{cols[+c]={wpx:w};});if(cols.length)ws['!cols']=cols;
     if(sh.merges?.length)ws['!merges']=sh.merges.map(m=>XL.utils.decode_range(m));
     return ws;};
-  if(fmt==='csv'||fmt==='tsv'){const ws=toWS(curSheet(),X.active);const text=XL.utils.sheet_to_csv(ws,{FS:fmt==='tsv'?'\t':',',blankrows:true});return new Blob(['\ufeff'+text],{type:fmt==='tsv'?'text/tab-separated-values;charset=utf-8':'text/csv;charset=utf-8'});}
+  if(fmt==='csv'||fmt==='tsv'){const ws=toWS(curSheet(),X.active);for(const [key,cell] of Object.entries(ws)){if(key[0]==='!')continue;if(typeof cell?.v==='string'&&window.OMNI_SECURITY){cell.v=window.OMNI_SECURITY.excelSafeCell(cell.v,true);delete cell.w;delete cell.f;}}const text=XL.utils.sheet_to_csv(ws,{FS:fmt==='tsv'?'\t':',',blankrows:true});return new Blob(['\ufeff'+text],{type:fmt==='tsv'?'text/tab-separated-values;charset=utf-8':'text/csv;charset=utf-8'});}
   if(fmt==='html'){const ws=toWS(curSheet(),X.active);return new Blob([XL.utils.sheet_to_html(ws,{header:'<!doctype html><html><head><meta charset="utf-8"><title>'+esc(curSheet().name)+'</title><style>table{border-collapse:collapse;font:13px Arial}td{border:1px solid #ccc;padding:4px 6px}</style></head><body>'})],{type:'text/html;charset=utf-8'});}
   const book=XL.utils.book_new();X.wb.sheets.forEach((sh,si)=>XL.utils.book_append_sheet(book,toWS(sh,si),sh.name.slice(0,31)));
   const bookType={xls:'biff8',xlsb:'xlsb',ods:'ods',fods:'fods'}[fmt];if(!bookType)throw new Error('Unsupported spreadsheet format: '+fmt);
@@ -972,11 +972,13 @@ function newDeck(silent){P.deck={redmarkDeck:2,theme:'light',slides:[blankSlide(
 const curSlide=()=>P.deck.slides[P.cur];
 const bodyLines=t=>String(t||'').split('\n').map(l=>{const m=/^(\t|  )*/.exec(l)[0];const level=(m.match(/\t|  /g)||[]).length;return {level:Math.min(level,4),text:l.slice(m.length).replace(/^[•\-*]\s+/,'')};}).filter(l=>l.text.trim());
 function slideHTML(s,{editable=false}={}){
+  s=OMNI_SECURITY.validateDeck({redmarkDeck:2,theme:P.deck.theme,slides:[s]}).slides[0];
   const th=THEMES[P.deck.theme]||THEMES.light;
   const vars='--bg:#'+th.bg+';--tc:#'+th.title+';--fc:#'+th.text+';--ac:#'+th.accent;
   const ta=(f,cls,ph)=>editable?'<textarea class="'+cls+'" data-f="'+f+'" placeholder="'+ph+'" spellcheck="true">'+esc(s[f]||'')+'</textarea>':'<div class="'+cls+'">'+(f==='title'?esc(s[f]||''):list(s[f]))+'</div>';
   const list=t=>{const ls=bodyLines(t);if(!ls.length)return '';if(s.layout==='title'||s.layout==='section')return ls.map(l=>esc(l.text)).join('<br>');return '<ul>'+ls.map(l=>'<li class="lv'+l.level+'">'+esc(l.text)+'</li>').join('')+'</ul>';};
-  const img=s.image?'<div class="ot-sl-img"><img src="'+s.image.src+'" alt=""></div>':(editable&&['image','blank'].includes(s.layout)?'<div class="ot-sl-img ph">Click “🖼 Image” to add a picture</div>':'');
+  const safeSrc=s.image&&OMNI_SECURITY.safeImageDataURL(s.image.src);
+  const img=safeSrc?'<div class="ot-sl-img"><img src="'+OMNI_SECURITY.escapeHTML(safeSrc)+'" alt=""></div>':(editable&&['image','blank'].includes(s.layout)?'<div class="ot-sl-img ph">Click “🖼 Image” to add a picture</div>':'');
   let inner='';
   if(s.layout==='blank')inner=img;
   else if(s.layout==='title'||s.layout==='section')inner=ta('title','ot-sl-title','Title')+ta('body','ot-sl-sub','Subtitle')+(s.image?img:'');
@@ -1044,7 +1046,7 @@ async function setSlideImage(file){
 /* PPTX import (text, levels, notes, first picture per slide) */
 async function deckOpen(file){
   const e=ext(file.name);
-  if(e==='json'){const x=JSON.parse(await file.text());if(!x||!Array.isArray(x.slides))throw new Error('Not a Redmark deck project.');P.deck={redmarkDeck:2,theme:THEMES[x.theme]?x.theme:'light',slides:x.slides.map(s=>({...blankSlide(s.layout||'content'),...s,id:slideId()}))};P.cur=0;return;}
+  if(e==='json'){P.deck=OMNI_SECURITY.parseDeckJSON(await file.text());P.deck.slides.forEach(s=>{s.id=slideId();});P.cur=0;return;}
   const Z=window.JSZip||await lib('jszip');const z=await Z.loadAsync(await file.arrayBuffer());
   const X_=s=>new DOMParser().parseFromString(s,'application/xml');
   const A='http://schemas.openxmlformats.org/drawingml/2006/main',PN='http://schemas.openxmlformats.org/presentationml/2006/main',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -1335,9 +1337,9 @@ function wire(){
   if(isActive())warm();else{const mo=new MutationObserver(()=>{if(isActive()){warm();mo.disconnect();fitStage();}});mo.observe(r,{attributes:true,attributeFilter:['class']});}
 
   /* restore drafts */
-  const wd=loadDraft('word');if(wd){docs.word.name=wd.name||docs.word.name;docs.word.dirty=!!wd.dirty;sanitize(wd.content).then(c=>{ED().innerHTML=c||'<p><br></p>';}).catch(()=>{ED().innerHTML=wd.content;}).finally(updateWordCount);}
+  const wd=loadDraft('word');if(wd){docs.word.name=wd.name||docs.word.name;docs.word.dirty=!!wd.dirty;sanitize(wd.content).then(c=>{ED().innerHTML=c||'<p><br></p>';}).catch(()=>{ED().textContent=String(wd.content||'');notify('Rich text unavailable; displaying safe text.',true);}).finally(updateWordCount);}
   const nd=loadDraft('notepad');if(nd){NOTE().value=nd.content;docs.notepad.name=nd.name||docs.notepad.name;docs.notepad.dirty=!!nd.dirty;$('ot-note-name').value=docs.notepad.name;}
-  const pd=loadDraft('powerpoint');if(pd){try{const d=JSON.parse(pd.content);if(d&&Array.isArray(d.slides)&&d.slides.length){P.deck=d;docs.powerpoint.name=pd.name||docs.powerpoint.name;docs.powerpoint.dirty=!!pd.dirty;}}catch(_){}}
+  const pd=loadDraft('powerpoint');if(pd){try{P.deck=OMNI_SECURITY.parseDeckJSON(pd.content);docs.powerpoint.name=pd.name||docs.powerpoint.name;docs.powerpoint.dirty=!!pd.dirty;}catch(_){}}
   const sd=loadDraft('excel');if(sd){try{const w=JSON.parse(sd.content);if(w&&Array.isArray(w.sheets)&&w.sheets.length){X.wb=w;docs.excel.name=sd.name||docs.excel.name;docs.excel.dirty=!!sd.dirty;}}catch(_){}}
   updateWordCount();updateNoteStatus();setMode('word');
   /* expose wiring to the suite's Validation Lab for buttons that have no id */

@@ -14,7 +14,3 @@ services:
         value: "300"
       - key: RATE_LIMIT_PER_MINUTE
         value: "20"
-      # Optional: set a value to require X-Omni-Social-Token on /api/resolve, then paste the
-      # same value into window.OMNI_SOCIAL_RESOLVER_TOKEN in social_resolver_config.js.
-      - key: SOCIAL_TOKEN
-        sync: false

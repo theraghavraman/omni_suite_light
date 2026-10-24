@@ -14,33 +14,34 @@
   <link rel="alternate icon" href="./favicon.ico?v=2">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=2">
   <meta name="theme-color" content="#E11D48">
+  <script>window.OMNI_TESSERACT_OPTIONS={workerPath:'./vendor/tesseract/worker.min.js',langPath:'./vendor/tesseract/lang/',corePath:'./vendor/tesseract/core/',workerBlobURL:false};</script>
   <!-- Core engines load in parallel and never block the first paint. A CDN that stalls (filtered network,
        captive portal) is raced against the prepare_offline.py ./vendor/ copy after a few seconds, so the
        interface always renders. window.OMNI_LIBS.wait('PDFLib') resolves when a library is usable. -->
   <script id="omni-core-libs">
   (function(){
     var LIBS=[
-      ['pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','./vendor/pdfjs/pdf.min.js','sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'],
       ['JSZip','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','./vendor/jszip/jszip.min.js','sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG'],
       ['PDFLib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','./vendor/pdf-lib/pdf-lib.min.js','sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI'],
       ['Tesseract','https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','./vendor/tesseract/tesseract.min.js','sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'],
-      ['XLSX','https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','./vendor/sheetjs/xlsx.full.min.js'],
-      ['jsyaml','https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js','./vendor/jsyaml/js-yaml.min.js']
+      ['XLSX','https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','./vendor/sheetjs/xlsx.full.min.js','sha256-zAFRMKqFIefwiPiImOupSczcv7ON8L0Sm0S3Jzw6b0E='],
+      ['jsyaml','https://cdn.jsdelivr.net/npm/js-yaml@4.1.1/dist/js-yaml.min.js','./vendor/jsyaml/js-yaml.min.js','sha384-ZeqCzuWczURac3RacSufGD7oSbzeaX7xxnnOr3PTcYTLx4Av0qBj0kBq7AeCtHLA']
     ];
-    var PDF_WORKER_CDN='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var PDFJS_LOCAL='./vendor/pdfjs/build/pdf.mjs';
+    var PDFJS_WORKER_LOCAL='./vendor/pdfjs/build/pdf.worker.mjs';
+    var PDFJS_CDN='https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs';
+    var PDFJS_WORKER_CDN='https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.mjs';
+    var PDFJS_MODULE_SHA256='487bde1bcf89e041f791173d0509a1dc18d0feb6655d78395e1611f9da0de17d';
+    var PDFJS_WORKER_SHA256='1a7607f28cfbc63f0e4e0a41927c89f991e353e4f3fb4565ecfd621ac5975089';
     // Offline copies only exist on a local install, so try them first there and skip a guaranteed 404 on GitHub Pages.
     var localFirst=location.protocol==='file:'||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
     var FALLBACK_AFTER_MS=6000;
     var state={},waiters={};
     function settle(name,ok,src){
       if(state[name])return;state[name]=ok?'loaded':'failed';
-      if(ok&&name==='pdfjsLib'&&window.pdfjsLib.GlobalWorkerOptions){
-        if(!window.OMNI_PDF_WORKER&&/^\.\/vendor\//.test(src))window.OMNI_PDF_WORKER='./vendor/pdfjs/pdf.worker.min.js';
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc=window.OMNI_PDF_WORKER||PDF_WORKER_CDN;
-      }
       (waiters[name]||[]).forEach(function(w){w(ok)});delete waiters[name];
     }
-    // LIBS rows are [global, CDN url, offline copy, SHA-384 of the CDN file]. A CDN copy that does not match its
+    // LIBS rows are [global, CDN url, offline copy, integrity metadata]. A CDN copy that does not match its
     // pinned hash is refused by the browser and counts as a failed attempt, so the offline copy is tried next.
     function inject(src,done,sri){
       var s=document.createElement('script');s.src=src;s.async=true;
@@ -48,7 +49,33 @@
       s.onload=function(){done(true)};s.onerror=function(){s.remove();done(false)};
       document.head.appendChild(s);
     }
-    var all=LIBS.map(function(lib){
+    function hex(bytes){return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('')}
+    async function verifiedBytes(url,expected,maxBytes){
+      var response=await fetch(url,{cache:'no-store',credentials:'omit',redirect:'error'});
+      if(!response.ok)throw new Error('Could not fetch verified browser asset ('+response.status+').');
+      var bytes=await response.arrayBuffer();
+      if(bytes.byteLength>maxBytes)throw new Error('Browser asset exceeds its size limit.');
+      var actual=hex(await crypto.subtle.digest('SHA-256',bytes));
+      if(actual!==expected)throw new Error('Browser asset integrity check failed.');
+      return bytes;
+    }
+    async function loadPdfJs(){
+      var error=null;
+      for(var urls of [[PDFJS_LOCAL,PDFJS_WORKER_LOCAL],[PDFJS_CDN,PDFJS_WORKER_CDN]]){
+        try{
+          var pair=await Promise.all([verifiedBytes(urls[0],PDFJS_MODULE_SHA256,8*1024*1024),verifiedBytes(urls[1],PDFJS_WORKER_SHA256,12*1024*1024)]);
+          var workerUrl=URL.createObjectURL(new Blob([pair[1]],{type:'text/javascript'}));
+          var moduleUrl=URL.createObjectURL(new Blob([pair[0]],{type:'text/javascript'}));
+          var module=await import(moduleUrl);URL.revokeObjectURL(moduleUrl);
+          module.GlobalWorkerOptions.workerSrc=workerUrl;window.OMNI_PDF_WORKER=workerUrl;
+          return new Proxy(module,{get:function(target,key){if(key==='getDocument')return function(options){return target.getDocument(Object.assign({},options,{enableScripting:false,isEvalSupported:false}));};return Reflect.get(target,key,target);}});
+        }catch(err){error=err;}
+      }
+      throw error||new Error('No verified PDF.js release is available.');
+    }
+    var pdfReady=loadPdfJs().then(function(lib){window.pdfjsLib=lib;state.pdfjsLib='loaded';(waiters.pdfjsLib||[]).forEach(function(w){w(true)});delete waiters.pdfjsLib;return lib;},function(err){state.pdfjsLib='failed';window.__OMNI_PDFJS_ERROR=String(err&&err.message||err);(waiters.pdfjsLib||[]).forEach(function(w){w(false)});delete waiters.pdfjsLib;throw err;});
+    pdfReady.catch(function(){});window.OMNI_PDFJS_READY=pdfReady;
+    var all=[pdfReady.then(function(){return true;},function(){return false;})].concat(LIBS.map(function(lib){
       var name=lib[0],order=localFirst?[lib[2],lib[1]]:[lib[1],lib[2]];
       if(order[0]===order[1])order.pop(); // Local Engine rewrites the CDN URL to the vendor copy
       return new Promise(function(resolve){
@@ -65,11 +92,11 @@
         attempt();
         timer=setTimeout(attempt,FALLBACK_AFTER_MS); // CDN still pending: race the offline copy
       });
-    });
+    }));
     window.OMNI_LIBS={
       state:state,
       wait:function(name){
-        if(window[name]||!LIBS.some(function(l){return l[0]===name}))return Promise.resolve(window[name]);
+        if(window[name]||(name!=='pdfjsLib'&&!LIBS.some(function(l){return l[0]===name})))return Promise.resolve(window[name]);
         if(state[name]==='failed')return Promise.reject(new Error(name+' could not be loaded. Check your internet connection and reload.'));
         return new Promise(function(res,rej){(waiters[name]=waiters[name]||[]).push(function(ok){ok?res(window[name]):rej(new Error(name+' could not be loaded. Check your internet connection and reload.'))})});
       },
@@ -1631,7 +1658,7 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
           <div class="rag-model-item"><div><b>Browser runtime</b><span id="ragRuntimeState">Checking browser acceleration…</span></div><strong id="ragRuntimeDot" class="rag-dot idle">○</strong></div>
           <div class="rag-model-item"><div><b>Storage</b><span id="ragStorageState">Browser-local IndexedDB</span></div><strong id="ragStorageDot" class="rag-dot ok">●</strong></div>
         </div>
-        <div class="rag-privacy-strip"><span>🔒</span><div><b>Browser-local by default</b><small>Files and vectors stay in this browser unless you explicitly use “Save My Knowledge to GitHub”.</small></div></div>
+        <div class="rag-privacy-strip"><span>🔒</span><div><b>Browser-local by default</b><small>Selected files and vectors stay in this browser. Repository indexing downloads public GitHub content only after you request it; model runtime files may be fetched from the network.</small></div></div>
       </div>
       </div>
       <div class="rag-grid">
@@ -1639,23 +1666,15 @@ button.secondary,.btn-secondary,.omni-secondary{background:#fff !important;color
           <div class="card">
             <div class="rag-section-label">STEP 1</div><h2>Build your knowledge base</h2>
             <div class="sub">Add your own files. Text, Markdown, CSV, JSON, code and PDF are supported in browser; DOCX is handled when JSZip is available.</div>
-            <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Selecting a file does not index it yet. Your file stays in this page until you choose to save it to GitHub or prepare the local search index.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
+            <div class="rag-drop" id="ragDrop"><strong>Drop files here or choose files</strong><div class="rag-status">Selecting a file does not index it yet. Prepare the local search index to store text and vectors in this browser.</div><input id="ragFiles" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.jsonl,.xml,.html,.htm,.js,.ts,.py,.java,.sql,.css,.yaml,.yml,.docx,.pdf"></div>
             <div class="rag-list" id="ragSelectedFiles" style="margin-top:10px"><span style="display:block;padding:10px 12px;color:#667085;font-size:.75rem">Nothing selected yet.</span></div>
             <div class="rag-status" id="ragFileStatus" style="margin-top:8px">Nothing selected yet.</div>
             <div class="actions-bar"><button class="btn btn-primary" id="ragEmbed">Prepare Semantic Search</button><button class="btn btn-secondary" id="ragRepo">Index Entire Repository</button><button class="btn btn-secondary" id="ragClear">Clear Local Index</button></div>
 <div class="rag-github-card">
-  <div class="rag-section-label">PERSONAL GITHUB SYNC</div>
-  <h3 style="margin:.2rem 0 .3rem">Save My Knowledge to GitHub</h3>
-  <div class="sub">For your personal use: save the files you selected above directly into your GitHub repository. After saving, Omni refreshes the repository knowledge index automatically.</div>
-  <div class="rag-github-grid">
-    <div class="form-group"><label for="ragGithubRepo">Repository</label><input id="ragGithubRepo" class="form-input" value="theraghavraman/omni_suite_light" placeholder="owner/repository"></div>
-    <div class="form-group"><label for="ragGithubFolder">Folder</label><input id="ragGithubFolder" class="form-input" value="knowledge-base" placeholder="knowledge-base"></div>
-    <div class="form-group"><label for="ragGithubBranch">Branch</label><input id="ragGithubBranch" class="form-input" value="main" placeholder="main"></div>
-  </div>
-  <div class="form-group" style="margin-top:9px"><label for="ragGithubToken">GitHub fine-grained token</label><input id="ragGithubToken" class="form-input" type="password" autocomplete="off" placeholder="github_pat_…"></div>
-  <div class="actions-bar" style="margin-top:9px"><button type="button" class="btn btn-primary" id="ragGithubSave">☁️ Save Selected Files to GitHub</button><button type="button" class="btn btn-secondary" id="ragGithubForget">Forget Token</button><label style="display:flex;align-items:center;gap:7px;font-size:.75rem;color:#667085"><input id="ragGithubRemember" type="checkbox"> Remember on this device</label></div>
-  <div class="rag-github-note"><b>Recommended:</b> create a fine-grained GitHub token limited to this repository with <b>Contents: Read and write</b>. The token is used only for GitHub API calls from this browser. Do not paste a token into the public repository code.</div>
-  <div class="rag-github-status" id="ragGithubStatus">Ready — choose files, then save them to GitHub when you want persistence.</div>
+  <div class="rag-section-label">GITHUB SYNC</div>
+  <h3 style="margin:.2rem 0 .3rem">GitHub saving is unavailable</h3>
+  <div class="rag-github-note" id="ragGithubStatus">A same-origin OAuth/BFF service is required before Omni can send a GitHub credential or write files. This Studio keeps your index in browser storage and makes no GitHub write request.</div>
+  <button type="button" class="btn btn-secondary" id="ragGithubSave" disabled title="Requires a same-origin OAuth/BFF service">Save to GitHub unavailable</button>
 </div>
 <div class="rag-repo-status" id="ragRepoStatus"><b>Repository knowledge</b><span>Checking local index…</span></div>
             <div class="rag-status" id="ragStatus">Initializing private RAG…</div>
@@ -3332,7 +3351,7 @@ python prepare_language_models.py --transliteration</pre>
       <div class="card"><h2>2. Translation result</h2><div class="code-meta" id="codeMeta">No source analyzed yet.</div><pre class="code-output" id="codeOutput">Your translated code or pseudo code will appear here.</pre></div>
       <div class="card"><h2>3. Translation confidence</h2><div class="sub">The browser can handle many straightforward constructs, but cannot guarantee semantic equivalence across every language ecosystem.</div><div class="code-audit" id="codeAudit"></div></div>
     <div class="omni-sandbox" id="omni-code-execution-lab">
-<div class="omni-sandbox-head"><div><h3>Temporary Programming Execution Lab</h3><p>Run small programs in an isolated browser worker where supported, or hand them to the Local Engine for installed runtimes/compilers. Browser execution is temporary and separate from the page UI.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="codeLabRunBrowser">▶ Browser Run</button><button class="btn btn-secondary" id="codeLabRunLocal">Run Local Engine</button><button class="btn btn-secondary" id="codeLabReset">Reset</button></div></div>
+<div class="omni-sandbox-head"><div><h3>Temporary Programming Execution Lab</h3><p>Code execution is temporarily unavailable until a network-isolated sandbox is deployed. Source code will not run in the browser or on the host engine.</p></div><div class="actions-bar" style="margin-top:0"><button class="btn btn-primary" id="codeLabRunBrowser" disabled>▶ Browser Run unavailable</button><button class="btn btn-secondary" id="codeLabRunLocal" disabled>Local Run unavailable</button><button class="btn btn-secondary" id="codeLabReset">Reset</button></div></div>
 <div class="omni-sandbox-grid"><div class="form-group"><label for="codeLabLanguage">Language</label><select id="codeLabLanguage" class="form-select"><option value="javascript">JavaScript</option><option value="typescript">TypeScript</option><option value="python">Python</option><option value="bash">Bash</option><option value="ruby">Ruby</option><option value="php">PHP</option><option value="c">C</option><option value="cpp">C++</option><option value="java">Java</option><option value="go">Go</option><option value="rust">Rust</option><option value="swift">Swift</option><option value="kotlin">Kotlin</option></select></div><div class="form-group"><label for="codeLabFile">Load source file</label><input id="codeLabFile" class="form-input" type="file" accept=".js,.ts,.py,.sh,.bash,.rb,.php,.c,.h,.cpp,.cc,.cxx,.java,.go,.rs,.swift,.kt,.kts"></div><div class="form-group"><label for="codeLabTimeout">Local timeout (seconds)</label><input id="codeLabTimeout" class="form-input" type="number" min="1" max="20" value="8"></div></div>
 <div class="form-group" style="margin-top:12px"><label for="codeLabStdin">Standard input</label><textarea id="codeLabStdin" class="form-textarea" style="min-height:90px" placeholder="Input passed to stdin/readLine()"></textarea></div>
 <textarea id="codeLabSource" class="omni-sandbox-editor" spellcheck="false">console.log("Hello from Omni Sandbox");
@@ -3720,7 +3739,8 @@ async function data(f,target,dialect,table){
   const r=await read(f); let b,n;
   if(target==='csv'||target==='tsv'){
     if(!window.XLSX)return false;
-    b=new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(r),{FS:target==='tsv'?'\t':','})]);n=stem+'.'+target;
+    const safeRows=window.OMNI_SECURITY?r.map(row=>Object.fromEntries(Object.entries(row).map(([k,v])=>[k,window.OMNI_SECURITY.excelSafeCell(v,true)]))):r;
+    b=new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(safeRows),{FS:target==='tsv'?'\t':','})]);n=stem+'.'+target;
   }else if(target==='json'){b=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});n=stem+'.json';
   }else if(target==='jsonl'){b=new Blob([r.map(JSON.stringify).join('\n')+'\n'],{type:'application/x-ndjson'});n=stem+'.jsonl';
   }else if(target==='yaml'){if(!window.jsyaml)return false;b=new Blob([window.jsyaml.dump(r,{noRefs:true})],{type:'text/yaml'});n=stem+'.yaml';
@@ -3753,14 +3773,15 @@ if(target!=='tsql'&&top.test(o)){if(statements.length===1&&!/\bLIMIT\b|\bFETCH\s
 const header='-- APPROXIMATE browser rewrite ('+source+' -> '+target+'): only common functions/types were swapped.\n-- Start the Local Engine (sqlglot) for a real dialect translation, and review before running.\n'+notes.map(x=>'-- NOTE: '+x+'\n').join('');
 dl(new Blob([header+o],{type:'application/sql'}),'omni_browser_sql.'+target+'.sql');return true}
 async function pdfPpt(f, options={}) {
-  if(!window.pdfjsLib) throw new Error('PDF.js is not loaded. Refresh the page or check the browser asset/CDN connection.');
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error('Verified PDF.js is unavailable.')));
   if(!window.JSZip) throw new Error('JSZip is not loaded. Refresh the page or check the browser asset/CDN connection.');
   const downloadOutput = options.download !== false;
   const dpi = Math.max(72, Math.min(180, Number(options.dpi) || 110));
-  const pdf = await pdfjsLib.getDocument({
+  const pdf = await pdfjs.getDocument({
     data: new Uint8Array(await f.arrayBuffer()),
     useWorkerFetch: false,
-    isEvalSupported: true
+    isEvalSupported: false,
+    enableScripting: false
   }).promise;
   if(pdf.numPages > 80) throw new Error('Browser PDF → PPTX is capped at 80 pages to protect browser memory. Use the Local Engine for larger PDFs.');
 
@@ -3918,10 +3939,10 @@ window.OMNI_BROWSER_FIRST={read,dataConvert:data,profile,sql:sqlWeb,office,nosql
 const BASE='http://127.0.0.1:8765';
 const $=id=>document.getElementById(id);
 let token='',dataFile=null,sqlFile=null,schemaFile=null,nosqlFile=null;
-async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token=h.token||'';return h}
-async function upload(file){const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!r.ok)throw new Error((await r.text()).slice(0,500));return r.json()}
-async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});let j;try{j=await r.json();}catch(_){throw new Error('Local Engine returned invalid JSON (HTTP '+r.status+').');}if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
-async function download(id){const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!r.ok)throw new Error('Output download failed');const blob=await r.blob();return blob}
+async function health(){const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);const h=await r.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token='';return h}
+async function upload(file){const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!r.ok)throw new Error((await r.text()).slice(0,500));return r.json()}
+async function process(payload){const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/json'},body:JSON.stringify(payload)});let j;try{j=await r.json();}catch(_){throw new Error('Local Engine returned invalid JSON (HTTP '+r.status+').');}if(!r.ok||!j.ok)throw new Error(j.error||'Data operation failed');return j}
+async function download(id){const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,}});if(!r.ok)throw new Error('Output download failed');const blob=await r.blob();return blob}
 function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 function wirePicker(inputId,dropId,setter){
  const input=$(inputId),drop=$(dropId);if(!input||!drop)return;
@@ -4018,11 +4039,11 @@ reset?.addEventListener('click',()=>{file=null;input.value='';drop.style.display
 button.addEventListener('click',async()=>{
 if(!file){alert('Choose a file first.');return;}button.disabled=true;
 try{
-const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token=h.token||'';
+const hr=await fetch(BASE+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine HTTP '+hr.status);const h=await hr.json();if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch the current OmniConverter launcher.');token='';
 const tool=card.op==='media'?'ffmpeg':card.op==='image'?'magick':card.op==='ebook_convert'?'ebook-convert':card.op==='archive'?(target.value==='7z'?'7z':null):null;if(tool&&!(h.tools&&h.tools[tool]&&h.tools[tool].installed))throw new Error(tool+' is not installed on the Local Engine.');
-const up=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error((await up.text()).slice(0,400));const uj=await up.json();
-const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:card.op,input:uj.file_id,format:target.value})});const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Native conversion failed');
-const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!dl.ok)throw new Error('Output download failed');const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+target.value);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+const up=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error((await up.text()).slice(0,400));const uj=await up.json();
+const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/json'},body:JSON.stringify({op:card.op,input:uj.file_id,format:target.value})});const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Native conversion failed');
+const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{Origin:location.origin,}});if(!dl.ok)throw new Error('Output download failed');const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+target.value);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }catch(e){alert(card.label+': '+e.message)}finally{button.disabled=false;}
 });
 }
@@ -4032,7 +4053,6 @@ cards.forEach(wire);
 <script id="omni-local-engine">
 (function(){
   const BASE = "http://127.0.0.1:8765";
-  let omniToken = window.OMNI_TOKEN || "";
   const $ = id => document.getElementById(id);
   const filesInput = $("omniLocalFiles"), drop = $("omniLocalDropzone"), list = $("omniLocalFileList");
   const status = $("omniLocalStatus"), op = $("omniLocalOp");
@@ -4058,7 +4078,6 @@ cards.forEach(wire);
         setStatus(false,"⚠ Local Engine outdated • Relaunch the current Omni command");
         return null;
       }
-      omniToken = j.token || omniToken;
       const installed=Object.entries(j.tools||{}).filter(([k,v])=>v.installed).map(([k])=>k);
       setStatus(true,"● Local Engine connected • "+(installed.length?installed.join(", "):"Python bridge only"));
       return j;
@@ -4088,7 +4107,7 @@ cards.forEach(wire);
   $("omniLocalRefresh").onclick=health;
 
   async function upload(file, i, total){
-    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"Origin":location.origin,"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream","X-Omni-Token":omniToken},body:file});
+    const r=await fetch(BASE+"/api/upload",{method:"POST",headers:{"Origin":location.origin,"X-Filename":encodeURIComponent(file.name),"Content-Type":"application/octet-stream"},body:file});
     if(!r.ok) throw new Error((await r.text()).slice(0,500));
     setProgress(8+(i/Math.max(1,total))*45,"Uploading "+file.name+"…");
     return (await r.json()).file_id;
@@ -4127,10 +4146,10 @@ cards.forEach(wire);
       if(kind==="pdf_render") payload.dpi=parseInt($("omniLocalDpi").value,10)||150;
       if(kind==="ocr") payload.lang=$("omniLocalLang").value.trim()||"eng";
       setProgress(60,"Running native "+kind.replaceAll("_"," ")+"…");
-      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Origin":location.origin,"Content-Type":"application/json","X-Omni-Token":omniToken},body:JSON.stringify(payload)});
+      const rr=await fetch(BASE+"/api/process",{method:"POST",headers:{"Origin":location.origin,"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const out=await rr.json(); if(!rr.ok||!out.ok) throw new Error(out.error||"Local operation failed");
       setProgress(92,"Preparing download…");
-      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"Origin":location.origin,"X-Omni-Token":omniToken}});
+      const dl=await fetch(BASE+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"Origin":location.origin}});
       if(!dl.ok) throw new Error("Output download failed");
       const blob=await dl.blob();
       const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=out.name||"omni-output"; document.body.appendChild(a); a.click(); a.remove();
@@ -4170,7 +4189,7 @@ document.querySelectorAll('.dropzone').forEach(function(zone){const input=zone.q
 document.querySelectorAll('button').forEach(function(btn){if(!btn.getAttribute('type'))btn.setAttribute('type','button')});
 function runDiagnostics(){const lines=['OmniConverter Browser Diagnostics','--------------------------------','Core UI: '+(window.__OMNI_CORE_READY?'READY':'NOT READY'), 'Boot error: '+(window.__OMNI_BOOT_ERROR || 'none'),'PDF.js: '+(window.pdfjsLib?'loaded':'missing'),'JSZip: '+(window.JSZip?'loaded':'missing'),'pdf-lib: '+(window.PDFLib?'loaded':'missing'),'Tesseract.js: '+(window.Tesseract?'loaded':'missing'),'File inputs: '+document.querySelectorAll('input[type="file"]').length,'Upload zones: '+document.querySelectorAll('.dropzone').length,'Buttons: '+document.querySelectorAll('button').length,'HTTPS/localhost: '+((location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')?'yes':'no'),'CompressionStream: '+('CompressionStream' in window?'yes':'no'),'MediaRecorder: '+('MediaRecorder' in window?'yes':'no'),'Folder export: '+('showDirectoryPicker' in window?'yes':'no'),'','If Core UI is NOT READY, hard-refresh the page.','If a library is missing, browser CDN resources are blocked; use the local launcher after setup.','If a tool requires native processing, start the Local Engine.'];const out=document.getElementById('omniDiagnostics');if(out){out.textContent=lines.join('\n');out.style.display='block'}}
 const diag=document.getElementById('omniDiagnosticsBtn');if(diag)diag.addEventListener('click',runDiagnostics);
-async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(Number(j.engine_api_version||0)<4){p.className='omni-local-pill warn';p.textContent='⚠ Local Engine outdated • Relaunch current Omni launcher';return;}window.OMNI_TOKEN=j.token||window.OMNI_TOKEN;const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
+async function updateMode(){const p=document.getElementById('omniModePill');if(!p)return;try{const r=await fetch('http://127.0.0.1:8765/api/health',{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(Number(j.engine_api_version||0)<4){p.className='omni-local-pill warn';p.textContent='⚠ Local Engine outdated • Relaunch current Omni launcher';return;}const tools=Object.entries(j.tools||{}).filter(x=>x[1]&&x[1].installed);p.className='omni-local-pill ok';p.textContent='● Local Engine connected'+(tools.length?' • '+tools.length+' native tools detected':'')}catch(_){p.className='omni-local-pill warn';p.textContent='● Browser mode • Start Local Engine for native/heavy processing'}}
 updateMode();
 })();
 </script>
@@ -4543,14 +4562,14 @@ async function runBrowserTests(){
   reset('browser'); writeLog('=== Browser diagnostics '+new Date().toISOString()+' ===');
   const staticTests=[
     ['Runtime','DOM and core UI',()=>{if(!document.body||!window.__OMNI_CORE_READY)throw new Error('Core UI is not ready');return 'Core UI ready';}],
-    ['Runtime','PDF.js library',()=>{if(!window.pdfjsLib)throw new Error('PDF.js missing');return 'PDF.js 3.11.174 loaded';}],
-    ['Runtime','PDF.js worker configuration',()=>{if(!window.pdfjsLib||!pdfjsLib.GlobalWorkerOptions.workerSrc)throw new Error('PDF workerSrc missing');return pdfjsLib.GlobalWorkerOptions.workerSrc;}],
+    ['Runtime','PDF.js library',async()=>{const lib=await window.OMNI_PDFJS_READY;if(!lib)throw new Error(window.__OMNI_PDFJS_ERROR||'PDF.js missing');return 'PDF.js '+lib.version+' loaded with scripting disabled';}],
+    ['Runtime','PDF.js worker configuration',async()=>{const lib=await window.OMNI_PDFJS_READY;if(!lib||!lib.GlobalWorkerOptions.workerSrc)throw new Error('PDF workerSrc missing');return 'Verified worker configured';}],
     ['Runtime','JSZip library',()=>{if(!window.JSZip)throw new Error('JSZip missing');return 'JSZip loaded';}],
     ['Runtime','Omni Language Engine isolation',()=>{if(!window.OmniLanguageEngine)throw new Error('Omni Language Engine missing');return 'Separate translation/transliteration runtime loaded; Assistant/RAG model state is not imported';}],
     ['Runtime','PPTX browser engine',()=>{if(!window.OMNI_BROWSER_FIRST||typeof window.OMNI_BROWSER_FIRST.office!=='function')throw new Error('Browser Office engine is not registered');return 'Native browser PPTX package builder ready (no Poppler required)';}],
     ['Runtime','pdf-lib library',()=>{if(!window.PDFLib)throw new Error('pdf-lib missing');return 'pdf-lib loaded';}],
     ['Runtime','Tesseract.js library',()=>{if(!window.Tesseract)throw new Error('Tesseract.js missing');return 'Tesseract.js loaded';}],
-    ['Offline','Local browser asset bundle',async()=>{if(location.hostname!=='127.0.0.1'&&location.hostname!=='localhost')return 'Public Pages mode uses CDN assets; use the Local Engine launcher for offline assets';const paths=['./vendor/pdfjs/pdf.min.js','./vendor/pdfjs/pdf.worker.min.js','./vendor/jszip/jszip.min.js','./vendor/pdf-lib/pdf-lib.min.js','./vendor/tesseract/tesseract.min.js','./vendor/tesseract/worker.min.js','./vendor/tesseract/core/tesseract-core.wasm.js','./vendor/tesseract/lang/eng.traineddata.gz'];const missing=[];for(const p of paths){try{const rr=await fetch(p,{cache:'no-store',method:'HEAD'});if(!rr.ok)missing.push(p);}catch(_){missing.push(p);}}if(missing.length)throw new Error('Missing local assets: '+missing.join(', '));return paths.length+' local browser assets reachable';}],
+    ['Offline','Local browser asset bundle',async()=>{if(location.hostname!=='127.0.0.1'&&location.hostname!=='localhost')return 'Public Pages mode uses integrity-checked CDN assets; use the Local Engine launcher for offline assets';const paths=['./vendor/pdfjs/build/pdf.mjs','./vendor/pdfjs/build/pdf.worker.mjs','./vendor/jszip/jszip.min.js','./vendor/pdf-lib/pdf-lib.min.js','./vendor/tesseract/tesseract.min.js','./vendor/tesseract/worker.min.js','./vendor/tesseract/core/tesseract-core.wasm.js','./vendor/tesseract/lang/eng.traineddata.gz'];const missing=[];for(const p of paths){try{const rr=await fetch(p,{cache:'no-store',method:'HEAD'});if(!rr.ok)missing.push(p);}catch(_){missing.push(p);}}if(missing.length)throw new Error('Missing local assets: '+missing.join(', '));return paths.length+' local browser assets reachable';}],
     ['Runtime','WebAssembly support',()=>{if(typeof WebAssembly==='undefined')throw new Error('WebAssembly unavailable');return 'WebAssembly available';}],
     ['Runtime','File/Blob/URL APIs',()=>{if(!window.File||!window.Blob||!window.URL||!URL.createObjectURL)throw new Error('Required File APIs missing');return 'File, Blob and object URLs available';}],
     ['Runtime','Canvas image pipeline',async()=>{const b=await canvasBlob('OMNI');const u=URL.createObjectURL(b);const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('Generated PNG could not be decoded'));img.src=u;});URL.revokeObjectURL(u);return b.size+' bytes PNG';}],
@@ -4576,7 +4595,7 @@ async function runBrowserTests(){
     return 'PPTX generated in browser • '+out.size+' bytes';
   });
   await test('browser','PDF create → PDF.js read → text extraction',async()=>{
-    const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),loaded=await pdfjsLib.getDocument({data:bytes}).promise;
+    const pdf=await makePdfBlob(), bytes=new Uint8Array(await pdf.arrayBuffer()),pdfjs=await window.OMNI_PDFJS_READY,loaded=await pdfjs.getDocument({data:bytes,enableScripting:false,isEvalSupported:false}).promise;
     const page=await loaded.getPage(1),tc=await page.getTextContent();const text=tc.items.map(x=>x.str).join(' ');
     if(!/OMNI DIAGNOSTIC/.test(text))throw new Error('Generated PDF text could not be extracted');
     return loaded.numPages+' page; extracted "'+text+'"';
@@ -4608,7 +4627,7 @@ async function localHealth(){
   const base='http://127.0.0.1:8765';
   const r=await fetch(base+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
   const j=await r.json();
-  if(!j.ok||!j.token)throw new Error('Health response missing local token');
+  if(!j.ok)throw new Error('Local Engine health response is invalid');
   if(Number(j.engine_api_version||0)<OMNI_REQUIRED_ENGINE_API){
     throw new Error('The Local Engine is outdated (API '+(j.engine_api_version||'unknown')+'). Close the old Omni Local Engine and launch the current start_omni/Omni command from the repository.');
   }
@@ -4634,7 +4653,7 @@ async function runLocalTests(){
     if(tool(name)) await test('local',label+' executable detected',async()=>h.tools[name].path||'installed');
     else skip('local',label+' executable detected','Not installed');
   }
-  const headersToken=()=>({'Origin':location.origin,'X-Omni-Token':h.token});
+  const headersToken=()=>({'Origin':location.origin});
   const upload=async(blob,name)=>{
     const rr=await fetch('http://127.0.0.1:8765/api/upload',{method:'POST',headers:Object.assign({},headersToken(),{'Content-Type':blob.type||'application/octet-stream','X-Filename':encodeURIComponent(name)}),body:blob});
     if(!rr.ok)throw new Error('Upload HTTP '+rr.status+' '+(await rr.text()).slice(0,180));return (await rr.json()).file_id;
@@ -4750,7 +4769,7 @@ async function health(required){
   const r=await fetch(BASE+'/api/health',{cache:'no-store'});if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
   const j=await r.json();
   if(Number(j.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch using the current repository launcher.');
-  token=j.token||token;
+  token='';
   const toolName=required==='pdf_to_ppt'?'pdftoppm':'soffice';
   if(!(j.tools&&j.tools[toolName]&&j.tools[toolName].installed))throw new Error((toolName==='pdftoppm'?'Poppler pdftoppm':'LibreOffice')+' is not installed on the Local Engine');
   return j;
@@ -4767,13 +4786,13 @@ async function convert(forcedTarget){
     try{if(window.OMNI_BROWSER_FIRST&&await window.OMNI_BROWSER_FIRST.office(file,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
     const op=(ext==='pdf'&&fmt==='pptx')?'pdf_to_ppt':'office_convert';
     await health(op);
-    const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)};
+    const headers={'Origin':location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:file});
     if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
     const up=await ur.json();
-    const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op,input:up.file_id,format:fmt})});
+    const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify({op,input:up.file_id,format:fmt})});
     const out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'Office conversion failed');
-    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,}});
     if(!dl.ok)throw new Error('Output download failed');
     const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -4794,7 +4813,7 @@ async function convertDedicated(fileObj,targetId,label){
   try{
     try{if(window.OMNI_BROWSER_FIRST&&await window.OMNI_BROWSER_FIRST.office(fileObj,fmt))return}catch(e){console.warn('Browser Office path failed; using Local Engine fallback.',e)}
     await health(ext==='pdf' && fmt!=='pdf'?'pdf_to_ppt':'office_convert');
-    const headers={'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
+    const headers={'Origin':location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(fileObj.name)};
     const ur=await fetch(BASE+'/api/upload',{method:'POST',headers,body:fileObj});
     if(!ur.ok)throw new Error((await ur.text()).slice(0,500));
     const up=await ur.json();
@@ -4802,21 +4821,21 @@ async function convertDedicated(fileObj,targetId,label){
     let out;
     if(ext==='pdf' && fmt!=='pdf'){
       const first=await health('pdf_to_ppt');
-      token=first.token||token;
-      let pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'pdf_to_ppt',input:currentId,dpi:120})});
+      token='';
+      let pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify({op:'pdf_to_ppt',input:currentId,dpi:120})});
       out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||'PDF → PPTX conversion failed');
       currentId=out.file_id;
       if(fmt!=='pptx'){
         await health('office_convert');
-        const pr2=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
+        const pr2=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
         out=await pr2.json();if(!pr2.ok||!out.ok)throw new Error(out.error||'Presentation conversion failed');
       }
     }else{
       await health('office_convert');
-      const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
+      const pr=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify({op:'office_convert',input:currentId,format:fmt})});
       out=await pr.json();if(!pr.ok||!out.ok)throw new Error(out.error||label+' conversion failed');
     }
-    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+    const dl=await fetch(BASE+'/api/download/'+encodeURIComponent(out.file_id),{headers:{'Origin':location.origin,}});
     if(!dl.ok)throw new Error('Output download failed');
     const blob=await dl.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=out.name||('omni-output.'+fmt);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
   }catch(e){alert(label+': '+e.message)}
@@ -4842,7 +4861,7 @@ bindDedicated('officeSpreadsheet','Spreadsheet Studio');
 </script>
 
 <!-- SOCIAL MEDIA DOWNLOAD STUDIO -->
-<script src="./social_media_studio.js?v=9"></script><script src="./universal_data_studio.js?v=2"></script><script src="./omni_universal_data_formats.js?v=3"></script><script src="./omni_sleep_hypnogram.js?v=2"></script>
+<script src="./omni_security_browser.js?v=2"></script><script src="./social_media_studio.js?v=9"></script><script src="./universal_data_studio.js?v=2"></script><script src="./omni_universal_data_formats.js?v=3"></script><script src="./omni_sleep_hypnogram.js?v=2"></script>
 <script src="./rag_studio.js?v=rag11"></script>
 <script src="./omni_local_ai.js?v=fast3"></script>
 <script src="./omni_assistant.js?v=fast8"></script>
@@ -4873,10 +4892,10 @@ async function omniLocalText(format){
   if(!h.ok) throw new Error("Local Engine is not running.");
   const health=await h.json();
   if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
-  const token=health.token||window.OMNI_TOKEN;
-  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"text_document",title:title,text:text,format:format})});
+  const token='';
+  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json",},body:JSON.stringify({op:"text_document",title:title,text:text,format:format})});
   const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||"Local document conversion failed.");
-  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{"X-Omni-Token":token}});
+  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{}});
   if(!d.ok) throw new Error("Local download failed.");
   const blob=await d.blob(), u=URL.createObjectURL(blob), a=document.createElement("a");
   a.href=u; a.download=j.name; document.body.appendChild(a); a.click(); a.remove();
@@ -4892,12 +4911,12 @@ async function omniLocalPdfDocx(){
   const file=input.files[0];
   const h=await fetch(localBase+"/api/health",{cache:"no-store"}); if(!h.ok) throw new Error("Local Engine is not running.");
   const health=await h.json(); if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
-  const token=health.token||window.OMNI_TOKEN;
-  const up=await fetch(localBase+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
+  const token='';
+  const up=await fetch(localBase+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),},body:file});
   const uj=await up.json(); if(!up.ok) throw new Error(uj.error||"PDF upload failed.");
-  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"pdf_to_docx",input:uj.file_id})});
+  const r=await fetch(localBase+"/api/process",{method:"POST",headers:{"Content-Type":"application/json",},body:JSON.stringify({op:"pdf_to_docx",input:uj.file_id})});
   const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||"PDF to DOCX failed.");
-  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{"X-Omni-Token":token}}); if(!d.ok) throw new Error("DOCX download failed.");
+  const d=await fetch(localBase+"/api/download/"+j.file_id,{headers:{}}); if(!d.ok) throw new Error("DOCX download failed.");
   const blob=await d.blob(),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=j.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
 }
 const pdf=document.getElementById("t2dPdfBtn"), docx=document.getElementById("t2dDocxBtn"), p2w=document.getElementById("p2wRunBtn");
@@ -4938,14 +4957,14 @@ if(pdf) pdf.addEventListener("click",async e=>{
       const h=await fetch(base+"/api/health",{cache:"no-store"});
       if(!h.ok) throw new Error("Local Engine is not running.");
       const health=await h.json(); if(Number(health.engine_api_version||0)<4) throw new Error("Outdated Local Engine. Relaunch the current OmniConverter launcher.");
-      const token=health.token||window.OMNI_TOKEN;
+      const token='';
       const zip=window.JSZip?new JSZip():null;
       for(const file of files){
-        const up=await fetch(base+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),"X-Omni-Token":token},body:file});
+        const up=await fetch(base+"/api/upload",{method:"POST",headers:{"X-Filename":encodeURIComponent(file.name),},body:file});
         const uj=await up.json(); if(!up.ok) throw new Error(uj.error||"Image upload failed.");
-        const pr=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":token},body:JSON.stringify({op:"image",input:uj.file_id,format:target,quality:parseInt((document.getElementById("imgQualitySelect")||{}).value||95)})});
+        const pr=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json",},body:JSON.stringify({op:"image",input:uj.file_id,format:target,quality:parseInt((document.getElementById("imgQualitySelect")||{}).value||95)})});
         const out=await pr.json(); if(!pr.ok||!out.ok) throw new Error(out.error||"HEIC conversion failed.");
-        const dl=await fetch(base+"/api/download/"+encodeURIComponent(out.file_id),{headers:{"X-Omni-Token":token}});
+        const dl=await fetch(base+"/api/download/"+encodeURIComponent(out.file_id),{headers:{}});
         if(!dl.ok) throw new Error("HEIC output download failed.");
         const blob=await dl.blob();
         if(zip) zip.file(out.name,blob); else {
@@ -5058,25 +5077,25 @@ async function health(){
   if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
   const h=await r.json();
   if(Number(h.engine_api_version||0)<4)throw new Error('Outdated Local Engine detected. Relaunch OmniConverter using the current repository launcher.');
-  token=h.token||''; return h;
+  token=''; return h;
 }
 async function ensureLocal(){
   try{return await health();}
   catch(e){throw new Error(e.message||'Local Engine is not available. Relaunch the current OmniConverter Local Engine.');}
 }
 async function upload(file){
-  const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
+  const r=await fetch(BASE+'/api/upload',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
   if(!r.ok)throw new Error((await r.text()).slice(0,500));
   return r.json();
 }
 async function processJob(payload){
-  const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const r=await fetch(BASE+'/api/process',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/json'},body:JSON.stringify(payload)});
   let j;try{j=await r.json();}catch(_){throw new Error('Local Engine returned invalid JSON (HTTP '+r.status+').');}
   if(!r.ok||!j.ok)throw new Error(j.error||'Local Engine operation failed');
   return j;
 }
 async function downloadFile(id){
-  const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,'X-Omni-Token':token}});
+  const r=await fetch(BASE+'/api/download/'+encodeURIComponent(id),{headers:{Origin:location.origin,}});
   if(!r.ok)throw new Error('Output download failed (HTTP '+r.status+').');
   return r.blob();
 }
@@ -5226,7 +5245,7 @@ async function runSql(sql,explain){const d=await sqlDb();sql=String(sql||'').tri
 function csv(text,del){const rows=[];let row=[],cell='',quote=false;for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'){if(quote&&text[i+1]==='"'){cell+='"';i++;}else quote=!quote;}else if(ch===del&&!quote){row.push(cell);cell='';}else if((ch==='\n'||ch==='\r')&&!quote){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>String(v).trim()))rows.push(row);row=[];cell='';}else cell+=ch;}if(cell!==''||row.length){row.push(cell);rows.push(row);}return rows;}
 function typ(v){const a=v.map(x=>String(x??'').trim()).filter(Boolean);if(!a.length)return'TEXT';if(a.every(x=>/^-?\d+$/.test(x)))return'INTEGER';if(a.every(x=>/^-?(\d+(\.\d*)?|\.\d+)(e[-+]?\d+)?$/i.test(x)))return'REAL';/* mixed integers and decimals are still numeric */if(a.every(x=>/^(true|false)$/i.test(x)))return'BOOLEAN';return'TEXT';}
 function val(v,t){if(v===null||v===undefined||v==='')return null;if(t==='INTEGER'||t==='REAL')return Number(v);if(t==='BOOLEAN')return/^true$/i.test(String(v))?1:0;return v&&typeof v==='object'?JSON.stringify(v):String(v);}
-async function importDb(file){const d=await sqlDb();if(!file)throw new Error('Choose a file first.');const name=file.name.toLowerCase(),table=(($('dbSandboxTable').value||'imported_data').trim().replace(/[^A-Za-z0-9_]+/g,'_')||'imported_data');if(/\.(sqlite|db)$/.test(name)){d.close();const SQL=await window.initSqlJs({locateFile:f=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/'+f});db=new SQL.Database(new Uint8Array(await file.arrayBuffer()));schema();dbStatus('SQLite database loaded • temporary session','ok');return;}if(/\.sql$/.test(name)){await runSql(await file.text(),false);return;}let rows=[];if(/\.(xlsx|xls)$/.test(name)){if(!window.XLSX)throw new Error('Excel engine is unavailable.');const wb=window.XLSX.read(await file.arrayBuffer(),{type:'array'});rows=window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null,raw:true});}else{const t=await file.text();if(/\.(jsonl|ndjson)$/.test(name))rows=t.split(/\r?\n/).filter(Boolean).map(JSON.parse);else if(/\.json$/.test(name)){const p=JSON.parse(t);rows=Array.isArray(p)?p:(Array.isArray(p.data)?p.data:[p]);}else rows=csv(t,/\.tsv$/.test(name)?'\t':',');}if(!rows.length)throw new Error('No rows found.');let headers=rows[0];if(!Array.isArray(headers)){headers=[...new Set(rows.flatMap(x=>x&&typeof x==='object'?Object.keys(x):[]))];rows=[headers,...rows.map(x=>headers.map(h=>x?.[h]??null))];}{const used=new Set();/* keep Unicode letters (Hindi, accented names…) and make duplicate names unique */headers=headers.map((h,i)=>{let n=String(h??'').trim().replace(/[^\p{L}\p{M}\p{N}_]+/gu,'_').replace(/^_+|_+$/g,'')||'column_'+(i+1);let u=n,k=2;while(used.has(u.toLowerCase()))u=n+'_'+(k++);used.add(u.toLowerCase());return u;});}const data=rows.slice(1),types=headers.map((_,i)=>typ(data.map(r=>r?.[i])));d.run('BEGIN;');try{d.run('CREATE TABLE '+qid(table)+' ('+headers.map((h,i)=>qid(h)+' '+types[i]).join(', ')+')');const s=d.prepare('INSERT INTO '+qid(table)+' VALUES ('+headers.map(()=>'?').join(',')+')');for(const row of data){s.bind(row.map((v,i)=>val(v,types[i])));s.step();s.reset();}s.free();d.run('COMMIT;');}catch(e){try{d.run('ROLLBACK;')}catch(_){}throw e;}schema();$('dbSandboxSql').value='SELECT * FROM '+qid(table)+' LIMIT 100;';dbStatus('Created temporary table '+table+' • '+data.length+' rows','ok');}
+async function importDb(file){const d=await sqlDb();if(!file)throw new Error('Choose a file first.');const name=file.name.toLowerCase(),table=(($('dbSandboxTable').value||'imported_data').trim().replace(/[^A-Za-z0-9_]+/g,'_')||'imported_data');if(/\.(sqlite|db)$/.test(name)){d.close();const SQL=await window.OMNI_VENDOR.sqlJs();db=new SQL.Database(new Uint8Array(await file.arrayBuffer()));schema();dbStatus('SQLite database loaded • temporary session','ok');return;}if(/\.sql$/.test(name)){await runSql(await file.text(),false);return;}let rows=[];if(/\.(xlsx|xls)$/.test(name)){if(!window.XLSX)throw new Error('Excel engine is unavailable.');const wb=window.XLSX.read(await file.arrayBuffer(),{type:'array'});rows=window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null,raw:true});}else{const t=await file.text();if(/\.(jsonl|ndjson)$/.test(name))rows=t.split(/\r?\n/).filter(Boolean).map(JSON.parse);else if(/\.json$/.test(name)){const p=JSON.parse(t);rows=Array.isArray(p)?p:(Array.isArray(p.data)?p.data:[p]);}else rows=csv(t,/\.tsv$/.test(name)?'\t':',');}if(!rows.length)throw new Error('No rows found.');let headers=rows[0];if(!Array.isArray(headers)){headers=[...new Set(rows.flatMap(x=>x&&typeof x==='object'?Object.keys(x):[]))];rows=[headers,...rows.map(x=>headers.map(h=>x?.[h]??null))];}{const used=new Set();/* keep Unicode letters (Hindi, accented names…) and make duplicate names unique */headers=headers.map((h,i)=>{let n=String(h??'').trim().replace(/[^\p{L}\p{M}\p{N}_]+/gu,'_').replace(/^_+|_+$/g,'')||'column_'+(i+1);let u=n,k=2;while(used.has(u.toLowerCase()))u=n+'_'+(k++);used.add(u.toLowerCase());return u;});}const data=rows.slice(1),types=headers.map((_,i)=>typ(data.map(r=>r?.[i])));d.run('BEGIN;');try{d.run('CREATE TABLE '+qid(table)+' ('+headers.map((h,i)=>qid(h)+' '+types[i]).join(', ')+')');const s=d.prepare('INSERT INTO '+qid(table)+' VALUES ('+headers.map(()=>'?').join(',')+')');for(const row of data){s.bind(row.map((v,i)=>val(v,types[i])));s.step();s.reset();}s.free();d.run('COMMIT;');}catch(e){try{d.run('ROLLBACK;')}catch(_){}throw e;}schema();$('dbSandboxSql').value='SELECT * FROM '+qid(table)+' LIMIT 100;';dbStatus('Created temporary table '+table+' • '+data.length+' rows','ok');}
 const ex={ddl:'CREATE TABLE IF NOT EXISTS projects(id INTEGER PRIMARY KEY,name TEXT NOT NULL,department_id INTEGER REFERENCES departments(id),budget REAL CHECK(budget>=0),starts TEXT);\nINSERT INTO projects(name,department_id,budget,starts) VALUES(\'Lakehouse migration\',1,250000,\'2026-01-05\'),(\'Pricing model\',3,90000,\'2026-03-01\');\nSELECT p.name,d.name AS department,p.budget FROM projects p JOIN departments d ON d.id=p.department_id;',dml:"INSERT INTO employees(id,name,department,salary) VALUES(10,'New Person','Data',123000);\nUPDATE employees SET salary=salary*1.05 WHERE department='Data';\nDELETE FROM employees WHERE id=10;\nSELECT * FROM employees;",txn:"BEGIN;\nUPDATE employees SET salary=salary+1000 WHERE department='Data';\nSELECT id,name,salary FROM employees;\nROLLBACK;\nSELECT id,name,salary FROM employees;",savepoint:"BEGIN;\nSAVEPOINT sp1;\nUPDATE employees SET salary=0 WHERE id=1;\nROLLBACK TO sp1;\nRELEASE sp1;\nCOMMIT;",join:"SELECT e.name,e.department,e.salary FROM employees e JOIN (SELECT department,MAX(salary) salary FROM employees GROUP BY department)m ON e.department=m.department AND e.salary=m.salary;",window:"SELECT name,department,salary,ROW_NUMBER() OVER(PARTITION BY department ORDER BY salary DESC) rank_in_department FROM employees;",cte:"WITH high_paid AS(SELECT * FROM employees WHERE salary>=95000) SELECT department,COUNT(*) people FROM high_paid GROUP BY department;",view:"CREATE VIEW IF NOT EXISTS high_earners AS SELECT * FROM employees WHERE salary>=95000;\nSELECT * FROM high_earners;",trigger:"CREATE TABLE IF NOT EXISTS audit_log(action TEXT,employee_id INTEGER,at TEXT DEFAULT CURRENT_TIMESTAMP);\nCREATE TRIGGER IF NOT EXISTS employee_audit AFTER DELETE ON employees BEGIN INSERT INTO audit_log(action,employee_id) VALUES('DELETE',OLD.id); END;\nDELETE FROM employees WHERE id=8;\nSELECT * FROM audit_log;",functions:"SELECT UPPER(name),ROUND(salary/12.0,2),LENGTH(name),COALESCE(department,'Unknown') FROM employees;"};
 $('dbSandboxInit')?.addEventListener('click',()=>sqlDb().catch(e=>{$('dbSandboxOutput').textContent='ERROR: '+e.message;dbStatus(e.message,'warn');}));
 $('dbSandboxReset')?.addEventListener('click',()=>{if(db)db.close();db=null;dbReady=null;txn=false;history=[];$('dbSandboxResult').innerHTML='';$('dbSandboxOutput').textContent='Sandbox reset.';dbStatus('Session cleared.','warn');});
@@ -5239,15 +5258,15 @@ $('dbSandboxExample')?.addEventListener('change',e=>{if(e.target.value)$('dbSand
 [['dbSandboxSavepointBtn','SAVEPOINT'],['dbSandboxRollbackTo','ROLLBACK TO'],['dbSandboxRelease','RELEASE']].forEach(([id,k])=>$(id)?.addEventListener('click',async()=>{try{const n=(($('dbSandboxSavepoint').value||'sp1').replace(/[^A-Za-z0-9_]/g,'_')||'sp1');await runSql(k+' '+qid(n)+';',false);}catch(e){$('dbSandboxOutput').textContent='ERROR: '+e.message;}}));
 $('dbSandboxExport')?.addEventListener('click',async()=>{try{const d=await sqlDb();omniDownload(new Blob([d.export()],{type:'application/x-sqlite3'}),'omni-temporary-sandbox.sqlite');}catch(e){$('dbSandboxOutput').textContent='ERROR: '+e.message;}});
 
-/* Programming lab */
-let codeWorker=null;
+/* User programs stay disabled until a separate, network-isolated sandbox is deployed. */
 function codeStatus(t,k){const e=$('codeLabStatus');if(e){e.textContent=t;e.className='omni-sandbox-status '+(k||'');}}
-function stopWorker(){if(codeWorker){codeWorker.terminate();codeWorker=null;}}
-function workerRun(script,msg,timeout){return new Promise((resolve,reject)=>{stopWorker();const u=URL.createObjectURL(new Blob([script],{type:'text/javascript'}));const w=new Worker(u);codeWorker=w;const timer=setTimeout(()=>{w.terminate();codeWorker=null;URL.revokeObjectURL(u);reject(new Error('Browser execution timed out.'));},timeout);w.onmessage=e=>{clearTimeout(timer);w.terminate();codeWorker=null;URL.revokeObjectURL(u);resolve(e.data);};w.onerror=e=>{clearTimeout(timer);w.terminate();codeWorker=null;URL.revokeObjectURL(u);reject(new Error(e.message||'Browser worker failed.'));};w.postMessage(msg);});}
-async function browserRun(lang,source,stdin){if(lang==='typescript'){if(!window.ts)await window.OMNI_VENDOR.load('typescript');source=window.ts.transpile(source,{target:window.ts.ScriptTarget.ES2022,module:window.ts.ModuleKind.ESNext});lang='javascript';}if(lang==='javascript'){const s=`self.onmessage=async(e)=>{let out=[],err=[];const emit=(a)=>out.push(a.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '));const con={log:(...a)=>emit(a),warn:(...a)=>emit(a),error:(...a)=>err.push(a.map(String).join(' '))};try{self.fetch=()=>Promise.reject(new Error('Network disabled'));self.WebSocket=undefined;self.XMLHttpRequest=undefined;const AF=async function(){}.constructor;const fn=new AF('stdin','readLine','console',e.data.source);let lines=String(e.data.stdin||'').split(/\\r?\\n/),i=0;const readLine=()=>lines[i++]??'';const result=await fn(e.data.stdin,readLine,con);if(result!==undefined)out.push('=> '+String(result));self.postMessage({ok:true,stdout:out.join('\\n'),stderr:err.join('\\n')});}catch(x){self.postMessage({ok:false,stdout:out.join('\\n'),stderr:String(x.stack||x)});}};`;return workerRun(s,{source,stdin},12000);}if(lang==='python'){const s=`import {loadPyodide} from 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.mjs';const ready=loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/'});self.onmessage=async(e)=>{try{const p=await ready;let out=[],err=[];p.setStdout({batched:x=>out.push(x)});p.setStderr({batched:x=>err.push(x)});let lines=String(e.data.stdin||'').split(/\\r?\\n/),i=0;p.setStdin({stdin:()=>lines[i++]??null});await p.loadPackagesFromImports(e.data.source);const r=await p.runPythonAsync(e.data.source,{filename:'omni_sandbox.py'});if(r!==undefined&&r!==null)out.push('=> '+String(r));self.postMessage({ok:true,stdout:out.join('\\n'),stderr:err.join('\\n')});}catch(x){self.postMessage({ok:false,stdout:'',stderr:String(x.stack||x)});}};`;return workerRun(s,{source,stdin},25000);}throw new Error('Browser runner supports JavaScript, TypeScript and Python. Use Local Engine for '+lang+'.');}
-$('codeLabLanguage')?.addEventListener('change',e=>{const l=e.target.value,b=['javascript','typescript','python'].includes(l);$('codeLabRunBrowser').disabled=!b;codeStatus(b?'Browser runner ready for '+l+'.':'Local Engine runner available for '+l+'.',b?'ok':'warn');});
-$('codeLabRunBrowser')?.addEventListener('click',async()=>{const b=$('codeLabRunBrowser');b.disabled=true;$('codeLabOutput').textContent='Running…';try{const r=await browserRun($('codeLabLanguage').value,$('codeLabSource').value,$('codeLabStdin').value);$('codeLabOutput').textContent=(r.stdout||'')+(r.stderr?'\n[stderr]\n'+r.stderr:'')||'(no output)';codeStatus(r.ok?'Browser execution completed.':'Browser execution failed.',r.ok?'ok':'warn');}catch(e){$('codeLabOutput').textContent='ERROR: '+e.message;codeStatus(e.message,'warn');}finally{b.disabled=!['javascript','typescript','python'].includes($('codeLabLanguage').value);}});
-$('codeLabRunLocal')?.addEventListener('click',async()=>{const o=$('codeLabOutput');o.textContent='Sending to Local Engine…';try{const base='http://127.0.0.1:8765',token=window.OMNI_TOKEN;if(!token)throw new Error('Local Run requires the Omni Local Engine page so its local authorization token is available.');const hr=await fetch(base+'/api/health',{cache:'no-store'});if(!hr.ok)throw new Error('Local Engine is not running.');const r=await fetch(base+'/api/process',{method:'POST',headers:{'Content-Type':'application/json','X-Omni-Token':token},body:JSON.stringify({op:'code_execute',language:$('codeLabLanguage').value,source:$('codeLabSource').value,stdin:$('codeLabStdin').value,timeout:+($('codeLabTimeout').value||8)})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Local Engine failed');o.textContent=(j.stdout||'')+(j.stderr?'\n[stderr]\n'+j.stderr:'')+'\n[exit code] '+j.exit_code;codeStatus(j.ok?'Local execution completed.':'Program exited with an error.',j.ok?'ok':'warn');}catch(e){o.textContent='ERROR: '+e.message;codeStatus(e.message,'warn');}});
+function stopWorker(){}
+async function browserRun(){throw new Error('Browser execution is disabled until a network-isolated sandbox is available.');}
+const browserRunButton=$('codeLabRunBrowser');
+if(browserRunButton){browserRunButton.disabled=true;browserRunButton.title='Requires a network-isolated sandbox.';}
+const localRunButton=$('codeLabRunLocal');
+if(localRunButton){localRunButton.disabled=true;localRunButton.title='Requires an isolated, resource-limited execution service.';}
+codeStatus('Browser code execution is unavailable until a network-isolated sandbox is deployed. Local Engine code execution also remains disabled until its rootless sandbox is configured.','warn');
 $('codeLabReset')?.addEventListener('click',()=>{stopWorker();$('codeLabOutput').textContent='Program output will appear here.';});
 $('codeLabFile')?.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{$('codeLabSource').value=await f.text();const m={js:'javascript',ts:'typescript',py:'python',sh:'bash',bash:'bash',rb:'ruby',php:'php',c:'c',cpp:'cpp',cc:'cpp',cxx:'cpp',java:'java',go:'go',rs:'rust',swift:'swift',kt:'kotlin',kts:'kotlin'},l=m[f.name.split('.').pop().toLowerCase()];if(l){$('codeLabLanguage').value=l;$('codeLabLanguage').dispatchEvent(new Event('change'));}}catch(x){codeStatus('File read failed: '+x.message,'warn');}});
 $('codeLabLanguage')?.dispatchEvent(new Event('change'));

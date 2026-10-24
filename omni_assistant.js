@@ -65,8 +65,8 @@ async function knowledgeFiles(base){
 async function knowledgeText(url,path){
  const r=await fetch(url,{cache:"no-store"});if(!r.ok)return "";
  if(/\.pdf$/i.test(path)){
-  if(!window.pdfjsLib)return "";
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await r.arrayBuffer())}).promise;let t="";
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error("Verified PDF.js is unavailable.")));
+  const pdf=await pdfjs.getDocument({data:new Uint8Array(await r.arrayBuffer()),enableScripting:false,isEvalSupported:false}).promise;let t="";
   for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ").replace(/\s+/g," ").trim()+"\n\n";pg.cleanup()}
   try{await pdf.destroy()}catch(e){}
   return t;

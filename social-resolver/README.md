@@ -1,39 +1,9 @@
 # Omni Social Resolver
 
-Remote resolver for Omni Suite Social Media Studio.
+## Disabled pending security infrastructure
 
-The GitHub Pages application sends only a public URL to this service, receives media metadata, and the browser initiates the download. No platform login, cookies, credential harvesting, private-account access, DRM bypass, or anti-bot circumvention is implemented.
+The resolver container is intentionally fail-closed. `GET /api/health` reports service liveness; social URL resolution, media proxying, and downloads return HTTP 503 until the service has a per-user identity and authorization layer, shared quotas, signed media grants, and isolated workers.
 
-## Deploy on Render
+Do not deploy this service for public processing or configure it as the Social Media Studio backend. `social_resolver_config.js` is intentionally empty. A token embedded in a static browser application would be public and would not provide user authentication.
 
-Create a new Render Blueprint using the repository and select the Blueprint path:
-
-`social-resolver/render.yaml`
-
-The Blueprint creates a Docker web service named `omni-social-resolver`. After deployment, Render provides an HTTPS `onrender.com` URL. Put that URL in `social_resolver_config.js` in the main Omni Suite repository.
-
-The resolver exposes:
-
-- `GET /api/health`
-- `POST /api/resolve` with JSON `{"url":"https://..." }`
-- `GET /api/download?url=...&quality=1080p`
-
-Only supported public-platform hostnames are accepted.
-
-## Limits and abuse controls
-
-The default maximum media duration is 15 minutes and the maximum generated file size is 300 MB. These are deliberately conservative for a public resolver.
-
-Every request is rate limited per client IP: `RATE_LIMIT_PER_MINUTE` (default 20) requests per 60 seconds, applied to all endpoints. This is the main protection against the service being used as an open download proxy.
-
-Set `SOCIAL_TOKEN` on the Render service to require a token on `POST /api/resolve` (the heavy metadata step). When set, callers must send it as the `X-Omni-Social-Token` header; paste the same value into `window.OMNI_SOCIAL_RESOLVER_TOKEN` in `social_resolver_config.js`. Because that value ships in the public page it is not a real secret — it is a gate you can rotate (change it on the service and in the config to cut off abuse). The `media-proxy` and `download` URLs are loaded as `<img>`/`<video>`/`<a>` sources, which cannot carry a custom header, so they are protected by the rate limit and the host allow-lists rather than the token. Leaving `SOCIAL_TOKEN` unset keeps the resolver open (rate limited only), matching the previous behaviour.
-
-### Environment variables
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `ALLOWED_ORIGIN` | `https://theraghavraman.github.io` | CORS origin allowed to call the service from a browser. |
-| `SOCIAL_TOKEN` | _(unset)_ | If set, required as `X-Omni-Social-Token` on `/api/resolve`. |
-| `RATE_LIMIT_PER_MINUTE` | `20` | Per-IP request budget per 60s across all endpoints. |
-| `MAX_DURATION` | `900` | Maximum media duration in seconds. |
-| `MAX_DOWNLOAD_MB` | `300` | Maximum generated file size. |
+Before re-enabling processing, implement and verify the requirements in `SECURITY_REMEDIATION_STATUS.md`: user-bound authorization on every route, distributed rate limits, bounded redirect-by-redirect DNS-pinned media fetching, private job storage and cleanup, and platform-level resource isolation. The current source contains pieces of the URL and response hardening, but they are not a substitute for those missing services.

@@ -1,0 +1,129 @@
+path,review_state,review_notes
+"""knowledge-base/Omni Suite \342\200\224 Studio & Code Reference.pdf""",Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.dockerignore,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/assistant_rag_regression.mjs,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/build_kb_manifest.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/build_public.py,New source/config; partial review,Added for remediation; build/integration verification remains outstanding.
+.github/scripts/environment_inventory_test.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/native_smoke_test.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/omni_contract_audit.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/scripts/studio_wiring_check.mjs,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.github/workflows/local-engine-check.yml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+.github/workflows/pages.yml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+.github/workflows/publish-container.yml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+.github/workflows/publish-npm.yml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+.github/workflows/rag-check.yml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+.gitignore,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+.zenodo.json,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+BACKWARD_COMPATIBILITY.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+CHANGELOG.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+CITATION.cff,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+DEPLOYMENT_RELEASE_GUIDE.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+Dockerfile,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+ETL_STUDIO.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+LICENSE,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+LOCAL_ENGINE.md,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+Omni.bat,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+Omni.command,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+PRIVACY_DATA_FLOW.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+README.md,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+README.npm.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+README.pypi.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+REMEDIATION_TRACKER_V2.csv,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+SECURITY_REMEDIATION_STATUS.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+THIRD_PARTY_NOTICES.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+THREAT_MODEL.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+VERIFICATION_LOG.md,New handoff record; reviewed,"Records implementation scope, residual risk, or evidence limits."
+apple-touch-icon.png,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+bi_code_studio.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+diagram_forge_studio.css,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+diagram_forge_studio.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+favicon-32.png,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+favicon.ico,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+favicon.svg,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+file_sharing_studio.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+index.html,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+install_system_tools.command,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+install_windows.ps1,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+knowledge-base/We by Yevgeny Zamyatin - A Project Gutenberg eBook.pdf,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+knowledge-base/manifest.json,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+knowledge-base/omni-suite.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+knowledge-base/omniconverter-guide.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+language-models/README.md,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+office_find_replace.css,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+office_find_replace.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+office_tools_studio.css,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+office_tools_studio.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+offline_assets_manifest.json,New source/config; partial review,Added for remediation; build/integration verification remains outstanding.
+omni-cloud-engine/Dockerfile,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni-cloud-engine/app.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni-cloud-engine/omni_security_primitives.py,New helper; partial review,Integrated into application call sites; full independent review and tests remain outstanding.
+omni-cloud-engine/render.yaml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni-cloud-engine/requirements.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni-core.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni-ui-revamp-color.css,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_assistant.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_bootstrap.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_ai.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_ai_ui.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_archive.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_audio.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_docs.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_epub.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_images.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_media_ai.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_media_ai_worker.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_browser_ocr.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_studio_plus.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_browser_video.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_code_runner.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_data_engine.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_deepseek_code_ai.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_environment.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_language_browser.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_language_engine.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_language_engine.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_language_studio.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_local_ai.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_local_ai.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_local_server.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_platform.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_render_cloud.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_sdk/__init__.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_sdk/cli.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_sdk/py.typed,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_security_browser.js,New helper; partial review,Integrated into application call sites; full independent review and tests remain outstanding.
+omni_security_primitives.py,New helper; partial review,Integrated into application call sites; full independent review and tests remain outstanding.
+omni_sleep_hypnogram.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+omni_universal_data_formats.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+omni_vendor_loader.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+package.json,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+photo_editor.css,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+photo_editor.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+prepare_language_models.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+prepare_offline.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+pyproject.toml,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+qrcode_generator.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+rag_embed_worker.js,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+rag_studio.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+requirements-data.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+requirements-extended.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+requirements-language.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+requirements-local.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+requirements-vision.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+setup_and_start.bat,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+setup_and_start.command,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+social-resolver/Dockerfile,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+social-resolver/README.md,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+social-resolver/app.py,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+social-resolver/omni_security_primitives.py,New helper; partial review,Integrated into application call sites; full independent review and tests remain outstanding.
+social-resolver/render.yaml,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+social-resolver/requirements-instagrapi.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+social-resolver/requirements.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+social-resolver/runtime.txt,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+social_media_studio.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+social_resolver_config.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+start_omni.bat,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+start_omni.command,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.
+universal_data_studio.js,Modified; partial source review,"Patch is present. No tests, browser runs, builds, or cross-platform checks were run."
+verify_local_environment.py,Unchanged; not re-reviewed,Included for inventory completeness; this remediation pass makes no fresh review claim.

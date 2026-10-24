@@ -4,6 +4,7 @@ OmniConverter Data Studio engine.
 from __future__ import annotations
 import json, sqlite3
 from pathlib import Path
+from omni_security_primitives import csv_safe_value
 
 DATA_FORMATS = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md","xlsx","xls","xlsb","ods","parquet","feather","arrow","ipc","orc","avro","sqlite","db","duckdb","sql","hdf5","h5","dta","sas","sav","msgpack","mpk"}
 SCIENTIFIC_FORMATS = {"fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"}
@@ -22,8 +23,27 @@ def _json_value(v):
     except Exception: pass
     return v
 
+MAX_SCIENTIFIC_FILE_BYTES = 256 * 1024 * 1024
+MAX_SCIENTIFIC_ELEMENTS = 10_000_000
+MAX_SCIENTIFIC_VARIABLES = 500
+
+def _write_csv_safe(frame, out, sep=","):
+    safe = frame.copy()
+    for column in safe.columns:
+        safe[column] = safe[column].map(csv_safe_value)
+    safe.to_csv(out, index=False, sep=sep)
+
+def _guard_scientific_shape(shape, dtype):
+    import math
+    count=math.prod(int(x) for x in shape) if shape else 1
+    itemsize=getattr(dtype,"itemsize",8) or 8
+    if count>MAX_SCIENTIFIC_ELEMENTS or count*int(itemsize)>MAX_SCIENTIFIC_FILE_BYTES:
+        raise RuntimeError("Scientific array exceeds the safe materialization limit; large-array streaming is not yet supported.")
+
 def _scientific_records(path, fmt):
     import numpy as np
+    if Path(path).stat().st_size>MAX_SCIENTIFIC_FILE_BYTES:
+        raise RuntimeError("Scientific input exceeds the safe file-size limit; large-array streaming is not yet supported.")
     fmt=scientific_ext(path,fmt); variables=[]; attrs={}
     if fmt in {"netcdf","grib"}:
         xr=_mod("xarray");
@@ -34,6 +54,8 @@ def _scientific_records(path, fmt):
         try:
             attrs={str(k):_json_value(v) for k,v in ds.attrs.items()}
             for name,da in ds.variables.items():
+                if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
+                _guard_scientific_shape(da.shape,da.dtype)
                 arr=np.asarray(da.values)
                 variables.append({"name":str(name),"dims":[str(x) for x in da.dims],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{str(k):_json_value(v) for k,v in da.attrs.items()},"data":arr})
         finally: ds.close()
@@ -43,6 +65,8 @@ def _scientific_records(path, fmt):
             attrs={str(k):_json_value(v) for k,v in f.attrs.items()}
             def visit(name,obj):
                 if isinstance(obj,h5.Dataset):
+                    if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
+                    _guard_scientific_shape(obj.shape,obj.dtype)
                     arr=obj[()];
                     if getattr(arr,"dtype",None) is not None and arr.dtype.kind not in "biufcSU": arr=np.asarray(arr,dtype=str)
                     variables.append({"name":name,"dims":[f"dim_{i}" for i in range(getattr(arr,"ndim",0))],"shape":list(getattr(arr,"shape",())),"dtype":str(getattr(arr,"dtype","unknown")),"attrs":{str(k):_json_value(v) for k,v in obj.attrs.items()},"data":np.asarray(arr)})
@@ -52,6 +76,7 @@ def _scientific_records(path, fmt):
         with fits.open(path,memmap=True) as hdul:
             for i,hdu in enumerate(hdul):
                 if hdu.data is None: continue
+                _guard_scientific_shape(getattr(hdu,"shape",()),getattr(hdu.data,"dtype",None))
                 data=hdu.data
                 if hasattr(data,"columns") and getattr(data,"names",None):
                     for col in data.names:
@@ -60,6 +85,7 @@ def _scientific_records(path, fmt):
                     arr=np.asarray(data);variables.append({"name":f"HDU{i}","dims":[f"dim_{j}" for j in range(arr.ndim)],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
             attrs={"HDU_count":len(hdul)}
     elif fmt=="cdf":
+        raise RuntimeError("CDF conversion is unavailable until its reader supports bounded record streaming.")
         cdf=_mod("cdflib","cdflib"); c=cdf.CDF(str(path)); info=c.cdf_info(); attrs={str(k):_json_value(v) for k,v in info.items() if k not in {"zVariables","rVariables"}}
         names=list(info.get("zVariables",[]))+list(info.get("rVariables",[]))
         for name in names:
@@ -86,7 +112,8 @@ def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
         for v in variables:
             arr=np.asarray(v["data"]).reshape(-1)
             for idx,val in enumerate(arr[:max_rows]): rows.append({"variable":v["name"],"flat_index":idx,"value":_json_value(val)})
-        pd.DataFrame(rows).to_csv(out,index=False); return
+        frame=pd.DataFrame(rows)
+        _write_csv_safe(frame,out); return
     if target=="png":
         from PIL import Image
         chosen=next((v for v in variables if getattr(v["data"],"ndim",0)>=2),None)
@@ -325,10 +352,13 @@ def dataframe_sql(df, table, dialect="sqlite", include_data=True):
     return "\n".join(lines) + "\n"
 
 
-def write_data(df,out,fmt,table="data",dialect="sqlite"):
+def write_data(df,out,fmt,table="data",dialect="sqlite",spreadsheet_safe=True):
     fmt=ext(out,fmt)
-    if fmt=="csv": df.to_csv(out,index=False)
-    elif fmt=="tsv": df.to_csv(out,index=False,sep="\t")
+    if fmt in {"csv","tsv"}:
+        if spreadsheet_safe:
+            _write_csv_safe(df,out,sep="\t" if fmt=="tsv" else ",")
+        else:
+            df.to_csv(out,index=False,sep="\t" if fmt=="tsv" else ",")
     elif fmt=="json": df.to_json(out,orient="records",indent=2,date_format="iso")
     elif fmt=="jsonl": df.to_json(out,orient="records",lines=True,date_format="iso")
     elif fmt in {"yaml","yml"}:
@@ -473,7 +503,7 @@ def nosql_convert(inp,out,source,target):
     elif target in {"json","mongojson"}: Path(out).write_text(json.dumps(records,indent=2,default=str),encoding="utf-8")
     elif target in {"jsonl","ndjson"}: Path(out).write_text("\n".join(json.dumps(x,default=str) for x in records)+"\n",encoding="utf-8")
     elif target=="dynamodb-json": Path(out).write_text(json.dumps([_ddb_wrap(x) for x in records],indent=2,default=str),encoding="utf-8")
-    elif target=="csv": _df_from_records(records).to_csv(out,index=False)
+    elif target=="csv": _write_csv_safe(_df_from_records(records),out)
     elif target=="sql": Path(out).write_text(dataframe_sql(_df_from_records(records),"documents","sqlite"),encoding="utf-8")
     elif target=="cql":
         df=_df_from_records(records); cols=", ".join(f'"{str(c).replace(chr(34),chr(34)*2)}" {"bigint" if "int" in str(df[c].dtype).lower() else "double" if "float" in str(df[c].dtype).lower() else "text"}' for c in df.columns); Path(out).write_text(f'CREATE TABLE "documents" ({cols});\n',encoding="utf-8")

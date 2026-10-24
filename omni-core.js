@@ -8,10 +8,6 @@
         status.textContent = caps.length ? caps.join(' • ') : 'basic browser mode';
       }
     });
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-
     // Tabs
     const navBtns = document.querySelectorAll('.nav-btn');
     const modulePanels = document.querySelectorAll('.module-panel');
@@ -495,22 +491,22 @@
       const health = await fetch(base + '/api/health', {cache:'no-store'});
       if (!health.ok) throw new Error('Local Engine is not running. Start the current Omni Local Engine to extract ' + format.toUpperCase() + ' archives.');
       const h = await health.json();
-      if (!h.token || Number(h.engine_api_version || 0) < 4) throw new Error('Current Omni Local Engine is required for ' + format.toUpperCase() + ' extraction.');
+      if (Number(h.engine_api_version || 0) < 4) throw new Error('Current Omni Local Engine is required for ' + format.toUpperCase() + ' extraction.');
       const upload = await fetch(base + '/api/upload', {
         method:'POST',
-        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},
+        headers:{Origin:location.origin,'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},
         body:file
       });
       if (!upload.ok) throw new Error('Local upload failed: HTTP ' + upload.status);
       const uj = await upload.json();
       const process = await fetch(base + '/api/process', {
         method:'POST',
-        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':'application/json'},
+        headers:{Origin:location.origin,'Content-Type':'application/json'},
         body:JSON.stringify({op:'archive_extract',input:uj.file_id,format})
       });
       const pj = await process.json();
       if (!process.ok || !pj.ok) throw new Error(pj.error || 'Native archive extraction failed');
-      const download = await fetch(base + '/api/download/' + encodeURIComponent(pj.file_id), {headers:{Origin:location.origin,'X-Omni-Token':h.token}});
+      const download = await fetch(base + '/api/download/' + encodeURIComponent(pj.file_id), {headers:{Origin:location.origin}});
       if (!download.ok) throw new Error('Extracted archive download failed');
       return await download.blob();
     }
@@ -588,13 +584,18 @@
     // avoiding a full-file ArrayBuffer for large local PDFs.
     // Built lazily: a top-level `extends pdfjsLib...` would abort the whole core
     // (every studio wired below) whenever the PDF.js CDN/vendor script fails to load.
-    function requirePdfJs() {
-      if (!window.pdfjsLib) throw new Error('The PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
-      return window.pdfjsLib;
+    async function requirePdfJs() {
+      try {
+        if (window.OMNI_PDFJS_READY) return await window.OMNI_PDFJS_READY;
+        if (window.pdfjsLib) return window.pdfjsLib;
+      } catch (err) {
+        throw new Error('The verified PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
+      }
+      throw new Error('The verified PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
     }
     let FileRangeTransportClass = null;
-    function createFileRangeTransport(file) {
-      const lib = requirePdfJs();
+    function createFileRangeTransport(file, lib) {
+      if (!lib) throw new Error('PDF.js must be ready before creating a range transport.');
       if (!FileRangeTransportClass) {
         FileRangeTransportClass = class extends lib.PDFDataRangeTransport {
           constructor(f) {
@@ -658,16 +659,17 @@
       pdf2imgName.textContent = file.name;
       pdf2imgMeta.textContent = 'Opening large-file PDF engine…';
 
+      let pdfjs;
       try {
-        requirePdfJs();
+        pdfjs = await requirePdfJs();
       } catch (e) {
         alert(e.message);
         resetPdf2Img();
         return;
       }
       try {
-        const transport = createFileRangeTransport(file);
-        currentPdfDoc = await pdfjsLib.getDocument({
+        const transport = createFileRangeTransport(file, pdfjs);
+        currentPdfDoc = await pdfjs.getDocument({
           range: transport,
           length: file.size,
           disableAutoFetch: true,
@@ -680,7 +682,7 @@
         console.warn('Range PDF loader failed; using compatibility loader', e);
         try {
           const ab = await file.arrayBuffer();
-          currentPdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          currentPdfDoc = await pdfjs.getDocument({ data: new Uint8Array(ab) }).promise;
           pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
         } catch (fallbackError) {
           alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\n\n' + fallbackError.message);
@@ -1089,10 +1091,11 @@
         // here also keeps this path consistent with the other PDF loaders.
         const ab = await file.arrayBuffer();
         const bytes = new Uint8Array(ab);
-        currentP2wPdf = await pdfjsLib.getDocument({
+        currentP2wPdf = await (await requirePdfJs()).getDocument({
           data: bytes,
           useWorkerFetch: false,
-          isEvalSupported: true
+          isEvalSupported: false,
+          enableScripting: false
         }).promise;
         p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
       } catch (e) {
@@ -1102,7 +1105,7 @@
         // detach/reuse the first ArrayBuffer during PDF.js initialization.
         try {
           const retryBytes = new Uint8Array(await file.arrayBuffer());
-          currentP2wPdf = await pdfjsLib.getDocument({ data: retryBytes }).promise;
+          currentP2wPdf = await (await requirePdfJs()).getDocument({ data: retryBytes }).promise;
           p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
         } catch (retryError) {
           console.error('PDF to Word retry failed', retryError);
@@ -1499,7 +1502,7 @@
 
       try {
         const ab = await file.arrayBuffer();
-        currentP2ePdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        currentP2ePdf = await (await requirePdfJs()).getDocument({ data: ab }).promise;
         p2eFileMeta.textContent = `${currentP2ePdf.numPages} pages`;
       } catch (e) {
         alert('Could not read PDF.');

@@ -14,6 +14,9 @@ import base64, bz2, gzip, hashlib, json, lzma, mimetypes, os, platform, secrets,
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from omni_environment import NATIVE_TOOLS as ENV_NATIVE_TOOLS, find_native_tool_path
+import omni_security_primitives
+from omni_security_primitives import parse_local_authority
+from pathlib import PurePosixPath
 import omni_data_engine
 import omni_platform
 import omni_code_runner
@@ -23,37 +26,51 @@ HOST = os.environ.get("OMNI_HOST", "127.0.0.1")
 PORT = int(os.environ.get("OMNI_PORT", "8765"))
 ENGINE_API_VERSION = 4
 ENGINE_BUILD = "omni-local-2026.10-complete-language"
-ROOT = Path(tempfile.gettempdir()) / "omni_converter_engine"
-ROOT.mkdir(parents=True, exist_ok=True)
+ROOT = Path(tempfile.mkdtemp(prefix="omni_converter_engine_"))
+if os.name != "nt":
+    os.chmod(ROOT, 0o700)
 LOCK = threading.Lock()
 FILES: dict[str, Path] = {}
-MAX_UPLOAD = int(os.environ.get("OMNI_MAX_UPLOAD", str(8 * 1024**3)))
+MAX_UPLOAD = min(max(1, int(os.environ.get("OMNI_MAX_UPLOAD", str(512 * 1024**2)))), 1024**3)
+MAX_TEMP_BYTES = min(max(MAX_UPLOAD, int(os.environ.get("OMNI_MAX_TEMP_BYTES", str(2 * 1024**3)))), 4 * 1024**3)
+MAX_CONCURRENT_UPLOADS = 3
+UPLOAD_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_UPLOADS)
 TOKEN = os.environ.get("OMNI_TOKEN") or secrets.token_urlsafe(32)
 LOCAL_UI_ORIGINS = {f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"}
 # Directory that holds index.html. Defaults to this file's folder (repository checkout);
 # a pip-installed engine must be pointed at a checkout with OMNI_UI_ROOT or `omni-engine serve --ui`.
 UI_ROOT = Path(os.environ.get("OMNI_UI_ROOT") or Path(__file__).resolve().parent).resolve()
 UI_AVAILABLE = (UI_ROOT / "index.html").is_file()
-ALLOWED_ORIGINS = {*LOCAL_UI_ORIGINS, "https://theraghavraman.github.io", "https://redmarkforge.pages.dev"}
-ALLOWED_ORIGINS.update(origin.strip().rstrip("/") for origin in os.environ.get("OMNI_ALLOWED_ORIGINS", "").split(",") if origin.strip())
+ALLOWED_ORIGINS = set(LOCAL_UI_ORIGINS)
+
+PUBLIC_STATIC_ROOT_FILES = {"index.html", "favicon.ico", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
+PUBLIC_STATIC_VENDOR_SUFFIXES = {".js", ".mjs", ".css", ".json", ".wasm", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ttf", ".woff", ".woff2", ".map", ".traineddata", ".gz"}
+
+def approved_static_path(rel):
+    if not rel or "\\" in rel or "\x00" in rel:
+        return False
+    parts = PurePosixPath(rel).parts
+    if any(part in (".", "..") or part.startswith(".") for part in parts):
+        return False
+    if len(parts) == 1:
+        return rel in PUBLIC_STATIC_ROOT_FILES or PurePosixPath(rel).suffix.lower() in {".js", ".css"}
+    if parts[0] == "vendor":
+        return PurePosixPath(rel).suffix.lower() in PUBLIC_STATIC_VENDOR_SUFFIXES
+    if parts[0] == "knowledge-base":
+        return PurePosixPath(rel).suffix.lower() in KB_SUPPORTED_EXT | {".json"}
+    return False
 
 def request_origin(handler):
     return handler.headers.get("Origin", "").rstrip("/")
 
 def host_allowed(handler):
-    # The Host header is client-controlled. Require the actual TCP peer to be
-    # loopback as well, so a remotely reachable 0.0.0.0 bind cannot be turned
-    # into an engine-token/code-execution bridge.
     peer = getattr(handler, "client_address", ("", 0))[0]
     try:
         if not ipaddress.ip_address(peer).is_loopback:
             return False
     except ValueError:
         return False
-    host = handler.headers.get("Host", "").split(":", 1)
-    hostname = host[0].strip().lower().strip("[]")
-    port = host[1] if len(host) == 2 else "80"
-    return hostname in {"127.0.0.1", "localhost", "::1"} and port == str(PORT)
+    return parse_local_authority(handler.headers.get("Host", ""), PORT)
 
 def origin_allowed(handler):
     origin = request_origin(handler)
@@ -64,24 +81,27 @@ def cors_origin(handler):
     return origin if origin in ALLOWED_ORIGINS else ""
 
 def same_origin_browser_request(handler):
-    # Browsers omit the Origin header on same-origin GET/HEAD requests, so a page
-    # served by this engine (the default http://127.0.0.1:8765/ launch) would be
-    # rejected on its own GET API calls. Fetch metadata identifies those requests;
-    # the per-launch token below is still required.
+    # Browsers omit Origin on same-origin GET/HEAD requests. Fetch metadata
+    # identifies requests issued by the UI served from this loopback origin.
     return not request_origin(handler) and handler.headers.get("Sec-Fetch-Site", "").lower() == "same-origin"
 
 # Operations that run arbitrary code are refused when the request comes from a remote
 # (e.g. GitHub Pages) origin, even with a valid token, unless explicitly re-enabled.
 REMOTE_BLOCKED_OPS = {"code_execute"}
-ALLOW_REMOTE_CODE = os.environ.get("OMNI_ALLOW_REMOTE_CODE", "").strip().lower() in {"1", "true", "yes"}
 
 def local_ui_request(handler):
-    if ALLOW_REMOTE_CODE:
-        return True
     return request_origin(handler) in LOCAL_UI_ORIGINS or same_origin_browser_request(handler)
 
+def local_session_request(handler):
+    return local_ui_request(handler)
+
 def authorize(handler):
-    if not (origin_allowed(handler) or same_origin_browser_request(handler)):
+    # The browser UI gets same-origin access without receiving a bearer secret.
+    # Remote browser origins are rejected; local non-browser clients can still
+    # authenticate with the process token.
+    if local_ui_request(handler):
+        return True
+    if request_origin(handler):
         handler.send_json({"ok": False, "error": "Origin not allowed"}, 403)
         return False
     if not secrets.compare_digest(handler.headers.get("X-Omni-Token", ""), TOKEN):
@@ -495,6 +515,9 @@ def stream_file(handler, path: Path, extra_headers=None, name=None):
         handler.send_header("Content-Range", f"bytes {start}-{end}/{size}")
     handler.send_header("Content-Disposition", content_disposition(name or path.name))
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("X-Content-Type-Options", "nosniff")
+    handler.send_header("X-Frame-Options", "DENY")
+    handler.send_header("Referrer-Policy", "no-referrer")
     for k, v in (extra_headers or {}).items():
         handler.send_header(k, v)
     handler.end_headers()
@@ -760,19 +783,7 @@ def transfer_files_json(s):
     return out
 
 def start_transfer_server():
-    global TRANSFER_HTTPD, TRANSFER_PORT
-    if TRANSFER_HTTPD:
-        return TRANSFER_PORT
-    for port in range(TRANSFER_PORT_BASE, TRANSFER_PORT_BASE + 12):
-        try:
-            httpd = ThreadingHTTPServer(("0.0.0.0", port), LANTransferHandler)
-            httpd.daemon_threads = True
-            TRANSFER_HTTPD, TRANSFER_PORT = httpd, port
-            threading.Thread(target=httpd.serve_forever, daemon=True, name="OmniLANTransfer").start()
-            return port
-        except OSError:
-            continue
-    raise RuntimeError("Could not open a local Wi-Fi transfer port. Check ports 8766-8777.")
+    raise NotImplementedError("LAN transfer is disabled until HTTPS identity is verified on both devices.")
 
 def stop_transfer_server_if_idle():
     global TRANSFER_HTTPD, TRANSFER_PORT
@@ -1059,41 +1070,7 @@ class LANTransferHandler(BaseHTTPRequestHandler):
                 except OSError: pass
 
 def transfer_start(payload):
-    transfer_cleanup()
-    mode=str(payload.get("mode","send"))
-    if mode not in ("send","receive"): raise ValueError("Transfer mode must be send or receive")
-    file_ids=list(payload.get("file_ids") or [])
-    names=list(payload.get("names") or [])
-    file_map={}; display={}; owned=[]
-    for i,fid in enumerate(file_ids):
-        with TRANSFER_LOCK: p=TRANSFER_PICKED.get(fid)
-        if p is not None:
-            if not p.is_file(): raise ValueError(p.name+" was moved or deleted. Select it again.")
-        elif str(fid).startswith("p"):
-            raise ValueError("The Local Engine restarted since these files were chosen. Remove them and select them again.")
-        else:
-            # A copy the browser streamed in through /api/upload: it only exists for this
-            # session, so it is deleted when the session stops instead of lingering for hours.
-            p=get_file(fid); owned.append(p)
-            with LOCK: FILES.pop(fid,None)
-        key=new_id("f"); file_map[key]=p
-        if i<len(names) and names[i]: display[key]=transfer_display_name(names[i])
-    if mode=="send" and not file_map: raise ValueError("Select at least one file to share.")
-    token=secrets.token_urlsafe(24).replace("-","").replace("_","")
-    pin=str(secrets.randbelow(900000)+100000)
-    ttl=max(60,min(3600,int(payload.get("ttl",TRANSFER_TTL))))
-    inbox=str(transfer_inbox()) if mode=="receive" else ""
-    with TRANSFER_LOCK:
-        TRANSFER_SESSIONS[token]={"mode":mode,"expires":time.time()+ttl,"pin":pin,"unlock_keys":set(),"pin_failures":0,"file_map":file_map,"files":list(file_map.items()),"names":display,"owned_paths":owned,"connected":False}
-    port=start_transfer_server()
-    addrs=[a for a in lan_addresses() if not a["ip"].startswith("127.")]
-    wanted=str(payload.get("ip") or "").strip()
-    ip=next((a["ip"] for a in addrs if a["ip"]==wanted), addrs[0]["ip"] if addrs else "127.0.0.1")
-    addresses=[{"ip":a["ip"],"label":a["label"],"kind":a["kind"],"likely":a["likely"],"url":f"http://{a['ip']}:{port}/share/{token}"} for a in addrs]
-    if not addrs: warn="This computer is not connected to a Wi-Fi or LAN network, so the phone cannot reach it."
-    elif not addrs[0]["likely"]: warn="Only a VPN or virtual network address was found. Turn the VPN off or connect this computer to the same Wi-Fi as the phone, then start a new session."
-    else: warn=""
-    return {"ok":True,"token":token,"pin":pin,"ttl":ttl,"expires":time.time()+ttl,"port":port,"ip":ip,"url":f"http://{ip}:{port}/share/{token}","addresses":addresses,"inbox":inbox,"warning":warn,"firewall":firewall_hint()}
+    raise NotImplementedError("LAN transfer is disabled until HTTPS identity is verified on both devices.")
 
 def transfer_status(token):
     s=transfer_session(token)
@@ -1155,15 +1132,10 @@ def process_job(payload):
         return {"ok": True, "engine_api_version": ENGINE_API_VERSION, "engine_build": ENGINE_BUILD, "platform": platform.platform(), "python": platform.python_version(), "tools": tool_versions(), "python_modules": omni_data_engine.module_status(), "doctor": omni_platform.doctor(), "capability_engine": {"version": 1, "supported_modes": ["browser","browser-first","local","unknown"], "ai": local_ai_capabilities()}, "capabilities": {"media_video": ["mp4","mkv","webm","mov","avi","flv","mpeg","mpg","m4v","3gp","3g2","ts","m2ts","mts","vob","wmv","asf","ogv","nut","mxf","ivf","gif","apng"], "media_audio": ["mp3","wav","m4a","aac","flac","ogg","oga","opus","wma","amr","aiff","aif","aifc","ac3","eac3","au","caf","w64","wv","tta","ape","mka"], "image": ["jpg","jpeg","jpe","jfif","png","apng","webp","avif","tiff","tif","bmp","gif","svg","ico","heic","heif","jxl","jp2","j2k","j2c","jng","tga","dds","exr","hdr","dpx","eps","eps3","ps","pdf","pnm","ppm","pgm","pbm","pam","pcx","miff","mvg","ora","psd","xcf","fits","flif","bpg"], "office": ["pdf","docx","doc","docm","dot","dotx","dotm","odt","ott","fodt","rtf","txt","md","html","htm","epub","xls","xlsx","xlsm","xlsb","xlt","xltx","xltm","ods","ots","fods","csv","tsv","sylk","dif","ppt","pptx","pptm","pps","ppsx","pot","potx","potm","odp","otp","fodp","sxi","key"], "ebook": ["azw","azw3","azw4","cbz","cbr","cb7","cbc","chm","djvu","docx","epub","fb2","fbz","html","htmlz","kepub","lit","lrf","mobi","odt","pdf","prc","pdb","pml","rb","rtf","snb","tcr","txt","txz","zip","oeb","pmlz"], "archive": ["zip","tar","gz","bz2","xz","7z"], "archive_extract": ["7z","rar"], "language_translation": omni_language_engine.capability().get("translation", []), "language_transliteration": omni_language_engine.capability().get("transliteration", []), "scientific": ["fits","fit","netcdf","nc","hdf5","h5","cdf","grib","grib2","grb","grb2"]}, "data": {"formats": sorted(omni_data_engine.DATA_FORMATS | {"jsonschema"}), "modules": omni_data_engine.module_status(), "sql_dialects": omni_data_engine.SQL_DIALECTS}}
 
     if op == "code_capabilities":
-        return {"ok": True, "languages": omni_code_runner.available_languages()}
+        return {"ok": True, "available": False, "sandbox": None, "reason": "Code execution is disabled until a verified rootless sandbox is configured."}
 
     if op == "code_execute":
-        return omni_code_runner.execute(
-            str(payload.get("language", "")),
-            str(payload.get("source", "")),
-            str(payload.get("stdin", "")),
-            int(payload.get("timeout", 8)),
-        )
+        raise RuntimeError("Code execution is unavailable until a verified rootless sandbox with output, CPU, memory and process limits is installed.")
 
     if op == "doctor":
         return {"ok": True, "doctor": omni_platform.doctor()}
@@ -1626,26 +1598,7 @@ def process_job(payload):
         return {"ok": True, **result}
 
     if op == "archive_extract":
-        inp = get_file(payload["input"])
-        fmt = str(payload.get("format", "")).lower().lstrip(".")
-        if fmt not in {"7z", "rar"}:
-            raise ValueError("Archive extraction supports only 7z and RAR")
-        native7z = shutil.which("7z") or shutil.which("7zz")
-        if not native7z:
-            raise RuntimeError("7-Zip executable (7z/7zz) is required for 7z/RAR extraction.")
-        with tempfile.TemporaryDirectory(prefix="omni_archive_extract_") as tmp:
-            out_dir = Path(tmp)
-            run([native7z, "x", "-y", f"-o{out_dir}", str(inp)], timeout=3600)
-            out = output_path(inp.stem + "_extracted", "zip")
-            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
-                for path in out_dir.rglob("*"):
-                    if not path.is_file():
-                        continue
-                    rel = path.relative_to(out_dir)
-                    if any(part in {"", ".", ".."} for part in rel.parts):
-                        continue
-                    z.write(path, str(rel))
-        return file_result(out, out.name)
+        raise RuntimeError("7z/RAR extraction is unavailable until extraction runs inside an isolated, resource-limited sandbox.")
 
     if op == "archive":
         inp = get_file(payload["input"])
@@ -1743,12 +1696,18 @@ class Handler(BaseHTTPRequestHandler):
         data = json.dumps(obj).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header("Content-Security-Policy-Report-Only", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
         origin = cors_origin(self)
         if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -1763,7 +1722,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename")
         self.end_headers()
 
     def serve_static(self, parsed_path):
@@ -1773,6 +1732,13 @@ class Handler(BaseHTTPRequestHandler):
         rel = urllib.parse.unquote(parsed_path.lstrip("/"))
         if not rel or rel.endswith("/"):
             rel = "index.html"
+        if not approved_static_path(rel):
+            self.send_json({"ok":False,"error":"Not found"},404)
+            return True
+        parts = PurePosixPath(rel).parts
+        if any(root.joinpath(*parts[:i]).is_symlink() for i in range(1, len(parts)+1)):
+            self.send_json({"ok":False,"error":"Symbolic links are not public assets"},403)
+            return True
         target = (root / rel).resolve()
         try:
             target.relative_to(root)
@@ -1803,8 +1769,8 @@ class Handler(BaseHTTPRequestHandler):
             data = target.read_bytes()
             vendor = root / "vendor"
             local_ready = (
-                (vendor / "pdfjs/pdf.min.js").is_file()
-                and (vendor / "pdfjs/pdf.worker.min.js").is_file()
+                (vendor / "pdfjs/build/pdf.mjs").is_file()
+                and (vendor / "pdfjs/build/pdf.worker.mjs").is_file()
                 and (vendor / "jszip/jszip.min.js").is_file()
                 and (vendor / "pdf-lib/pdf-lib.min.js").is_file()
                 and (vendor / "tesseract/tesseract.min.js").is_file()
@@ -1821,11 +1787,8 @@ class Handler(BaseHTTPRequestHandler):
                     "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
                     "./vendor/sheetjs/xlsx.full.min.js"
                 ).replace(
-                    "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js",
+                    "https://cdn.jsdelivr.net/npm/js-yaml@4.1.1/dist/js-yaml.min.js",
                     "./vendor/jsyaml/js-yaml.min.js"
-                ).replace(
-                    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
-                    "./vendor/pdfjs/pdf.min.js"
                 ).replace(
                     "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
                     "./vendor/jszip/jszip.min.js"
@@ -1835,13 +1798,10 @@ class Handler(BaseHTTPRequestHandler):
                 ).replace(
                     "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
                     "./vendor/tesseract/tesseract.min.js"
-                ).replace(
-                    "window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'",
-                    "'./vendor/pdfjs/pdf.worker.min.js'"
                 )
                 html = html.replace(
                     '<head>',
-                    '<head><script>window.OMNI_PDF_WORKER="./vendor/pdfjs/pdf.worker.min.js";window.OMNI_TESSERACT_OPTIONS={workerPath:"./vendor/tesseract/worker.min.js",langPath:"./vendor/tesseract/lang/",corePath:"./vendor/tesseract/core/",workerBlobURL:false};</script>',
+                    '<head><script>window.OMNI_TESSERACT_OPTIONS={workerPath:"./vendor/tesseract/worker.min.js",langPath:"./vendor/tesseract/lang/",corePath:"./vendor/tesseract/core/",workerBlobURL:false};</script>',
                     1
                 )
                 data = html.encode("utf-8")
@@ -1855,14 +1815,14 @@ class Handler(BaseHTTPRequestHandler):
             ctype = "application/javascript"
         if target.suffix.lower() == ".wasm":
             ctype = "application/wasm"
-        if target.name == "index.html" and data is not None:
-            html = data.decode("utf-8")
-            html = html.replace("</head>", "<script>window.OMNI_TOKEN=" + json.dumps(TOKEN) + ";</script></head>", 1)
-            data = html.encode("utf-8")
-            size = len(data)
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header("Content-Security-Policy-Report-Only", "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' http://127.0.0.1:* http://localhost:* https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         origin = cors_origin(self)
         if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
@@ -1896,6 +1856,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok": False, "error": "Host not allowed"}, 403)
             return
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/healthz":
+            self.send_json({"ok":True,"service":"omni-local-engine","api_version":ENGINE_API_VERSION})
+            return
         if parsed.path == "/api/etl/hop/projects":
             if not authorize(self): return
             try:
@@ -1921,19 +1884,15 @@ class Handler(BaseHTTPRequestHandler):
             if self.serve_static(parsed.path):
                 return
         if parsed.path == "/api/ai/status":
-            if not (origin_allowed(self) or same_origin_browser_request(self)):
+            if not local_session_request(self):
                 self.send_json({"ok":False,"error":"Origin not allowed"},403); return
-            s=local_ai_capabilities(); s["token"]=TOKEN; self.send_json({"ok":True, **s}); return
-        if parsed.path in ("/", "/api/health"):
-            # Same-origin fetches from the engine's own UI carry no Origin header; accept them.
-            # That page already has the token injected, so returning it below discloses nothing new.
-            if not (origin_allowed(self) or same_origin_browser_request(self)):
+            s=local_ai_capabilities(); self.send_json({"ok":True, **s}); return
+        if parsed.path == "/api/health":
+            if not local_session_request(self):
                 self.send_json({"ok": False, "error": "Origin not allowed"}, 403)
                 return
             health = process_job({"op":"health"})
-            # Never disclose the engine token to requests without an allowed browser Origin.
-            if request_origin(self) or same_origin_browser_request(self):
-                health["token"] = TOKEN
+            health.pop("token", None)
             self.send_json(health)
             return
         if parsed.path == "/api/transfer/status":
@@ -2055,26 +2014,34 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/upload":
             if not authorize(self):
                 return
+            if not UPLOAD_SLOTS.acquire(blocking=False):
+                self.send_json({"ok":False,"error":"Upload capacity is busy. Retry shortly."},429)
+                return
+            path = None
             try:
                 length = int(self.headers.get("Content-Length","0"))
                 if length <= 0 or length > MAX_UPLOAD:
-                    raise ValueError("Upload size is missing or exceeds local-engine limit")
+                    self.send_json({"ok":False,"error":"Upload size is missing or exceeds local-engine limit"},413)
+                    return
+                with LOCK:
+                    stored_bytes=sum(p.stat().st_size for p in ROOT.iterdir() if p.is_file())
+                if stored_bytes + length > MAX_TEMP_BYTES:
+                    self.send_json({"ok":False,"error":"Local temporary storage quota is full. Download or clear previous jobs first."},413)
+                    return
+                self.connection.settimeout(30)
                 fid = new_id("u")
                 name = safe_name(urllib.parse.unquote(self.headers.get("X-Filename","input.bin")))
-                path = ROOT / f"{fid}_{name}"
-                remaining = length
-                with open(path, "wb") as f:
-                    while remaining:
-                        chunk = self.rfile.read(min(1024*1024, remaining))
-                        if not chunk:
-                            raise ValueError("Unexpected end of upload")
-                        f.write(chunk)
-                        remaining -= len(chunk)
+                suffix=Path(name).suffix.lower()
+                path = omni_security_primitives.atomic_stream_upload(self.rfile, ROOT, length, MAX_UPLOAD, suffix)
                 with LOCK:
                     FILES[fid] = path
                 self.send_json({"ok":True,"file_id":fid,"name":name,"size":path.stat().st_size})
             except Exception as e:
+                if path and path.exists():
+                    path.unlink(missing_ok=True)
                 self.send_json({"ok":False,"error":str(e)},400)
+            finally:
+                UPLOAD_SLOTS.release()
             return
         if parsed.path == "/api/transfer/start":
             if not authorize(self): return
@@ -2082,6 +2049,7 @@ class Handler(BaseHTTPRequestHandler):
                 length=int(self.headers.get("Content-Length","0"))
                 if length>1024*1024: raise ValueError("Transfer metadata too large")
                 payload=json.loads(self.rfile.read(length) or b"{}"); self.send_json(transfer_start(payload))
+            except NotImplementedError as e: self.send_json({"ok":False,"error":str(e)},503)
             except Exception as e: self.send_json({"ok":False,"error":str(e)},400)
             return
         if parsed.path == "/api/transfer/pick":
@@ -2123,9 +2091,8 @@ class Handler(BaseHTTPRequestHandler):
                 if length > 10*1024*1024:
                     raise ValueError("Job metadata is unexpectedly large")
                 payload = json.loads(self.rfile.read(length) or b"{}")
-                if payload.get("op") in REMOTE_BLOCKED_OPS and not local_ui_request(self):
-                    self.send_json({"ok": False, "error": "Code execution is only allowed from the Local Engine's own UI "
-                                    "(http://localhost:8765/). Set OMNI_ALLOW_REMOTE_CODE=1 to allow it from other trusted origins."}, 403)
+                if payload.get("op") in {"code_execute", "archive_extract"}:
+                    self.send_json({"ok":False,"error":"This operation is unavailable until its required isolation boundary is configured."},503)
                     return
                 result = process_job(payload)
                 self.send_json(result)

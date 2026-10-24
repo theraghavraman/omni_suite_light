@@ -1,158 +1,43 @@
 $ErrorActionPreference = "Stop"
-
-function Has($name) { return [bool](Get-Command $name -ErrorAction SilentlyContinue) }
-
-function Ensure-Admin {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Host "[SETUP] Re-launching installer with Administrator privileges..."
-        $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
-        $child = Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait -PassThru
-        exit $child.ExitCode
-    }
-}
-
-Ensure-Admin
 Set-Location $PSScriptRoot
 
-Write-Host "=== OmniConverter COMPLETE Windows Local Setup ==="
-Write-Host "[INFO] This installs the full Python + native + offline browser stack."
-
-if (-not (Has "winget")) {
-    if (-not (Has "choco")) {
-        Write-Host "[SETUP] winget is unavailable; bootstrapping Chocolatey..."
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        $env:Path = "$env:ALLUSERSPROFILE\chocolatey\bin;$env:Path"
-    }
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw "Run this setup from a normal, non-Administrator PowerShell session. The installer does not elevate or install machine-wide software."
 }
 
-$wingetPackages = @(
-    "Python.Python.3.13",
-    "Gyan.FFmpeg.Shared",
-    "QPDF.QPDF",
-    "oschwartz10612.Poppler",
-    "ImageMagick.ImageMagick",
-    "ArtifexSoftware.GhostScript",
-    "UB-Mannheim.TesseractOCR",
-    "TheDocumentFoundation.LibreOffice",
-    "calibre.calibre",
-    "Pandoc.Pandoc",
-    "7zip.7zip",
-    "stedolan.jq",
-    "MikeFarah.yq"
-)
+Write-Host "=== OmniConverter Local Setup (current user) ==="
+Write-Host "[INFO] Native utilities must be installed and reviewed by the user. No remote installer is bootstrapped."
 
-$chocoPackages = @(
-    "python",
-    "ffmpeg",
-    "qpdf",
-    "poppler",
-    "imagemagick",
-    "ghostscript",
-    "tesseract",
-    "libreoffice",
-    "calibre",
-    "pandoc",
-    "7zip",
-    "jq",
-    "yq",
-    "rsvg-convert"
-)
-
-if (Has "winget") {
-    foreach ($id in $wingetPackages) {
-        Write-Host "[NATIVE] Checking/installing $id ..."
-        & winget install --id $id --exact --silent --accept-source-agreements --accept-package-agreements --disable-interactivity
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "winget could not install/check $id (exit $LASTEXITCODE). The final verifier will identify missing dependencies."
-        }
-    }
-    if ((-not (Has "rsvg-convert")) -and (Has "choco")) {
-        Write-Host "[NATIVE] Installing rsvg-convert through Chocolatey fallback..."
-        choco install rsvg-convert -y --no-progress
-    }
-} elseif (Has "choco") {
-    Write-Host "[NATIVE] Installing through Chocolatey..."
-    choco install $chocoPackages -y --no-progress
-}
-
-$machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
-$user = [Environment]::GetEnvironmentVariable("Path", "User")
-$extraPaths = @(
-    "$env:ProgramFiles\LibreOffice\program",
-    "$env:ProgramFiles\Calibre2",
-    "$env:ProgramFiles\Tesseract-OCR"
-) | Where-Object { Test-Path $_ }
-$env:Path = "$machine;$user;$($extraPaths -join ';');$env:Path"
-
-$pythonCandidates = @(
-    "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
-    "$env:ProgramFiles\Python313\python.exe",
-    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-    "$env:ProgramFiles\Python312\python.exe",
-    "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-    "$env:ProgramFiles\Python311\python.exe"
-)
 $python = $null
-
-# Never let the Python launcher silently select an unsupported newer runtime.
-# Prefer the explicitly installed 3.13 interpreter, then 3.12/3.11.
-if (Has "py") {
-    foreach ($minor in @("3.13","3.12","3.11")) {
+$pythonArgs = @()
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    foreach ($minor in @("3.13", "3.12", "3.11")) {
         & py -$minor -c "import sys; raise SystemExit(0 if sys.version_info[:2] in [(3,13),(3,12),(3,11)] else 1)" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            $python = (Get-Command py).Source
-            $pythonArgs = @("-$minor")
-            break
-        }
+        if ($LASTEXITCODE -eq 0) { $python = (Get-Command py).Source; $pythonArgs = @("-$minor"); break }
     }
 }
 if (-not $python) {
-    foreach ($candidate in $pythonCandidates) {
-        if (Test-Path $candidate) {
-            $python = $candidate
-            $pythonArgs = @()
-            break
+    foreach ($name in @("python3.13", "python3.12", "python3.11", "python")) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($command) {
+            $version = & $command.Source -c "import sys; print('.'.join(map(str,sys.version_info[:3])))" 2>$null
+            if ($version -match '^3\.(11|12|13)\.') { $python = $command.Source; break }
         }
     }
 }
-if (-not $python -and (Has "python")) {
-    $python = (Get-Command python).Source
-    $pythonArgs = @()
-}
-if (-not $python) { throw "Supported Python 3.11, 3.12 or 3.13 was not found after installation." }
+if (-not $python) { throw "Python 3.11, 3.12 or 3.13 is required. Install it for the current user and rerun this setup." }
 
-Write-Host "[PYTHON] $python $($pythonArgs -join ' ')"
-$pythonVersion = & $python @pythonArgs -c "import sys; print('.'.join(map(str,sys.version_info[:3])))"
-if ($LASTEXITCODE -ne 0 -or $pythonVersion -notmatch '^3\.(11|12|13)\.') {
-    throw "Unsupported Python runtime selected: $pythonVersion. OmniConverter Local Engine requires Python 3.11-3.13."
-}
 $venv = Join-Path $PSScriptRoot ".venv"
 $venvPython = Join-Path $venv "Scripts\python.exe"
 if (-not (Test-Path $venvPython)) { & $python @pythonArgs -m venv $venv }
-if (-not (Test-Path $venvPython)) { throw "Failed to create .venv." }
-
-& $venvPython -m pip install --upgrade pip
-if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed." }
-
-Write-Host "[PYTHON] Installing COMPLETE Local Engine Python profile..."
-& $venvPython -m pip install -r "$PSScriptRoot\requirements-local.txt"
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $venvPython)) { throw "Failed to create the current-user virtual environment." }
+& $venvPython -m pip install -r (Join-Path $PSScriptRoot "requirements-local.txt")
 if ($LASTEXITCODE -ne 0) { throw "requirements-local.txt installation failed." }
-
-Write-Host "[OFFLINE] Downloading pinned browser/OCR assets..."
-& $venvPython "$PSScriptRoot\prepare_offline.py"
+& $venvPython (Join-Path $PSScriptRoot "prepare_offline.py")
 if ($LASTEXITCODE -ne 0) { throw "Offline browser asset preparation failed." }
-
-Write-Host "[VERIFY] Running strict local environment verification..."
-& $venvPython "$PSScriptRoot\verify_local_environment.py"
-if ($LASTEXITCODE -ne 0) { throw "Local dependency verification failed. Fix the items reported above before using the Local Engine." }
-
-New-Item -ItemType File -Force -Path "$PSScriptRoot\.omni_setup_complete" | Out-Null
-Write-Host ""
-Write-Host "=========================================="
-Write-Host " COMPLETE LOCAL SETUP: READY"
-Write-Host "=========================================="
-Write-Host "Run start_omni.bat or Omni.bat to launch."
+& $venvPython (Join-Path $PSScriptRoot "verify_local_environment.py")
+if ($LASTEXITCODE -ne 0) { throw "Local environment verification failed." }
+New-Item -ItemType File -Path (Join-Path $PSScriptRoot ".omni_setup_complete") -Force | Out-Null
+Write-Host "[OK] Current-user OmniConverter Python setup is ready. Install missing native tools separately."

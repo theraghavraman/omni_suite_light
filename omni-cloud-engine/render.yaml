@@ -13,7 +13,5 @@ services:
         value: "25"
       - key: RATE_LIMIT_PER_MINUTE
         value: "12"
-      - key: OMNI_CLOUD_TOKEN
-        sync: false
       - key: CLOUD_ALLOWED_ORIGINS
         value: "https://theraghavraman.github.io"

@@ -4,9 +4,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip unzip p7zip-full ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY requirements.txt .
+RUN useradd --system --uid 10001 --create-home --home-dir /home/omni omni
+COPY omni-cloud-engine/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py .
+COPY omni-cloud-engine/app.py ./app.py
+COPY omni-cloud-engine/omni_security_primitives.py ./omni_security_primitives.py
 ENV PORT=10000 PYTHONUNBUFFERED=1
 EXPOSE 10000
+USER 10001:10001
 CMD ["gunicorn","-w","2","--threads","4","--timeout","900","-b","0.0.0.0:10000","app:app"]

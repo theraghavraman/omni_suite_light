@@ -9,22 +9,34 @@ from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from omni_security_primitives import csv_safe_value
 
 app=Flask(__name__)
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"]="nosniff"
+    response.headers["X-Frame-Options"]="DENY"
+    response.headers["Referrer-Policy"]="no-referrer"
+    response.headers["Permissions-Policy"]="camera=(), microphone=(), geolocation=()"
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"]="no-store"
+    return response
+
 ALLOWED_ORIGINS={x.strip().rstrip("/") for x in os.getenv(
     "CLOUD_ALLOWED_ORIGINS",
     "https://theraghavraman.github.io,http://127.0.0.1:8765,http://localhost:8765"
 ).split(",") if x.strip()}
-CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS),"allow_headers":["Content-Type","X-Omni-Cloud-Token"]}})
+CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS),"allow_headers":["Content-Type"]}})
 app.config["MAX_CONTENT_LENGTH"]=int(os.getenv("MAX_UPLOAD_MB","500"))*1024*1024
-ROOT=Path(tempfile.gettempdir())/"omni-cloud-jobs"; ROOT.mkdir(exist_ok=True)
+ROOT=Path(tempfile.mkdtemp(prefix="omni-cloud-jobs-"))
+if os.name!="nt": os.chmod(ROOT,0o700)
 JOBS={}
 MAX_JOBS=int(os.getenv("MAX_JOBS","25"))
 JOB_TTL=int(os.getenv("JOB_TTL_SECONDS","3600"))
 RATE_LIMIT=int(os.getenv("RATE_LIMIT_PER_MINUTE","12"))
 RATE_WINDOW=60
 RATE_BUCKET={}
-CLOUD_TOKEN=os.getenv("OMNI_CLOUD_TOKEN","").strip()
+CLOUD_BFF_ENABLED=False  # No verified OIDC/BFF implementation is present in this source tree.
 
 SOCIAL_HOSTS={
     "youtube.com","youtu.be","instagram.com","facebook.com","fb.watch","tiktok.com",
@@ -38,18 +50,15 @@ def request_origin():
     return (request.headers.get("Origin") or "").rstrip("/")
 
 def cloud_authorized():
-    if not CLOUD_TOKEN:
-        return False, (jsonify(ok=False,error="Cloud Engine is not configured. Set OMNI_CLOUD_TOKEN on the Render service."), 503)
-    supplied=request.headers.get("X-Omni-Cloud-Token","")
-    if not compare_digest(supplied,CLOUD_TOKEN):
-        return False, (jsonify(ok=False,error="Missing or invalid cloud-engine token."), 401)
+    if not CLOUD_BFF_ENABLED:
+        return False, (jsonify(ok=False,error="Cloud processing is disabled until a verified per-user OIDC/BFF session, CSRF protection and scoped authorization are deployed."), 503)
     origin=request_origin()
     if origin and origin not in ALLOWED_ORIGINS:
         return False, (jsonify(ok=False,error="Origin not allowed."), 403)
     return True, None
 
 def rate_allowed():
-    key=request.headers.get("X-Forwarded-For","").split(",")[0].strip() or request.remote_addr or "unknown"
+    key=request.remote_addr or "unknown"
     now=time.time()
     bucket=RATE_BUCKET.get(key,[])
     bucket=[t for t in bucket if now-t<RATE_WINDOW]
@@ -118,11 +127,9 @@ def health():
 def capabilities():
     return jsonify({
       "execution_modes":["browser","render","local"],
-      "studios":["Social Media","PDF","Doc/Office","Universal Data","Data Cleaning","Database","RAG","Vector Search","Code","Image","Video","Compressor","Batch Processing","Diagnostics","Scheduled Automation","Cloud Jobs"],
-      "operations":[
-        "ffmpeg","media-transcode","image-batch","pdf-batch","ocr","office-convert","data-profile","data-clean","sql-simulate",
-        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","code-clean","metadata","file-convert","social-batch","scheduled-pipeline"
-      ]
+      "studios":[],
+      "operations":[],
+      "unavailable_reason":"The cloud API is disabled until verified user sessions, a durable queue and isolated workers are deployed."
     })
 
 def output(jid,path,name=None,mime=None):
@@ -154,7 +161,9 @@ def clean_data(p,out,opts):
     if opts.get("drop_duplicates",True): df=df.drop_duplicates()
     if opts.get("drop_empty_rows",False): df=df.dropna(how="all")
     if out.suffix.lower()==".xlsx": df.to_excel(out,index=False)
-    else: df.to_csv(out,index=False)
+    else:
+        for column in df.columns: df[column]=df[column].map(csv_safe_value)
+        df.to_csv(out,index=False)
     return out
 
 @app.post("/api/ai/generate")
@@ -199,6 +208,7 @@ def ai_generate():
 
 @app.post("/api/process")
 def process():
+    return jsonify(ok=False,error="Cloud processing is disabled until the durable queue and isolated worker service are deployed."),503
     prune_jobs()
     ok,denial=cloud_authorized()
     if not ok: return denial
@@ -328,6 +338,7 @@ def process():
 
 @app.get("/api/jobs/<jid>")
 def job(jid):
+    return jsonify(ok=False,error="Cloud job status is unavailable until durable shared job storage is deployed."),503
     ok,denial=cloud_authorized()
     if not ok: return denial
     j=JOBS.get(jid)

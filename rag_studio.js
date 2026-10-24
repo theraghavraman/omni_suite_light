@@ -4,6 +4,7 @@
  */
 (()=>{"use strict";
 const $=id=>document.getElementById(id);
+try{sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken");}catch(_){}
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
 function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
 let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[], lexicalOnly=false;
@@ -94,8 +95,8 @@ function decodeXml(s){return s.replace(/&(lt|gt|quot|apos|amp|#\d+|#x[0-9a-f]+);
 async function extractFile(f){
  const n=f.name.toLowerCase();
  if(n.endsWith(".pdf")){
-  if(!window.pdfjsLib)throw new Error("PDF engine (PDF.js) is not loaded, so "+f.name+" cannot be read.");
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;let t="";
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error("Verified PDF.js is unavailable.")));
+  const pdf=await pdfjs.getDocument({data:new Uint8Array(await f.arrayBuffer()),enableScripting:false,isEvalSupported:false}).promise;let t="";
   try{for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i),c=await pg.getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":" ")).join("")+"\n\n";pg.cleanup?.()}}finally{pdf.destroy?.()}
   return t
  }
@@ -198,10 +199,10 @@ async function localGenerate(context,q){
  const base=($("ragLocalUrl")?.value||"http://127.0.0.1:8765").trim().replace(/\/+$/,"");
  const statusResponse=await fetch(base+"/api/ai/status",{cache:"no-store",credentials:"omit"});
  const status=await statusResponse.json().catch(()=>({}));
- if(!statusResponse.ok||!status.ok||!status.token)throw new Error(status.error||"Local Engine is unavailable or did not provide an authorized session token.");
+ if(!statusResponse.ok||!status.ok)throw new Error(status.error||"Local Engine is unavailable.");
  if(!status.available)throw new Error("Local Engine is reachable, but no Ollama or LM Studio model is available.");
  const prompt="Answer using only the retrieved sources. If they do not support an answer, say you do not know. Cite claims as [Source N].\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q;
- const r=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json","X-Omni-Token":status.token},body:JSON.stringify({op:"ai_chat",messages:[{role:"system",content:"You are Omni RAG. Use only the supplied evidence; do not invent facts. Cite source numbers."},{role:"user",content:prompt}],temperature:0.1,max_tokens:512}),credentials:"omit"});
+ const r=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({op:"ai_chat",messages:[{role:"system",content:"You are Omni RAG. Use only the supplied evidence; do not invent facts. Cite source numbers."},{role:"user",content:prompt}],temperature:0.1,max_tokens:512}),credentials:"omit"});
  const data=await r.json().catch(()=>({}));
  if(!r.ok||!data.ok)throw new Error(data.error||("Local Engine generation failed (HTTP "+r.status+")."));
  if(!data.text||!String(data.text).trim())throw new Error("Local Engine returned an empty answer.");
@@ -267,39 +268,9 @@ async function refreshRepo(){
   status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
 }
-function githubToken(){return sessionStorage.getItem("omniRagGithubToken")||""}
-function githubCfg(){return {repo:($("ragGithubRepo")?.value||DEFAULT_REPO).trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,""),folder:($("ragGithubFolder")?.value||"knowledge-base").trim().replace(/^\/+|\/+$/g,""),branch:($("ragGithubBranch")?.value||"main").trim()||"main"}}
-function b64(buf){let s="",a=new Uint8Array(buf);const step=0x8000;for(let i=0;i<a.length;i+=step)s+=String.fromCharCode(...a.subarray(i,Math.min(i+step,a.length)));return btoa(s)}
 function setGithubStatus(msg,kind=""){const el=$("ragGithubStatus");if(el){el.textContent=msg;el.className="rag-github-status "+kind}}
-function forgetGitHubToken(){sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken");const i=$("ragGithubToken");if(i)i.value="";setGithubStatus("GitHub token cleared from this browser.","ok")}
-async function saveSelectedToGitHub(){
- const files=pendingFiles.length?[...pendingFiles]:[...($("ragFiles")?.files||[])];if(!files.length){setGithubStatus("Choose at least one file first.","error");return}
- const token=($("ragGithubToken")?.value||githubToken()).trim();if(!token){setGithubStatus("Enter your GitHub fine-grained token first.","error");return}
- const cfg=githubCfg();if(!/^[^/]+\/[^/]+$/.test(cfg.repo)){setGithubStatus("Repository must look like owner/repository.","error");return}
- sessionStorage.setItem("omniRagGithubToken",token);
- const btn=$("ragGithubSave");if(btn)btn.disabled=true;
- try{
-  setGithubStatus("Checking GitHub access…");
-  const base="https://api.github.com/repos/"+cfg.repo;
-  const hr=await fetch(base,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
-  if(!hr.ok)throw new Error("GitHub access failed (HTTP "+hr.status+"). Check the token and repository.");
-  const repoInfo=await hr.json();if(repoInfo.permissions&&!repoInfo.permissions.push)throw new Error("This token does not have write access to the repository.");
-  for(let n=0;n<files.length;n++){
-   const f=files[n],safe=f.name.replace(/[^a-zA-Z0-9._() -]/g,"_"),path=(cfg.folder?cfg.folder+"/":"")+safe;
-   setGithubStatus("Saving "+(n+1)+"/"+files.length+" · "+path+" …");
-   if(f.size>10*1024*1024)throw new Error(f.name+" is larger than 10 MB; use a smaller knowledge file.");
-   const content=b64(await f.arrayBuffer());
-   const url=base+"/contents/"+path.split("/").map(encodeURIComponent).join("/");
-   let existing=null;const gr=await fetch(url+"?ref="+encodeURIComponent(cfg.branch),{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
-   if(gr.ok){existing=await gr.json()}else if(gr.status!==404)throw new Error("Could not check "+path+" (HTTP "+gr.status+")");
-   const body={message:"knowledge: add "+safe,content,branch:cfg.branch};if(existing?.sha)body.sha=existing.sha;
-   const pr=await fetch(url,{method:"PUT",headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},body:JSON.stringify(body)});
-   const pj=await pr.json();if(!pr.ok)throw new Error(pj.message||("GitHub save failed (HTTP "+pr.status+")"));
-  }
-  setGithubStatus("✓ Saved "+files.length+" file"+(files.length===1?"":"s")+" to "+cfg.repo+"/"+cfg.folder+" on "+cfg.branch+". Refreshing local repository knowledge…","ok");
-  await refreshRepo();
- }catch(e){console.error(e);setGithubStatus("GitHub save failed: "+e.message,"error")}finally{if(btn)btn.disabled=false}
-}
+function forgetGitHubToken(){try{sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken")}catch(_){};const i=$("ragGithubToken");if(i)i.value="";setGithubStatus("Browser token storage cleared.","ok")}
+async function saveSelectedToGitHub(){setGithubStatus("GitHub writes are unavailable until a same-origin OAuth/BFF service is deployed. No token or file was sent.","error")}
 async function updateRepoStatus(){
  const m=await metaGet(REPO_KEY).catch(()=>null),box=$("ragRepoStatus");if(!box)return;
  if(!m){box.innerHTML="<b>Repository knowledge</b><span>Not indexed yet · use Refresh Repository Knowledge</span>";return}
@@ -310,7 +281,7 @@ function bind(){
  css();initRuntimeStatus();$("ragFiles").onchange=e=>queueFiles([...e.target.files]);
  const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");queueFiles([...e.dataTransfer.files])});
  $("ragAsk").onclick=answer;$("ragQuery").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")answer()});
- $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{e.target.checked=false;sessionStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();await metaSet(REPO_KEY,null).catch(()=>{});chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
+ $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragClear").onclick=async()=>{await clearDB();await metaSet(REPO_KEY,null).catch(()=>{});chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
  $("ragEmbed").onclick=indexPendingFiles;
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }

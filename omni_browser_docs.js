@@ -358,8 +358,8 @@ async function convertSheet(file,target){
   if(!window.XLSX)throw new Error('The spreadsheet engine did not load. Check your internet connection and reload.');
   const e=ext(file.name);const wb=e==='csv'||e==='tsv'?XLSX.read(await file.text(),{type:'string',FS:e==='tsv'?'\t':',',raw:false}):XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,cellStyles:true,cellFormula:true});
   const t=target.toLowerCase();const b=base(file.name);
-  if(t==='csv'||t==='tsv'){const FS=t==='tsv'?'\t':',';if(wb.SheetNames.length===1)return [{blob:new Blob(['﻿'+XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]],{FS})],{type:'text/csv'}),name:b+'.'+t}];
-    const z=new JSZip();wb.SheetNames.forEach(n=>z.file(b+' - '+n.replace(/[\\/:*?"<>|]/g,'_')+'.'+t,'﻿'+XLSX.utils.sheet_to_csv(wb.Sheets[n],{FS})));return [{blob:await z.generateAsync({type:'blob'}),name:b+'_'+t+'_sheets.zip',sheets:wb.SheetNames.length}];}
+  if(t==='csv'||t==='tsv'){const FS=t==='tsv'?'\t':',';const secureCsv=(sheet)=>{const rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});return window.OMNI_SECURITY?window.OMNI_SECURITY.safeCsv(rows,FS,true):XLSX.utils.sheet_to_csv(sheet,{FS});};if(wb.SheetNames.length===1)return [{blob:new Blob(['﻿'+secureCsv(wb.Sheets[wb.SheetNames[0]])],{type:'text/csv'}),name:b+'.'+t}];
+    const z=new JSZip();wb.SheetNames.forEach(n=>z.file(b+' - '+n.replace(/[\\/:*?"<>|]/g,'_')+'.'+t,'﻿'+secureCsv(wb.Sheets[n])));return [{blob:await z.generateAsync({type:'blob'}),name:b+'_'+t+'_sheets.zip',sheets:wb.SheetNames.length}];}
   if(t==='pdf'){const blocks=[];wb.SheetNames.forEach((n,i)=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''}).filter(r=>r.some(c=>String(c).trim()));if(i)blocks.push({type:'pagebreak'});blocks.push({type:'heading',level:2,runs:plainRuns(n)});if(rows.length)blocks.push({type:'table',rows:rows.slice(0,2000),header:true});});const r=await writePdf({title:b,blocks});return [{blob:r.blob,name:b+'.pdf'}];}
   const bt=SHEET_OUT[t];if(!bt)return null;
   const out=XLSX.write(wb,{bookType:bt,type:'array',compression:true,cellStyles:true});
@@ -368,7 +368,8 @@ async function convertSheet(file,target){
 
 /* ================= PDF text → document (reflow) ================= */
 async function pdfToModel(file,{images=false,text=true}={}){
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const blocks=[];
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error('Verified PDF.js is unavailable.')));
+  const pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),enableScripting:false,isEvalSupported:false}).promise;const blocks=[];
   for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n);
     if(images){const vp=page.getViewport({scale:2});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await page.render({canvasContext:g,viewport:vp}).promise;const bl=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));blocks.push({type:'image',bytes:new Uint8Array(await bl.arrayBuffer()),mime:'image/jpeg',width:c.width,height:c.height});}
     if(text){const tc=await page.getTextContent();const items=tc.items.filter(it=>it.str!==undefined);

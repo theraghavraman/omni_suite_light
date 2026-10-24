@@ -134,13 +134,13 @@ OPTIONAL_PYTHON_IMPORTS = frozenset({"easyocr"})
 NATIVE_TOOL_NAMES = tuple(NATIVE_TOOLS)
 
 OFFLINE_ASSET_URLS = {
-    "pdfjs/pdf.min.js": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
-    "pdfjs/pdf.worker.min.js": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
+    "pdfjs/build/pdf.mjs": "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs",
+    "pdfjs/build/pdf.worker.mjs": "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.mjs",
     "jszip/jszip.min.js": "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
     "pdf-lib/pdf-lib.min.js": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
     "tesseract/tesseract.min.js": "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
     "sheetjs/xlsx.full.min.js": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
-    "jsyaml/js-yaml.min.js": "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js",
+    "jsyaml/js-yaml.min.js": "https://cdn.jsdelivr.net/npm/js-yaml@4.1.1/dist/js-yaml.min.js",
     # Office Tools + Diagram Forge (loaded on demand by omni_vendor_loader.js)
     "mammoth/mammoth.browser.min.js": "https://cdn.jsdelivr.net/npm/mammoth@1.13.0/mammoth.browser.min.js",
     "docx/docx.iife.js": "https://cdn.jsdelivr.net/npm/docx@9.9.0/dist/index.iife.js",

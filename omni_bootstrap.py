@@ -61,7 +61,7 @@ def verify() -> bool:
 
 def health():
     try:
-        with urllib.request.urlopen("http://127.0.0.1:8765/api/health", timeout=1.5) as r:
+        with urllib.request.urlopen("http://127.0.0.1:8765/healthz", timeout=1.5) as r:
             if r.status != 200:
                 return None
             return json.loads(r.read().decode("utf-8"))

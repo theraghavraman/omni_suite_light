@@ -7,7 +7,6 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const BASE='http://127.0.0.1:8765';
-  let token='';
   let currentUrl='';
   let currentInfo=null;
 
@@ -16,7 +15,7 @@
   const HOSTED_TIMEOUT_MS=45000,LOCAL_PROBE_MS=1500,READER_TIMEOUT_MS=15000;
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
   // Sent only on the /api/resolve fetch; the media and download URLs are <img>/<a> sources that cannot carry a header.
-  const resolverHeaders=()=>window.OMNI_SOCIAL_RESOLVER_TOKEN?{'X-Omni-Social-Token':window.OMNI_SOCIAL_RESOLVER_TOKEN}:{};
+  const resolverHeaders=()=>({});
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function safeHttpUrl(v){
@@ -58,7 +57,7 @@
     const seconds=Math.round(Number(info.duration)||0);
     const dur=seconds?[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map((v,i)=>i?String(v).padStart(2,'0'):String(v)).join(':'):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
-     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>safeHttpUrl(u.startsWith('http')?u:RESOLVER+u)).filter(Boolean);
+     const validDownloads=downloads.map(d=>{const raw=String(d.url||'');if(!/^https?:\/\//i.test(raw)&&!/^\/api\/(?:download|media-proxy)(?:[/?]|$)/.test(raw))return null;const u=safeHttpUrl(/^https?:\/\//i.test(raw)?raw:RESOLVER+raw);return u?{download:d,url:u}:null;}).filter(Boolean);const itemUrls=validDownloads.map(x=>x.url);
      const mediaKind=(d)=>{
        const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
        if(ext)return ext;
@@ -76,8 +75,8 @@
      };
      if(info.type==='carousel' && itemUrls.length>1){
        preview.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;width:100%">'+
-         downloads.map((d,i)=>{
-           const u=itemUrls[i]; const esc=String(u).replace(/"/g,'&quot;');
+         validDownloads.map((pair,i)=>{
+           const d=pair.download, u=pair.url; const esc=String(u).replace(/"/g,'&quot;');
            const label=mediaLabel(d);
            const media=isVideo(d)
              ? '<video src="'+esc+'" controls playsinline preload="metadata" style="display:block;width:100%;aspect-ratio:4/5;object-fit:contain;background:#111"></video>'
@@ -86,7 +85,7 @@
          }).join('')+
        '</div>';
      }else{
-       const first=downloads[0]; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
+       const first=validDownloads[0]?.download; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
        preview.innerHTML=firstUrl?(first&&isVideo(first)?'<video src="'+esc+'" controls playsinline preload="metadata" style="max-width:100%;max-height:430px"></video>':'<img src="'+esc+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">'):'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
      }
      preview.className='social-preview';
@@ -182,12 +181,11 @@
     if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
     const j=await r.json();
     if(Number(j.engine_api_version||0)<4)throw new Error('Outdated Local Engine. Restart the current Omni Suite Local Engine.');
-    token=j.token||token;
     if(!j.tools?.['yt-dlp']?.installed)throw new Error('Social downloader engine (yt-dlp) is not installed. Run the current Omni Suite setup once.');
     return j;
   }
   async function localJob(payload){
-    const r=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok)throw new Error(j.error||('Local Engine HTTP '+r.status));
     return j;
@@ -285,7 +283,7 @@
     try{
       await localHealth();
       const j=await localJob({op:'social_download',url:currentUrl,mode,quality});
-      const d=await fetch(BASE+'/api/download/'+encodeURIComponent(j.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+      const d=await fetch(BASE+'/api/download/'+encodeURIComponent(j.file_id),{headers:{'Origin':location.origin}});
       if(!d.ok)throw new Error('Output download failed');
       const b=await d.blob();const name=j.name||fileNameFor(currentUrl,b.type);saveBlob(b,name);offerStudios(b,name);msg('Download complete.','ok');
     }catch(e){msg(e.message||String(e),'error');}

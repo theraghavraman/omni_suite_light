@@ -72,9 +72,9 @@ function firstFile(panel,kind){
 }
 async function extractPdfText(file){
  if(!file)throw new Error("Choose a PDF in PDF Suite first.");
- if(!window.pdfjsLib?.getDocument)throw new Error("PDF text extraction is not available in this browser session.");
+ const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error("Verified PDF.js is unavailable.")));
  const data=await file.arrayBuffer();
- const pdf=await window.pdfjsLib.getDocument({data}).promise;
+ const pdf=await pdfjs.getDocument({data,enableScripting:false,isEvalSupported:false}).promise;
  const pages=[];
  for(let n=1;n<=pdf.numPages;n++){
    const page=await pdf.getPage(n);

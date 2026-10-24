@@ -16,7 +16,7 @@ const fmtTime=s=>{s=Math.max(0,s||0);const m=Math.floor(s/60),r=s-m*60;return m+
 const CDN='https://cdn.jsdelivr.net/npm/';
 let mbP=null;const mb=()=>mbP||(mbP=import(CDN+'mediabunny@1.58.1/dist/bundles/mediabunny.min.mjs').catch(e=>{mbP=null;throw new Error('Could not load the video engine (Mediabunny) — check your internet connection.');}));
 let gifP=null;const gifenc=()=>gifP||(gifP=import(CDN+'gifenc@1.0.3/dist/gifenc.esm.js'));
-let zipP=null;const jszip=async()=>{if(window.JSZip)return window.JSZip;if(!zipP)zipP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=()=>res(window.JSZip);s.onerror=rej;document.head.appendChild(s);});return zipP;};
+let zipP=null;const jszip=async()=>{if(window.JSZip)return window.JSZip;if(window.OMNI_LIBS?.wait){if(!zipP)zipP=window.OMNI_LIBS.wait('JSZip');return zipP}throw new Error('Verified JSZip is unavailable. Use the Local Engine asset setup for offline use.');};
 const hasWebCodecs=()=>!!(window.VideoDecoder&&window.VideoEncoder&&window.AudioDecoder);
 
 /* ---------------- engine helpers ---------------- */

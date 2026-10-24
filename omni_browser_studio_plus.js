@@ -9,7 +9,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const BF=()=>window.OMNI_BROWSER_FIRST||{};
-const SQLJS='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/';
 const PARQUET_WRITER='https://cdn.jsdelivr.net/npm/hyparquet-writer@0.16.11/+esm';
 const PARQUET_READER='https://cdn.jsdelivr.net/npm/hyparquet@1.31.3/+esm';
 
@@ -35,9 +34,8 @@ if(window.fetch&&!window.fetch.__omniLocalAware){
 const ext=n=>(String(n||'').split('.').pop()||'').toLowerCase();
 const base=n=>String(n||'data').replace(/\.[^.]+$/,'')||'data';
 function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src+' (check your internet connection).'));document.head.appendChild(s);});}
 let sqlPromise=null;
-function sqlJs(){if(window.OMNI_VENDOR&&window.OMNI_VENDOR.sqlJs)return window.OMNI_VENDOR.sqlJs();if(!sqlPromise)sqlPromise=(async()=>{if(!window.initSqlJs)await loadScript(SQLJS+'sql-wasm.js');return window.initSqlJs({locateFile:f=>SQLJS+f});})().catch(e=>{sqlPromise=null;throw e;});return sqlPromise;}
+function sqlJs(){if(!window.OMNI_VENDOR?.sqlJs)return Promise.reject(new Error('Verified SQLite runtime is unavailable.'));if(!sqlPromise)sqlPromise=window.OMNI_VENDOR.sqlJs().catch(e=>{sqlPromise=null;throw e;});return sqlPromise;}
 let pqWrite=null,pqRead=null;
 async function parquetWriter(){if(!pqWrite)pqWrite=import(PARQUET_WRITER).catch(e=>{pqWrite=null;throw new Error('Parquet writer could not load: '+e.message);});return pqWrite;}
 async function parquetReader(){if(!pqRead)pqRead=import(PARQUET_READER).catch(e=>{pqRead=null;throw new Error('Parquet reader could not load: '+e.message);});return pqRead;}
@@ -106,7 +104,7 @@ async function writeRows(rows,format,opts={}){
   if(['parquet','sqlite','sql','jsonschema','xlsx','ods'].includes(f))rows=inferTypes(rows);
   const ks=keysOf(rows);
   const sheet=()=>{if(!window.XLSX)throw new Error('The spreadsheet engine (SheetJS) did not load. Check your internet connection and reload.');return window.XLSX.utils.json_to_sheet(rows,{header:ks});};
-  if(f==='csv'||f==='tsv')return {blob:new Blob([window.XLSX?window.XLSX.utils.sheet_to_csv(sheet(),{FS:f==='tsv'?'\t':','}):ks.join(',')+'\n'+rows.map(r=>ks.map(k=>{const v=r[k]??'';return /[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v;}).join(',')).join('\n')],{type:'text/csv'}),ext:f};
+  if(f==='csv'||f==='tsv'){const sep=f==='tsv'?'\t':',';const text=window.OMNI_SECURITY?window.OMNI_SECURITY.safeCsv(rows,sep,true):ks.map(k=>'"'+String(k).replace(/"/g,'""')+'"').join(sep)+'\r\n'+rows.map(r=>ks.map(k=>{let v=r[k]??'';v=typeof v==='object'?JSON.stringify(v):String(v);if(/^[\x00-\x20]*[=+@-]/.test(v)||/^[\t\r\n]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';}).join(sep)).join('\r\n');return {blob:new Blob([text],{type:'text/csv'}),ext:f};}
   if(f==='json')return {blob:new Blob([JSON.stringify(rows,null,2)],{type:'application/json'}),ext:'json'};
   if(f==='jsonl'||f==='ndjson')return {blob:new Blob([rows.map(r=>JSON.stringify(r)).join('\n')+'\n'],{type:'application/x-ndjson'}),ext:f};
   if(f==='yaml'){if(!window.jsyaml)throw new Error('The YAML engine did not load. Check your internet connection and reload.');return {blob:new Blob([window.jsyaml.dump(rows,{noRefs:true})],{type:'text/yaml'}),ext:'yaml'};}

@@ -7,7 +7,7 @@
   'use strict';
   const VERSION = '1.1.0';
   const API_VERSION = 1;
-  const state = { lastProvider:null, localHealth:null, localBase:null, localToken:null, browserAdapter:null };
+  const state = { lastProvider:null, localHealth:null, localBase:null, browserAdapter:null };
 
   async function localHealth() {
     try {
@@ -15,29 +15,22 @@
       const response = await fetch(base + '/api/health', {cache:'no-store'});
       if (!response.ok) return null;
       const health = await response.json();
-      if (!health?.token || Number(health.engine_api_version || 0) < 4) return null;
+      if (Number(health.engine_api_version || 0) < 4) return null;
       state.localHealth = health;
       state.localBase = base;
-      state.localToken = health.token;
       return health;
     } catch (_) { return null; }
   }
 
-  async function localProcess(payload, retried = false) {
+  async function localProcess(payload) {
     const base = state.localBase || String(window.OMNI_LANGUAGE_LOCAL_URL || 'http://127.0.0.1:8765').replace(/\/$/, '');
-    if (!state.localToken) await localHealth();
-    if (!state.localToken) throw new Error('Omni Language Local Engine is not running or is not authorized.');
+    if (!state.localHealth) await localHealth();
+    if (!state.localHealth) throw new Error('Omni Language Local Engine is not running or is not authorized.');
     const response = await fetch(base + '/api/process', {
       method:'POST',
-      headers:{'X-Omni-Token':state.localToken,'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
-    // The Local Engine issues a new token on every restart; refresh once instead of failing.
-    if ((response.status === 401 || response.status === 403) && !retried) {
-      state.localToken = null;
-      await localHealth();
-      return localProcess(payload, true);
-    }
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result?.ok === false) throw new Error(result?.error || 'Local language engine failed.');
     return result;

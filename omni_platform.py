@@ -70,7 +70,9 @@ def _mask(value):
     return v if len(v) <= 4 else v[:2] + "*" * (len(v) - 4) + v[-2:]
 
 def privacy_scan(path, max_bytes=8_000_000):
-    p=Path(path); raw=p.read_bytes()[:max_bytes]
+    p=Path(path)
+    with p.open("rb") as source:
+        raw=source.read(max_bytes)
     text=raw.decode("utf-8",errors="replace")
     findings=[]
     for kind,rx in PRIVACY_PATTERNS.items():
@@ -80,7 +82,7 @@ def privacy_scan(path, max_bytes=8_000_000):
             # Samples are masked so the report itself does not leak the personal data it found.
             findings.append({"type":kind,"count":len(matches),"samples":[_mask(m.group(0)[:80]) for m in matches[:3]]})
     sha256=hashlib.sha256(raw).hexdigest()
-    return {"file":p.name,"bytes_scanned":len(raw),"sha256":sha256,"findings":findings,
+    return {"file":p.name,"bytes_scanned":len(raw),"truncated":p.stat().st_size>len(raw),"sha256":sha256,"findings":findings,
             "risk":"high" if any(x["type"] in {"credit_card_like","aadhaar_like","pan_india"} for x in findings) else ("medium" if findings else "low")}
 
 def clean_dataframe(df, actions):
@@ -108,55 +110,32 @@ def _mask_value(v):
     return "****" if len(s)<=4 else s[:2]+"*"*max(2,len(s)-4)+s[-2:]
 
 def _validate_database_url(url):
-    from urllib.parse import urlsplit
-    import ipaddress, socket, os
-    parts=urlsplit(str(url or ""))
-    scheme=(parts.scheme or "").lower()
-    allowed={"sqlite","postgresql","postgres","mysql","mariadb","mssql","oracle","snowflake","bigquery","databricks","duckdb","trino","clickhouse","redshift"}
-    if scheme not in allowed:
-        raise ValueError(f"Unsupported database scheme: {scheme or 'missing'}")
-    if scheme=="sqlite":
-        return
-    host=(parts.hostname or "").lower().rstrip(".")
-    if not host:
-        raise ValueError("Database URL must include a host.")
-    allowed_hosts={x.strip().lower().rstrip(".") for x in os.getenv("OMNI_ALLOWED_DB_HOSTS","").split(",") if x.strip()}
-    if allowed_hosts and not any(host==x or host.endswith("."+x) for x in allowed_hosts):
-        raise ValueError("Database host is not in OMNI_ALLOWED_DB_HOSTS.")
-    if host in {"localhost","127.0.0.1","::1"}:
-        if os.getenv("OMNI_ALLOW_LOCAL_DB","1")!="1":
-            raise ValueError("Local database connections are disabled.")
-        return
-    try:
-        infos=socket.getaddrinfo(host, parts.port or 443, type=socket.SOCK_STREAM)
-        if any(not ipaddress.ip_address(item[4][0]).is_global for item in infos):
-            raise ValueError("Database host resolves to a private, loopback or link-local address.")
-    except socket.gaierror as exc:
-        raise ValueError("Database host could not be resolved.") from exc
+    from omni_security_primitives import validate_db_destination
+    from pathlib import Path
+    import os
+    sqlite_root=os.environ.get("OMNI_ALLOWED_SQLITE_DIR")
+    if not sqlite_root:
+        raise ValueError("Database Studio is disabled until OMNI_ALLOWED_SQLITE_DIR points to an approved read-only SQLite directory.")
+    scheme, destination=validate_db_destination(str(url or ""), sqlite_root=Path(sqlite_root))
+    if scheme != "sqlite":
+        raise ValueError("Remote database access is disabled until read-only database roles, an AST policy, query timeouts and egress controls are configured.")
+    return Path(destination)
 
 def database_query(url, query, params=None):
-    from sqlalchemy import create_engine, text
-    normalized=re.sub(r"^\s*--[^\n]*\n","",query or "").strip().lower()
-    if not re.match(r"^(select|with|show|describe|desc|explain|pragma)\b",normalized):
-        raise ValueError("Database Studio is read-only: only SELECT/WITH/SHOW/DESCRIBE/EXPLAIN/PRAGMA queries are allowed.")
-    _validate_database_url(url)
-    engine=create_engine(url, pool_pre_ping=True)
-    try:
-        with engine.connect() as con:
-            result=con.execute(text(query), params or {})
-            rows=[dict(r._mapping) for r in result]
-            columns=list(result.keys())
-        return {"columns":columns,"rows":rows,"row_count":len(rows)}
-    finally: engine.dispose()
+    database_file=_validate_database_url(url)
+    return __import__("omni_security_primitives").read_sqlite_only(database_file, query, params or {})
 
 def database_tables(url):
-    from sqlalchemy import create_engine, inspect
-    _validate_database_url(url)
-    engine=create_engine(url, pool_pre_ping=True)
+    import sqlite3
+    database_file=_validate_database_url(url)
+    con=sqlite3.connect(database_file.as_uri()+"?mode=ro",uri=True,timeout=2)
     try:
-        ins=inspect(engine)
-        return {"schemas":ins.get_schema_names(),"tables":{s:ins.get_table_names(schema=s) for s in ins.get_schema_names()}}
-    finally: engine.dispose()
+        con.execute("PRAGMA query_only=ON")
+        names=[r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name LIMIT 1000")]
+        tables={name:[r[1] for r in con.execute('PRAGMA table_info("'+name.replace('"','""')+'")')][:1000] for name in names}
+        return {"schemas":["main"],"tables":{"main":names},"columns":tables}
+    finally:
+        con.close()
 
 def batch_manifest(results):
     return {"total":len(results),"success":sum(1 for x in results if x.get("ok")),"failed":sum(1 for x in results if not x.get("ok")),"results":results}

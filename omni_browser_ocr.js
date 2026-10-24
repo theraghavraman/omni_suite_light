@@ -44,8 +44,8 @@ async function prepare(source){
 // PDF pages are listed up front but rendered one at a time while recognising, so a long scan never
 // holds every 2.5x page canvas in memory at once.
 async function pdfPages(file){
-  if(!window.pdfjsLib)throw new Error('The PDF engine (PDF.js) did not load, so '+file.name+' cannot be read. Check your connection or use the Local Engine offline bundle.');
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error('The verified PDF engine is unavailable.')));
+  const pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),enableScripting:false,isEvalSupported:false}).promise;const out=[];
   for(let i=1;i<=pdf.numPages;i++)out.push({pdf,pageNum:i,last:i===pdf.numPages,label:file.name+' — page '+i});
   return out;
 }

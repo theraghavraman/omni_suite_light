@@ -99,7 +99,8 @@ function geoJSON(){
  return {type:'FeatureCollection',features};
 }
 function csvOut(rows){
- const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';};return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\n');
+ if(window.OMNI_SECURITY)return window.OMNI_SECURITY.safeCsv(rows,',',true);
+ const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];const q=v=>{let s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);if(/^[\x00-\x20]*[=+@-]/.test(s)||/^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};return [keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\r\n');
 }
 function draw(){
  const c=$('udsCanvas');if(!c)return;
