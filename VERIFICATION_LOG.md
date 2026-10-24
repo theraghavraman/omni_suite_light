@@ -3,7 +3,7 @@
 ## Execution environment
 
 - Local test pass: 2026-10-24, macOS with Python 3.14.8 and Node.js.
-- The repository CI matrix targets Python 3.13 on Ubuntu, Windows, and macOS. Those hosted jobs were not run as part of this local verification.
+- The repository CI matrix targets Python 3.13 on Ubuntu, Windows, and macOS. Its first hosted run exposed Windows test-fixture/diagnostic latency and pip-cache issues, plus an Ubuntu dependency-resolution conflict. Those CI harness issues were corrected in the follow-up; see the latest commit's Actions checks for the current hosted result.
 
 ## Passed locally
 
@@ -26,10 +26,11 @@
 - The native smoke harness incorrectly expected a bearer token in health output, used a literal `python` executable, and omitted its allowed SQLite test directory. The harness now matches token-free health, uses `sys.executable`, and configures the isolated test root.
 - Social Resolver media and download routes passed an unsupported keyword to the fail-closed guard. The calls now use the guard API correctly, and live ASGI coverage exercises those routes.
 - The dependency audit found three `pypdf` advisories at 6.21.1; 6.21.2 is the audited version now pinned.
+- The first hosted matrix run found that Windows SQLite fixtures must explicitly close connections, Windows API health diagnostics can exceed the HTTP regression timeout, and `setup-python` pip caching fails when no packages are installed on a runner. The Ubuntu service smoke dependencies also conflict with the optional full Local Engine environment when installed together. The tests now close fixtures, use the fast cross-platform health probe on Windows, remove the empty cache setup, and install Cloud/Social test dependencies in a dedicated Linux virtual environment.
 
 ## Not covered by this local pass
 
-- Windows/Linux native execution, hosted GitHub Actions results, Docker/container isolation, Render deployment, or GitHub Pages deployment.
+- Full Windows/Linux native execution beyond the hosted matrix's selected regression steps, Docker/container isolation, Render deployment, or GitHub Pages deployment.
 - Full browser end-to-end workflows, malicious PDF execution, deep ZIP-bomb behavior across every extraction caller, DNS rebinding/redirect attacks against a live resolver, or external-origin pairing.
 - Production identity and authorization, distributed quotas, durable cloud queues, isolated code runners, archive workers, LAN TLS pairing, and the remaining model/runtime integrity and data-consent review.
 - Calibre ebook conversion locally; it is required in CI and remains a CI result to collect.

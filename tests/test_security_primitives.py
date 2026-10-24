@@ -6,6 +6,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from contextlib import closing
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import omni_security_primitives as p
@@ -20,25 +21,27 @@ class SecurityPrimitiveTests(unittest.TestCase):
     def test_db_pragma_writes_blocked_and_select_works(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / 'db.sqlite'
-            with sqlite3.connect(path) as c:
+            with closing(sqlite3.connect(path)) as c:
                 c.execute('CREATE TABLE t(x INTEGER)')
                 c.execute('INSERT INTO t VALUES (42)')
+                c.commit()
                 before = c.execute('PRAGMA user_version').fetchone()[0]
             self.assertEqual(p.read_sqlite_only(path, 'SELECT x FROM t')['rows'][0]['x'],42)
             with self.assertRaises(ValueError):
                 p.read_sqlite_only(path, 'PRAGMA user_version=31337')
             with self.assertRaises(ValueError):
                 p.read_sqlite_only(path, 'WITH changed AS (DELETE FROM t RETURNING x) SELECT * FROM changed')
-            with sqlite3.connect(path) as c:
+            with closing(sqlite3.connect(path)) as c:
                 self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], before)
                 self.assertEqual(c.execute('SELECT COUNT(*) FROM t').fetchone()[0], 1)
 
     def test_sql_bounds(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / 'db.sqlite'
-            with sqlite3.connect(path) as c:
+            with closing(sqlite3.connect(path)) as c:
                 c.execute('CREATE TABLE t(x)')
                 c.executemany('INSERT INTO t VALUES (?)',[(i,) for i in range(3)])
+                c.commit()
             result=p.read_sqlite_only(path,'SELECT x FROM t',max_rows=2)
             self.assertEqual(result['row_count'],2)
             self.assertTrue(result['truncated'])

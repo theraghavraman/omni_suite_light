@@ -40,7 +40,7 @@
 | SEC-034 | Medium | **NOT VERIFIED** | Local/cloud/social API responses add nosniff, frame, referrer, permissions and no-store headers where applicable. A strict CSP is not configured. |
 | SEC-035 | Medium | **NOT VERIFIED** | Cloud/social token inputs and browser persistence were removed; GitHub browser writes are disabled and stale browser token keys are cleared. |
 | SEC-036 | Medium | **NOT VERIFIED** | Media URL and metadata values are retained as paired records during filtering and presentation. |
-| SEC-037 | Medium | **NOT VERIFIED** | GitHub Actions references are pinned to commit SHAs. Security suites were added and passed locally; hosted CI results are pending. |
+| SEC-037 | Medium | **NOT VERIFIED** | GitHub Actions references are pinned to commit SHAs. Security suites are wired into the OS matrix; see the latest commit's Actions checks for hosted results. |
 | SEC-038 | Medium | **NOT VERIFIED** | GitHub Pages now builds an explicit dist/ allowlist and uploads only that curated tree; offline assets are hash checked before packaging. |
 | SEC-039 | Medium | **NOT VERIFIED** | Local Host authority parsing uses the shared IPv4/IPv6 loopback parser and exact configured port validation. |
 | SEC-040 | Medium | **BLOCKED** | Cloud/social uploads and public remote resolver work are disabled. Browser model runtimes and some user-initiated repository fetches still need a complete consent/data-flow review. |
