@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Representative native smoke test for OmniConverter Local Engine."""
 from pathlib import Path
-import json, os, shutil, subprocess, tempfile, time, zipfile
+import json, os, shutil, subprocess, sys, tempfile, time, zipfile
 from urllib import request
 
 ORIGIN = os.environ.get("OMNI_TEST_ORIGIN", "http://127.0.0.1:8765")
@@ -41,14 +41,17 @@ def download(fid, path, token):
     with request.urlopen(req, timeout=60) as r: path.write_bytes(r.read())
 
 try:
-    env=os.environ.copy(); env["OMNI_TOKEN"]="ci-test-token"
-    server=subprocess.Popen(["python","omni_local_server.py"],env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+    env=os.environ.copy(); env["OMNI_TOKEN"]="ci-test-token"; env["OMNI_ALLOWED_SQLITE_DIR"]=str(ROOT)
+    server=subprocess.Popen([sys.executable,"omni_local_server.py"],env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
     health=None
     for _ in range(40):
         try:
             with request.urlopen(request.Request("http://127.0.0.1:8765/api/health",headers={"Origin":"http://127.0.0.1:8765"}),timeout=2) as r: health=json.loads(r.read()); break
         except Exception: time.sleep(.25)
-    assert health and health.get("ok") and health.get("token")=="ci-test-token"
+    assert health and health.get("ok") and "token" not in health, "Health response must not expose the local bearer token"
+    with request.urlopen("http://127.0.0.1:8765/healthz",timeout=2) as r:
+        healthz=json.loads(r.read())
+    assert healthz.get("ok") and healthz.get("service")=="omni-local-engine" and "token" not in healthz
     assert int(health.get("engine_api_version") or 0) >= 4, "Local Engine API v4+ is required; stale engine detected"
     assert health.get("engine_build"), "Local Engine build identifier is required"
     print("1. Local Engine health/API contract: OK")
@@ -112,7 +115,12 @@ try:
 
     html=ROOT/"sample.html"; html.write_text("<html><body><h1>OmniConverter CI</h1></body></html>",encoding="utf-8")
     htmlup=upload(html,"ci-test-token")
-    process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("16. Calibre ebook conversion: OK")
+    if shutil.which("ebook-convert"):
+        process({"op":"ebook_convert","input":htmlup["file_id"],"format":"epub"},"ci-test-token"); print("16. Calibre ebook conversion: OK")
+    elif os.environ.get("CI"):
+        raise RuntimeError("Calibre ebook-convert is required in CI")
+    else:
+        print("16. Calibre ebook conversion: SKIP (ebook-convert is not installed)")
 
     data_caps=health.get("data",{})
     assert data_caps.get("modules",{}).get("pandas"), "pandas is required for Data Studio CI"

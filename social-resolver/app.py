@@ -867,7 +867,7 @@ def resolve(body: ResolveRequest, request: Request):
 @app.get("/api/media-proxy")
 def media_proxy(request: Request, url: str = Query(...)):
     """Proxy a short-lived public CDN media URL so browser CORS does not block downloads."""
-    guard(request, require_token=False)
+    guard(request)
     target = unquote(url)
     if not is_allowed_media_url(target):
         raise HTTPException(400, "Media URL is not an allowed public CDN URL.")
@@ -883,7 +883,7 @@ def media_proxy(request: Request, url: str = Query(...)):
 
 @app.get("/api/download")
 def download(request: Request, url: str = Query(...), quality: str = Query("Best")):
-    guard(request, require_token=False)
+    guard(request)
     source = validate_public_url(url)
     info = extract_info(source)
 

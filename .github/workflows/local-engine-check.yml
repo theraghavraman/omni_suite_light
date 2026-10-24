@@ -40,11 +40,16 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-local.txt
       - name: Validate Python bridge syntax
-        run: python -m py_compile omni_environment.py omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py
+        run: python -m py_compile omni_environment.py omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py omni_security_primitives.py omni-cloud-engine/app.py omni-cloud-engine/omni_security_primitives.py social-resolver/app.py social-resolver/omni_security_primitives.py
       - name: Validate shared environment inventory
         run: python .github/scripts/environment_inventory_test.py
       - name: Run Omni contract audit
         run: python .github/scripts/omni_contract_audit.py
+      - name: Run security regression tests
+        run: |
+          python -m unittest discover -s tests -v
+          python .github/scripts/local_engine_security_test.py
+          node tests/test_security_browser.cjs
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
       - name: Validate Office Tools, Diagram Forge and cloud bridge syntax
@@ -123,13 +128,21 @@ jobs:
             Write-Host "convert -> $($cmd.Source)"
           }
 
-      - name: Install Python runtime used by the native smoke test
+      - name: Install Python runtime used by smoke tests
         if: runner.os == 'Linux'
-        run: python -m pip install -r requirements-local.txt
+        run: |
+          python -m pip install \
+            -r requirements-local.txt \
+            -r omni-cloud-engine/requirements.txt \
+            -r social-resolver/requirements.txt
 
       - name: Run representative native smoke test
         if: runner.os == 'Linux'
         run: python .github/scripts/native_smoke_test.py
+
+      - name: Run cloud and social fail-closed runtime checks
+        if: runner.os == 'Linux'
+        run: python .github/scripts/cloud_social_security_test.py
 
       - name: Run dependency audit
         if: runner.os == 'Linux'

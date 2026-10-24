@@ -78,7 +78,7 @@ omni-engine = "omni_sdk.cli:main"
 include-package-data = true
 py-modules = [
   "omni_local_server", "omni_data_engine", "omni_platform", "omni_environment",
-  "omni_code_runner", "omni_language_engine",
+  "omni_code_runner", "omni_language_engine", "omni_security_primitives",
 ]
 
 [tool.setuptools.packages.find]

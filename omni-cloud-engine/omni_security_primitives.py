@@ -98,7 +98,11 @@ def read_sqlite_only(database_file: Path, sql: str, params: dict | tuple = (),
     start = time.monotonic()
     con = sqlite3.connect(uri, uri=True, timeout=timeout)
     try:
-        con.enable_load_extension(False)
+        # Extension loading is disabled by default. Some Python SQLite builds
+        # omit this optional method entirely; if present, explicitly keep it off.
+        disable_extension_loading = getattr(con, "enable_load_extension", None)
+        if disable_extension_loading is not None:
+            disable_extension_loading(False)
         con.execute("PRAGMA query_only=ON")
         con.execute("PRAGMA trusted_schema=OFF")
         deny = getattr(sqlite3, "SQLITE_DENY")
