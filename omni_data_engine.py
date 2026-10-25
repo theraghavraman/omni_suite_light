@@ -14,8 +14,11 @@ def scientific_ext(path, override=None):
     return {"fit":"fits","nc":"netcdf","h5":"hdf5","grib2":"grib","grb":"grib","grb2":"grib"}.get(f,f)
 
 def _json_value(v):
-    import numpy as np
-    if isinstance(v, np.generic): return v.item()
+    try:
+        import numpy as np
+    except ImportError:
+        np=None
+    if np is not None and isinstance(v, np.generic): return v.item()
     if isinstance(v, (list, tuple)): return [_json_value(x) for x in v]
     if isinstance(v, dict): return {str(k): _json_value(x) for k,x in v.items()}
     try:

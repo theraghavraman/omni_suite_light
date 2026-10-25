@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import csv
 import importlib.util
 import tempfile
@@ -38,7 +39,15 @@ class DataEngineLimitTests(unittest.TestCase):
         with patch.object(engine, "MAX_SCIENTIFIC_METADATA_BYTES", 64):
             with self.assertRaisesRegex(RuntimeError, "metadata exceeds"):
                 engine._scientific_attributes({"large": b"x" * 65})
-            self.assertEqual(engine._scientific_attributes({"small": "ok"}), {"small": "ok"})
+            original_import = builtins.__import__
+
+            def import_without_numpy(name, *args, **kwargs):
+                if name == "numpy":
+                    raise ImportError("NumPy intentionally unavailable")
+                return original_import(name, *args, **kwargs)
+
+            with patch("builtins.__import__", side_effect=import_without_numpy):
+                self.assertEqual(engine._scientific_attributes({"small": "ok"}), {"small": "ok"})
 
     @unittest.skipUnless(importlib.util.find_spec("numpy"), "NumPy is required by scientific readers")
     def test_scientific_profile_reads_metadata_without_materializing_arrays(self):
