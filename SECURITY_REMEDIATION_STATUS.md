@@ -1,6 +1,6 @@
 # Security remediation status
 
-**Release recommendation: BLOCKED.** Critical and High findings remain blocked or unverified; the local test pass is not production certification. The supplied archive is an implementation specification. Security and normal-use regressions now run locally and are wired into GitHub Actions, but cross-platform runs, browser end-to-end coverage, and production architecture gates remain open. See `VERIFICATION_LOG.md` and `REMEDIATION_TRACKER_V2.csv` for evidence and residual risk.
+**Release recommendation: BLOCKED.** Critical and High findings remain blocked or unverified; the local and hosted test passes are not production certification. The supplied archive is an implementation specification. The selected Windows/macOS/Linux CI matrix has passed; full browser end-to-end coverage and production architecture gates remain open. See `VERIFICATION_LOG.md` and `REMEDIATION_TRACKER_V2.csv` for evidence and residual risk.
 
 | ID | Priority | Status | Change / remaining blocker |
 |---|---|---|---|

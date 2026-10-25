@@ -22,6 +22,11 @@
 - The expanded native smoke test passed the Data Studio CSV/Parquet/XLSX paths, data round-trips, and scientific NetCDF profile plus JSON/CSV/PNG/HDF5/FITS conversions, using `requirements-data.txt` in the temporary test environment. Calibre ebook conversion was skipped because `ebook-convert` is not installed locally; CI requires it.
 - `python3 -m py_compile` for the Local Engine, Cloud Engine, Social Resolver and helpers; `python .github/scripts/omni_contract_audit.py`; and `git -c core.whitespace=cr-at-eol diff --check` passed after the Data Engine changes. Browser, Local Engine, Cloud/Social, environment inventory, studio wiring, assistant/RAG, and JavaScript syntax checks also passed.
 
+## Latest hosted CI
+
+- Commit `0738ecc4eeb85b5107fb30e5f175fe9b12ae243a`: Validate OmniConverter passed on Windows, macOS, and Ubuntu. The first run on the preceding commit caught an optional-NumPy import in primitive metadata formatting; the follow-up made NumPy optional and added a regression that simulates it being unavailable.
+- Hybrid RAG validation, GitHub Pages deployment, and container build/publish also passed for that commit.
+
 ## Findings fixed during testing
 
 - Python 3.14 can expose a SQLite connection without `enable_load_extension`; the helper now calls the optional method only when present, while read-only mode and the SQL authorizer keep extension loading unavailable.
