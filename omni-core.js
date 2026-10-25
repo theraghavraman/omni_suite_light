@@ -8,10 +8,6 @@
         status.textContent = caps.length ? caps.join(' • ') : 'basic browser mode';
       }
     });
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = window.OMNI_PDF_WORKER || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-
     // Tabs
     const navBtns = document.querySelectorAll('.nav-btn');
     const modulePanels = document.querySelectorAll('.module-panel');
@@ -65,12 +61,24 @@
       if (!blob || !blob.size) throw new Error('No output was generated.');
       downloadBlob(blob, filename);
     }
+    // Core engines load asynchronously (see #omni-core-libs); a click that beats them gets a clear message.
+    const ENGINE_NAMES = { pdfjsLib: 'PDF reader', PDFLib: 'PDF writer', JSZip: 'ZIP', Tesseract: 'OCR', XLSX: 'spreadsheet', jsyaml: 'YAML' };
+    function engineNotReady(err) {
+      const m = /\b(pdfjsLib|PDFLib|JSZip|Tesseract|XLSX|jsyaml)\b(?: is not defined|' is undefined)|Can't find variable: (pdfjsLib|PDFLib|JSZip|Tesseract|XLSX|jsyaml)\b/.exec(String(err && (err.message || err) || ''));
+      if (!m) return false;
+      const lib = m[1] || m[2];
+      const failed = window.OMNI_LIBS && window.OMNI_LIBS.state[lib] === 'failed';
+      omniNotify(failed ? `The ${ENGINE_NAMES[lib]} engine could not be downloaded. Check your connection and reload the page.` : `The ${ENGINE_NAMES[lib]} engine is still loading. Try again in a moment.`, true);
+      return true;
+    }
     window.addEventListener('error', e => {
       console.error('OmniConverter error:', e.error || e.message);
+      if (engineNotReady(e.error || e.message)) return;
       omniNotify('A tool error occurred. Check the selected file/format and try again.', true);
     });
     window.addEventListener('unhandledrejection', e => {
       console.error('OmniConverter promise error:', e.reason);
+      if (engineNotReady(e.reason)) return;
       omniNotify('A conversion step failed. Please try again with the same file or a smaller one.', true);
     });
 
@@ -89,11 +97,14 @@
       const parts = rangeStr.split(',');
       for (const part of parts) {
         const clean = part.trim();
+        if (!clean) continue;
         if (clean.includes('-')) {
-          const [startStr, endStr] = clean.split('-');
-          const start = parseInt(startStr, 10);
-          const end = parseInt(endStr, 10);
+          // Supports "2-5", open ranges "3-" / "-4" and reversed ranges "5-2".
+          const [startStr, endStr] = clean.split('-').map(x => x.trim());
+          let start = startStr === '' ? 1 : parseInt(startStr, 10);
+          let end = endStr === '' ? totalPages : parseInt(endStr, 10);
           if (!isNaN(start) && !isNaN(end)) {
+            if (start > end) [start, end] = [end, start];
             for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) pages.add(p);
           }
         } else {
@@ -105,7 +116,8 @@
     }
 
     function escapeXml(str) {
-      return String(str || '').replace(/[<>&'"]/g, (c) => {
+      // XML 1.0 forbids most C0 control characters; PDF text layers often contain them.
+      return String(str || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '').replace(/[<>&'"]/g, (c) => {
         switch (c) {
           case '<': return '&lt;';
           case '>': return '&gt;';
@@ -479,22 +491,22 @@
       const health = await fetch(base + '/api/health', {cache:'no-store'});
       if (!health.ok) throw new Error('Local Engine is not running. Start the current Omni Local Engine to extract ' + format.toUpperCase() + ' archives.');
       const h = await health.json();
-      if (!h.token || Number(h.engine_api_version || 0) < 4) throw new Error('Current Omni Local Engine is required for ' + format.toUpperCase() + ' extraction.');
+      if (Number(h.engine_api_version || 0) < 4) throw new Error('Current Omni Local Engine is required for ' + format.toUpperCase() + ' extraction.');
       const upload = await fetch(base + '/api/upload', {
         method:'POST',
-        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},
+        headers:{Origin:location.origin,'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},
         body:file
       });
       if (!upload.ok) throw new Error('Local upload failed: HTTP ' + upload.status);
       const uj = await upload.json();
       const process = await fetch(base + '/api/process', {
         method:'POST',
-        headers:{Origin:location.origin,'X-Omni-Token':h.token,'Content-Type':'application/json'},
+        headers:{Origin:location.origin,'Content-Type':'application/json'},
         body:JSON.stringify({op:'archive_extract',input:uj.file_id,format})
       });
       const pj = await process.json();
       if (!process.ok || !pj.ok) throw new Error(pj.error || 'Native archive extraction failed');
-      const download = await fetch(base + '/api/download/' + encodeURIComponent(pj.file_id), {headers:{Origin:location.origin,'X-Omni-Token':h.token}});
+      const download = await fetch(base + '/api/download/' + encodeURIComponent(pj.file_id), {headers:{Origin:location.origin}});
       if (!download.ok) throw new Error('Extracted archive download failed');
       return await download.blob();
     }
@@ -570,39 +582,94 @@
 
     // Large-file PDF transport. PDF.js requests only the byte ranges it needs,
     // avoiding a full-file ArrayBuffer for large local PDFs.
-    class FileRangeTransport extends pdfjsLib.PDFDataRangeTransport {
-      constructor(file) {
-        super(file.size, null, true);
-        this.file = file;
+    // Built lazily: a top-level `extends pdfjsLib...` would abort the whole core
+    // (every studio wired below) whenever the PDF.js CDN/vendor script fails to load.
+    async function requirePdfJs() {
+      try {
+        if (window.OMNI_PDFJS_READY) return await window.OMNI_PDFJS_READY;
+        if (window.pdfjsLib) return window.pdfjsLib;
+      } catch (err) {
+        throw new Error('The verified PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
       }
-      requestDataRange(begin, end) {
-        this.file.slice(begin, end).arrayBuffer().then(buffer => {
-          this.onDataRange(begin, new Uint8Array(buffer));
-        }).catch(err => {
-          console.error('PDF range read failed', err);
-          this.onDataRange(begin, new Uint8Array(0));
-        });
+      throw new Error('The verified PDF engine (PDF.js) did not load. Check your connection, or run prepare_offline.py and start the Local Engine for offline use.');
+    }
+    let FileRangeTransportClass = null;
+    function createFileRangeTransport(file, lib) {
+      if (!lib) throw new Error('PDF.js must be ready before creating a range transport.');
+      if (!FileRangeTransportClass) {
+        FileRangeTransportClass = class extends lib.PDFDataRangeTransport {
+          constructor(f) {
+            super(f.size, null, true);
+            this.file = f;
+          }
+          requestDataRange(begin, end) {
+            this.file.slice(begin, end).arrayBuffer().then(buffer => {
+              this.onDataRange(begin, new Uint8Array(buffer));
+            }).catch(err => {
+              console.error('PDF range read failed', err);
+              this.onDataRange(begin, new Uint8Array(0));
+            });
+          }
+        };
       }
+      return new FileRangeTransportClass(file);
     }
 
     let currentPdfDoc = null;
     let currentPdfFile = null;
     let pdfConvertedImgs = [];
+    let pdfLoadPromise = null;
+    let pdf2imgObjectUrls = [];
+    function clearPdf2ImgResults() {
+      pdf2imgObjectUrls.forEach(u => URL.revokeObjectURL(u));
+      pdf2imgObjectUrls = [];
+      pdfConvertedImgs = [];
+      pdf2imgGrid.innerHTML = '';
+    }
+    const rangeError = (value, total) => `No pages match "${value}". This PDF has ${total} page${total === 1 ? '' : 's'} — use numbers between 1 and ${total}, e.g. 1-3, 5.`;
+
+    // AVIF: Chromium can decode AVIF but cannot encode it from a canvas; mark the option honestly.
+    (function markAvifSupport(){
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 2;
+        c.toBlob(b => {
+          if (b && b.type === 'image/avif') return;
+          const opt = pdf2imgFormat && [...pdf2imgFormat.options].find(o => o.value === 'avif');
+          if (opt) { opt.textContent = 'AVIF (not supported by this browser)'; opt.disabled = true; if (pdf2imgFormat.value === 'avif') pdf2imgFormat.value = 'webp'; }
+        }, 'image/avif', 0.8);
+      } catch (_) {}
+    })();
 
     pdf2imgDropzone.addEventListener('click', () => pdf2imgInput.click());
     setupDragDrop(pdf2imgDropzone, (files) => { if (files[0]) loadPdfForImg(files[0]); });
     pdf2imgInput.addEventListener('change', (e) => { if (e.target.files[0]) loadPdfForImg(e.target.files[0]); });
 
-    async function loadPdfForImg(file) {
+    function loadPdfForImg(file) {
+      pdfLoadPromise = openPdfForImg(file).finally(() => { pdfLoadPromise = null; });
+      return pdfLoadPromise;
+    }
+    async function openPdfForImg(file) {
+      if (currentPdfDoc && currentPdfDoc.destroy) currentPdfDoc.destroy().catch(() => {});
+      currentPdfDoc = null;
       currentPdfFile = file;
+      clearPdf2ImgResults();
+      pdf2imgResultsSection.style.display = 'none';
       pdf2imgDropzone.style.display = 'none';
       pdf2imgControls.style.display = 'flex';
       pdf2imgName.textContent = file.name;
       pdf2imgMeta.textContent = 'Opening large-file PDF engine…';
 
+      let pdfjs;
       try {
-        const transport = new FileRangeTransport(file);
-        currentPdfDoc = await pdfjsLib.getDocument({
+        pdfjs = await requirePdfJs();
+      } catch (e) {
+        alert(e.message);
+        resetPdf2Img();
+        return;
+      }
+      try {
+        const transport = createFileRangeTransport(file, pdfjs);
+        currentPdfDoc = await pdfjs.getDocument({
           range: transport,
           length: file.size,
           disableAutoFetch: true,
@@ -610,12 +677,12 @@
           rangeChunkSize: 1024 * 1024,
           useWorkerFetch: false
         }).promise;
-        pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)} • Large-file mode`;
+        pdf2imgMeta.textContent = `${currentPdfDoc.numPages} page${currentPdfDoc.numPages === 1 ? '' : 's'} • ${formatFileSize(file.size)}${file.size > 50 * 1024 * 1024 ? ' • large-file mode' : ''}`;
       } catch (e) {
         console.warn('Range PDF loader failed; using compatibility loader', e);
         try {
           const ab = await file.arrayBuffer();
-          currentPdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          currentPdfDoc = await pdfjs.getDocument({ data: new Uint8Array(ab) }).promise;
           pdf2imgMeta.textContent = `${currentPdfDoc.numPages} pages • ${formatFileSize(file.size)}`;
         } catch (fallbackError) {
           alert('Could not read this PDF. It may be encrypted, damaged, or unsupported.\n\n' + fallbackError.message);
@@ -626,25 +693,29 @@
 
     pdf2imgReset.addEventListener('click', resetPdf2Img);
     function resetPdf2Img() {
+      if (currentPdfDoc && currentPdfDoc.destroy) currentPdfDoc.destroy().catch(() => {});
       currentPdfDoc = null;
       currentPdfFile = null;
-      pdfConvertedImgs = [];
+      clearPdf2ImgResults();
       pdf2imgDropzone.style.display = 'block';
       pdf2imgControls.style.display = 'none';
       pdf2imgResultsSection.style.display = 'none';
-      pdf2imgGrid.innerHTML = '';
       pdf2imgInput.value = '';
     }
 
     pdf2imgBtn.addEventListener('click', async () => {
-      if (!currentPdfDoc) return;
-      pdf2imgBtn.disabled = true;
-      pdfConvertedImgs = [];
-      pdf2imgGrid.innerHTML = '';
-
+      if (!currentPdfDoc && pdfLoadPromise) {
+        pdf2imgBtn.disabled = true;
+        pdf2imgMeta.textContent = 'Opening PDF…';
+        try { await pdfLoadPromise; } finally { pdf2imgBtn.disabled = false; }
+      }
+      if (!currentPdfDoc) { alert('Choose a PDF first.'); return; }
       const scale = parseFloat(pdf2imgDpi.value) || 2.0;
       const fmt = pdf2imgFormat.value;
       const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
+      if (!pages.length) { alert(rangeError(pdf2imgPages.value, currentPdfDoc.numPages)); return; }
+      pdf2imgBtn.disabled = true;
+      clearPdf2ImgResults();
 
       try {
       for (let i = 0; i < pages.length; i++) {
@@ -675,9 +746,11 @@
           omniNotify('Requested image codec is unavailable; exported JPG instead.', false);
         }
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (!blob) throw new Error('Browser could not encode page ' + pNum);
         const filename = `${currentPdfFile.name.replace(/\.[^/.]+$/, "")}_page_${pNum}.${ext}`;
-        pdfConvertedImgs.push({ pNum, blob, dataUrl, filename, ext });
+        pdfConvertedImgs.push({ pNum, blob, filename, ext });
+        // Release the full-resolution canvas immediately; previews reuse the encoded blob.
+        canvas.width = 1; canvas.height = 1;
         if (page.cleanup) page.cleanup();
         pdf2imgCount.textContent = `Converted ${i + 1} / ${pages.length} pages`;
       }
@@ -687,10 +760,11 @@
         const card = document.createElement('div');
         card.className = 'page-card';
         const pw=document.createElement('div'); pw.className='page-preview-wrapper';
-        const pic=document.createElement('img'); pic.src=img.dataUrl; pic.alt='PDF page '+img.pNum; pw.appendChild(pic);
+        const url=URL.createObjectURL(img.blob); pdf2imgObjectUrls.push(url);
+        const pic=document.createElement('img'); pic.src=url; pic.loading='lazy'; pic.decoding='async'; pic.alt='PDF page '+img.pNum; pw.appendChild(pic);
         const pm=document.createElement('div'); pm.className='page-meta';
         const pn=document.createElement('div'); pn.className='page-num'; pn.textContent='Page '+img.pNum;
-        const save=document.createElement('a'); save.className='btn-download-single'; save.href=URL.createObjectURL(img.blob); save.download=img.filename; save.textContent='Save .'+img.ext.toUpperCase();
+        const save=document.createElement('a'); save.className='btn-download-single'; save.href=url; save.download=img.filename; save.textContent='Save .'+img.ext.toUpperCase();
         pm.append(pn,save); card.append(pw,pm);
         pdf2imgGrid.appendChild(card);
       });
@@ -700,7 +774,7 @@
       } finally {
         pdf2imgBtn.disabled = false;
       }
-      pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
+      if (pdfConvertedImgs.length) pdf2imgResultsSection.scrollIntoView({ behavior: 'smooth' });
     });
 
     pdf2imgDownloadAll.addEventListener('click', async () => {
@@ -710,6 +784,7 @@
         alert('The output is ' + formatFileSize(totalBytes) + '. Individual page downloads remain available; ZIP is disabled for this large job to prevent browser memory exhaustion.');
         return;
       }
+      if (!window.JSZip) { alert('The ZIP engine did not load. Use the individual Save buttons instead.'); return; }
       const zip = new JSZip();
       pdfConvertedImgs.forEach(item => zip.file(item.filename, item.blob, { compression: 'STORE' }));
       const zipBlob = await zip.generateAsync({ type: 'blob', streamFiles: true });
@@ -734,6 +809,7 @@
           const scale = parseFloat(pdf2imgDpi.value) || 2.0;
           const fmt = pdf2imgFormat.value;
           const pages = parsePageRange(pdf2imgPages.value, currentPdfDoc.numPages);
+          if (!pages.length) throw new Error(rangeError(pdf2imgPages.value, currentPdfDoc.numPages));
 
           for (let i = 0; i < pages.length; i++) {
             const pNum = pages[i];
@@ -752,7 +828,8 @@
 
             let mime = fmt === 'png' ? 'image/png' : fmt === 'webp' ? 'image/webp' : fmt === 'avif' ? 'image/avif' : 'image/jpeg';
             let ext = fmt === 'png' ? 'png' : fmt === 'webp' ? 'webp' : fmt === 'avif' ? 'avif' : 'jpg';
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
+            let blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
+            if (!blob || blob.type !== mime) { blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92)); mime = 'image/jpeg'; ext = 'jpg'; }
             if (!blob) throw new Error('Browser could not encode page ' + pNum);
 
             const safeBase = currentPdfFile.name.replace(/\.[^/.]+$/, '');
@@ -782,22 +859,60 @@
     // Merge PDFs
     const pdfMergeInput = document.getElementById('pdfMergeInput');
     const pdfMergeBtn = document.getElementById('pdfMergeBtn');
+    // Merge order list: the file picker's order is OS-dependent, so let the user reorder.
+    let pdfMergeQueue = [];
+    const pdfMergeOrder = document.createElement('ol');
+    pdfMergeOrder.id = 'pdfMergeOrder';
+    pdfMergeOrder.setAttribute('aria-label', 'Merge order');
+    pdfMergeOrder.style.cssText = 'margin:8px 0 0;padding-left:22px;font-size:.82rem;display:none';
+    pdfMergeInput.insertAdjacentElement('afterend', pdfMergeOrder);
+    function renderPdfMergeOrder() {
+      pdfMergeOrder.innerHTML = '';
+      pdfMergeOrder.style.display = pdfMergeQueue.length ? 'block' : 'none';
+      pdfMergeQueue.forEach((file, i) => {
+        const li = document.createElement('li');
+        li.style.cssText = 'display:list-item;margin:3px 0';
+        const name = document.createElement('span');
+        name.textContent = file.name + ' (' + formatFileSize(file.size) + ') ';
+        li.appendChild(name);
+        [['↑', 'Move up', i > 0, () => { [pdfMergeQueue[i - 1], pdfMergeQueue[i]] = [pdfMergeQueue[i], pdfMergeQueue[i - 1]]; }],
+         ['↓', 'Move down', i < pdfMergeQueue.length - 1, () => { [pdfMergeQueue[i + 1], pdfMergeQueue[i]] = [pdfMergeQueue[i], pdfMergeQueue[i + 1]]; }],
+         ['✕', 'Remove', true, () => { pdfMergeQueue.splice(i, 1); }]].forEach(([label, title, enabled, act]) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = label; b.title = title + ': ' + file.name; b.setAttribute('aria-label', title + ' ' + file.name);
+          b.disabled = !enabled;
+          b.style.cssText = 'padding:1px 8px;margin-left:4px;min-height:0;font-size:.75rem';
+          b.addEventListener('click', () => { act(); renderPdfMergeOrder(); });
+          li.appendChild(b);
+        });
+        pdfMergeOrder.appendChild(li);
+      });
+    }
+    pdfMergeInput.addEventListener('change', () => {
+      pdfMergeQueue = Array.from(pdfMergeInput.files || []);
+      renderPdfMergeOrder();
+    });
     pdfMergeBtn.addEventListener('click', async () => {
-      const files = Array.from(pdfMergeInput.files);
+      const files = pdfMergeQueue.length ? pdfMergeQueue.slice() : Array.from(pdfMergeInput.files);
       if (files.length < 2) { alert('Please select at least 2 PDF files.'); return; }
+      if (!window.PDFLib) { alert('The PDF editing engine (pdf-lib) did not load. Check your connection or use the Local Engine offline bundle.'); return; }
       pdfMergeBtn.disabled = true;
+      let current = '';
       try {
         const merged = await PDFLib.PDFDocument.create();
         for (const file of files) {
+          current = file.name;
           const ab = await file.arrayBuffer();
           const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
           const pages = await merged.copyPages(doc, doc.getPageIndices());
           pages.forEach(p => merged.addPage(p));
         }
+        current = '';
         const bytes = await merged.save();
         downloadBlob(new Blob([bytes], { type: 'application/pdf' }), 'merged.pdf');
+        omniNotify(`Merged ${merged.getPageCount()} pages from ${files.length} files.`);
       } catch (e) {
-        alert('Merge error: ' + e.message);
+        alert('Merge error' + (current ? ' in "' + current + '"' : '') + ': ' + e.message);
       } finally {
         pdfMergeBtn.disabled = false;
       }
@@ -810,12 +925,14 @@
     pdfSplitBtn.addEventListener('click', async () => {
       const file = pdfSplitInput.files[0];
       if (!file) { alert('Please choose a PDF to split.'); return; }
+      if (!window.PDFLib) { alert('The PDF editing engine (pdf-lib) did not load. Check your connection or use the Local Engine offline bundle.'); return; }
       pdfSplitBtn.disabled = true;
       try {
         const ab = await file.arrayBuffer();
         const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
         const total = doc.getPageCount();
         const targetPages = parsePageRange(pdfSplitRange.value, total);
+        if (!targetPages.length) throw new Error(rangeError(pdfSplitRange.value, total));
 
         const newDoc = await PDFLib.PDFDocument.create();
         const indices = targetPages.map(p => p - 1);
@@ -824,6 +941,7 @@
 
         const bytes = await newDoc.save();
         downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${file.name.replace(/\.[^/.]+$/, "")}_split.pdf`);
+        omniNotify(`Extracted ${targetPages.length} of ${total} pages.`);
       } catch (e) {
         alert('Split error: ' + e.message);
       } finally {
@@ -973,10 +1091,11 @@
         // here also keeps this path consistent with the other PDF loaders.
         const ab = await file.arrayBuffer();
         const bytes = new Uint8Array(ab);
-        currentP2wPdf = await pdfjsLib.getDocument({
+        currentP2wPdf = await (await requirePdfJs()).getDocument({
           data: bytes,
           useWorkerFetch: false,
-          isEvalSupported: true
+          isEvalSupported: false,
+          enableScripting: false
         }).promise;
         p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
       } catch (e) {
@@ -986,7 +1105,7 @@
         // detach/reuse the first ArrayBuffer during PDF.js initialization.
         try {
           const retryBytes = new Uint8Array(await file.arrayBuffer());
-          currentP2wPdf = await pdfjsLib.getDocument({ data: retryBytes }).promise;
+          currentP2wPdf = await (await requirePdfJs()).getDocument({ data: retryBytes }).promise;
           p2wFileMeta.textContent = `${currentP2wPdf.numPages} pages • ${formatFileSize(file.size)}`;
         } catch (retryError) {
           console.error('PDF to Word retry failed', retryError);
@@ -1383,7 +1502,7 @@
 
       try {
         const ab = await file.arrayBuffer();
-        currentP2ePdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        currentP2ePdf = await (await requirePdfJs()).getDocument({ data: ab }).promise;
         p2eFileMeta.textContent = `${currentP2ePdf.numPages} pages`;
       } catch (e) {
         alert('Could not read PDF.');

@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use Omni Suite, please cite this software."
+title: "Omni Suite"
+abstract: "Omni Suite (OmniConverter Studio) is a browser-first, offline-capable toolkit for document, image, OCR, audio, video, archive, data-engineering, and database workflows. Browser-capable operations run locally in the browser; an optional loopback-only Local Engine provides native processing for specialist and large-file tasks."
+authors:
+  - family-names: "Raman"
+    given-names: "Raghav"
+version: "1.0.0"
+date-released: "2026-10-12"
+license: MIT
+repository-code: "https://github.com/theraghavraman/omni_suite_light"
+url: "https://theraghavraman.github.io/omni_suite_light/"

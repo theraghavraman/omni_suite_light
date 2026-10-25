@@ -1,5 +1,5 @@
 /* Omni Suite Social Resolver configuration.
- * After deploying social-resolver/, paste its HTTPS base URL here.
- * Example: window.OMNI_SOCIAL_RESOLVER_URL = 'https://omni-social-resolver.onrender.com';
+ * The resolver stays disabled until authenticated user sessions, shared quotas,
+ * and signed per-user media grants are deployed.
  */
 window.OMNI_SOCIAL_RESOLVER_URL = '';

@@ -35,8 +35,8 @@ function download(blob,name){const u=URL.createObjectURL(blob),a=document.create
 function parseCsv(text,sep){const rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(q&&text[i+1]==='"'){cell+='"';i++}else q=!q}else if(c===sep&&!q){row.push(cell);cell=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);cell='';if(row.some(x=>x!==''))rows.push(row);row=[]}else cell+=c}if(cell!==''||row.length){row.push(cell);if(row.some(x=>x!==''))rows.push(row)}const h=rows.shift()||[];return rows.map(r=>Object.fromEntries(h.map((k,i)=>[k||'column_'+(i+1),r[i]??''])))} 
 function flatten(v,p='',out={}){if(v&&typeof v==='object'&&!Array.isArray(v))Object.entries(v).forEach(([k,x])=>flatten(x,p?p+'.'+k:k,out));else out[p]=v;return out}
 function toRows(v){if(Array.isArray(v))return v.map(x=>x&&typeof x==='object'?flatten(x):{value:x});if(v&&typeof v==='object')return[flatten(v)];return[{value:v}]}
-function rowsToCsv(rows,sep=','){const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))],q=x=>'"'+String(x??'').replace(/"/g,'""')+'"';return[keys.map(q).join(sep),...rows.map(r=>keys.map(k=>q(r[k])).join(sep))].join('\n')}
-function rowsToXml(rows){return'<?xml version="1.0" encoding="UTF-8"?><rows>'+rows.map(r=>'<row>'+Object.entries(r).map(([k,v])=>{const n=String(k).replace(/[^A-Za-z0-9_.-]/g,'_');return'<'+n+'>'+esc(v)+'</'+n+'>'}).join('')+'</row>').join('')+'</rows>'}
+function rowsToCsv(rows,sep=',',spreadsheetSafe=true){return OMNI_SECURITY.safeCsv(rows,sep,spreadsheetSafe)}
+function rowsToXml(rows){return OMNI_SECURITY.safeXml(rows)}
 function rowsToHtml(rows){const k=[...new Set(rows.flatMap(r=>Object.keys(r)))];return'<!doctype html><html><body><table><thead><tr>'+k.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+k.map(x=>'<td>'+esc(r[x])+'</td>').join('')+'</tr>').join('')+'</tbody></table></body></html>'}
 function rowsToMd(rows){const k=[...new Set(rows.flatMap(r=>Object.keys(r)))];return'| '+k.join(' | ')+' |\n| '+k.map(()=> '---').join(' | ')+' |\n'+rows.map(r=>'| '+k.map(x=>String(r[x]??'').replace(/\|/g,'\\|')).join(' | ')+' |').join('\n')}
 function bytesToHex(b){return[...b].map(x=>x.toString(16).padStart(2,'0')).join(' ')}
@@ -46,9 +46,10 @@ function bytesToBase64(b){let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fr
 function parseNewick(s){let i=0;function node(){const n={name:'',children:[]};while(i<s.length&&!/[(),;:]/.test(s[i]))n.name+=s[i++];if(s[i]==='('){i++;n.children=[];while(i<s.length&&s[i]!==')'){n.children.push(node());if(s[i]===',')i++}if(s[i]===')')i++}if(s[i]===':'){i++;while(i<s.length&&!/[(),;]/.test(s[i]))i++}return n}return node()}
 function parseSpecial(text,e){
  if(e==='csv'||e==='tsv')return{kind:'table',rows:parseCsv(text,e==='tsv'?'\t':',')};
- if(e==='json'||e==='geojson'){const v=JSON.parse(text);return{kind:e==='geojson'?'geojson':'table',value:v,rows:toRows(v)}}
- if(e==='jsonl'||e==='ndjson'){return{kind:'table',rows:text.split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x)).map(x=>x&&typeof x==='object'?flatten(x):{value:x})}}
- if((e==='yaml'||e==='yml')&&window.jsyaml){const v=window.jsyaml.load(text);return{kind:'table',value:v,rows:toRows(v)}}
+ if(e==='xml'){const doc=new DOMParser().parseFromString(text,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid XML document');const xmlRows=[...doc.querySelectorAll('rows > row')].map(row=>{const item=Object.create(null);for(const cell of row.querySelectorAll(':scope > cell'))item[cell.getAttribute('key')||'']=cell.textContent||'';return item});if(xmlRows.length)return{kind:'table',rows:xmlRows};return{kind:'text',text}}
+ if(e==='json'||e==='geojson'){const v=OMNI_SECURITY.rejectPoisonKeys(JSON.parse(text));return{kind:e==='geojson'?'geojson':'table',value:v,rows:toRows(v)}}
+ if(e==='jsonl'||e==='ndjson'){return{kind:'table',rows:text.split(/\r?\n/).filter(Boolean).map(x=>OMNI_SECURITY.rejectPoisonKeys(JSON.parse(x))).map(x=>x&&typeof x==='object'?flatten(x):{value:x})}}
+ if((e==='yaml'||e==='yml')&&window.jsyaml){const v=OMNI_SECURITY.rejectPoisonKeys(window.jsyaml.load(text));return{kind:'table',value:v,rows:toRows(v)}}
  if(e==='newick'||e==='nwk')return{kind:'tree',value:parseNewick(text)};
  if(['fasta','fa','fna'].includes(e)){const out=[];let id='',seq='';text.split(/\r?\n/).forEach(l=>{if(l[0]==='>'){if(id)out.push({id,sequence:seq});id=l.slice(1).trim();seq=''}else if(l.trim())seq+=l.trim()});if(id)out.push({id,sequence:seq});return{kind:'table',rows:out}}
  if(['fastq','fq'].includes(e)){const a=text.split(/\r?\n/).filter(Boolean),out=[];for(let i=0;i+3<a.length;i+=4)out.push({id:a[i].replace(/^@/,''),sequence:a[i+1],quality:a[i+3]});return{kind:'table',rows:out}}
@@ -85,8 +86,8 @@ async function convertBrowser(file,target){
  const text=await file.text(),p=parseSpecial(text,e),rows=p.rows||toRows(p.value??text);
  if(target==='json')return new Blob([JSON.stringify(p.value??rows,null,2)],{type:'application/json'});
  if(target==='jsonl')return new Blob([rows.map(x=>JSON.stringify(x)).join('\n')],{type:'application/x-ndjson'});
- if(target==='csv')return new Blob([rowsToCsv(rows)],{type:'text/csv'});
- if(target==='tsv')return new Blob([rowsToCsv(rows,'\t')],{type:'text/tab-separated-values'});
+ if(target==='csv')return new Blob([rowsToCsv(rows,',',!$('udsXRawCsv')?.checked)],{type:'text/csv'});
+ if(target==='tsv')return new Blob([rowsToCsv(rows,'\t',!$('udsXRawCsv')?.checked)],{type:'text/tab-separated-values'});
  if(target==='yaml'&&window.jsyaml)return new Blob([window.jsyaml.dump(p.value??rows)],{type:'text/yaml'});
  if(target==='xml')return new Blob([rowsToXml(rows)],{type:'application/xml'});
  if(target==='html')return new Blob([rowsToHtml(rows)],{type:'text/html'});
@@ -96,10 +97,10 @@ async function convertBrowser(file,target){
  return new Blob([text],{type:'text/plain'})
 }
 async function localConvert(file,target){
- const base='http://127.0.0.1:8765',h=await fetch(base+'/api/health',{cache:'no-store'});if(!h.ok)throw new Error('Local Engine is not running');const health=await h.json(),token=health.token||'';
- const up=await fetch(base+'/api/upload',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error('Local upload failed');
- const u=await up.json(),pr=await fetch(base+'/api/process',{method:'POST',headers:{Origin:location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify({op:'data_convert',input:u.file_id,format:target==='local-native'?'json':target,dialect:'sqlite',table:'data'})}),j=await pr.json();if(!pr.ok||!j.ok)throw new Error(j.error||'Local conversion failed');
- const d=await fetch(base+'/api/download/'+encodeURIComponent(j.file_id),{headers:{Origin:location.origin,'X-Omni-Token':token}});if(!d.ok)throw new Error('Local output download failed');return{blob:await d.blob(),name:j.name||'omni-output'}
+ const base='http://127.0.0.1:8765',h=await fetch(base+'/api/health',{cache:'no-store'});if(!h.ok)throw new Error('Local Engine is not running');const health=await h.json();
+ const up=await fetch(base+'/api/upload',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});if(!up.ok)throw new Error('Local upload failed');
+ const u=await up.json(),pr=await fetch(base+'/api/process',{method:'POST',headers:{Origin:location.origin,'Content-Type':'application/json'},body:JSON.stringify({op:'data_convert',input:u.file_id,format:target==='local-native'?'json':target,dialect:'sqlite',table:'data'})}),j=await pr.json();if(!pr.ok||!j.ok)throw new Error(j.error||'Local conversion failed');
+ const d=await fetch(base+'/api/download/'+encodeURIComponent(j.file_id),{headers:{Origin:location.origin}});if(!d.ok)throw new Error('Local output download failed');return{blob:await d.blob(),name:j.name||'omni-output'}
 }
 
 function wireLegacy(){
@@ -122,10 +123,12 @@ function wireLegacy(){
 }
 function build(){
  const panel=$('tabUniversalData');if(!panel)return;
+ // build() is reached from both the immediate call and DOMContentLoaded: wire the listeners only once
+ if(panel.dataset.udsFormatsBuilt)return;panel.dataset.udsFormatsBuilt='1';
  let card=$('udsFormatExplorer');
  if(!card){
  card=document.createElement('div');card.className='card';card.id='udsFormatExplorer';
- card.innerHTML='<h2>🧰 Universal Format Workbench</h2><div class="sub"><b>One file in → semantic understanding → browser preview → conversion.</b> Browser-safe formats stay local; specialist/scientific formats are explicitly routed to the Local Engine instead of being misread as generic text.</div><div class="uds-xbar"><input id="udsXInput" type="file" class="file-input" accept="*/*"><button type="button" class="btn btn-primary" id="udsXOpen">Open / Render</button><select id="udsXTarget" class="form-select"><option>Choose output…</option></select><button type="button" class="btn btn-success" id="udsXConvert">Convert</button><button type="button" class="btn btn-secondary" id="udsXLocal">Open with Local Engine</button></div><div class="uds-xcap" id="udsXCatalog"></div><div class="uds-xstatus" id="udsXStatus">Choose a file to begin.</div><div id="udsXPreview" class="uds-xpreview"><div class="uds-xempty">Browser render area.</div></div>';
+ card.innerHTML='<h2>🧰 Universal Format Workbench</h2><div class="sub"><b>One file in → semantic understanding → browser preview → conversion.</b> Browser-safe formats stay local; specialist/scientific formats are explicitly routed to the Local Engine instead of being misread as generic text.</div><div class="uds-xbar"><input id="udsXInput" type="file" class="file-input" accept="*/*"><button type="button" class="btn btn-primary" id="udsXOpen">Open / Render</button><select id="udsXTarget" class="form-select"><option>Choose output…</option></select><label><input id="udsXRawCsv" type="checkbox"> Raw machine CSV/TSV (may run formulas in spreadsheet apps)</label><button type="button" class="btn btn-success" id="udsXConvert">Convert</button><button type="button" class="btn btn-secondary" id="udsXLocal">Open with Local Engine</button></div><div class="uds-xcap" id="udsXCatalog"></div><div class="uds-xstatus" id="udsXStatus">Choose a file to begin.</div><div id="udsXPreview" class="uds-xpreview"><div class="uds-xempty">Browser render area.</div></div>';
  const hero=panel.querySelector('.uds-hero');if(hero&&hero.nextElementSibling)panel.insertBefore(card,hero.nextElementSibling);else panel.appendChild(card);$('udsXCatalog').innerHTML=REGISTRY.map(x=>'<span><b>'+esc(x.category)+'</b> '+esc(x.exts.map(e=>'.'+e).join(' • '))+'</span>').join('');
  }
  const input=$('udsXInput'),target=$('udsXTarget');
@@ -143,7 +146,8 @@ const style=document.createElement('style');style.textContent='.uds-xbar{display
 window.OMNI_UDS_FORMATS={registry:REGISTRY,allExtensions:allExts,browserOpen:[...browserOpen],browserConvert:[...browserConvert]};
 window.OMNI_UNIVERSAL_DATA=window.OMNI_UNIVERSAL_DATA||{};
 window.OMNI_UNIVERSAL_DATA.formats=REGISTRY;
-window.OMNI_UNIVERSAL_DATA.exportAs=async function(fileOrBlob,target){
+// exportAs(fmt) belongs to universal_data_studio.js; expose file conversion under its own name
+window.OMNI_UNIVERSAL_DATA.convertFile=async function(fileOrBlob,target){
   const file=fileOrBlob instanceof File?fileOrBlob:new File([fileOrBlob],'omni-input.dat');
   return convertBrowser(file,String(target||'json').replace(/^\\./,''));
 };

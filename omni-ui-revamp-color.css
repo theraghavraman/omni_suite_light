@@ -82,13 +82,18 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 .omni-ready i{background:var(--rv-ok) !important}
 /* 03 · Shell: fixed sidebar of studios (desktop and tablet landscape) */
 @media (min-width:1024px){
+  /* width:auto + stretch: the container fills the space right of the sidebar. With the base width:100%
+     it was a full viewport wide plus the sidebar margin, so the centred body pushed it 124px under the
+     sidebar and 124px off the right edge (clipped text, sideways scroll on 1280-1440px laptops). */
   .container{
+    width:auto !important;min-width:0 !important;box-sizing:border-box !important;
+    align-self:stretch !important;
     max-width:none !important;
     margin:0 0 0 var(--rv-side) !important;
     padding:24px clamp(20px,3vw,40px) 64px !important;
   }
   .container > :not(.nav-bar){max-width:1180px;margin-left:auto !important;margin-right:auto !important}
-  body > footer{margin-left:var(--rv-side) !important}
+  body > footer{margin-left:var(--rv-side) !important;align-self:stretch !important}
 
   .nav-bar{
     position:fixed !important;z-index:50 !important;
@@ -147,7 +152,7 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   .nav-btn[data-tab="tabDatabaseStudio"]{order:32 !important}
   .nav-btn[data-tab="tabDataClean"]{order:33 !important}
   .nav-btn[data-tab="tabVizInterchange"]{order:34 !important}
-  .nav-btn[data-tab="tabBatchLab"]{order:35 !important}
+  .nav-btn[data-tab="tabBatchLab"]{order:35 !important;display:flex !important;visibility:visible !important;opacity:1 !important;height:auto !important;max-height:none !important;flex:0 0 auto !important}
   .nav-btn[data-tab="tabRAGStudio"]{order:40 !important}
   .nav-btn[data-tab="tabLanguageStudio"]{order:41 !important}
   .nav-btn[data-tab="tabCodeStudio"]{order:42 !important}
@@ -178,18 +183,26 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   .nav-bar .nav-btn[data-tab="tabLocal"]::before{content:"System" !important}
 
   /* white footer band behind the floating "Ask Omni" button */
+  /* an older theme gives the sidebar a backdrop blur, which makes the fixed footer band
+     below scroll with the list and cover studios; the sidebar is solid white, so drop it */
+  .nav-bar{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;filter:none !important;transform:none !important}
   .nav-bar::after{
-    content:"" !important;position:fixed !important;left:0 !important;bottom:0 !important;
+    content:"" !important;position:fixed !important;left:0 !important;top:auto !important;right:auto !important;bottom:0 !important;
     width:calc(var(--rv-side) - 1px) !important;height:68px !important;
     background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 28%) !important;
     pointer-events:none !important;z-index:51 !important;
   }
-  #omniAssistantButton{z-index:70 !important}
+  #omniAssistantButton{z-index:70 !important;left:auto !important;right:22px !important}
+  #omniAssistantPanel{left:auto !important;right:22px !important}
+  @media(max-width:600px){#omniAssistantButton{left:auto !important;right:14px !important}#omniAssistantPanel{left:auto !important;right:14px !important}}
 
   #omniStaticStudios{display:none !important}
 }
 /* 04 · Welcome band, getting-started guide, studio header, tool jump bar */
+/* .hero-render is hidden in this theme, so drop its grid track: the empty >=420px column squeezed the
+   welcome copy into a narrow strip on 1024-1440px windows. */
 .hero-header{
+  grid-template-columns:minmax(0,1fr) !important;
   min-height:0 !important;margin:0 0 16px !important;padding:24px 28px !important;
   background:var(--rv-surface) !important;border:1px solid var(--rv-line) !important;
   border-radius:var(--rv-r-lg) !important;box-shadow:var(--rv-shadow) !important;
@@ -224,7 +237,8 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 }
 
 .omni-guide{margin:0 0 24px !important;padding:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important}
-.omni-guide-grid{gap:12px !important}
+/* the third guide card (Local mode) is hidden in index.html; keep two tracks so the row is not one-third empty */
+.omni-guide-grid{gap:12px !important;grid-template-columns:1.4fr 1fr !important}
 .omni-guide-item{
   background:var(--rv-surface) !important;border:1px solid var(--rv-line) !important;border-left:1px solid var(--rv-line) !important;
   border-radius:var(--rv-r) !important;box-shadow:none !important;padding:16px 18px !important;
@@ -239,6 +253,8 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
 
 /* studio header */
 .module-panel{scroll-margin-top:calc(var(--rv-bar) + 12px) !important}
+/* keep anything scrolled into view clear of the sticky tool bar */
+.module-panel .card,.module-panel .results-section,.module-panel [id$="Results"],.module-panel [id$="ResultsSection"],.module-panel [id$="Output"],.module-panel [id$="OutputContainer"]{scroll-margin-top:calc(var(--rv-bar) + var(--rv-overview-h,56px) + 12px) !important}
 .studio-workspace-head{
   background:var(--rv-surface) !important;color:var(--rv-ink) !important;
   border:1px solid var(--rv-line) !important;border-radius:var(--rv-r-lg) !important;
@@ -418,7 +434,7 @@ kbd,pre,code{font-family:var(--rv-mono) !important}
   font:600 13px/1 var(--rv-body) !important;padding:11px 16px !important;border-radius:999px !important;
   background-image:none !important;box-shadow:var(--rv-shadow-up) !important;border:1px solid transparent !important;
 }
-#omniAssistantButton{background:var(--rv-ink) !important;color:#fff !important;left:16px !important;bottom:16px !important}
+#omniAssistantButton{position:fixed !important;background:var(--rv-ink) !important;color:#fff !important;left:auto !important;right:22px !important;bottom:22px !important;top:auto !important;width:max-content !important;min-width:0 !important;max-width:calc(100vw - 32px) !important;margin:0 !important;flex:0 0 auto !important;z-index:9999 !important}
 #omniAssistantButton span{color:#fff !important}
 #omniRenderCloudBtn{background:var(--rv-surface) !important;color:var(--rv-ink) !important;border-color:var(--rv-line-strong) !important;right:16px !important;bottom:16px !important}
 
@@ -634,4 +650,28 @@ body,body.studio-mode{
 
 /* tidy pills inside the Private RAG intro */
 .rag-pill{white-space:nowrap !important;padding:6px 11px !important;height:auto !important;min-height:0 !important;align-self:center !important;border-radius:999px !important}
+}
+
+/* Clean studio headers: no decorative icon tile before card headings */
+.card h2::before,.module-panel .card > h2::before{content:none !important;display:none !important}
+/* Private RAG: stats live inside the status card, so the top row is one column */
+#tabRAGStudio .rag-top-grid{grid-template-columns:minmax(0,1fr) !important}
+
+
+/* Ask Omni must float independently at the viewport's bottom-right, never stretch as a footer/sidebar bar. */
+html body #omniAssistantButton{
+  position:fixed !important;left:auto !important;right:22px !important;top:auto !important;bottom:22px !important;
+  width:max-content !important;min-width:0 !important;max-width:calc(100vw - 32px) !important;
+  height:auto !important;min-height:0 !important;max-height:none !important;
+  margin:0 !important;inset-inline-start:auto !important;inset-inline-end:22px !important;
+  flex:0 0 auto !important;transform:none;z-index:9999 !important;border-radius:18px !important;
+}
+html body #omniAssistantPanel{
+  position:fixed !important;left:auto !important;right:22px !important;top:auto !important;bottom:78px !important;
+  width:min(430px,calc(100vw - 28px)) !important;max-width:calc(100vw - 28px) !important;
+  margin:0 !important;inset-inline-start:auto !important;inset-inline-end:22px !important;z-index:9998 !important;
+}
+@media(max-width:600px){
+  html body #omniAssistantButton{right:14px !important;inset-inline-end:14px !important;bottom:14px !important}
+  html body #omniAssistantPanel{right:14px !important;inset-inline-end:14px !important;bottom:70px !important}
 }

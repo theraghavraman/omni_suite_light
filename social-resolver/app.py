@@ -1,24 +1,59 @@
 import os
 import re
+import time
 import tempfile
 import shutil
 import ipaddress
 from pathlib import Path
 from urllib.parse import urlparse, quote, unquote
+from secrets import compare_digest
 import html as html_lib
 import urllib.request
 import json
 
 import yt_dlp
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
+from starlette.background import BackgroundTask
 from pydantic import BaseModel, HttpUrl
+from omni_security_primitives import bounded_public_https_get
 
 APP_NAME = "Omni Social Resolver"
 MAX_DURATION = int(os.getenv("MAX_DURATION", "900"))
 MAX_DOWNLOAD_MB = int(os.getenv("MAX_DOWNLOAD_MB", "300"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "https://theraghavraman.github.io")
+
+# Abuse controls remain configured for a future authenticated service. All public
+# processing routes currently fail closed until the identity and quota layer exists.
+RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+RATE_WINDOW = 60
+_RATE_BUCKET: dict[str, list[float]] = {}
+DOWNLOAD_ROOT = Path(tempfile.mkdtemp(prefix="omni-social-downloads-"))
+if os.name != "nt": os.chmod(DOWNLOAD_ROOT, 0o700)
+
+
+def client_ip(request: Request) -> str:
+    return (request.client.host if request.client else "") or "unknown"
+
+
+def rate_ok(ip: str) -> bool:
+    now = time.time()
+    bucket = [t for t in _RATE_BUCKET.get(ip, []) if now - t < RATE_WINDOW]
+    if len(bucket) >= RATE_LIMIT:
+        _RATE_BUCKET[ip] = bucket
+        return False
+    bucket.append(now)
+    _RATE_BUCKET[ip] = bucket
+    if len(_RATE_BUCKET) > 4096:  # bound memory: drop buckets with no live hits
+        for key in [k for k, v in _RATE_BUCKET.items() if not any(now - t < RATE_WINDOW for t in v)]:
+            _RATE_BUCKET.pop(key, None)
+    return True
+
+
+def guard(request: Request) -> None:
+    """Fail closed until the OIDC/BFF and subject-bound resource grants exist."""
+    raise HTTPException(503, "Social resolver is disabled until authenticated user sessions, shared quotas and signed per-user media grants are deployed.")
 
 SUPPORTED_HOSTS = {
     "instagram.com", "facebook.com", "fb.watch", "tiktok.com",
@@ -29,6 +64,17 @@ SUPPORTED_HOSTS = {
 }
 
 app = FastAPI(title=APP_NAME, version="1.0")
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,8 +91,8 @@ class ResolveRequest(BaseModel):
 
 def validate_public_url(raw: str) -> str:
     p = urlparse(str(raw))
-    if p.scheme not in ("http", "https") or not p.hostname:
-        raise HTTPException(400, "Only public HTTP/HTTPS URLs are supported.")
+    if p.scheme != "https" or not p.hostname or p.username or p.password or p.port not in (None,443):
+        raise HTTPException(400, "Only public HTTPS URLs on port 443 are supported.")
 
     host = p.hostname.lower().rstrip(".")
     if host == "localhost" or host.endswith(".localhost"):
@@ -110,7 +156,7 @@ def is_allowed_media_url(raw: str) -> bool:
     try:
         p = urlparse(raw)
         host = (p.hostname or "").lower().rstrip(".")
-        return p.scheme in ("http", "https") and any(
+        return p.scheme == "https" and p.port in (None,443) and not p.username and not p.password and any(
             host == suffix or host.endswith("." + suffix)
             for suffix in MEDIA_HOST_SUFFIXES
         )
@@ -769,7 +815,8 @@ def health():
 
 
 @app.post("/api/resolve")
-def resolve(body: ResolveRequest):
+def resolve(body: ResolveRequest, request: Request):
+    guard(request)
     url = validate_public_url(str(body.url))
 
     # Instagram needs its post-specific public resolver first. yt-dlp can be
@@ -818,44 +865,25 @@ def resolve(body: ResolveRequest):
 
 
 @app.get("/api/media-proxy")
-def media_proxy(url: str = Query(...)):
+def media_proxy(request: Request, url: str = Query(...)):
     """Proxy a short-lived public CDN media URL so browser CORS does not block downloads."""
+    guard(request)
     target = unquote(url)
     if not is_allowed_media_url(target):
         raise HTTPException(400, "Media URL is not an allowed public CDN URL.")
-    req = urllib.request.Request(
-        target,
-        headers={
-            "User-Agent": "Mozilla/5.0",
-            "Referer": "https://www.instagram.com/",
-        },
-        method="GET",
-    )
     try:
-        upstream = urllib.request.urlopen(req, timeout=30)
+        content_type, body = bounded_public_https_get(
+            target, set(MEDIA_HOST_SUFFIXES), max_bytes=20 * 1024 * 1024,
+            redirect_limit=3, timeout=10
+        )
     except Exception as exc:
         raise HTTPException(502, f"Media CDN request failed: {str(exc)[:200]}")
-    content_type = upstream.headers.get("Content-Type", "application/octet-stream")
-    content_length = upstream.headers.get("Content-Length")
-    headers = {}
-    if content_length:
-        headers["Content-Length"] = content_length
-
-    def stream():
-        try:
-            while True:
-                chunk = upstream.read(1024 * 1024)
-                if not chunk:
-                    break
-                yield chunk
-        finally:
-            upstream.close()
-
-    return StreamingResponse(stream(), media_type=content_type, headers=headers)
+    return Response(body, media_type=content_type, headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff"})
 
 
 @app.get("/api/download")
-def download(url: str = Query(...), quality: str = Query("Best")):
+def download(request: Request, url: str = Query(...), quality: str = Query("Best")):
+    guard(request)
     source = validate_public_url(url)
     info = extract_info(source)
 
@@ -897,14 +925,21 @@ def download(url: str = Query(...), quality: str = Query("Best")):
             raise HTTPException(500, "The resolver produced no output file.")
 
         path = max(files, key=lambda p: p.stat().st_mtime)
-        final_path = Path(tempfile.mkstemp(prefix="omni-social-", suffix=path.suffix)[1])
-        shutil.copy2(path, final_path)
+        fd, tmp_name = tempfile.mkstemp(prefix="omni-social-", suffix=path.suffix, dir=DOWNLOAD_ROOT)
+        os.close(fd)
+        final_path = Path(tmp_name)
+        try:
+            shutil.copy2(path, final_path)
+        except Exception:
+            final_path.unlink(missing_ok=True)
+            raise
 
     media_type = "video/mp4" if final_path.suffix.lower() == ".mp4" else "application/octet-stream"
     return FileResponse(
         final_path,
         media_type=media_type,
         filename=f"{safe_title}.mp4" if media_type == "video/mp4" else f"{safe_title}{final_path.suffix}",
+        background=BackgroundTask(lambda: final_path.unlink(missing_ok=True)),
     )
 
 

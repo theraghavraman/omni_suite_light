@@ -14,6 +14,16 @@ OmniConverter Studio does not redistribute native executable binaries. Native to
 | Tesseract.js worker | 5.1.1 | Apache License 2.0 | Browser OCR worker |
 | Tesseract language data | @tesseract.js-data packages 1.0.0 | Apache License 2.0 | OCR language models |
 | Outfit | Current web font | SIL Open Font License 1.1 | Application UI typography |
+| mammoth.js | 1.13.0 | BSD 2-Clause | Office Tools: DOCX → HTML with formatting and images |
+| docx | 9.9.0 | MIT | Office Tools: DOCX writer (runs, lists, tables, images, links) |
+| ExcelJS | 4.4.0 | MIT | Office Tools: XLSX read/write with styles, formulas, column widths and merges |
+| fast-formula-parser | 1.0.19 | MIT | Office Tools: spreadsheet formula parsing and evaluation |
+| Formula.js (@formulajs/formulajs) | 4.6.1 | MIT | Office Tools: additional Excel-compatible functions |
+| DOMPurify | 3.4.16 | Apache License 2.0 OR MPL 2.0 | Office Tools: sanitising opened and pasted HTML |
+| Mermaid | 12.1.0 | MIT | Diagram Forge: text-to-diagram rendering |
+| dagre (@dagrejs/dagre) | 1.1.4 | MIT | Diagram Forge: automatic graph layout |
+
+Office Tools and Diagram Forge load these libraries on demand through `omni_vendor_loader.js` (local `vendor/` copy first, pinned CDN URL second). No GPL/AGPL editor engine is used: HyperFormula (GPL-3.0) and ONLYOFFICE (AGPL-3.0) were deliberately avoided. Diagram Forge reads and writes the open draw.io/diagrams.net mxGraph XML format with its own code; no draw.io source is included.
 
 The exact download URLs and pinned versions are defined in `prepare_offline.py`. Outfit is loaded at runtime from Google Fonts for the public UI; its SIL Open Font License 1.1 permits use and redistribution subject to the license terms. If `vendor/` is committed, preserve the license/copyright files and headers supplied by each upstream package.
 
@@ -63,23 +73,26 @@ The multilingual AI stack is intentionally isolated from Omni Assistant and Priv
 
 Model binaries are not committed to the normal source tree. Use `prepare_language_models.py` to materialize them under `language-models/` after reviewing the upstream model terms. The language engine uses local model files at inference time and has no online translation fallback.
 
-## Optional Omni Browser AI Engine
+## Browser AI models
 
-The browser AI layer is isolated from Omni Assistant, Private RAG, and Omni Language Engine. Models are downloaded lazily from their respective public model repositories and cached by the browser; no model is loaded at page startup.
+No model is loaded at page startup. Each model below is downloaded from its public Hugging Face repository the first time its feature is used, cached by the browser, and run on-device with Transformers.js 4.3.0 (Apache License 2.0). AI Assist text actions do not use browser models; they go through the Local Engine to Ollama or LM Studio.
 
-Current browser-AI model registry includes:
-- SmolLM2 135M Instruct ONNX — Apache 2.0.
-- all-MiniLM-L6-v2 ONNX — Apache 2.0.
-- FLAN-T5 Small ONNX — Apache 2.0 — lightweight browser summarization/document instructions.
-- Whisper Tiny ONNX — Apache 2.0.
-- Supertonic TTS ONNX — OpenRAIL.
-- ViT-GPT2 image captioning ONNX — model repository is Transformers.js-compatible.
-- DETR ResNet-50 ONNX — model repository is Transformers.js-compatible.
-- MODNet — Apache 2.0.
-- TrOCR Small Printed — model repository is Transformers.js-compatible.
-- Donut DocVQA — model repository is Transformers.js-compatible.
-- Multilingual NER — model repository is Transformers.js-compatible.
-- Depth Anything V2 Small ONNX — Apache 2.0.
-- Qwen2.5 0.5B Instruct ONNX — Apache 2.0 — retained as an optional experimental model; not used for PDF AI Assist by default.
+| Model (repository) | License | Used by |
+|---|---|---|
+| all-MiniLM-L6-v2 (`Xenova/all-MiniLM-L6-v2`) | Apache License 2.0 | Private RAG and Omni Assistant embeddings |
+| Gemma 3 270M IT (`onnx-community/gemma-3-270m-it-ONNX`) | Gemma Terms of Use | Private RAG and Omni Assistant answers |
+| DeepSeek Coder 1.3B Instruct (`onnx-community/deepseek-coder-1.3b-instruct-ONNX`) | DeepSeek License (upstream `deepseek-ai/deepseek-coder-1.3b-instruct`) | Code and Database Studio explanations |
+| Opus-MT en↔hi (`Xenova/opus-mt-en-hi`, `Xenova/opus-mt-hi-en`) | Apache License 2.0 (upstream Helsinki-NLP) | Language Studio browser mini model |
+| BiRefNet lite (`onnx-community/BiRefNet_lite-ONNX`) | MIT | AI Assist: Remove background (Image Tools) |
+| Depth Anything V2 Small (`onnx-community/depth-anything-v2-small`) | Apache License 2.0 | AI Assist: Depth map (Image Tools) |
+| Whisper base (`onnx-community/whisper-base`) | Apache License 2.0 (upstream `openai/whisper-base`) | AI Assist: Transcribe (Audio and Video Studio) |
 
 Verify the upstream model repository/license before redistributing model weights. Omni Suite does not commit third-party model binaries to this repository.
+
+## File Sharing Studio
+
+| Dependency | License | Role |
+|---|---|---|
+| qrcode-generator 1.4.4 by Kazuhiko Arase (`qrcode_generator.js`, bundled unmodified) | MIT | Offline QR encoder for the LAN transfer pairing code and the offline fallback of the static QR designer |
+| qr-code-styling 1.9.2 (loaded from jsDelivr when online) | MIT | Styled dots, corners and logo in the static QR designer |
+| jsQR 1.4.0 by Cosmo Wolfe (loaded on demand from `vendor/jsqr/` or jsDelivr) | Apache-2.0 | QR scanner decoding on browsers without a built-in `BarcodeDetector` |

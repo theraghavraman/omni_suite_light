@@ -1,0 +1,32 @@
+{
+  "upload_type": "software",
+  "title": "Omni Suite",
+  "creators": [
+    {
+      "name": "Raghav Raman"
+    }
+  ],
+  "description": "Omni Suite (OmniConverter Studio) is a browser-first, offline-capable toolkit for document, image, OCR, audio, video, archive, data-engineering, and database workflows. Browser-capable operations run locally in the browser; an optional loopback-only Local Engine provides native processing for specialist and large-file tasks.",
+  "license": "MIT",
+  "keywords": [
+    "Omni Suite",
+    "OmniConverter Studio",
+    "browser-based tools",
+    "data engineering",
+    "file conversion",
+    "offline software"
+  ],
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/theraghavraman/omni_suite_light",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://theraghavraman.github.io/omni_suite_light/",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

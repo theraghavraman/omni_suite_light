@@ -28,7 +28,9 @@ After installation, `verify_local_environment.py` runs a strict check of Python 
 
 **One-command rule:** use `Omni.bat` on Windows or `Omni.command` on macOS/Linux. Those launchers automatically start the full installer when the local environment is not ready.
 
-## 0.5 Platform layer
+## Version 1.0.0 — Platform layer
+
+Omni Suite follows **Semantic Versioning (SemVer)** for the platform release: `MAJOR.MINOR.PATCH`. The current UI release is **1.0.0**, matching the package version in `package.json`. Release history is maintained in [`CHANGELOG.md`](./CHANGELOG.md); release tags use the matching `vMAJOR.MINOR.PATCH` form.
 
 The suite now includes a **Local Engine Doctor**, dynamic capability routing, **Batch Lab** with isolated failures/retry, **Database Studio**, **Data Cleaning & Privacy Studio**, and a static CI contract audit. The Doctor reports Python packages and native executables separately so the UI can distinguish a real local capability from an unavailable dependency.
 
@@ -63,7 +65,7 @@ Desktop users can also drag files onto upload areas. Browser file inputs and dra
 
 ## 2. Typography
 
-The interface uses a system-safe sans-serif font stack. No external web-font request is required by the application, so typography does not create an offline network dependency.
+The interface requests three Google Fonts (Bricolage Grotesque, Figtree, Fira Code) when online. Every font has a system fallback, so offline use is unaffected: if the request fails, the system sans-serif and monospace fonts are used and nothing else depends on the network.
 
 ## 3. Browser mode vs Local Engine
 
@@ -118,7 +120,7 @@ Open PowerShell in the project folder and run:
 
 Then open:
 
-    http://127.0.0.1:8765/
+    http://localhost:8765/
 
 ### Windows native components
 The installer attempts to obtain Python, FFmpeg, qpdf, Poppler, ImageMagick, Tesseract OCR, LibreOffice, Calibre and Pandoc, then installs both the core Data/Scientific stack and the optional extended Python stack.
@@ -146,6 +148,27 @@ The installer recognizes common package managers such as Homebrew, apt, dnf, pac
 The Local Engine listens only on 127.0.0.1:8765. Mutating/processing API requests require a per-launch `X-Omni-Token`, and browser origins are restricted to the local UI plus the published GitHub Pages origin by default. Custom trusted origins can be added with `OMNI_ALLOWED_ORIGINS`.
 
 The browser UI checks http://127.0.0.1:8765/api/health and uses that response to pair the published UI with the running local engine.
+
+### Security note — the hosted site can drive your Local Engine
+
+To make that pairing work, the published GitHub Pages origin (`https://theraghavraman.github.io`) is trusted by default: a page from it can read the per-launch token from `/api/health` and then call the engine, including the code-and-native-tool operations. That is the intended bridge, but it has a cost worth understanding:
+
+- The token gives the calling page the engine's full capability, which includes running code and native programs on your computer.
+- Every site you publish under `theraghavraman.github.io` shares that one origin, so a scripting flaw (XSS) on **any** of those pages — not just OmniConverter — could reach a running Local Engine the same way.
+- Modern browsers now prompt before a public page contacts a loopback address (Private/Local Network Access), so this is not silent, but do not rely on that prompt as the only safeguard.
+
+Practical guidance:
+
+- The Local Engine only has these powers while it is running. Close its window when you are not using it, and always use the engine's own UI at `http://localhost:8765/` for sensitive work rather than driving it from the hosted site.
+- Code execution (`code_execute`) is refused for requests from any origin other than the engine's own UI, even with a valid token. Set `OMNI_ALLOW_REMOTE_CODE=1` only if you deliberately want the hosted site to run code locally.
+- For the strongest isolation, make the engine trust **only its own local UI**. `OMNI_ALLOWED_ORIGINS` is _added_ to the defaults, so it cannot remove the public origin on its own; to drop it, edit the `ALLOWED_ORIGINS` set near the top of `omni_local_server.py` so it lists only the loopback origins:
+
+  ```python
+  ALLOWED_ORIGINS = {"http://127.0.0.1:8765", "http://localhost:8765"}
+  ```
+
+  The local UI keeps working; only the hosted GitHub Pages site stops being able to reach your engine.
+- Treat a custom domain for the published site (so it does not share an origin with your other sites) as the better long-term fix.
 
 If the engine is not running, the browser UI remains usable for browser-capable tools.
 
@@ -231,7 +254,46 @@ Office Studio uses the Local Engine for native Office-family conversion. It now 
 - **Documents:** DOC, DOCX, DOCM, DOT, DOTX, DOTM, ODT, OTT, FODT, RTF, TXT, HTML
 - **PDF → PPTX:** rendered as one slide per PDF page using Poppler.
 
-## 8. Diagnostics and full option testing
+### Image Tools — Photo Editor
+Tool 5 in Image Tools is a simple single-photo editor that runs entirely in the browser (Canvas 2D, no libraries, nothing uploaded):
+- **Crop** with handles and shapes (free, original, square, 4:3, 3:2, 16:9, 4:5, 9:16), rotate 90°, flip, and straighten (−45°…45°, corners filled automatically).
+- **Adjust**: exposure, brightness, contrast, highlights, shadows, saturation, vibrance, warmth, tint, fade, sharpen, blur, vignette and grain, plus one-click **Auto enhance**.
+- **Filters**: Vivid, Bright, Warm, Cool, Faded, Vintage, Dramatic, B&W, Noir and Sepia with live thumbnails.
+- **Blur**: blur or pixelate brushes and boxes, and a black box, for hiding faces, number plates and private details.
+- **Draw** (pen, highlighter, line, arrow, box, circle) and **Text** (fonts, size, colour, shadow, background).
+- **Resize & Save** to JPEG, PNG, WebP or AVIF (where supported) with quality and live size estimate, or copy to the clipboard.
+- Undo/redo, hold-to-compare with the original, reset. Saved photos contain no EXIF/GPS metadata. Very large photos are worked on at up to 16 megapixels to stay within browser limits.
+
+### Office Studio — Find & Replace inside Office files
+Tool 7 in Office Studio changes text inside DOCX/DOCM/DOTX, PPTX/PPTM/PPSX/POTX, XLSX/XLSM/XLTX and ODT/ODS/ODP files without converting them, entirely in the browser. Only the text changes: fonts, styles, images, tables, layout and macros are untouched, including words that Word has split across several formatting runs (the replacement takes the formatting of the run where the match starts).
+- Many files and many rules at once; rules can be imported/exported as a two-column CSV (`find,replace`).
+- Match case, whole words, keep capitalisation (acme → globex, Acme → Globex, ACME → GLOBEX) and regular expressions with `$1`/`$<name>` back-references.
+- Scope: body, tables and text boxes always; optionally headers/footers/footnotes, speaker notes, charts & SmartArt, comments, slide masters/layouts and document properties.
+- Excel: shared and inline cell text, rich text, comments and table headers (kept consistent with the table definition); numbers, formulas and sheet names are never changed.
+- **Preview matches** shows every hit in context before anything is written; **Replace & download** returns the edited file (or a ZIP for several). Matches crossing a tab, line break or field are skipped and reported.
+
+### Office Tools (browser-only editors)
+Office Tools edits files directly in the browser — nothing is uploaded and no Local Engine is needed. Drafts auto-recover after a reload, and in Chromium browsers **Save** writes back to the file you opened.
+
+| Editor | Opens | Saves | Highlights |
+|---|---|---|---|
+| Word / Writer | DOCX, DOCM, DOTX, ODT, RTF, HTML, Markdown, PDF (text + images) | DOCX, ODT, RTF, PDF, HTML, Markdown, TXT | Paragraph styles, fonts and sizes, colour/highlight, lists, tables (insert/delete rows and columns), images, links, page breaks, find & replace, sanitised paste |
+| Excel / Calc | XLSX, XLSM, XLTX, XLS, XLSB, ODS, FODS, CSV, TSV | XLSX (with styles), XLS, XLSB, ODS, FODS, CSV, TSV, HTML | ~400 Excel functions incl. XLOOKUP/XMATCH/SUMIFS/TEXTJOIN/INDIRECT/OFFSET, number formats, bold/italic/colours/fill/alignment, insert/delete rows & columns with formula reference shifting, sort, filter, freeze panes, multi-sheet, copy/paste to and from Excel, undo/redo |
+| PowerPoint / Impress | PPTX, PPTM, PPSX, POTX, Redmark deck JSON | PPTX, PPSX, POTX, PDF (print), deck JSON | Six layouts, six themes, bullet levels, slide images, speaker notes, drag-to-reorder thumbnails, full-screen slide show (F5) |
+| Notepad | Any text file | Any extension | UTF-8 / UTF-8 BOM / UTF-16 detection, LF/CRLF preservation, find & replace, word wrap |
+
+Legacy binary DOC/PPT/ODP files still need the Office Studio converter (Local Engine) first.
+
+### Diagram Forge
+Diagram Forge has two editors that share one project file:
+- **Visual canvas** — rectangles, rounded boxes, ellipses, decisions, I/O, databases, hexagons, documents, sticky notes, text, freehand pen and images; connectors (curved/orthogonal/straight, dashed/dotted, arrows at either end, labels) created by dragging from a shape's connection dots; multi-select, group, align/distribute, smart snapping guides, undo/redo, copy/paste, auto-layout (dagre), zoom/pan.
+- **Text diagrams (Mermaid 12)** — flowchart, sequence, class, state, ER, mind map, architecture, C4, Gantt, timeline, Git graph, pie, journey, requirement, Sankey, quadrant, XY chart, packet, block and kanban, with live preview and error messages.
+
+Conversions: Canvas → Mermaid flowchart, and Mermaid → Canvas for flowchart, state, ER, class and mind-map diagrams. Exports: SVG, PNG (2× or transparent), draw.io/diagrams.net `.drawio`, Mermaid `.mmd`, print/PDF and a JSON project. `.drawio` files (compressed or not) can be opened and edited.
+
+Offline: run `prepare_offline.py` once to place every library these studios use into `vendor/`; `omni_vendor_loader.js` loads the local copy first and falls back to the pinned CDN URL.
+
+## 9. Diagnostics and full option testing
 
 The guide area includes **Run Browser Diagnostics** for a quick runtime check of the core browser libraries and capabilities.
 
@@ -248,7 +310,7 @@ The All Tests screen covers:
 - Compressor
 - Local Engine
 
-## 9. Browser upload troubleshooting
+## 10. Browser upload troubleshooting
 
 If an upload area does nothing:
 1. Hard-refresh the page.
@@ -263,7 +325,7 @@ The application uses a direct user-gesture file-picker path with showPicker() wh
 
 If a library is missing, the browser may be blocked from loading a CDN resource. Use the local launcher and prepare_offline.py.
 
-## 10. Mobile use
+## 11. Mobile use
 
 For Android/iPhone:
 - Tap the upload area rather than trying to drag files.
@@ -274,7 +336,7 @@ For Android/iPhone:
 
 The browser receives a File object supplied by the user's selection; it does not receive the device's private filesystem path.
 
-## 11. Large-file guidance
+## 12. Large-file guidance
 
 Browser processing can become memory-intensive because large binaries may need to be decoded, rendered or held in browser memory.
 
@@ -282,19 +344,19 @@ Prefer Local Engine for very large PDFs, large image batches, long audio, long/h
 
 The Local Engine streams uploads/downloads and uses temporary processing files outside the website directory.
 
-## 12. Security model
+## 13. Security model
 
-The public Render Cloud Engine is authenticated with the `OMNI_CLOUD_TOKEN` environment secret. The browser Cloud bridge keeps the operator-supplied token in `sessionStorage` only and sends it as `X-Omni-Cloud-Token`; never commit the token or hard-code it into the public site.
+Cloud processing is disabled. The browser does not accept or store a cloud service token, and the Render API returns HTTP 503 until a per-user OIDC/BFF session, CSRF protection, shared durable jobs, quotas, and isolated workers are deployed. Do not deploy the current cloud engine for public processing.
 
-The Social Media resolver may use `https://r.jina.ai/` to retrieve public-page representations. The exact public URL being resolved may therefore be disclosed to that third-party service.
+Social Media resolver processing is disabled; the shipped browser does not submit a URL to the remote resolver. Do not configure a public resolver until authenticated sessions and quotas are deployed.
 
-The local code runner can execute arbitrary code in the host user environment. Keep the Local Engine loopback-only and never expose the code-execution operation to a network interface.
+User code execution is disabled in both the browser and Local Engine until a rootless, network-isolated, resource-limited sandbox is configured.
 
-The Local Engine binds to 127.0.0.1, exposes predefined operations rather than arbitrary shell commands, stores temporary files in the operating-system temporary directory and cleans stale temporary data.
+The Local Engine binds to 127.0.0.1, accepts browser API requests only from its own loopback UI origin, never returns its process bearer token from browser-readable endpoints, and stores uploaded files in a private operating-system temporary directory. A remote static page cannot pair with or authorize itself to the local engine.
 
-Do not change the server binding to 0.0.0.0 unless you understand the security consequences.
+LAN file transfer is disabled until a TLS-authenticated transfer service is available. Do not change the server binding to 0.0.0.0.
 
-## 13. Local Engine operations
+## 14. Local Engine operations
 
 The predefined local operations include:
 - media
@@ -318,7 +380,7 @@ The predefined local operations include:
 
 The UI is the primary interface; users should not need to construct API requests manually.
 
-## 14. Repository files
+## 15. Repository files
 
 | File | Purpose |
 |---|---|
@@ -336,7 +398,7 @@ The UI is the primary interface; users should not need to construct API requests
 | omni_data_engine.py | Structured/semi-structured data and SQL/NoSQL conversion engine |
 | .github/workflows/local-engine-check.yml | Static/Python/native validation workflow |
 
-## 15. Troubleshooting checklist
+## 16. Troubleshooting checklist
 
 ### Upload area does not open
 - Hard refresh.
@@ -353,6 +415,8 @@ The UI is the primary interface; users should not need to construct API requests
 - If the operation is native, start Local Engine.
 
 ### Local Engine says disconnected
+Open the UI at http://localhost:8765/ (the launchers now do this). Older builds rejected the page's own health check when it was opened at http://127.0.0.1:8765/.
+
 Windows: start_omni.bat or setup_and_start.bat.
 macOS/Linux: bash start_omni.command or bash setup_and_start.command.
 
@@ -377,7 +441,7 @@ Then restart the local server.
 ### GitHub Pages works but local features do not
 This is expected until the local Python engine is running. GitHub Pages is a browser environment and cannot launch FFmpeg, LibreOffice, Calibre, qpdf or other programs installed on your computer.
 
-## 15. Development / validation
+## 17. Development / validation
 
 The repository includes GitHub Actions checks for Python syntax, required setup files and native smoke tests on Windows, macOS and Ubuntu. The native matrix now exercises representative SVG/GIF image, audio, MPEG-4/MKV video, Office and ebook paths; it does not replace testing every OS release or every optional codec/delegate.
 
@@ -418,6 +482,26 @@ The offline setup also vendors the browser conversion engines when prepare_offli
 - MDN showPicker() — user-gesture file picker behavior.
 - MDN User Activation — protected APIs require user activation.
 
+## Python package (`omni-engine`)
+
+`pip install omni-converter-studio` installs `omni-engine` (`version`, `doctor`, `serve`). The wheel has the engine but not the UI, so `serve` is API-only unless run as `omni-engine serve --ui /path/to/omni_suite_light` (or with `OMNI_UI_ROOT` set). The engine never serves files from its install directory.
+
+## Phone ↔ computer transfer (File Sharing)
+
+File Sharing uses plain HTTP on the Wi-Fi interface and an unguessable, expiring link (`OMNI_TRANSFER_TTL`, default 15 minutes). The phone must enter the 6-digit PIN shown on the computer before listing, downloading or uploading. Five wrong PINs end the session. Use only on trusted networks.
+
 ## License
 
 OmniConverter Studio source code is released under the MIT License. Third-party dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Apache Hop ETL Studio
+
+Redmark Forge now includes an **ETL Studio bridge for Apache Hop**. The panel checks a local Hop Server, discovers `.hpl` files from `~/OmniETL/projects`, and runs a selected pipeline through the authenticated Omni Local Engine. Pipeline authoring remains in Apache Hop's own designer; the Omni panel is the connection, discovery, and execution surface for this first milestone.
+
+- Start Apache Hop Server on `127.0.0.1:8081` and keep it bound to loopback.
+- Save/copy pipeline files into the ETL projects folder shown in the studio.
+- Enter the Hop Server credentials and use **Check Connection**, **Refresh Pipelines**, and **Run Pipeline**.
+- The bridge only calls fixed loopback endpoints and only executes `.hpl` files whose resolved paths remain within the ETL projects folder.
+
+See [ETL_STUDIO.md](./ETL_STUDIO.md) for setup, requirements, and security notes. Official Apache Hop docs: https://hop.apache.org/manual/latest/installation-configuration.html
+

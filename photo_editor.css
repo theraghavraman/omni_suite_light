@@ -1,0 +1,78 @@
+/* Image Tools — Photo Editor (photo_editor.js) */
+#photoEditorCard .pe-app{margin-top:14px;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;background:#fff}
+#photoEditorCard .pe-app[hidden]{display:none}
+#photoEditorCard .dropzone[hidden]{display:none}
+.pe-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:#0f172a;color:#e2e8f0}
+.pe-info{font:600 12px ui-monospace,Consolas,monospace;color:#94a3b8}
+.pe-top-actions{display:flex;flex-wrap:wrap;gap:6px}
+.pe-btn{border:1px solid #cbd5e1;background:#fff;color:#1e293b;border-radius:9px;padding:7px 11px;font-weight:700;font-size:.82rem;cursor:pointer;line-height:1.1}
+.pe-top .pe-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}
+.pe-top .pe-btn:hover:not(:disabled){background:rgba(255,255,255,.16)}
+.pe-btn:disabled{opacity:.4;cursor:not-allowed}
+.pe-btn.primary,.pe-top .pe-btn.primary{background:linear-gradient(120deg,var(--studio-accent,#0ea5e9),var(--studio-accent-2,#22c55e));border-color:transparent;color:#fff}
+.pe-btn:focus-visible,.pe-tool:focus-visible,.pe-chip:focus-visible,.pe-filter:focus-visible{outline:2px solid var(--studio-accent,#0ea5e9);outline-offset:2px}
+.pe-body{display:grid;grid-template-columns:86px minmax(0,1fr) 300px;min-height:520px}
+.pe-tools{display:flex;flex-direction:column;gap:4px;padding:8px 6px;background:#f8fafc;border-right:1px solid #e2e8f0}
+.pe-tool{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;border-radius:10px;padding:9px 4px;font-size:.72rem;font-weight:800;color:#475569;cursor:pointer;text-align:center}
+.pe-tool span{font-size:1.2rem;line-height:1}
+.pe-tool:hover{background:#eef2f7}
+.pe-tool.active{background:#fff;color:var(--studio-accent,#0284c7);box-shadow:0 2px 8px rgba(15,23,42,.1)}
+.pe-stage{position:relative;height:min(70vh,720px);min-height:420px;background:#1e293b;background-image:linear-gradient(45deg,#273449 25%,transparent 25%),linear-gradient(-45deg,#273449 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#273449 75%),linear-gradient(-45deg,transparent 75%,#273449 75%);background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0}
+.pe-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.pe-busy{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(15,23,42,.85);color:#fff;font-weight:700;font-size:.8rem;padding:6px 12px;border-radius:999px}
+.pe-busy[hidden]{display:none}
+.pe-panel{padding:12px 14px;border-left:1px solid #e2e8f0;overflow:auto;max-height:min(70vh,720px);display:block}
+.pe-panel section{display:grid;gap:10px}
+.pe-panel section[hidden]{display:none}
+.pe-panel h4{margin:4px 0 0;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+.pe-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pe-chip{border:1px solid #dbe2ea;background:#fff;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:700;color:#334155;cursor:pointer}
+.pe-chip:hover{border-color:var(--studio-accent,#0ea5e9)}
+.pe-chip.on{background:var(--studio-accent,#0ea5e9);border-color:transparent;color:#fff}
+.pe-slider{display:grid;gap:4px;font-size:.8rem;font-weight:700;color:#334155}
+.pe-slider span{display:flex;justify-content:space-between}
+.pe-slider b{font:600 12px ui-monospace,Consolas,monospace;color:#64748b}
+.pe-slider input{width:100%;accent-color:var(--studio-accent,#0ea5e9)}
+.pe-adj{display:grid;gap:8px}
+.pe-actions{display:flex;flex-wrap:wrap;gap:6px}
+.pe-hint{margin:0;font-size:.75rem;color:#64748b}
+.pe-row{display:flex;gap:10px;align-items:flex-end}
+.pe-row .grow{flex:1}
+.pe-field{display:grid;gap:4px;font-size:.78rem;font-weight:700;color:#334155;flex:1;min-width:0}
+.pe-field input,.pe-field select{width:100%;box-sizing:border-box}
+.pe-color{display:grid;gap:4px;font-size:.78rem;font-weight:700;color:#334155}
+.pe-color input{width:44px;height:32px;padding:2px;border:1px solid #dbe2ea;border-radius:8px;background:#fff}
+.pe-checks{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:.8rem}
+.pe-checks label,.pe-check{display:inline-flex;gap:5px;align-items:center;font-size:.8rem}
+.pe-checks input[type=color]{width:36px;height:28px;padding:2px;border:1px solid #dbe2ea;border-radius:6px}
+#peTextValue{width:100%;box-sizing:border-box;resize:vertical}
+.pe-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pe-filter{border:2px solid transparent;background:#f8fafc;border-radius:12px;padding:5px;cursor:pointer;display:grid;gap:4px;font-size:.75rem;font-weight:800;color:#334155}
+.pe-filter canvas{width:100%;height:84px;object-fit:cover;border-radius:8px;display:block}
+.pe-filter.on{border-color:var(--studio-accent,#0ea5e9);background:#fff}
+.pe-estimate{font-size:.78rem;color:#475569;font-weight:600}
+@media(max-width:1000px){.pe-body{grid-template-columns:1fr}.pe-tools{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid #e2e8f0}.pe-tool{min-width:68px}.pe-stage{height:56vh;min-height:320px}.pe-panel{border-left:0;border-top:1px solid #e2e8f0;max-height:none}.pe-filters{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+
+/* The suite theme paints every button in the active studio with !important (unlayered) and styles
+   inputs inside an @layer. Re-assert the editor's own controls from the earlier-declared layer, which
+   wins over both (see office_tools_studio.css). */
+@layer redmark-studio-fixes{
+#photoEditorCard .pe-btn,#photoEditorCard .pe-tool,#photoEditorCard .pe-chip,#photoEditorCard .pe-filter{box-shadow:none!important;transform:none!important;background-image:none!important;min-height:0!important;letter-spacing:0!important;text-transform:none!important;filter:none!important}
+#photoEditorCard .pe-btn{background:#fff!important;border:1px solid #cbd5e1!important;color:#1e293b!important;padding:7px 11px!important;border-radius:9px!important;font:700 12.5px/1.1 inherit!important}
+#photoEditorCard .pe-top .pe-btn{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.18)!important;color:#e2e8f0!important}
+#photoEditorCard .pe-top .pe-btn:hover:not(:disabled){background:rgba(255,255,255,.18)!important}
+#photoEditorCard .pe-btn.primary,#photoEditorCard .pe-top .pe-btn.primary{background:var(--studio-accent,#f97316)!important;border-color:transparent!important;color:#fff!important}
+#photoEditorCard .pe-btn:disabled{opacity:.4!important}
+#photoEditorCard .pe-tool{background:transparent!important;border:0!important;color:#475569!important;padding:9px 4px!important;border-radius:10px!important;font:800 11.5px/1.15 inherit!important}
+#photoEditorCard .pe-tool:hover{background:#eef2f7!important}
+#photoEditorCard .pe-tool.active{background:#fff!important;color:var(--studio-accent,#ea580c)!important;box-shadow:0 2px 8px rgba(15,23,42,.12),inset 3px 0 0 var(--studio-accent,#ea580c)!important}
+#photoEditorCard .pe-chip{background:#fff!important;border:1px solid #dbe2ea!important;color:#334155!important;padding:6px 10px!important;border-radius:999px!important;font:700 12px/1.1 inherit!important}
+#photoEditorCard .pe-chip:hover{border-color:var(--studio-accent,#f97316)!important}
+#photoEditorCard .pe-chip.on{background:var(--studio-accent,#f97316)!important;border-color:transparent!important;color:#fff!important}
+#photoEditorCard .pe-filter{background:#f8fafc!important;border:2px solid transparent!important;color:#334155!important;padding:5px!important;border-radius:12px!important;font:800 11.5px/1.1 inherit!important}
+#photoEditorCard .pe-filter.on{background:#fff!important;border-color:var(--studio-accent,#f97316)!important;color:var(--studio-accent,#ea580c)!important}
+#photoEditorCard .pe-panel input[type=number],#photoEditorCard .pe-panel input:not([type]),#photoEditorCard .pe-panel select{min-height:34px!important;padding:5px 8px!important;font-size:13px!important}
+#photoEditorCard #peTextValue{font-size:15px!important;min-height:70px!important}
+#photoEditorCard .pe-color input,#photoEditorCard .pe-checks input[type=color]{min-height:0!important;padding:2px!important}
+}
+@media(max-width:1000px){@layer redmark-studio-fixes{#photoEditorCard .pe-tool.active{box-shadow:0 2px 8px rgba(15,23,42,.12),inset 0 -3px 0 var(--studio-accent,#ea580c)!important}}}

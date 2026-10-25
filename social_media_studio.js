@@ -7,13 +7,15 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const BASE='http://127.0.0.1:8765';
-  let token='';
   let currentUrl='';
   let currentInfo=null;
 
   const input=$('socialMediaUrl'), analyzeBtn=$('socialMediaAnalyze'), reset=$('socialMediaReset');
   const REMOTE_READER='https://r.jina.ai/';
+  const HOSTED_TIMEOUT_MS=45000,LOCAL_PROBE_MS=1500,READER_TIMEOUT_MS=15000;
   let RESOLVER=(window.OMNI_SOCIAL_RESOLVER_URL||'https://omni-social-resolver.onrender.com').replace(/\/+$/,'');
+  // Sent only on the /api/resolve fetch; the media and download URLs are <img>/<a> sources that cannot carry a header.
+  const resolverHeaders=()=>({});
   function cleanMediaUrl(v){return String(v||'').replace(/\\u0026/g,'&').replace(/\\u003d/g,'=').replace(/\\u002f/g,'/').replace(/\\\\\//g,'/').replace(/&amp;/g,'&').trim().replace(/^["']|["']$/g,'');}
   function escHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function safeHttpUrl(v){
@@ -28,20 +30,23 @@
     [/["']video_url["']\s*:\s*["']([^"']+)/i,/["']display_url["']\s*:\s*["']([^"']+)/i,/["']url["']\s*:\s*["'](https?:\/\/[^"']+)/i].forEach(re=>{const m=raw.match(re);if(m)addUrl(m[1]);});
     return out.map(v=>{try{return new URL(v,base).href}catch(_){return v;}});
   }
+  let activeController=null,runId=0,busy=false;
   async function hostedResolve(url){
     if(!RESOLVER)throw new Error('Hosted resolver is not configured.');
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),210000);
+    const controller=new AbortController();activeController=controller;
+    // Capped so a slow or blocked platform (Instagram often hangs from cloud IPs) cannot stall the studio for minutes.
+    const timer=setTimeout(()=>controller.abort(),HOSTED_TIMEOUT_MS);
+    const t0=Date.now();const tick=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);if(s>=4)msg('Resolving public media… '+s+' s'+(s>=10?' — the hosted resolver may be waking up (gives up after '+Math.round(HOSTED_TIMEOUT_MS/1000)+' s).':''),'working');},1000);
     try{
-      const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
+      const r=await fetch(RESOLVER+'/api/resolve',{method:'POST',headers:{'Content-Type':'application/json',...resolverHeaders()},body:JSON.stringify({url}),cache:'no-store',signal:controller.signal});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.success)throw new Error(j.detail||j.error||('Resolver HTTP '+r.status));
       return j;
     }catch(e){
-      if(e&&e.name==='AbortError')throw new Error('Hosted resolver timed out after 210 seconds');
+      if(e&&e.name==='AbortError')throw new Error(controller.cancelled?'Cancelled':'Hosted resolver timed out after '+Math.round(HOSTED_TIMEOUT_MS/1000)+' seconds');
       throw e;
     }finally{
-      clearTimeout(timer);
+      clearTimeout(timer);clearInterval(tick);if(activeController===controller)activeController=null;
     }
   }
   function renderHosted(info,sourceUrl){
@@ -50,9 +55,9 @@
     kind.textContent=info.type==='video'?'Video':'Media';
     meta.textContent=info.title||'Public media';
     const seconds=Math.round(Number(info.duration)||0);
-    const dur=seconds?new Date(seconds*1000).toISOString().substr(11,8):'—';
+    const dur=seconds?[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map((v,i)=>i?String(v).padStart(2,'0'):String(v)).join(':'):'—';
      const downloads=Array.isArray(info.downloads)?info.downloads:[];
-     const itemUrls=downloads.map(d=>String(d.url||'')).filter(Boolean).map(u=>safeHttpUrl(u.startsWith('http')?u:RESOLVER+u)).filter(Boolean);
+     const validDownloads=downloads.map(d=>{const raw=String(d.url||'');if(!/^https?:\/\//i.test(raw)&&!/^\/api\/(?:download|media-proxy)(?:[/?]|$)/.test(raw))return null;const u=safeHttpUrl(/^https?:\/\//i.test(raw)?raw:RESOLVER+raw);return u?{download:d,url:u}:null;}).filter(Boolean);const itemUrls=validDownloads.map(x=>x.url);
      const mediaKind=(d)=>{
        const ext=String(d.ext||'').toLowerCase().replace(/^\./,'');
        if(ext)return ext;
@@ -70,8 +75,8 @@
      };
      if(info.type==='carousel' && itemUrls.length>1){
        preview.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;width:100%">'+
-         downloads.map((d,i)=>{
-           const u=itemUrls[i]; const esc=String(u).replace(/"/g,'&quot;');
+         validDownloads.map((pair,i)=>{
+           const d=pair.download, u=pair.url; const esc=String(u).replace(/"/g,'&quot;');
            const label=mediaLabel(d);
            const media=isVideo(d)
              ? '<video src="'+esc+'" controls playsinline preload="metadata" style="display:block;width:100%;aspect-ratio:4/5;object-fit:contain;background:#111"></video>'
@@ -80,7 +85,7 @@
          }).join('')+
        '</div>';
      }else{
-       const first=downloads[0]; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
+       const first=validDownloads[0]?.download; const firstUrl=safeHttpUrl(itemUrls[0]||info.thumbnail); const esc=String(firstUrl||'').replace(/"/g,'&quot;');
        preview.innerHTML=firstUrl?(first&&isVideo(first)?'<video src="'+esc+'" controls playsinline preload="metadata" style="max-width:100%;max-height:430px"></video>':'<img src="'+esc+'" alt="Media preview" loading="lazy" referrerpolicy="no-referrer">'):'<div style="padding:28px;text-align:center"><strong>Media ready</strong><br><span style="font-size:.78rem;color:#7b8795">Choose a download below.</span></div>';
      }
      preview.className='social-preview';
@@ -102,12 +107,14 @@
 
   async function browserResolve(url){
     const target=url.split('#')[0];
-    const r=await fetch(REMOTE_READER+target,{cache:'no-store'});
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),READER_TIMEOUT_MS);let r;
+    try{r=await fetch(REMOTE_READER+target,{cache:'no-store',headers:{'X-Return-Format':'html'},signal:ctl.signal});}finally{clearTimeout(t);}
     if(!r.ok)throw new Error('Browser resolver HTTP '+r.status);
     const text=await r.text(); const urls=findMediaUrls(text,target);
     if(!urls.length)throw new Error('No public media URL found');
-    const media=urls.find(u=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
-    const thumb=urls.find(u=/\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
+    // arrow functions: `u=/re/.test(u)` was an assignment that threw "u is not defined" in strict mode
+    const media=urls.find(u=>/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(u))||urls[0];
+    const thumb=urls.find(u=>/\.(jpe?g|png|webp|avif)([?#]|$)/i.test(u))||'';
     return {mediaUrl:media,thumbnail:thumb};
   }
 
@@ -138,28 +145,47 @@
     catch(_){return false;}
   }
   function msg(text,cls){status.textContent=text;status.className='social-status '+(cls||'');}
+  const MIME_EXT={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/avif':'avif','image/gif':'gif','image/svg+xml':'svg','image/bmp':'bmp','image/heic':'heic','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov','video/x-matroska':'mkv','video/x-msvideo':'avi','video/3gpp':'3gp','audio/mpeg':'mp3','audio/mp4':'m4a','audio/aac':'aac','audio/ogg':'ogg','audio/opus':'opus','audio/wav':'wav','audio/x-wav':'wav','audio/webm':'weba','audio/flac':'flac'};
+  function fileNameFor(url,mime){
+    let name='';try{name=decodeURIComponent(new URL(url).pathname.split('/').pop()||'');}catch(_){}
+    name=name.replace(/[\\/:*?"<>|]+/g,'_').slice(0,120);const ext=MIME_EXT[String(mime||'').split(';')[0].trim().toLowerCase()];
+    if(!name||!/\.[a-z0-9]{2,5}$/i.test(name))name=(name||'omni-media')+(ext?'.'+ext:'');
+    else if(ext&&!name.toLowerCase().endsWith('.'+ext)&&!(ext==='jpg'&&/\.jpe?g$/i.test(name)))name=name.replace(/\.[^.]+$/,'')+'.'+ext;
+    return name;}
+  function saveBlob(b,name){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+  // after a successful download, offer to open the file in the matching studio
+  function offerStudios(blob,name){
+    let box=$('socialMediaHandoff');if(!box){box=document.createElement('div');box.id='socialMediaHandoff';box.className='actions-bar';box.style.cssText='flex-wrap:wrap;margin-top:8px';hint.insertAdjacentElement('beforebegin',box);}
+    box.innerHTML='';const t=(blob.type||'').split('/')[0];
+    const targets=t==='video'?[['tabVideo','videoInput','✂️ Edit in Video Studio'],['tabCompress','compressInput','🗜️ Compress']]:t==='image'?[['tabImages','imgInput','🖼️ Convert in Image Tools'],['tabOcr','ocrInput','🔤 Read text (OCR)']]:t==='audio'?[['tabAudio','audioInput','🎵 Edit in Audio Studio']]:[];
+    targets.forEach(([tab,inputId,label])=>{const b=document.createElement('button');b.type='button';b.className='btn btn-secondary';b.textContent=label;
+      b.onclick=()=>{const el=$(inputId);if(!el)return;const dt=new DataTransfer();dt.items.add(new File([blob],name,{type:blob.type}));el.files=dt.files;document.querySelector('.nav-btn[data-tab="'+tab+'"]')?.click();el.dispatchEvent(new Event('change',{bubbles:true}));};box.appendChild(b);});
+    box.style.display=targets.length?'flex':'none';}
   function setButtons(showDownload){
     if(download)download.style.display=showDownload?'inline-flex':'none';
     if(open)open.style.display=currentUrl?'inline-flex':'none';
   }
   function resetUI(){
+    runId++;if(activeController){activeController.cancelled=true;activeController.abort();}busy=false;if(analyzeBtn){analyzeBtn.disabled=false;analyzeBtn.textContent='Analyze Link';}
+    const ho=$('socialMediaHandoff');if(ho)ho.remove();
     currentUrl='';currentInfo=null;
     result.style.display='none';preview.innerHTML='';preview.className='social-preview empty';
     platform.textContent='—';kind.textContent='—';meta.textContent='—';
     setButtons(false);hint.style.display='none';msg('Paste a social post URL or a direct image/video URL.');
     input.value='';
   }
-  async function localHealth(){
-    const r=await fetch(BASE+'/api/health',{cache:'no-store'});
+  async function localHealth(probeMs){
+    // a short probe when used to decide the route, so a missing Local Engine costs ~1.5 s, not a hang
+    const ctl=probeMs?new AbortController():null,t=ctl?setTimeout(()=>ctl.abort(),probeMs):0;let r;
+    try{r=await fetch(BASE+'/api/health',{cache:'no-store',signal:ctl?.signal});}finally{if(t)clearTimeout(t);}
     if(!r.ok)throw new Error('Local Engine HTTP '+r.status);
     const j=await r.json();
     if(Number(j.engine_api_version||0)<4)throw new Error('Outdated Local Engine. Restart the current Omni Suite Local Engine.');
-    token=j.token||token;
     if(!j.tools?.['yt-dlp']?.installed)throw new Error('Social downloader engine (yt-dlp) is not installed. Run the current Omni Suite setup once.');
     return j;
   }
   async function localJob(payload){
-    const r=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'X-Omni-Token':token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(BASE+'/api/process',{method:'POST',headers:{'Origin':location.origin,'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok)throw new Error(j.error||('Local Engine HTTP '+r.status));
     return j;
@@ -179,19 +205,21 @@
     hint.style.display='block';
     hint.innerHTML='<b>Local Engine active.</b> Omni will download the media through the local engine instead of trying to bypass browser CORS restrictions.';
   }
+  function typeFromExt(url){try{const e=new URL(url).pathname.split('.').pop().toLowerCase();return /^(jpe?g|png|gif|webp|avif|svg|bmp|heic|heif|tiff?)$/.test(e)?'image/'+(e==='jpg'?'jpeg':e==='svg'?'svg+xml':e):/^(mp4|webm|mov|m4v|mkv|avi|3gp|mpeg|mpg)$/.test(e)?'video/'+(e==='mov'?'quicktime':e==='m4v'?'mp4':e):/^(mp3|wav|m4a|aac|ogg|opus|flac)$/.test(e)?'audio/'+(e==='mp3'?'mpeg':e==='m4a'?'mp4':e):'';}catch(_){return '';}}
   async function analyzeDirect(url){
+    let type='',size=null,corsOk=false;
+    try{const h=await fetch(url,{method:'HEAD',mode:'cors',cache:'no-store'});if(h.ok){type=(h.headers.get('content-type')||'').toLowerCase();size=h.headers.get('content-length');corsOk=true;}}catch(_){}
+    if(!/^(image|video|audio)\//.test(type))type=typeFromExt(url);
+    if(!type)return false;
     try{
-      const h=await fetch(url,{method:'HEAD',mode:'cors',cache:'no-store'});
-      const type=(h.headers.get('content-type')||'').toLowerCase();
-      if(!h.ok||!/^((image|video|audio)\/)\b/.test(type))throw new Error('Not a browser-accessible direct media URL');
+      if(!/^((image|video|audio)\/)\b/.test(type))throw new Error('Not a browser-accessible direct media URL');
       kind.textContent=type.startsWith('image/')?'Image':type.startsWith('video/')?'Video':'Audio';
-      const size=h.headers.get('content-length');
       meta.textContent=size?(Number(size)/1048576).toFixed(2)+' MB':type;
       preview.innerHTML='';
       const el=type.startsWith('image/')?document.createElement('img'):type.startsWith('video/')?document.createElement('video'):document.createElement('audio');
-      el.src=url;el.controls=type.startsWith('video/')||type.startsWith('audio/');el.playsInline=true;el.alt='Media preview';
+      el.src=url;el.controls=type.startsWith('video/')||type.startsWith('audio/');el.playsInline=true;el.alt='Media preview';if(!corsOk)el.referrerPolicy='no-referrer';
       preview.appendChild(el);preview.className='social-preview';
-      setButtons(true);hint.style.display='block';hint.textContent='Direct media URL detected. Browser download is available.';
+      setButtons(true);hint.style.display='block';hint.textContent=corsOk?'Direct media URL detected. Browser download is available.':'Direct media URL detected. The server may not allow the browser to save it directly — if so, Omni opens it so you can use Save As.';
       msg('Direct media detected. Ready to download.','ok');
       download.onclick=()=>downloadDirect(url,type);
       return true;
@@ -201,38 +229,52 @@
     download.disabled=true;download.textContent='Preparing…';
     try{
       const r=await fetch(url,{mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status);
-      const b=await r.blob();const u=URL.createObjectURL(b),a=document.createElement('a');
-      a.href=u;a.download='omni-media.'+(type.split('/')[1]||'bin');a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);
-      msg('Download started.','ok');
-    }catch(e){msg('Browser download failed: '+e.message+'. Use Local Engine if available.','error');}
+      const b=await r.blob();const name=fileNameFor(url,b.type||type);saveBlob(b,name);offerStudios(b,name);
+      msg('Downloaded '+name+' • '+(b.size/1048576).toFixed(2)+' MB','ok');
+    }catch(e){window.open(url,'_blank','noopener,noreferrer');msg('The server does not let the browser save this file directly, so it was opened in a new tab — use Save As there.','warn');}
     finally{download.disabled=false;download.textContent='⬇ Download Media';}
   }
   async function runAnalyze(){
-    const url=input.value.trim();
+    if(busy)return;
+    let url=input.value.trim();
     if(!url){msg('Paste a URL first.','error');return;}
-    try{new URL(url);}catch(_){msg('That is not a valid URL.','error');return;}
+    if(!/^[a-z]+:\/\//i.test(url)&&/^[\w.-]+\.[a-z]{2,}\//i.test(url))url='https://'+url;
+    try{const u=new URL(url);if(!/^https?:$/.test(u.protocol))throw 0;}catch(_){msg('That is not a valid web address (it should start with https://).','error');return;}
+    const my=++runId;const stale=()=>my!==runId;busy=true;if(analyzeBtn){analyzeBtn.disabled=true;analyzeBtn.textContent='Analyzing…';}
+    const ho=$('socialMediaHandoff');if(ho)ho.remove();
+    try{
     currentUrl=url;platform.textContent=detect(url);result.style.display='block';open.href=url;setButtons(false);
     msg('Resolving public media…','working');preview.innerHTML='<div style="padding:28px">Finding public media…</div>';preview.className='social-preview empty';
+    if(direct(url)&&await analyzeDirect(url)){return;}
+    if(stale())return;
+    // 1. Local Engine first: yt-dlp on the user's own connection is not blocked like cloud/datacenter IPs.
     try{
-      const info=await hostedResolve(url); renderHosted(info,url); return;
-    }catch(e){console.warn('[Social Media Studio] Hosted resolver:',e);}
+      await localHealth(LOCAL_PROBE_MS); if(stale())return;
+      msg('Resolving with the Local Engine on this computer…','working');
+      const info=await localJob({op:'social_download',url,info_only:true}); if(stale())return; currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
+    }catch(e){if(stale())return;console.warn('[Social Media Studio] Local Engine:',e);}
+    // 2. Hosted resolver (capped wait).
     try{
-      const x=await browserResolve(url); currentUrl=x.mediaUrl;
+      const info=await hostedResolve(url); if(stale())return; renderHosted(info,url); return;
+    }catch(e){if(stale())return;console.warn('[Social Media Studio] Hosted resolver:',e);}
+    // 3. Public page reader: last resort (it is often rate-limited for big platforms).
+    try{
+      const x=await browserResolve(url); if(stale())return; currentUrl=x.mediaUrl;
       kind.textContent=/\.(mp4|webm|mov|m4v|mp3|m4a|aac|ogg)([?#]|$)/i.test(x.mediaUrl)?'Video / Audio':'Image / Media';
       meta.textContent='Public media • Browser Resolver'; preview.innerHTML='';
       if(x.thumbnail){const img=document.createElement('img');img.src=x.thumbnail;img.alt='Media preview';img.loading='lazy';preview.appendChild(img);}else preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Public media found</strong><br><span style="font-size:.78rem;color:#7b8795">Ready for browser download.</span></div>';
       preview.className='social-preview';hint.style.display='block';hint.innerHTML='<b>Browser mode active.</b> Public media resolved without the Local Engine. Private, login-only and DRM content is not supported.';
       setButtons(true);download.textContent='⬇ Download Media';download.onclick=()=>downloadDirectResolved(x.mediaUrl);msg('Public media found. Ready to download.','ok');return;
     }catch(e){console.warn('[Social Media Studio] Direct browser resolver:',e);}
-    try{
-      await localHealth(); const info=await localJob({op:'social_download',url,info_only:true}); currentUrl=url;renderInfo(info);msg('Media detected by Local Engine.','ok');setButtons(true);download.textContent='⬇ Download Best';download.onclick=()=>downloadWithMode('best','best');return;
-    }catch(e){console.warn('[Social Media Studio] Local Engine unavailable:',e);}
-    if(await analyzeDirect(url))return;
-    currentUrl=url;kind.textContent='Social / page URL';meta.textContent='No public media link found';hint.style.display='block';hint.innerHTML='<b>Could not resolve this public page.</b> It may be private, login-gated, blocked, or temporarily unsupported.';msg('No public media URL could be resolved in browser mode.','warn');
+    if(stale())return;
+    if(!direct(url)&&await analyzeDirect(url))return;
+    if(stale())return;
+    currentUrl=url;kind.textContent='Social / page URL';meta.textContent='No public media link found';preview.innerHTML='<div style="padding:28px;text-align:center"><strong>Nothing to download</strong></div>';hint.style.display='block';hint.innerHTML='<b>Could not resolve this public page.</b> It may be private, login-gated, or blocked for cloud services (YouTube and Instagram often refuse hosted downloaders). Start the Omni Local Engine on this computer — it downloads over your own connection — or paste a direct link to the image or video file.';msg('No public media URL could be resolved in browser mode.','warn');
+    }finally{if(my===runId){busy=false;if(analyzeBtn){analyzeBtn.disabled=false;analyzeBtn.textContent='Analyze Link';}}}
   }
   async function downloadDirectResolved(url){
     download.disabled=true;download.textContent='Downloading…';msg('Downloading through the browser…','working');
-    try{const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();const ext=(b.type.split('/')[1]||'bin').split(';')[0];const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='omni-social-media.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);msg('Download started.','ok');}
+    try{const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();const name=fileNameFor(url,b.type);saveBlob(b,name);offerStudios(b,name);msg('Downloaded '+name+' • '+(b.size/1048576).toFixed(2)+' MB','ok');}
     catch(e){window.open(url,'_blank','noopener,noreferrer');msg('The CDN blocked browser file access. Opened the resolved media URL; use the browser Save/Download control.','warn');}
     finally{download.disabled=false;download.textContent='⬇ Download Media';}
   }
@@ -241,11 +283,9 @@
     try{
       await localHealth();
       const j=await localJob({op:'social_download',url:currentUrl,mode,quality});
-      const d=await fetch(BASE+'/api/download/'+encodeURIComponent(j.file_id),{headers:{'Origin':location.origin,'X-Omni-Token':token}});
+      const d=await fetch(BASE+'/api/download/'+encodeURIComponent(j.file_id),{headers:{'Origin':location.origin}});
       if(!d.ok)throw new Error('Output download failed');
-      const b=await d.blob(),u=URL.createObjectURL(b),a=document.createElement('a');
-      a.href=u;a.download=j.name||'omni-social-media';document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(u),60000);msg('Download complete.','ok');
+      const b=await d.blob();const name=j.name||fileNameFor(currentUrl,b.type);saveBlob(b,name);offerStudios(b,name);msg('Download complete.','ok');
     }catch(e){msg(e.message||String(e),'error');}
     finally{download.disabled=false;download.textContent='⬇ Download Best';}
   }

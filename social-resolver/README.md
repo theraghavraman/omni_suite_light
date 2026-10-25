@@ -1,25 +1,9 @@
 # Omni Social Resolver
 
-Remote resolver for Omni Suite Social Media Studio.
+## Disabled pending security infrastructure
 
-The GitHub Pages application sends only a public URL to this service, receives media metadata, and the browser initiates the download. No platform login, cookies, credential harvesting, private-account access, DRM bypass, or anti-bot circumvention is implemented.
+The resolver container is intentionally fail-closed. `GET /api/health` reports service liveness; social URL resolution, media proxying, and downloads return HTTP 503 until the service has a per-user identity and authorization layer, shared quotas, signed media grants, and isolated workers.
 
-## Deploy on Render
+Do not deploy this service for public processing or configure it as the Social Media Studio backend. `social_resolver_config.js` is intentionally empty. A token embedded in a static browser application would be public and would not provide user authentication.
 
-Create a new Render Blueprint using the repository and select the Blueprint path:
-
-`social-resolver/render.yaml`
-
-The Blueprint creates a Docker web service named `omni-social-resolver`. After deployment, Render provides an HTTPS `onrender.com` URL. Put that URL in `social_resolver_config.js` in the main Omni Suite repository.
-
-The resolver exposes:
-
-- `GET /api/health`
-- `POST /api/resolve` with JSON `{"url":"https://..." }`
-- `GET /api/download?url=...&quality=1080p`
-
-Only supported public-platform hostnames are accepted.
-
-## Limits
-
-The default maximum media duration is 15 minutes and the maximum generated file size is 300 MB. These are deliberately conservative for a public resolver.
+Before re-enabling processing, implement and verify the requirements in `SECURITY_REMEDIATION_STATUS.md`: user-bound authorization on every route, distributed rate limits, bounded redirect-by-redirect DNS-pinned media fetching, private job storage and cleanup, and platform-level resource isolation. The current source contains pieces of the URL and response hardening, but they are not a substitute for those missing services.

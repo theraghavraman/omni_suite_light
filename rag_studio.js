@@ -4,9 +4,10 @@
  */
 (()=>{"use strict";
 const $=id=>document.getElementById(id);
+try{sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken");}catch(_){}
 const DB="omni-private-rag-v1", STORE="chunks", META="meta", REPO_KEY="repository", DEFAULT_REPO="theraghavraman/omni_suite_light";
 function repoRef(){const host=location.hostname||"";const path=location.pathname.split("/").filter(Boolean);if(host.endsWith(".github.io")){const owner=host.split(".")[0];const repo=path[0]||DEFAULT_REPO.split("/")[1];if(owner&&repo)return owner+"/"+repo}return DEFAULT_REPO}
-let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[];
+let db=null, generator=null, chunks=[], lastResults=[], pendingFiles=[], lexicalOnly=false;
 let embedWorker=null, embedWorkerReady=null, embedRequestId=0, embedPending=new Map();
 const MODEL_EMBED="Xenova/all-MiniLM-L6-v2";
 const MODEL_LLM="onnx-community/gemma-3-270m-it-ONNX";
@@ -73,36 +74,51 @@ function tx(mode){return db.transaction(STORE,mode).objectStore(STORE)}
 function metaTx(mode){return db.transaction(META,mode).objectStore(META)}
 function metaGet(key){return new Promise((res,rej)=>{const r=metaTx("readonly").get(key);r.onsuccess=()=>res(r.result?.value||null);r.onerror=()=>rej(r.error)})}
 function metaSet(key,value){return new Promise((res,rej)=>{const r=metaTx("readwrite").put({key,value});r.onsuccess=res;r.onerror=()=>rej(r.error)})}
-function deleteSources(sources){const set=new Set(sources);if(!set.size)return Promise.resolve();return new Promise((res,rej)=>{const t=tx("readwrite"),q=t.openCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(set.has(c.value.source))c.delete();c.continue()};t.oncomplete=res;t.onerror=()=>rej(t.error)})}
-function putMany(a){return new Promise((res,rej)=>{const t=tx("readwrite");a.forEach(x=>t.put(x));t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+function deleteSources(sources){const set=new Set(sources);if(!set.size)return Promise.resolve();return new Promise((res,rej)=>{const s=tx("readwrite"),t=s.transaction,q=s.openCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(set.has(c.value.source))c.delete();c.continue()};t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("Index delete aborted"))})}
+function putMany(a){return new Promise((res,rej)=>{const s=tx("readwrite"),t=s.transaction;a.forEach(x=>s.put(x));t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("Index write aborted"))})}
 function clearDB(){return new Promise((res,rej)=>{const r=tx("readwrite").clear();r.onsuccess=res;r.onerror=()=>rej(r.error)})}
 function getAll(){return new Promise((res,rej)=>{const r=tx("readonly").getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)}
-function splitText(text,size=1200,overlap=180){text=text.replace(/\r/g,"").replace(/\n{3,}/g,"\n\n").trim();const out=[];for(let i=0;i<text.length;i+=size-overlap){let e=Math.min(text.length,i+size);if(e<text.length){const p=text.lastIndexOf("\n",e);if(p>i+500)e=p}const c=text.slice(i,e).trim();if(c)out.push(c);if(e>=text.length)break}return out}
-function lexical(q,t){const a=new Set((q.toLowerCase().match(/[a-z0-9_]{2,}/g)||[]));const b=(t.toLowerCase().match(/[a-z0-9_]{2,}/g)||[]);if(!a.size)return 0;let n=0;for(const x of b)if(a.has(x))n++;return n/Math.sqrt(a.size*Math.max(1,b.length))}
+function splitText(text,size=1200,overlap=180){text=text.replace(/\r/g,"").replace(/\n{3,}/g,"\n\n").trim();const out=[];let i=0;while(i<text.length){let e=Math.min(text.length,i+size);if(e<text.length){const p=text.lastIndexOf("\n",e);if(p>i+500)e=p}const c=text.slice(i,e).trim();if(c)out.push(c);if(e>=text.length)break;/* continue from the actual cut (minus overlap) so text after an early paragraph break is never skipped */i=Math.max(i+1,e-overlap)}return out}
+function tokens(s){return String(s).toLowerCase().match(/[\p{L}\p{M}\p{N}_]{2,}/gu)||[]}
+function lexical(q,t){const a=new Set(tokens(q));const b=tokens(t);if(!a.size)return 0;let n=0;for(const x of b)if(a.has(x))n++;return n/Math.sqrt(a.size*Math.max(1,b.length))}
 function cosine(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return d/(Math.sqrt(na)*Math.sqrt(nb)||1)}
 async function loadTransformers(){if(window.__omniTransformers)return window.__omniTransformers;const m=await import(CDN);window.__omniTransformers=m;return m}
-function setModelState(kind,state,text){const map={embed:["ragEmbedState","ragEmbedDot"],llm:["ragLLMState","ragLLMDot"],runtime:["ragRuntimeState","ragRuntimeDot"],storage:["ragStorageState","ragStorageDot"]};const ids=map[kind];if(!ids)return;const a=$(ids[0]),b=$(ids[1]);if(a)a.textContent=text;if(b)b.className="rag-dot "+state;b.textContent=state==="ok"?"●":state==="busy"?"◌":state==="warn"?"!":"○"}
+function setModelState(kind,state,text){const map={embed:["ragEmbedState","ragEmbedDot"],llm:["ragLLMState","ragLLMDot"],runtime:["ragRuntimeState","ragRuntimeDot"],storage:["ragStorageState","ragStorageDot"]};const ids=map[kind];if(!ids)return;const a=$(ids[0]),b=$(ids[1]);if(a)a.textContent=text;if(!b)return;b.className="rag-dot "+state;b.textContent=state==="ok"?"●":state==="busy"?"◌":state==="warn"?"!":"○"}
 function initRuntimeStatus(){const gpu=!!navigator.gpu;setModelState("runtime",gpu?"ok":"warn",gpu?"WebGPU available · faster local generation":"WebGPU unavailable · WASM fallback");setModelState("storage","ok","IndexedDB · browser-local")}
 function resetEmbedWorker(error){const e=error instanceof Error?error:new Error(String(error||"Embedding worker stopped"));for(const [,p] of embedPending)p.reject(e);embedPending.clear();const ready=embedWorkerReady;if(embedWorker){try{embedWorker.terminate()}catch(_){}}embedWorker=null;embedWorkerReady=null;ready?.reject?.(e);setModelState("embed","warn","Unavailable · "+e.message)}
 function getEmbedWorker(){if(embedWorker)return embedWorker;if(!window.Worker)throw new Error("Web Workers are unavailable in this browser.");setModelState("embed","busy","Starting background embedding worker…");embedWorker=new Worker("./rag_embed_worker.js?v=1",{type:"module"});embedWorker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){setModelState("embed","ok",d.device==="webgpu"?"Ready · Web Worker + WebGPU":"Ready · Web Worker + WASM");if(embedWorkerReady)embedWorkerReady.resolve(d);return}if(d.type==="progress"){if(d.total)setRagActivity(`Embedding ${d.done}/${d.total} in background…`,"busy");return}if(d.type==="result"){const p=embedPending.get(d.id);if(!p)return;embedPending.delete(d.id);p.resolve(d.vectors);return}if(d.type==="error"){const p=embedPending.get(d.id);if(p){embedPending.delete(d.id);p.reject(new Error(d.message||"Embedding worker error"))}else resetEmbedWorker(new Error(d.message||"Embedding worker error"))}};embedWorker.onerror=e=>resetEmbedWorker(new Error(e.message||"Embedding worker failed"));return embedWorker}
 async function ensureEmbedWorker(){if(embedWorkerReady)return embedWorkerReady.promise;getEmbedWorker();embedWorkerReady={};embedWorkerReady.promise=new Promise((resolve,reject)=>{embedWorkerReady.resolve=resolve;embedWorkerReady.reject=reject});return embedWorkerReady.promise}
 async function embedTexts(texts){await ensureEmbedWorker();const id=++embedRequestId;return new Promise((resolve,reject)=>{embedPending.set(id,{resolve,reject});embedWorker.postMessage({type:"embed",id,texts})})}
 async function embed(text){const out=await embedTexts([text]);return out[0]}
+function decodeXml(s){return s.replace(/&(lt|gt|quot|apos|amp|#\d+|#x[0-9a-f]+);/gi,(m,e)=>{e=e.toLowerCase();if(e[0]==="#"){const n=e[1]==="x"?parseInt(e.slice(2),16):parseInt(e.slice(1),10);try{return String.fromCodePoint(n)}catch(_){return m}}return {lt:"<",gt:">",quot:'"',apos:"'",amp:"&"}[e]})}
 async function extractFile(f){
  const n=f.name.toLowerCase();
- if(n.endsWith(".pdf")&&window.pdfjsLib){const ar=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ar}).promise;let t="";for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i),c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n"}return t}
- if(n.endsWith(".docx")&&window.JSZip){const z=await JSZip.loadAsync(await f.arrayBuffer());const xml=await z.file("word/document.xml").async("text");return xml.replace(/<w:tab[^>]*\/>/g,"\t").replace(/<\/w:p>/g,"\n").replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim()}
- return await f.text()
+ if(n.endsWith(".pdf")){
+  const pdfjs=await (window.OMNI_PDFJS_READY||Promise.reject(new Error("Verified PDF.js is unavailable.")));
+  const pdf=await pdfjs.getDocument({data:new Uint8Array(await f.arrayBuffer()),enableScripting:false,isEvalSupported:false}).promise;let t="";
+  try{for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i),c=await pg.getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":" ")).join("")+"\n\n";pg.cleanup?.()}}finally{pdf.destroy?.()}
+  return t
+ }
+ if(n.endsWith(".docx")){
+  if(!window.JSZip)throw new Error("ZIP engine (JSZip) is not loaded, so "+f.name+" cannot be read.");
+  const z=await JSZip.loadAsync(await f.arrayBuffer());const doc=z.file("word/document.xml");if(!doc)throw new Error(f.name+" is not a valid Word document (word/document.xml missing).");
+  const xml=await doc.async("text");
+  // keep paragraph breaks so chunks follow the document structure
+  return decodeXml(xml.replace(/<w:tab[^>]*\/>/g,"\t").replace(/<w:br[^>]*\/>/g,"\n").replace(/<\/w:p>/g,"\n").replace(/<[^>]+>/g,"")).replace(/[ \t]+/g," ").replace(/ *\n */g,"\n").trim()
+ }
+ const t=await f.text();
+ const sample=t.slice(0,4000);if(sample.includes("\u0000")||(sample.match(/\uFFFD/g)||[]).length>sample.length*.05)throw new Error(f.name+" looks like a binary file; add text, Markdown, CSV, JSON, code, PDF or DOCX files.");
+ return t
 }
 async function indexText(text,source,meta={}){
  const parts=splitText(text);if(!parts.length)return 0;const out=[];const batchSize=8;
  for(let start=0;start<parts.length;start+=batchSize){
   const batch=parts.slice(start,start+batchSize);
   setRagActivity(`Embedding ${Math.min(start+batch.length,parts.length)}/${parts.length} in background — ${source}`,"busy");
-  const vectors=await embedTexts(batch);
+  let vectors=[];if(!lexicalOnly){try{vectors=await embedTexts(batch)}catch(e){console.warn('Embedding unavailable; indexing for keyword search only.',e);lexicalOnly=true}}
   const batchOut=[];
-  for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]})}
+  for(let j=0;j<batch.length;j++){const c=batch[j];batchOut.push({id:source+"#"+(start+j)+"-"+hash(c),source,text:c,meta,index:start+j,vector:vectors[j]||null})}
   out.push(...batchOut);await putMany(batchOut);
   await new Promise(r=>setTimeout(r,0));
  }
@@ -125,39 +141,108 @@ function queueFiles(files){
  const existing=new Set(pendingFiles.map(f=>f.name+"|"+f.size+"|"+f.lastModified));
  for(const f of files){const k=f.name+"|"+f.size+"|"+f.lastModified;if(!existing.has(k)){pendingFiles.push(f);existing.add(k)}}
  renderPendingFiles();updatePendingStatus();
- setRagActivity(pendingFiles.length?"1 file selected · ready to save or index":"Nothing selected yet.");
+ setRagActivity(pendingFiles.length?pendingFiles.length+" file"+(pendingFiles.length===1?"":"s")+" selected · ready to save or index":"Nothing selected yet.");
 }
 async function indexPendingFiles(){
  if(!pendingFiles.length){setRagActivity("Choose files first.","error");return}
  const files=[...pendingFiles];const btn=$("ragEmbed");btn.disabled=true;const originalLabel=btn.textContent;btn.textContent="⏳ Preparing…";
  setRagActivity("Starting semantic search preparation…","busy");
  try{
-  await ensureEmbedWorker();
-  setRagActivity("Background embedding worker ready. Reading selected files…","busy");
+  lexicalOnly=false;
+  try{await ensureEmbedWorker();setRagActivity("Background embedding worker ready. Reading selected files…","busy")}
+  catch(e){console.warn('Semantic model unavailable; using keyword index.',e);lexicalOnly=true;setRagActivity("Semantic model unavailable on this device — indexing for keyword search…","busy")}
+  const failed=[];let indexed=0;
   for(let n=0;n<files.length;n++){
    const f=files[n];
    setRagActivity("Reading "+(n+1)+"/"+files.length+" · "+f.name,"busy");
    await new Promise(r=>requestAnimationFrame(r));
-   const t=await extractFile(f);
-   await new Promise(r=>requestAnimationFrame(r));
-   await indexText(t,f.name,{type:f.type,size:f.size});
+   try{
+    const t=await extractFile(f);
+    if(!t||!t.trim())throw new Error("no readable text");
+    await new Promise(r=>requestAnimationFrame(r));
+    // re-indexing a file replaces its old chunks instead of mixing old and new versions
+    await deleteSources([f.name]);
+    await indexText(t,f.name,{type:f.type,size:f.size});
+    indexed++;
+   }catch(e){console.warn("RAG indexing skipped",f.name,e);failed.push(f.name+" ("+e.message+")")}
    await new Promise(r=>requestAnimationFrame(r));
   }
   chunks=await getAll();updateStats();
-  setRagActivity("✓ "+files.length+" selected file"+(files.length===1?"":"s")+" indexed locally.","ok");
+  if(indexed&&!failed.length){pendingFiles=[];renderPendingFiles()}
+  setRagActivity((indexed?"✓ "+indexed+" file"+(indexed===1?"":"s")+" indexed locally"+(lexicalOnly?" (keyword search — semantic model unavailable)":""):"No files were indexed")+(failed.length?" · skipped: "+failed.join("; "):"."),failed.length?(indexed?"busy":"error"):"ok");
  }catch(e){console.error(e);setRagActivity("Could not index selected files: "+e.message,"error")}
  finally{btn.disabled=false;btn.textContent=originalLabel}
 }
-async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>({...x,score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)})).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$("ragStatus").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
-function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const link=m?`<a href="https://github.com/theraghavraman/omni_suite_light/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>Semantic/vector score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
+async function search(q){if(!chunks.length)chunks=await getAll();if(!chunks.length)return[];const topK=Math.min(20,Math.max(1,Number($("ragTopK").value||12)));const lexicalRank=chunks.map(x=>({...x,lexical:lexical(q,x.text)})).sort((a,b)=>b.lexical-a.lexical);if(lexicalRank[0]?.lexical>=0.22)return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));if(!chunks.some(x=>Array.isArray(x.vector)&&x.vector.length))return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}));try{const qv=await embed(q);return lexicalRank.slice(0,48).map(x=>Array.isArray(x.vector)&&x.vector.length?{...x,kind:"hybrid",score:.78*cosine(qv,x.vector)+.22*Math.min(1,x.lexical)}:{...x,score:x.lexical}).sort((a,b)=>b.score-a.score).slice(0,topK)}catch(e){$("ragStatus").textContent="Semantic embedding unavailable; using lexical retrieval.";return lexicalRank.slice(0,topK).map(x=>({...x,score:x.lexical}))}}
+function renderResults(r){lastResults=r;const box=$("ragSources");box.innerHTML=r.length?r.map((x,i)=>{const m=String(x.source).match(/^Repository: (.+)$/);const title=m?esc(m[1]):esc(x.source);const repo=/^[\w.-]+\/[\w.-]+$/.test(x.meta?.repositoryName||"")?x.meta.repositoryName:repoRef();const link=m?`<a href="https://github.com/${repo}/blob/main/${m[1].split("/").map(encodeURIComponent).join("/")}" target="_blank" rel="noopener noreferrer">${title}</a>`:title;return `<div class="rag-source"><b>${i+1}. ${link}</b><small>${x.kind==="hybrid"?"Hybrid semantic + keyword":"Keyword"} score ${x.score.toFixed(3)} · chunk ${x.index+1}</small><div style="margin-top:6px">${esc(x.text)}</div></div>`}).join(""):"No relevant sources found."}
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
+function extractiveAnswer(q,r){const stop=new Set("a an the is are was were be to of in on for and or what which who how why when where does do did can with from by this that it as at".split(" "));const terms=[...new Set(String(q).toLowerCase().match(/[\p{L}\p{N}_]+/gu)||[])].filter(t=>!stop.has(t)&&t.length>1);const sents=[];r.slice(0,6).forEach((x,ri)=>String(x.text).split(/(?<=[.!?])\s+|\n+/).forEach(t=>{t=t.trim();if(t.length<12)return;const w=t.toLowerCase();let hit=0;terms.forEach(k=>{if(w.includes(k))hit++});if(hit)sents.push({t,score:hit/Math.max(1,terms.length)+(6-ri)*0.02,src:ri+1})}));sents.sort((a,b)=>b.score-a.score);const top=[];for(const x of sents){if(top.length>=3)break;if(!top.some(y=>y.t===x.t))top.push(x)}const head=top.length?"Answer (extracted from your documents):\n"+top.map(x=>"• "+x.t+" [Source "+x.src+"]").join("\n"):"No sentence matched your question directly — see the closest passages below.";return head+"\n\nRetrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}
+async function browserGenerate(context,q){
+ const m=await loadTransformers();
+ if(!generator){
+  setModelState("llm","busy","Loading Gemma 3 270M…");
+  let device="wasm",dtype="q4";
+  try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}
+  try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}
+  catch(e){if(device==="webgpu")generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"});else throw e}
+  setModelState("llm","ok",device==="webgpu"?"Ready · WebGPU":"Ready · WASM");
+ }
+ const prompt="Use ONLY the supplied sources. If the answer is not supported, say you don't know. Cite sources as [Source N].\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q+"\nANSWER:";
+ const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});
+ const g=Array.isArray(o)?o[0]?.generated_text:null;
+ const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);
+ const answer=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim();
+ if(!answer)throw new Error("The browser model returned an empty answer.");
+ return answer;
+}
+async function localGenerate(context,q){
+ const base=($("ragLocalUrl")?.value||"http://127.0.0.1:8765").trim().replace(/\/+$/,"");
+ const statusResponse=await fetch(base+"/api/ai/status",{cache:"no-store",credentials:"omit"});
+ const status=await statusResponse.json().catch(()=>({}));
+ if(!statusResponse.ok||!status.ok)throw new Error(status.error||"Local Engine is unavailable.");
+ if(!status.available)throw new Error("Local Engine is reachable, but no Ollama or LM Studio model is available.");
+ const prompt="Answer using only the retrieved sources. If they do not support an answer, say you do not know. Cite claims as [Source N].\n\nSOURCES:\n"+context+"\n\nQUESTION: "+q;
+ const r=await fetch(base+"/api/process",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({op:"ai_chat",messages:[{role:"system",content:"You are Omni RAG. Use only the supplied evidence; do not invent facts. Cite source numbers."},{role:"user",content:prompt}],temperature:0.1,max_tokens:512}),credentials:"omit"});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||!data.ok)throw new Error(data.error||("Local Engine generation failed (HTTP "+r.status+")."));
+ if(!data.text||!String(data.text).trim())throw new Error("Local Engine returned an empty answer.");
+ return String(data.text).trim();
+}
 async function answer(){
  const q=$("ragQuery").value.trim();if(!q)return;
  $("ragAnswer").textContent="Retrieving relevant knowledge…";$("ragSources").innerHTML="";
- try{const r=await search(q);renderResults(r);if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
- const context=r.map((x,i)=>`[Source ${i+1}: ${x.source}]\n${x.text}`).join("\n\n");
- if($("ragUseLLM").value==="true"){try{$("ragAnswer").textContent="Running the local small LLM…";const m=await loadTransformers();if(!generator){setModelState("llm","busy","Loading Gemma 3 270M…");let device="wasm",dtype="q4";try{if(navigator.gpu){const adapter=await navigator.gpu.requestAdapter();if(adapter){device="webgpu";dtype="q4f16"}}}catch(e){}try{generator=await m.pipeline("text-generation",MODEL_LLM,{dtype,device})}catch(e){if(device==="webgpu"){generator=await m.pipeline("text-generation",MODEL_LLM,{dtype:"q4",device:"wasm"})}else throw e};setModelState("llm","ok",navigator.gpu?"Ready · WebGPU":"Ready · WASM");}const prompt=`Use ONLY the supplied sources. If the answer is not supported, say you don't know.\n\nSOURCES:\n${context}\n\nQUESTION: ${q}\nANSWER:`;const o=await generator([{role:"user",content:prompt}],{max_new_tokens:256,temperature:.2,do_sample:false});const g=Array.isArray(o)?o[0]?.generated_text:null;const raw=Array.isArray(g)?(g[g.length-1]?.content||""):typeof g==="string"?g:String(g||o);$("ragAnswer").textContent=raw.includes("ANSWER:")?raw.split("ANSWER:").pop().trim():raw.replace(prompt,"").trim()}catch(e){$("ragAnswer").textContent="Local LLM unavailable on this browser/device. Retrieved context is shown below.\n\n"+r.map(x=>x.text).join("\n\n");setModelState("llm","warn","Unavailable · retrieval-only fallback");$("ragStatus").textContent="LLM fallback: "+e.message}}else{$("ragAnswer").textContent="Retrieved context (LLM disabled):\n\n"+r.map(x=>x.text).join("\n\n")}}
- catch(e){$("ragAnswer").textContent="RAG error: "+e.message;$("ragStatus").textContent="Error"}}
+ try{
+  const r=await search(q);renderResults(r);
+  if(!r.length){$("ragAnswer").textContent="No indexed knowledge found. Add documents or refresh the repository knowledge base.";return}
+  const context=r.map((x,i)=>"[Source "+(i+1)+": "+x.source+"]\n"+x.text).join("\n\n");
+  const mode=$("ragUseLLM").value;
+  if(mode==="false"||mode==="retrieval"){
+   $("ragAnswer").textContent=extractiveAnswer(q,r);setModelState("llm","idle","Retrieval-only mode");return;
+  }
+  const run=mode==="local"?localGenerate:mode==="false"||mode==="retrieval"?null:browserGenerate;
+  if(!run){
+   $("ragAnswer").textContent=extractiveAnswer(q,r);
+   setModelState("llm","idle","Retrieval-only mode");
+   return;
+  }
+  const name=mode==="local"?"Local Engine · local-only":"Browser LLM · on-device";
+  $("ragAnswer").textContent="Generating locally with "+name+"…";
+  try{
+   const text=await run(context,q);
+   $("ragAnswer").textContent=text;
+   setModelState("llm","ok","Answer generated · "+name);
+   $("ragStatus").textContent="✓ Grounded answer generated locally with "+name+" from "+r.length+" retrieved passages.";
+  }catch(e){
+   $("ragAnswer").textContent="Local generation unavailable: "+e.message+"\nNo cloud service was used. Showing the retrieval-only answer instead.\n\n"+extractiveAnswer(q,r);
+   $("ragStatus").textContent="Local generation unavailable; no off-device fallback was attempted.";
+   setModelState("llm","warn","Local generation unavailable · retrieval remains usable");
+  }
+ }catch(e){
+  $("ragAnswer").textContent="Generation/retrieval issue: "+e.message;
+  $("ragStatus").textContent="RAG issue: "+e.message;
+  setModelState("llm","warn","Generation failed");
+ }
+}
 async function refreshRepo(){
  const status=$("ragStatus"),repo=repoRef();status.textContent="Checking "+repo+" repository version…";
  try{
@@ -183,39 +268,9 @@ async function refreshRepo(){
   status.textContent=`Repository indexed locally · ${files.length} repository files · ${chunks.filter(x=>x.meta?.repository).length} chunks · ${changed} updated · commit ${commitSha.slice(0,7)}${failed?" · "+failed+" skipped":""}`;
  }catch(e){status.textContent="Repository refresh failed: "+e.message}
 }
-function githubToken(){return sessionStorage.getItem("omniRagGithubToken")||""}
-function githubCfg(){return {repo:($("ragGithubRepo")?.value||DEFAULT_REPO).trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,""),folder:($("ragGithubFolder")?.value||"knowledge-base").trim().replace(/^\/+|\/+$/g,""),branch:($("ragGithubBranch")?.value||"main").trim()||"main"}}
-function b64(buf){let s="",a=new Uint8Array(buf);const step=0x8000;for(let i=0;i<a.length;i+=step)s+=String.fromCharCode(...a.subarray(i,Math.min(i+step,a.length)));return btoa(s)}
 function setGithubStatus(msg,kind=""){const el=$("ragGithubStatus");if(el){el.textContent=msg;el.className="rag-github-status "+kind}}
-function forgetGitHubToken(){sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken");const i=$("ragGithubToken");if(i)i.value="";setGithubStatus("GitHub token cleared from this browser.","ok")}
-async function saveSelectedToGitHub(){
- const files=[...($("ragFiles")?.files||[])];if(!files.length){setGithubStatus("Choose at least one file first.","error");return}
- const token=($("ragGithubToken")?.value||githubToken()).trim();if(!token){setGithubStatus("Enter your GitHub fine-grained token first.","error");return}
- const cfg=githubCfg();if(!/^[^/]+\/[^/]+$/.test(cfg.repo)){setGithubStatus("Repository must look like owner/repository.","error");return}
- sessionStorage.setItem("omniRagGithubToken",token);
- const btn=$("ragGithubSave");if(btn)btn.disabled=true;
- try{
-  setGithubStatus("Checking GitHub access…");
-  const base="https://api.github.com/repos/"+cfg.repo;
-  const hr=await fetch(base,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
-  if(!hr.ok)throw new Error("GitHub access failed (HTTP "+hr.status+"). Check the token and repository.");
-  const repoInfo=await hr.json();if(repoInfo.permissions&&!repoInfo.permissions.push)throw new Error("This token does not have write access to the repository.");
-  for(let n=0;n<files.length;n++){
-   const f=files[n],safe=f.name.replace(/[^a-zA-Z0-9._() -]/g,"_"),path=(cfg.folder?cfg.folder+"/":"")+safe;
-   setGithubStatus("Saving "+(n+1)+"/"+files.length+" · "+path+" …");
-   if(f.size>10*1024*1024)throw new Error(f.name+" is larger than 10 MB; use a smaller knowledge file.");
-   const content=b64(await f.arrayBuffer());
-   const url=base+"/contents/"+path.split("/").map(encodeURIComponent).join("/");
-   let existing=null;const gr=await fetch(url+"?ref="+encodeURIComponent(cfg.branch),{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"}});
-   if(gr.ok){existing=await gr.json()}else if(gr.status!==404)throw new Error("Could not check "+path+" (HTTP "+gr.status+")");
-   const body={message:"knowledge: add "+safe,content,branch:cfg.branch};if(existing?.sha)body.sha=existing.sha;
-   const pr=await fetch(url,{method:"PUT",headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},body:JSON.stringify(body)});
-   const pj=await pr.json();if(!pr.ok)throw new Error(pj.message||("GitHub save failed (HTTP "+pr.status+")"));
-  }
-  setGithubStatus("✓ Saved "+files.length+" file"+(files.length===1?"":"s")+" to "+cfg.repo+"/"+cfg.folder+" on "+cfg.branch+". Refreshing local repository knowledge…","ok");
-  await refreshRepo();
- }catch(e){console.error(e);setGithubStatus("GitHub save failed: "+e.message,"error")}finally{if(btn)btn.disabled=false}
-}
+function forgetGitHubToken(){try{sessionStorage.removeItem("omniRagGithubToken");localStorage.removeItem("omniRagGithubToken")}catch(_){};const i=$("ragGithubToken");if(i)i.value="";setGithubStatus("Browser token storage cleared.","ok")}
+async function saveSelectedToGitHub(){setGithubStatus("GitHub writes are unavailable until a same-origin OAuth/BFF service is deployed. No token or file was sent.","error")}
 async function updateRepoStatus(){
  const m=await metaGet(REPO_KEY).catch(()=>null),box=$("ragRepoStatus");if(!box)return;
  if(!m){box.innerHTML="<b>Repository knowledge</b><span>Not indexed yet · use Refresh Repository Knowledge</span>";return}
@@ -226,10 +281,11 @@ function bind(){
  css();initRuntimeStatus();$("ragFiles").onchange=e=>queueFiles([...e.target.files]);
  const d=$("ragDrop");d.onclick=()=>$("ragFiles").click();["dragover"].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add("drag")}));d.addEventListener("dragleave",()=>d.classList.remove("drag"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("drag");queueFiles([...e.dataTransfer.files])});
  $("ragAsk").onclick=answer;$("ragQuery").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")answer()});
- $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragGithubRemember")?.addEventListener("change",e=>{e.target.checked=false;sessionStorage.removeItem("omniRagGithubToken")});$("ragClear").onclick=async()=>{await clearDB();chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
+ $("ragRepo").onclick=refreshRepo;$("ragGithubSave")?.addEventListener("click",saveSelectedToGitHub);$("ragGithubForget")?.addEventListener("click",forgetGitHubToken);$("ragClear").onclick=async()=>{await clearDB();await metaSet(REPO_KEY,null).catch(()=>{});chunks=[];pendingFiles=[];renderPendingFiles();updatePendingStatus();updateStats();$("ragAnswer").textContent="Local knowledge index cleared."};
  $("ragEmbed").onclick=indexPendingFiles;
  $("ragQuery").addEventListener("input",()=>{$("ragStatus").textContent="Ready — semantic + vector hybrid retrieval."});
 }
-async function start(){await initDB();chunks=await getAll();updateStats();bind();$("ragStatus").textContent=chunks.length?"Local RAG index ready.":"Ready — add documents to create a private knowledge base."}
+// Style the studio before touching IndexedDB: opening it can be slow, and it throws when site data is blocked.
+async function start(){css();let stored=true;try{await initDB();chunks=await getAll();}catch(e){stored=false;console.warn("Private RAG: browser storage unavailable",e);}updateStats();bind();$("ragStatus").textContent=!stored?"Browser storage is blocked here (private window or site-data setting), so the knowledge base cannot be saved.":chunks.length?"Local RAG index ready.":"Ready — add documents to create a private knowledge base."}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
 })();

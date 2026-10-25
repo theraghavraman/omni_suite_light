@@ -1,4 +1,4 @@
-import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time
+import os, io, json, csv, zipfile, tarfile, gzip, shutil, subprocess, tempfile, uuid, re, math, mimetypes, sqlite3, ipaddress, socket, time, urllib.request, urllib.error
 from pathlib import Path
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_file
@@ -9,22 +9,34 @@ from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from omni_security_primitives import csv_safe_value
 
 app=Flask(__name__)
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"]="nosniff"
+    response.headers["X-Frame-Options"]="DENY"
+    response.headers["Referrer-Policy"]="no-referrer"
+    response.headers["Permissions-Policy"]="camera=(), microphone=(), geolocation=()"
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"]="no-store"
+    return response
+
 ALLOWED_ORIGINS={x.strip().rstrip("/") for x in os.getenv(
     "CLOUD_ALLOWED_ORIGINS",
     "https://theraghavraman.github.io,http://127.0.0.1:8765,http://localhost:8765"
 ).split(",") if x.strip()}
-CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS),"allow_headers":["Content-Type","X-Omni-Cloud-Token"]}})
+CORS(app, resources={r"/api/*":{"origins":sorted(ALLOWED_ORIGINS),"allow_headers":["Content-Type"]}})
 app.config["MAX_CONTENT_LENGTH"]=int(os.getenv("MAX_UPLOAD_MB","500"))*1024*1024
-ROOT=Path(tempfile.gettempdir())/"omni-cloud-jobs"; ROOT.mkdir(exist_ok=True)
+ROOT=Path(tempfile.mkdtemp(prefix="omni-cloud-jobs-"))
+if os.name!="nt": os.chmod(ROOT,0o700)
 JOBS={}
 MAX_JOBS=int(os.getenv("MAX_JOBS","25"))
 JOB_TTL=int(os.getenv("JOB_TTL_SECONDS","3600"))
 RATE_LIMIT=int(os.getenv("RATE_LIMIT_PER_MINUTE","12"))
 RATE_WINDOW=60
 RATE_BUCKET={}
-CLOUD_TOKEN=os.getenv("OMNI_CLOUD_TOKEN","").strip()
+CLOUD_BFF_ENABLED=False  # No verified OIDC/BFF implementation is present in this source tree.
 
 SOCIAL_HOSTS={
     "youtube.com","youtu.be","instagram.com","facebook.com","fb.watch","tiktok.com",
@@ -38,18 +50,15 @@ def request_origin():
     return (request.headers.get("Origin") or "").rstrip("/")
 
 def cloud_authorized():
-    if not CLOUD_TOKEN:
-        return False, (jsonify(ok=False,error="Cloud Engine is not configured. Set OMNI_CLOUD_TOKEN on the Render service."), 503)
-    supplied=request.headers.get("X-Omni-Cloud-Token","")
-    if not compare_digest(supplied,CLOUD_TOKEN):
-        return False, (jsonify(ok=False,error="Missing or invalid cloud-engine token."), 401)
+    if not CLOUD_BFF_ENABLED:
+        return False, (jsonify(ok=False,error="Cloud processing is disabled until a verified per-user OIDC/BFF session, CSRF protection and scoped authorization are deployed."), 503)
     origin=request_origin()
     if origin and origin not in ALLOWED_ORIGINS:
         return False, (jsonify(ok=False,error="Origin not allowed."), 403)
     return True, None
 
 def rate_allowed():
-    key=request.headers.get("X-Forwarded-For","").split(",")[0].strip() or request.remote_addr or "unknown"
+    key=request.remote_addr or "unknown"
     now=time.time()
     bucket=RATE_BUCKET.get(key,[])
     bucket=[t for t in bucket if now-t<RATE_WINDOW]
@@ -118,11 +127,9 @@ def health():
 def capabilities():
     return jsonify({
       "execution_modes":["browser","render","local"],
-      "studios":["Social Media","PDF","Doc/Office","Universal Data","Data Cleaning","Database","RAG","Vector Search","Code","Image","Video","Compressor","Batch Processing","Diagnostics","Scheduled Automation","Cloud Jobs"],
-      "operations":[
-        "ffmpeg","media-transcode","image-batch","pdf-batch","ocr","office-convert","data-profile","data-clean","sql-simulate",
-        "rag-ingest","vector-search","archive","batch-pipeline","diagnostics","code-format","code-clean","metadata","file-convert","social-batch","scheduled-pipeline"
-      ]
+      "studios":[],
+      "operations":[],
+      "unavailable_reason":"The cloud API is disabled until verified user sessions, a durable queue and isolated workers are deployed."
     })
 
 def output(jid,path,name=None,mime=None):
@@ -154,11 +161,54 @@ def clean_data(p,out,opts):
     if opts.get("drop_duplicates",True): df=df.drop_duplicates()
     if opts.get("drop_empty_rows",False): df=df.dropna(how="all")
     if out.suffix.lower()==".xlsx": df.to_excel(out,index=False)
-    else: df.to_csv(out,index=False)
+    else:
+        for column in df.columns: df[column]=df[column].map(csv_safe_value)
+        df.to_csv(out,index=False)
     return out
+
+@app.post("/api/ai/generate")
+def ai_generate():
+    ok,denial=cloud_authorized()
+    if not ok: return denial
+    if not rate_allowed():
+        return jsonify(ok=False,error="Rate limit exceeded. Retry shortly."),429
+    payload=request.get_json(silent=True) or {}
+    question=str(payload.get("question","")).strip()
+    context=str(payload.get("context","")).strip()
+    if not question or not context:
+        return jsonify(ok=False,error="Both question and retrieved context are required."),400
+    if len(question)>4000 or len(context)>24000:
+        return jsonify(ok=False,error="Question or retrieved context exceeds the configured limit."),413
+    api_key=os.getenv("OMNI_LLM_API_KEY","").strip()
+    model=os.getenv("OMNI_LLM_MODEL","").strip()
+    base=os.getenv("OMNI_LLM_BASE_URL","https://api.openai.com/v1").strip().rstrip("/")
+    if not api_key or not model:
+        return jsonify(ok=False,error="Cloud generation is not configured. Set OMNI_LLM_API_KEY and OMNI_LLM_MODEL on Render; OMNI_LLM_BASE_URL is optional."),503
+    endpoint=base if base.endswith("/chat/completions") else base+"/chat/completions"
+    prompt=("Answer using only the retrieved evidence. If the evidence does not support an answer, say you do not know. Cite claims as [Source N].\\n\\nRETRIEVED EVIDENCE:\\n"+context+"\\n\\nQUESTION:\\n"+question)
+    body=json.dumps({"model":model,"messages":[
+        {"role":"system","content":"You are Omni RAG. Ground every factual claim in the provided evidence. Do not invent facts; cite source numbers."},
+        {"role":"user","content":prompt}
+    ],"temperature":0.1,"max_tokens":700}).encode("utf-8")
+    req=urllib.request.Request(endpoint,data=body,headers={"Authorization":"Bearer "+api_key,"Content-Type":"application/json","Accept":"application/json"})
+    try:
+        with urllib.request.urlopen(req,timeout=int(os.getenv("OMNI_LLM_TIMEOUT_SECONDS","90"))) as response:
+            result=json.loads(response.read().decode("utf-8"))
+        answer=str((((result.get("choices") or [{}])[0]).get("message") or {}).get("content") or "").strip()
+        if not answer:
+            return jsonify(ok=False,error="Configured LLM returned an empty answer."),502
+        return jsonify(ok=True,text=answer,provider="render",model=model)
+    except urllib.error.HTTPError as exc:
+        detail=""
+        try: detail=exc.read(1200).decode("utf-8","replace")
+        except Exception: pass
+        return jsonify(ok=False,error="Configured LLM returned HTTP "+str(exc.code)+((": "+detail[:800]) if detail else "")),502
+    except Exception as exc:
+        return jsonify(ok=False,error="Cloud LLM request failed: "+str(exc)[:500]),502
 
 @app.post("/api/process")
 def process():
+    return jsonify(ok=False,error="Cloud processing is disabled until the durable queue and isolated worker service are deployed."),503
     prune_jobs()
     ok,denial=cloud_authorized()
     if not ok: return denial
@@ -288,6 +338,7 @@ def process():
 
 @app.get("/api/jobs/<jid>")
 def job(jid):
+    return jsonify(ok=False,error="Cloud job status is unavailable until durable shared job storage is deployed."),503
     ok,denial=cloud_authorized()
     if not ok: return denial
     j=JOBS.get(jid)

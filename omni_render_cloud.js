@@ -22,10 +22,10 @@
   const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
   const modal=document.createElement('div');modal.id=id+'Modal';modal.innerHTML=`
     <div id="${id}Card">
-      <h2>☁ Omni Cloud — Render</h2>
+      <h2>Omni Cloud — Render</h2>
       <p>Heavy processing lives in Render. Existing browser and Local Engine buttons are untouched. Upload here when you explicitly want cloud processing.</p>
       <div id="${id}Grid">
-        <label>Cloud token<input id="${id}Token" type="password" autocomplete="off" placeholder="Paste the Render OMNI_CLOUD_TOKEN"></label>
+        <div class="omni-cloud-unavailable">Cloud processing is unavailable until a per-user OAuth/BFF session and isolated worker are deployed.</div>
         <label>Cloud operation<select id="${id}Op">
           <option value="ffmpeg">Video / FFmpeg</option><option value="image-batch">Batch images</option><option value="pdf-batch">Merge PDF batch</option>
           <option value="ocr">OCR</option><option value="office-convert">Office conversion</option><option value="data-profile">Data profiling</option>
@@ -41,11 +41,9 @@
       <div id="${id}Result"><strong id="${id}ResultTitle">Cloud output</strong><div id="${id}ResultMeta">No output yet — run a cloud job to generate one.</div><div id="${id}ResultActions"><button id="${id}Download">Download Output</button><button id="${id}Preview">Preview / Open</button></div></div>
     </div>`;
   document.body.appendChild(modal);
-  const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='☁ Run on Render';btn.title='Send a heavy job to Omni Cloud Engine';document.body.appendChild(btn);
-  const tokenInput=document.getElementById(id+'Token');
-  const savedToken=sessionStorage.getItem('omni-cloud-token')||'';
-  if(tokenInput) tokenInput.value=savedToken;
-  tokenInput?.addEventListener('input',()=>{if(tokenInput.value)sessionStorage.setItem('omni-cloud-token',tokenInput.value);else sessionStorage.removeItem('omni-cloud-token');});
+  const btn=document.createElement('button');btn.id=id+'Btn';btn.textContent='Cloud unavailable';btn.title='Requires authenticated BFF and isolated workers';btn.disabled=true;document.body.appendChild(btn);
+  try{sessionStorage.removeItem('omni-cloud-token')}catch(_){}
+  const tokenInput=null;
   const op=document.getElementById(id+'Op'),input=document.getElementById(id+'Input'),fmt=document.getElementById(id+'Format'),status=document.getElementById(id+'Status');
   const result=document.getElementById(id+'Result'),resultTitle=document.getElementById(id+'ResultTitle'),resultMeta=document.getElementById(id+'ResultMeta'),downloadBtn=document.getElementById(id+'Download'),previewBtn=document.getElementById(id+'Preview');
   let lastBlob=null,lastName='omni-render-output',lastUrl=null;
@@ -53,21 +51,11 @@
   function showResult(blob,name){lastBlob=blob;lastName=name||'omni-render-output';if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(blob);resultTitle.textContent='✓ Cloud job completed';resultMeta.textContent=lastName+' · '+Math.max(1,Math.round(blob.size/1024))+' KB';downloadBtn.disabled=false;previewBtn.disabled=false;result.style.display='block'}
   downloadBtn.onclick=()=>{if(lastBlob)downloadBlob(lastBlob,lastName)};
   previewBtn.onclick=()=>{if(lastUrl)window.open(lastUrl,'_blank','noopener')};
-  function open(){modal.style.display='flex';clearResult();status.textContent=tokenInput?.value?'Ready — token loaded for this browser session.':'Enter your Render token, then press Run on Render.'} function close(){modal.style.display='none'}
+  function open(){modal.style.display='flex';clearResult();status.textContent='Cloud processing is unavailable until authenticated BFF sessions and isolated workers are deployed.'} function close(){modal.style.display='none'}
   btn.onclick=open;document.getElementById(id+'Close').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close()});
   function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name||'omni-render-output';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-  async function run(files,operation,options){
-    files=Array.from(files||[]); if(!files.length) throw new Error('Select at least one file.');
-    status.textContent='Authenticating with Render…';
-    const fd=new FormData();fd.append('operation',operation||op.value);fd.append('options',JSON.stringify(options||{}));files.forEach(f=>fd.append('files',f,f.name));
-    const cloudToken=(tokenInput?.value||'').trim();
-    if(!cloudToken) throw new Error('Enter the Render cloud token first.');
-    const r=await fetch(CLOUD+'/api/process',{method:'POST',headers:{'X-Omni-Cloud-Token':cloudToken},body:fd});const ct=r.headers.get('content-type')||'';
-    if(!r.ok){let e={};try{e=await r.json()}catch(_){}throw new Error(e.error||('Render HTTP '+r.status))}
-    const blob=await r.blob();const name=r.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]||'omni-render-output';showResult(blob,name);
-    return {blob,name};
-  }
-  window.OmniRenderCloud={url:CLOUD,run,requiresToken:true};
+  async function run(){throw new Error('Cloud processing is disabled until authenticated BFF sessions, CSRF protection, durable jobs and isolated workers are deployed. No file or token was sent.')}
+  window.OmniRenderCloud={url:CLOUD,run,available:false};
   document.getElementById(id+'Run').onclick=async()=>{
     try{
       const options={format:fmt.value.trim()||undefined};

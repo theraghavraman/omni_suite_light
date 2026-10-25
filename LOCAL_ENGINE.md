@@ -74,7 +74,7 @@ The installer attempts to provide:
 
 `prepare_offline.py` downloads pinned browser dependencies into `vendor/`:
 
-- PDF.js 3.11.174
+- PDF.js 6.2.108 (ESM; SHA-256 pinned)
 - JSZip 3.10.1
 - pdf-lib 1.17.1
 - Tesseract.js 5.1.1
@@ -174,7 +174,7 @@ The local service binds to loopback only. It does not expose an arbitrary shell 
 
 API hardening has two layers:
 - **Origin allowlist:** by default the server accepts browser requests from `127.0.0.1:8765`, `localhost:8765` and the project's GitHub Pages origin. Additional trusted origins can be supplied through `OMNI_ALLOWED_ORIGINS`.
-- **Per-launch token:** the server generates a cryptographically random token at startup (or uses `OMNI_TOKEN` when explicitly supplied). Upload, processing and output-download requests must provide it in `X-Omni-Token`. The health endpoint is used to pair an allowed browser origin with the running engine.
+- **Browser authorization:** the engine accepts browser requests only from its own loopback UI origin and does not disclose the process bearer token from `/api/health`, `/api/ai/status`, or HTML responses. A remote website cannot pair itself with the Local Engine. Local non-browser clients may authenticate with the process token; do not expose it to a browser or remote origin.
 
 This prevents an unrelated website from using the loopback API merely because the engine happens to be running. Do not expose the service beyond loopback or weaken the origin/token checks.
 

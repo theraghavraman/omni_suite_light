@@ -8,6 +8,7 @@ index=(ROOT/"index.html").read_text(encoding="utf-8")
 server=(ROOT/"omni_local_server.py").read_text(encoding="utf-8")
 data=(ROOT/"omni_data_engine.py").read_text(encoding="utf-8")
 platform=(ROOT/"omni_platform.py").read_text(encoding="utf-8")
+environment=(ROOT/"omni_environment.py").read_text(encoding="utf-8")
 
 required_panels=["tabDatabaseStudio","tabDataClean","tabBatchLab","tabLocalDoctor"]
 required_ops=["doctor","capability","privacy_scan","data_clean","batch_convert","database_tables","database_query"]
@@ -28,7 +29,7 @@ write_section=data[data.index("def write_data"):data.index("def blob_convert") i
 missing=[t for t in targets if t not in write_section]
 assert not missing, "Advertised Data Studio targets without writer references: "+", ".join(missing)
 
-assert "pandoc" in server.lower(), "Pandoc is not represented in Local Engine native tools"
+assert '"pandoc"' in environment.lower(), "Pandoc is not represented in the shared native-tool inventory"
 for installer in ["install_windows.ps1","install_system_tools.command"]:
     text=(ROOT/installer).read_text(encoding="utf-8")
     assert "requirements-local.txt" in text, f"{installer} does not install the complete Local Engine profile"

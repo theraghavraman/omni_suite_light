@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "omni-converter-studio"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python SDK and local-engine interface for OmniConverter Studio."
 readme = "README.pypi.md"
 requires-python = ">=3.10"
@@ -76,7 +76,10 @@ omni-engine = "omni_sdk.cli:main"
 
 [tool.setuptools]
 include-package-data = true
-py-modules = ["omni_data_engine", "omni_platform", "omni_local_server"]
+py-modules = [
+  "omni_local_server", "omni_data_engine", "omni_platform", "omni_environment",
+  "omni_code_runner", "omni_language_engine", "omni_security_primitives",
+]
 
 [tool.setuptools.packages.find]
 include = ["omni_sdk*"]

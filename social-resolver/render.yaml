@@ -12,3 +12,5 @@ services:
         value: "900"
       - key: MAX_DOWNLOAD_MB
         value: "300"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "20"

@@ -1,6 +1,7 @@
 /* Omni Suite — Local AI Assist runtime
- * No browser inference. No model CDN. No browser model cache.
- * Browser UI -> loopback Python Local Engine -> Ollama or LM Studio.
+ * Text and vision-LLM tasks: Browser UI -> loopback Python Local Engine -> Ollama or LM Studio.
+ * Background removal, depth maps and transcription are not LLM tasks; they run on-device in
+ * this browser through omni_browser_media_ai.js (window.OmniMediaAI), with no Local Engine needed.
  */
 (()=>{"use strict";
 const BASE="http://127.0.0.1:8765";
@@ -34,10 +35,11 @@ async function docQa(image,q){return generate("Answer this question about the su
 async function advancedOcr(image){return generate("Read the text visible in this image as accurately as possible. Return the transcription only.",{maxNewTokens:500,imageDataUrl:image})}
 async function entities(text){const x=await generate("Extract named entities from this text. Return one entity per line as ENTITY — TYPE.\n\n"+String(text||"").slice(0,18000),{maxNewTokens:180});return x.split("\n").filter(Boolean).map(word=>({word,entity_group:"LOCAL_LLM",score:1}))}
 async function detect(image){const x=await generate("List the important visible objects in this image, one per line.",{maxNewTokens:160,imageDataUrl:image});return x.split("\n").filter(Boolean).map(label=>({label,score:1,box:null}))}
-async function transcribe(){throw new Error("No browser audio model is used. Use the Local Engine native audio/Whisper path for transcription.")}
+function media(){if(!window.OmniMediaAI)throw new Error("On-device media AI (omni_browser_media_ai.js) is not loaded.");return window.OmniMediaAI}
+async function transcribe(file,o={}){return media().transcribe(file,o)}
 async function speak(){throw new Error("No browser TTS model is used. Use the Local Engine/native TTS path.")}
-async function removeBackground(){throw new Error("Background removal is not an LLM task. No browser model is used; use the native/local Image Tools path.")}
-async function depth(){throw new Error("Depth estimation is not routed through the local LLM. No browser model is used; use the native/local Image Tools path.")}
+async function removeBackground(file,o={}){return media().removeBackground(file,o)}
+async function depth(file,o={}){return media().depth(file,o)}
 function localStatus(){
  const s=cached||{};
  return {version:"2.0.0-local",local_only:true,browser_cache:false,models:{},runtime:{provider:s.provider||"unknown",model:s.model||"",models_loaded:s.model?1:0,backend:"Python Local Engine → Ollama/LM Studio"}};

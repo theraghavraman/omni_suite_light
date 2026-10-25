@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+RUN useradd --system --uid 10001 --create-home --home-dir /home/omni omni
 COPY requirements-local.txt requirements-data.txt requirements-extended.txt ./
 COPY omni-cloud-engine/requirements.txt /tmp/omni-cloud-requirements.txt
 RUN python -m pip install --upgrade pip && \
@@ -31,12 +32,15 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install yt-dlp
 
 COPY . .
+RUN chown -R omni:omni /home/omni
 
 RUN python -m py_compile omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py omni_bootstrap.py
 
 EXPOSE 8765
 
+USER 10001:10001
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=3)" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=3)" || exit 1
 
 CMD ["sh", "-c", "if [ \"$SERVICE_MODE\" = \"cloud\" ]; then exec gunicorn -w 2 --threads 4 --timeout 900 -b 0.0.0.0:${PORT:-10000} --chdir omni-cloud-engine app:app; else exec python omni_local_server.py; fi"]
