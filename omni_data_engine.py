@@ -25,7 +25,25 @@ def _json_value(v):
 
 MAX_SCIENTIFIC_FILE_BYTES = 256 * 1024 * 1024
 MAX_SCIENTIFIC_ELEMENTS = 10_000_000
+MAX_SCIENTIFIC_ARRAY_BYTES = 64 * 1024 * 1024
+MAX_SCIENTIFIC_TOTAL_BYTES = 64 * 1024 * 1024
 MAX_SCIENTIFIC_VARIABLES = 500
+MAX_SCIENTIFIC_METADATA_BYTES = 1024 * 1024
+MAX_BLOB_BYTES = 32 * 1024 * 1024
+MAX_BLOB_TEXT_BYTES = MAX_BLOB_BYTES * 2
+MAX_TEXT_CONVERSION_BYTES = 16 * 1024 * 1024
+MAX_TEXT_CONVERSION_LINES = 100_000
+MAX_TEXT_CONVERSION_OUTPUT_BYTES = 32 * 1024 * 1024
+
+def _read_bounded_file(path, limit, label="Input"):
+    source=Path(path)
+    if source.stat().st_size>limit:
+        raise RuntimeError(f"{label} exceeds the {limit // (1024 * 1024)} MB safety limit.")
+    with source.open("rb") as fh:
+        raw=fh.read(limit+1)
+    if len(raw)>limit:
+        raise RuntimeError(f"{label} exceeds the {limit // (1024 * 1024)} MB safety limit.")
+    return raw
 
 def _write_csv_safe(frame, out, sep=","):
     safe = frame.copy()
@@ -33,18 +51,77 @@ def _write_csv_safe(frame, out, sep=","):
         safe[column] = safe[column].map(csv_safe_value)
     safe.to_csv(out, index=False, sep=sep)
 
-def _guard_scientific_shape(shape, dtype):
+def _guard_scientific_shape(shape, dtype, budget=None):
     import math
-    count=math.prod(int(x) for x in shape) if shape else 1
-    itemsize=getattr(dtype,"itemsize",8) or 8
-    if count>MAX_SCIENTIFIC_ELEMENTS or count*int(itemsize)>MAX_SCIENTIFIC_FILE_BYTES:
+    dims=tuple(int(x) for x in shape)
+    if any(x<0 for x in dims):
+        raise RuntimeError("Scientific array has an invalid shape.")
+    count=math.prod(dims) if dims else 1
+    kind=getattr(dtype,"kind",None)
+    itemsize=int(getattr(dtype,"itemsize",0) or 0)
+    if not isinstance(kind,str) or kind not in "biufcSUmM" or itemsize<=0:
+        raise RuntimeError("Variable-length or unsupported scientific arrays are unavailable until a bounded streaming reader is implemented.")
+    size=count*itemsize
+    if count>MAX_SCIENTIFIC_ELEMENTS or size>MAX_SCIENTIFIC_ARRAY_BYTES:
         raise RuntimeError("Scientific array exceeds the safe materialization limit; large-array streaming is not yet supported.")
+    if budget is not None:
+        if budget[0]+size>MAX_SCIENTIFIC_TOTAL_BYTES:
+            raise RuntimeError("Scientific input exceeds the aggregate materialization limit; use a streaming export.")
+        budget[0]+=size
+    return size
 
-def _scientific_records(path, fmt):
+def _metadata_size_hint(value, remaining, depth=0):
+    if depth>16:
+        raise RuntimeError("Scientific metadata nesting exceeds the safe materialization limit.")
+    nbytes=getattr(value,"nbytes",None)
+    if nbytes is not None:
+        size=int(nbytes)
+        if size>remaining: return size
+        return size
+    if isinstance(value,str): return len(value.encode("utf-8"))
+    if isinstance(value,(bytes,bytearray,memoryview)): return len(value)
+    if value is None or isinstance(value,(bool,int,float,complex)): return 32
+    if isinstance(value,(list,tuple)):
+        total=0
+        for item in value:
+            total+=_metadata_size_hint(item,remaining-total,depth+1)
+            if total>remaining: return total
+        return total
+    if isinstance(value,dict):
+        total=0
+        for key,item in value.items():
+            total+=_metadata_size_hint(str(key),remaining-total,depth+1)
+            if total>remaining: return total
+            total+=_metadata_size_hint(item,remaining-total,depth+1)
+            if total>remaining: return total
+        return total
+    if hasattr(value,"item"):
+        try: return _metadata_size_hint(value.item(),remaining,depth+1)
+        except Exception: pass
+    if hasattr(value,"isoformat"):
+        try: return _metadata_size_hint(value.isoformat(),remaining,depth+1)
+        except Exception: pass
+    return len(str(value).encode("utf-8"))
+
+def _scientific_attributes(values):
+    result={}; total=0
+    for key,value in values.items():
+        hint=_metadata_size_hint(value,MAX_SCIENTIFIC_METADATA_BYTES-total)
+        if hint>MAX_SCIENTIFIC_METADATA_BYTES-total:
+            raise RuntimeError("Scientific metadata exceeds the safe materialization limit.")
+        safe=_json_value(value)
+        encoded=json.dumps(safe,ensure_ascii=False,default=str).encode("utf-8")
+        total+=len(str(key).encode("utf-8"))+len(encoded)
+        if total>MAX_SCIENTIFIC_METADATA_BYTES:
+            raise RuntimeError("Scientific metadata exceeds the safe materialization limit.")
+        result[str(key)]=safe
+    return result
+
+def _scientific_records(path, fmt, include_data=True):
     import numpy as np
     if Path(path).stat().st_size>MAX_SCIENTIFIC_FILE_BYTES:
         raise RuntimeError("Scientific input exceeds the safe file-size limit; large-array streaming is not yet supported.")
-    fmt=scientific_ext(path,fmt); variables=[]; attrs={}
+    fmt=scientific_ext(path,fmt); variables=[]; attrs={}; budget=[0]
     if fmt in {"netcdf","grib"}:
         xr=_mod("xarray");
         try:
@@ -52,38 +129,51 @@ def _scientific_records(path, fmt):
         except TypeError:
             ds=xr.open_dataset(path, engine="cfgrib" if fmt=="grib" else None)
         try:
-            attrs={str(k):_json_value(v) for k,v in ds.attrs.items()}
+            attrs=_scientific_attributes(ds.attrs)
             for name,da in ds.variables.items():
                 if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
-                _guard_scientific_shape(da.shape,da.dtype)
-                arr=np.asarray(da.values)
-                variables.append({"name":str(name),"dims":[str(x) for x in da.dims],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{str(k):_json_value(v) for k,v in da.attrs.items()},"data":arr})
+                shape=tuple(int(x) for x in da.shape)
+                arr=None
+                if include_data:
+                    _guard_scientific_shape(shape,da.dtype,budget)
+                    arr=np.asarray(da.values)
+                variables.append({"name":str(name),"dims":[str(x) for x in da.dims],"shape":list(shape),"dtype":str(da.dtype),"attrs":_scientific_attributes(da.attrs),"data":arr})
         finally: ds.close()
     elif fmt=="hdf5":
         h5=_mod("h5py");
         with h5.File(path,"r") as f:
-            attrs={str(k):_json_value(v) for k,v in f.attrs.items()}
+            attrs=_scientific_attributes(f.attrs)
             def visit(name,obj):
                 if isinstance(obj,h5.Dataset):
                     if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
-                    _guard_scientific_shape(obj.shape,obj.dtype)
-                    arr=obj[()];
-                    if getattr(arr,"dtype",None) is not None and arr.dtype.kind not in "biufcSU": arr=np.asarray(arr,dtype=str)
-                    variables.append({"name":name,"dims":[f"dim_{i}" for i in range(getattr(arr,"ndim",0))],"shape":list(getattr(arr,"shape",())),"dtype":str(getattr(arr,"dtype","unknown")),"attrs":{str(k):_json_value(v) for k,v in obj.attrs.items()},"data":np.asarray(arr)})
+                    shape=tuple(int(x) for x in obj.shape); arr=None
+                    if include_data:
+                        _guard_scientific_shape(shape,obj.dtype,budget)
+                        arr=np.asarray(obj[()])
+                    variables.append({"name":name,"dims":[f"dim_{i}" for i in range(len(shape))],"shape":list(shape),"dtype":str(obj.dtype),"attrs":_scientific_attributes(obj.attrs),"data":arr})
             f.visititems(visit)
     elif fmt=="fits":
         fits=_mod("astropy.io.fits","astropy");
         with fits.open(path,memmap=True) as hdul:
             for i,hdu in enumerate(hdul):
                 if hdu.data is None: continue
-                _guard_scientific_shape(getattr(hdu,"shape",()),getattr(hdu.data,"dtype",None))
                 data=hdu.data
                 if hasattr(data,"columns") and getattr(data,"names",None):
                     for col in data.names:
-                        arr=np.asarray(data[col]);variables.append({"name":f"HDU{i}.{col}","dims":[f"row"],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
+                        if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
+                        view=data[col]; shape=tuple(int(x) for x in view.shape); arr=None
+                        if include_data:
+                            _guard_scientific_shape(shape,view.dtype,budget)
+                            arr=np.asarray(view)
+                        variables.append({"name":f"HDU{i}.{col}","dims":["row"],"shape":list(shape),"dtype":str(view.dtype),"attrs":{},"data":arr})
                 else:
-                    arr=np.asarray(data);variables.append({"name":f"HDU{i}","dims":[f"dim_{j}" for j in range(arr.ndim)],"shape":list(arr.shape),"dtype":str(arr.dtype),"attrs":{},"data":arr})
-            attrs={"HDU_count":len(hdul)}
+                    if len(variables)>=MAX_SCIENTIFIC_VARIABLES: raise RuntimeError("Scientific input has too many variables.")
+                    shape=tuple(int(x) for x in data.shape); arr=None
+                    if include_data:
+                        _guard_scientific_shape(shape,data.dtype,budget)
+                        arr=np.asarray(data)
+                    variables.append({"name":f"HDU{i}","dims":[f"dim_{j}" for j in range(len(shape))],"shape":list(shape),"dtype":str(data.dtype),"attrs":{},"data":arr})
+            attrs=_scientific_attributes({"HDU_count":len(hdul)})
     elif fmt=="cdf":
         raise RuntimeError("CDF conversion is unavailable until its reader supports bounded record streaming.")
         cdf=_mod("cdflib","cdflib"); c=cdf.CDF(str(path)); info=c.cdf_info(); attrs={str(k):_json_value(v) for k,v in info.items() if k not in {"zVariables","rVariables"}}
@@ -95,7 +185,7 @@ def _scientific_records(path, fmt):
     return attrs,variables
 
 def scientific_profile(path, fmt=None):
-    attrs,variables=_scientific_records(path,fmt)
+    attrs,variables=_scientific_records(path,fmt,include_data=False)
     return {"format":scientific_ext(path,fmt),"attributes":attrs,"variables":[{k:v for k,v in x.items() if k!="data"} for x in variables]}
 
 def scientific_convert(path,out,target="json",fmt=None,max_rows=2000000):
@@ -419,14 +509,18 @@ def write_data(df,out,fmt,table="data",dialect="sqlite",spreadsheet_safe=True):
 def blob_convert(inp,out,source,target):
     source=source.lower(); target=target.lower()
     if source=="binary":
-        raw=Path(inp).read_bytes()
+        raw=_read_bounded_file(inp,MAX_BLOB_BYTES,"BLOB input")
     elif source=="base64":
         import base64
-        raw=base64.b64decode(Path(inp).read_text(encoding="utf-8").strip(),validate=True)
+        encoded=_read_bounded_file(inp,MAX_BLOB_TEXT_BYTES,"Encoded BLOB input").decode("ascii").strip()
+        raw=base64.b64decode(encoded,validate=True)
     elif source=="hex":
-        raw=bytes.fromhex(Path(inp).read_text(encoding="utf-8").strip())
+        encoded=_read_bounded_file(inp,MAX_BLOB_TEXT_BYTES,"Encoded BLOB input").decode("ascii").strip()
+        raw=bytes.fromhex(encoded)
     else:
         raise RuntimeError("BLOB source must be binary, base64 or hex")
+    if len(raw)>MAX_BLOB_BYTES:
+        raise RuntimeError("Decoded BLOB exceeds the 32 MB safety limit.")
     if target=="binary":
         Path(out).write_bytes(raw)
     elif target=="base64":
@@ -440,15 +534,26 @@ def blob_convert(inp,out,source,target):
         raise RuntimeError("BLOB target must be binary, base64, hex or sql")
 
 def text_lines(path,target):
-    lines=Path(path).read_text(encoding="utf-8-sig",errors="replace").splitlines()
+    text=_read_bounded_file(path,MAX_TEXT_CONVERSION_BYTES,"Text input").decode("utf-8-sig",errors="replace")
+    lines=text.splitlines()
+    if len(lines)>MAX_TEXT_CONVERSION_LINES:
+        raise RuntimeError("Text input exceeds the safe line-count limit.")
     records=[{"line_number":i+1,"text":line} for i,line in enumerate(lines)]
     if target=="json":
-        return json.dumps(records,indent=2,ensure_ascii=False)
+        result=json.dumps(records,indent=2,ensure_ascii=False)
+        if len(result.encode("utf-8"))>MAX_TEXT_CONVERSION_OUTPUT_BYTES: raise RuntimeError("Text output exceeds the safe size limit.")
+        return result
     if target in {"jsonl","ndjson"}:
-        return "\n".join(json.dumps(x,ensure_ascii=False) for x in records)+"\n"
+        result="\n".join(json.dumps(x,ensure_ascii=False) for x in records)+"\n"
+        if len(result.encode("utf-8"))>MAX_TEXT_CONVERSION_OUTPUT_BYTES: raise RuntimeError("Text output exceeds the safe size limit.")
+        return result
     if target=="csv":
         import csv, io
-        buf=io.StringIO(); w=csv.DictWriter(buf,fieldnames=["line_number","text"]); w.writeheader(); w.writerows(records); return buf.getvalue()
+        buf=io.StringIO(); w=csv.DictWriter(buf,fieldnames=["line_number","text"]); w.writeheader()
+        for row in records: w.writerow({"line_number":row["line_number"],"text":csv_safe_value(row["text"])})
+        result=buf.getvalue()
+        if len(result.encode("utf-8"))>MAX_TEXT_CONVERSION_OUTPUT_BYTES: raise RuntimeError("Text output exceeds the safe size limit.")
+        return result
     raise RuntimeError("Text/Log target must be JSON, JSONL or CSV")
 
 def profile(path,fmt=None,table=None):

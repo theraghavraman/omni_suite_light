@@ -28,8 +28,8 @@
 | SEC-022 | High | **BLOCKED** | LAN uploads/downloads are disabled with transfer startup; pathname race is unreachable through the disabled feature. |
 | SEC-023 | Medium | **NOT VERIFIED** | js-yaml upgraded to 4.1.1 in browser and offline asset definitions. |
 | SEC-024 | High | **BLOCKED** | Static core libraries and on-demand vendor-loader dependencies use SRI/SHA-256 pins. Several ESM/CDN paths and transitive runtime/model imports still lack end-to-end integrity verification. |
-| SEC-025 | High | **NOT VERIFIED** | Scientific readers apply shape/dtype limits, disable CDF conversion, and bound privacy-scan reads. Some tabular paths still materialize full datasets. |
-| SEC-026 | Medium | **NOT VERIFIED** | CSV/TSV exports escape spreadsheet-formula prefixes in browser, local, and cloud code paths. |
+| SEC-025 | High | **NOT VERIFIED** | Scientific metadata profiling avoids loading array values; conversion enforces per-array, aggregate, and metadata byte caps and rejects unsupported variable-length arrays. CDF remains disabled. Tabular readers and output expansion still need end-to-end resource limits. |
+| SEC-026 | Medium | **NOT VERIFIED** | CSV/TSV exports escape spreadsheet-formula prefixes in browser, local, and cloud code paths; text/log-to-CSV now uses the same neutralizer. Broader export workflows remain unverified. |
 | SEC-027 | High | **NOT VERIFIED** | A global JSZip load wrapper enforces compressed input, entry count, per-entry and aggregate metadata budgets. Decompressed streaming output limits are not enforced at every extraction call. |
 | SEC-028 | Medium | **NOT VERIFIED** | XML export sanitizes element names and escapes values. |
 | SEC-029 | High | **NOT VERIFIED** | Offline assets are checked against committed SHA-256 pins before atomic installation; existing files are re-verified. |
@@ -47,7 +47,7 @@
 
 Base handoff SHA-256: `acf1893414b806072a318cdf5b663183372050b18a0dacfc51d80787170fbf44`.
 
-Source revision before changes: `d5b3c5b214140e71a76fb3380bc3a49a8b85ba13`. Current branch: `codex/omni-suite-remediation`.
+Source revision before changes: `079464f4f2e4926028886586f498544ed0c64177`. Target branch: `main`.
 
 ## Closure criteria
 
