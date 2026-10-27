@@ -24,7 +24,57 @@ const wifiEsc=v=>String(v).replace(/([\\;,:"])/g,'\\$1');
 const vcEsc=v=>String(v).replace(/([\\;,])/g,'\\$1').replace(/\r?\n/g,'\\n');
 function qrData(){const t=val('fsQrType');if(t==='wifi'){const sec=val('fsWifiSecurity');return 'WIFI:T:'+sec+';S:'+wifiEsc(val('fsWifiSsid'))+';'+(sec==='nopass'?'':'P:'+wifiEsc(val('fsWifiPass'))+';')+'H:false;;';}if(t==='contact'){const name=val('fsContactName').trim(),parts=name.split(/\s+/),last=parts.length>1?parts.pop():'',first=parts.join(' ');return ['BEGIN:VCARD','VERSION:3.0','N:'+vcEsc(last)+';'+vcEsc(first)+';;;','FN:'+vcEsc(name),val('fsContactPhone')&&'TEL:'+vcEsc(val('fsContactPhone')),val('fsContactEmail')&&'EMAIL:'+vcEsc(val('fsContactEmail')),val('fsContactUrl')&&'URL:'+vcEsc(val('fsContactUrl')),'END:VCARD'].filter(Boolean).join('\n');}if(t==='email')return 'mailto:'+val('fsEmailTo')+'?subject='+encodeURIComponent(val('fsEmailSubject'))+'&body='+encodeURIComponent(val('fsEmailBody'));if(t==='phone')return 'tel:'+val('fsPhone');if(t==='sms')return 'SMSTO:'+val('fsSmsPhone')+':'+val('fsSmsText');if(t==='location')return 'geo:'+val('fsLat')+','+val('fsLon');if(t==='url')return val('fsQrUrl').trim();return val('fsQrText').trim();}
 function qrOpts(data){const fg=val('fsQrFg')||'#172B4D',bg=val('fsQrBg')||'#FFFFFF',o={width:360,height:360,type:'svg',data,margin:18,qrOptions:{errorCorrectionLevel:val('fsQrEcc')||'H'},dotsOptions:{type:val('fsQrDots')||'rounded',color:fg},cornersSquareOptions:{type:val('fsQrCorner')||'extra-rounded',color:fg},cornersDotOptions:{type:val('fsQrCornerDot')||'dot',color:fg},backgroundOptions:{color:$('fsQrTransparent')?.checked?'transparent':bg},imageOptions:{hideBackgroundDots:true,imageSize:.32,margin:8,saveAsBlob:true}};if($('fsQrGradient')?.checked)o.dotsOptions.gradient={type:'linear',rotation:.78,colorStops:[{offset:0,color:fg},{offset:1,color:val('fsQrFg2')||'#D9571F'}]};if(logoData)o.image=logoData;return o;}
-async function renderQr(){const data=qrData(),m=$('fsQrPreview');if(!m)return;const status=$('fsQrStatus'),dp=$('fsQrDataPreview');if(!data){qr=null;m.innerHTML='<div class="fs-empty"><b>▦</b>Your QR will appear here.</div>';dp.textContent='';status.textContent='Enter content to generate.';status.className='fs-status';return}try{qr=null;const bg=$('fsQrTransparent')?.checked?'transparent':(val('fsQrBg')||'#FFFFFF');m.innerHTML=await plainQrSvg(data,val('fsQrFg')||'#172B4D',bg);dp.textContent=data.length>180?data.slice(0,180)+'…':data;status.textContent='Static QR · local generator · no Omni server';status.className='fs-status ok'}catch(e){m.textContent='QR generation failed: '+e.message;status.textContent=e.message;status.className='fs-status warn'}}
+/* Render the designer's selected module and finder shapes directly into SVG.
+   The legacy plainQrSvg remains intentionally square for LAN pairing QR codes. */
+async function styledQrSvg(text){
+ const make=await ensurePlainQr(),q=make(0,val('fsQrEcc')||'H');
+ q.addData(text);q.make();
+ const n=q.getModuleCount(),margin=4,size=n+margin*2;
+ const fg=/^#[0-9a-f]{6}$/i.test(val('fsQrFg'))?val('fsQrFg'):'#172B4D';
+ const fg2=/^#[0-9a-f]{6}$/i.test(val('fsQrFg2'))?val('fsQrFg2'):'#D9571F';
+ const bg=$('fsQrTransparent')?.checked?'none':(/^#[0-9a-f]{6}$/i.test(val('fsQrBg'))?val('fsQrBg'):'#FFFFFF');
+ const dots=val('fsQrDots')||'rounded',corner=val('fsQrCorner')||'extra-rounded',cornerDot=val('fsQrCornerDot')||'dot';
+ const radius={square:0,rounded:.22,dots:.5,classy:.12,'classy-rounded':.32,'extra-rounded':.42};
+ const cornerRadius={square:0,rounded:.22,dot:.5,'extra-rounded':.42};
+ const dotRadius={square:0,rounded:.22,dot:.5};
+ const isFinder=(r,c)=> (r<7&&c<7)||(r<7&&c>=n-7)||(r>=n-7&&c<7);
+ const finderOrigin=(r,c)=>r<7?(c<7?[0,0]:[0,n-7]):[n-7,0];
+ const shape=(x,y,rx,ry,rad)=>rad>=.49
+   ?'<circle cx="'+(x+.5)+'" cy="'+(y+.5)+'" r=".49"/>'
+   :'<rect x="'+(x+rx)+'" y="'+(y+ry)+'" width="'+(1-2*rx)+'" height="'+(1-2*ry)+'" rx="'+Math.min(rad, .49)+'" ry="'+Math.min(rad,.49)+'"/>';
+ let body='';
+ for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+  if(!q.isDark(r,c))continue;
+  const x=c+margin,y=r+margin;
+  if(isFinder(r,c)){
+   const [fr,fc]=finderOrigin(r,c),lr=r-fr,lc=c-fc;
+   const outer=lr===0||lr===6||lc===0||lc===6;
+   const center=lr>=2&&lr<=4&&lc>=2&&lc<=4;
+   if(outer)body+=shape(x,y,0,0,cornerRadius[corner]??.42);
+   else if(center)body+=shape(x,y,0,0,dotRadius[cornerDot]??.5);
+   else body+=shape(x,y,0,0,0);
+  }else{
+   const rad=radius[dots]??.22;
+   if(dots==='classy'||dots==='classy-rounded'){
+    // Classy modules are inset, creating the characteristic connected/soft pattern.
+    body+=shape(x,y,.06,.06,rad);
+   }else body+=shape(x,y,0,0,rad);
+  }
+ }
+ const gradient=$('fsQrGradient')?.checked;
+ const fill=gradient?'url(#fsQrGradient)':' '+fg;
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 '+size+' '+size+'" role="img" aria-label="Styled QR code">';
+ if(gradient)svg+='<defs><linearGradient id="fsQrGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="'+fg+'"/><stop offset="100%" stop-color="'+fg2+'"/></linearGradient></defs>';
+ if(bg!=='none')svg+='<rect width="'+size+'" height="'+size+'" fill="'+bg+'"/>';
+ svg+='<g fill="'+(gradient?'url(#fsQrGradient)':fg)+'">'+body+'</g>';
+ if(logoData){
+  const box=n*.22,xy=(size-box)/2;
+  svg+='<rect x="'+(xy-.12)+'" y="'+(xy-.12)+'" width="'+(box+.24)+'" height="'+(box+.24)+'" rx=".7" fill="'+(bg==='none'?'#FFFFFF':bg)+'"/>';
+  svg+='<image href="'+logoData+'" x="'+xy+'" y="'+xy+'" width="'+box+'" height="'+box+'" preserveAspectRatio="xMidYMid meet"/>';
+ }
+ return svg+'</svg>';
+}
+async function renderQr(){const data=qrData(),m=$('fsQrPreview');if(!m)return;const status=$('fsQrStatus'),dp=$('fsQrDataPreview');if(!data){qr=null;m.innerHTML='<div class="fs-empty"><b>▦</b>Your QR will appear here.</div>';dp.textContent='';status.textContent='Enter content to generate.';status.className='fs-status';return}try{qr=null;m.innerHTML=await styledQrSvg(data);dp.textContent=data.length>180?data.slice(0,180)+'…':data;status.textContent='Styled static QR · local generator · no Omni server';status.className='fs-status ok'}catch(e){m.textContent='QR generation failed: '+e.message;status.textContent=e.message;status.className='fs-status warn'}}
 function showQrFields(){const t=val('fsQrType');document.querySelectorAll('#'+ID+' [data-fs-q]').forEach(x=>{const on=x.dataset.fsQ===t;x.hidden=!on;x.style.display=on?'grid':'none'});const generic=$('fsQrGeneric'),url=$('fsQrUrl'),text=$('fsQrText'),label=$('fsQrContentLabel');const genericOn=t==='url'||t==='text';generic.hidden=!genericOn;generic.style.display=genericOn?'grid':'none';if(label)label.textContent=t==='text'?'Text':'Website / Link';if(url){url.hidden=t!=='url';url.style.display=t==='url'?'block':'none'}if(text){text.hidden=t!=='text';text.style.display=t==='text'?'block':'none'}renderQr()}
 function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 /* ---------- QR scanner: this computer's camera, or a screenshot / photo ---------- */
