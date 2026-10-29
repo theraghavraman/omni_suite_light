@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def http_call(base: str, path: str, method: str = "GET", *, origin: str | None = None,
-              token: str | None = None, body: bytes | None = None):
+              token: str | None = None, body: bytes | None = None,
+              extra_headers: dict | None = None):
     headers = {}
     if origin is not None:
         headers["Origin"] = origin
@@ -24,6 +25,8 @@ def http_call(base: str, path: str, method: str = "GET", *, origin: str | None =
         headers["X-Omni-Token"] = token
     if body is not None:
         headers["Content-Type"] = "application/json"
+    if extra_headers:
+        headers.update(extra_headers)
     req = request.Request(base + path, data=body, headers=headers, method=method)
     try:
         with request.urlopen(req, timeout=15) as response:
@@ -107,6 +110,42 @@ def main() -> int:
             base, "/api/process", "POST", token="invalid", body=b'{"op":"health"}'
         )
         assert status == 401, f"invalid local-engine token returned {status}"
+
+        # --- Forgeable same-origin headers must not bypass the token ---------
+        # Any local non-browser client can set Origin: http://127.0.0.1:<port>
+        # (or no Origin plus Sec-Fetch-Site: same-origin). Those headers used to
+        # grant full access; a privileged call that lacks the per-launch token
+        # must now be refused regardless.
+        forged = b'{"op":"health"}'
+        status, _, _ = http_call(base, "/api/process", "POST", origin=local_origin, body=forged)
+        assert status == 401, f"forged same-origin POST without token returned {status}"
+
+        status, _, _ = http_call(
+            base, "/api/process", "POST", body=forged,
+            extra_headers={"Sec-Fetch-Site": "same-origin"},
+        )
+        assert status == 401, f"forged Sec-Fetch-Site POST without token returned {status}"
+
+        for path in ("/api/upload", "/api/transfer/status", "/api/etl/hop/run"):
+            status, _, _ = http_call(base, path, "POST", origin=local_origin, body=b"{}")
+            assert status == 401, f"forged same-origin {path} without token returned {status}"
+
+        # The genuine UI path — local origin plus the per-launch token — still
+        # reaches the operation end to end.
+        status, raw, _ = http_call(
+            base, "/api/process", "POST", origin=local_origin, token=token, body=forged
+        )
+        assert status == 200, f"authorised same-origin POST returned {status}"
+        assert json.loads(raw).get("ok"), "authorised health op did not report ok"
+
+        # Remote origins stay refused with 403 even when a valid token is sent:
+        # the loopback-only trust boundary is not weakened.
+        status, _, _ = http_call(
+            base, "/api/process", "POST", origin="https://attacker.example",
+            token=token, body=forged,
+        )
+        assert status == 403, f"remote-origin POST with valid token returned {status}"
+
         print("Local Engine security integration checks passed.")
         return 0
     finally:

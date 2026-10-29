@@ -96,18 +96,49 @@ def local_session_request(handler):
     return local_ui_request(handler)
 
 def authorize(handler):
-    # The browser UI gets same-origin access without receiving a bearer secret.
-    # Remote browser origins are rejected; local non-browser clients can still
-    # authenticate with the process token.
-    if local_ui_request(handler):
-        return True
-    if request_origin(handler):
+    # Every state-changing / privileged call must present real proof of trust:
+    # the per-launch process token. An Origin of http://127.0.0.1:<port> (or a
+    # missing Origin plus Sec-Fetch-Site: same-origin) is trivially forged by any
+    # local non-browser client, so a same-origin-looking header is NOT sufficient
+    # on its own. The first-party UI is handed the token (window.OMNI_TOKEN,
+    # injected by serve_static) and echoes it as X-Omni-Token on every
+    # local-engine request; see ui_auth_bootstrap().
+    origin = request_origin(handler)
+    if origin and origin not in LOCAL_UI_ORIGINS:
+        # Remote browser origins are refused outright, even with a valid token.
         handler.send_json({"ok": False, "error": "Origin not allowed"}, 403)
         return False
     if not secrets.compare_digest(handler.headers.get("X-Omni-Token", ""), TOKEN):
         handler.send_json({"ok": False, "error": "Missing or invalid local-engine token"}, 401)
         return False
     return True
+
+def ui_auth_bootstrap():
+    # Injected into the first-party UI the engine serves. Hands the page the
+    # per-launch token and wraps fetch so every request aimed at this local
+    # engine carries X-Omni-Token, without editing each call site. This is what
+    # lets authorize() demand the token instead of trusting a forgeable
+    # same-origin header. The token is never attached to third-party origins.
+    token_js = json.dumps(TOKEN)
+    origins_js = json.dumps(sorted(LOCAL_UI_ORIGINS))
+    return (
+        "<script>(function(){"
+        "var T=" + token_js + ",LOCAL=" + origins_js + ";"
+        "try{window.OMNI_TOKEN=T;}catch(e){}"
+        "if(typeof window.fetch!=='function')return;"
+        "var _f=window.fetch;"
+        "function isLocal(u){try{return LOCAL.indexOf(new URL(u,location.href).origin)!==-1;}catch(e){return false;}}"
+        "window.fetch=function(input,init){try{"
+        "var u=(typeof input==='string'||input instanceof URL)?String(input):(input&&input.url)||'';"
+        "if(isLocal(u)){"
+        "var src=(init&&init.headers)||(typeof input==='object'&&input?input.headers:undefined);"
+        "var h=new Headers(src||undefined);"
+        "if(!h.has('X-Omni-Token'))h.set('X-Omni-Token',T);"
+        "init=Object.assign({},init,{headers:h});"
+        "}"
+        "}catch(e){}return _f.call(this,input,init);};"
+        "})();</script>"
+    )
 
 # The Doctor and verifier use the same canonical native-tool inventory.
 TOOLS = {
@@ -1701,13 +1732,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy-Report-Only", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+        # API responses carry data, never markup, so lock them to a policy that loads nothing. Enforced, not report-only.
+        self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
         origin = cors_origin(self)
         if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -1722,7 +1754,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-Filename,X-Omni-Token")
         self.end_headers()
 
     def serve_static(self, parsed_path):
@@ -1766,7 +1798,7 @@ class Handler(BaseHTTPRequestHandler):
 
         data = None
         if target.name == "index.html":
-            data = target.read_bytes()
+            html = target.read_bytes().decode("utf-8")
             vendor = root / "vendor"
             local_ready = (
                 (vendor / "pdfjs/build/pdf.mjs").is_file()
@@ -1782,7 +1814,6 @@ class Handler(BaseHTTPRequestHandler):
                 and all((vendor / "tesseract/lang" / f"{lang}.traineddata.gz").is_file() for lang in ("eng","hin","ben","mar","tam","tel","guj","pan","deu","fra","spa","chi_sim"))
             )
             if local_ready:
-                html = data.decode("utf-8")
                 html = html.replace(
                     "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
                     "./vendor/sheetjs/xlsx.full.min.js"
@@ -1804,7 +1835,12 @@ class Handler(BaseHTTPRequestHandler):
                     '<head><script>window.OMNI_TESSERACT_OPTIONS={workerPath:"./vendor/tesseract/worker.min.js",langPath:"./vendor/tesseract/lang/",corePath:"./vendor/tesseract/core/",workerBlobURL:false};</script>',
                     1
                 )
-                data = html.encode("utf-8")
+            # Hand the first-party UI the per-launch token and make every
+            # local-engine request carry it (see authorize()). Injected whether
+            # or not the offline vendor bundle is present, so the token-gated API
+            # stays reachable from the UI in every launch mode.
+            html = html.replace('<head>', '<head>' + ui_auth_bootstrap(), 1)
+            data = html.encode("utf-8")
         if data is None:
             size = target.stat().st_size
         else:
@@ -1822,7 +1858,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy-Report-Only", "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' http://127.0.0.1:* http://localhost:* https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+        # Enforced CSP for the single-page app (not report-only). The studios build UI with innerHTML that carries
+        # hundreds of inline handlers, and the app ships ~25 inline <script> blocks, so 'unsafe-inline' has to stay for
+        # script/style; nonces or hashes are not workable here. What this hardens over a wide-open policy:
+        #  - script-src: 'unsafe-eval' is dropped for 'wasm-unsafe-eval' (tesseract/sql.js/pdf.js compile WASM but the app
+        #    never eval()s JS, and pdf.js is loaded with isEvalSupported:false), and the blanket https: is pinned to the
+        #    three CDNs the vendor loader actually injects <script> from (jsdelivr, sheetjs, cloudflare); 'self' covers the
+        #    bundled studio JS, blob: the pdf.js module/worker loaded via createObjectURL.
+        #  - style-src/font-src: the blanket https: is pinned to Google Fonts (the only external stylesheet/font origin).
+        # img-src and connect-src stay broad (https:) on purpose: image tools, map tiles and the web-fetch/RAG studios load
+        # user-supplied and arbitrary origins, so narrowing them would break features. object-src/base-uri/frame-ancestors
+        # keep the app unframeable with no plugin or <base> injection.
+        self.send_header("Content-Security-Policy", "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://cdn.sheetjs.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' http://127.0.0.1:* http://localhost:* https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         origin = cors_origin(self)
         if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
