@@ -262,8 +262,12 @@ def stage_python_runtime(build_root: Path, create_venv: bool = False) -> dict:
     }
 
 
-def stage_bundle(download_offline: bool = False, create_venv: bool = False) -> dict:
-    build_root = REPO_ROOT / "build"
+def stage_bundle(
+    download_offline: bool = False,
+    create_venv: bool = False,
+    build_root: Path | None = None,
+) -> dict:
+    build_root = Path(build_root) if build_root is not None else REPO_ROOT / "build"
     build_root.mkdir(parents=True, exist_ok=True)
     plat_key = current_platform_key()
 

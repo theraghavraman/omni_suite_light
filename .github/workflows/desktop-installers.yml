@@ -58,13 +58,19 @@ jobs:
           brew install --cask libreoffice calibre
 
       - name: Stage desktop bundle (offline vendor assets + Python runtime + native tools)
+        run: python scripts/stage_desktop_bundle.py --download-offline --create-venv
+
+      - name: Install Python dependencies in staged runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          python scripts/stage_desktop_bundle.py --download-offline --create-venv
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            build/python-runtime/Scripts/python.exe -m pip install -r requirements-local.txt
-          else
-            build/python-runtime/bin/python3 -m pip install -r requirements-local.txt
-          fi
+          & ".\build\python-runtime\Scripts\python.exe" -m pip install -r requirements-local.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install Python dependencies in staged runtime (macOS/Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: build/python-runtime/bin/python3 -m pip install -r requirements-local.txt
 
       - name: Run desktop & security verification suite
         run: |

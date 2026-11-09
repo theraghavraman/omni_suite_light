@@ -119,12 +119,18 @@ class DesktopPackagingTests(unittest.TestCase):
                     os.environ["OMNI_ALLOWED_SQLITE_DIR"] = old_env
 
     def test_stage_desktop_bundle_creates_manifest(self):
-        manifest = stage_desktop_bundle.stage_bundle(download_offline=False, create_venv=False)
-        self.assertEqual(manifest["schema_version"], 1)
-        self.assertTrue((REPO_ROOT / "build" / "BUNDLE_MANIFEST.json").is_file())
-        self.assertTrue((REPO_ROOT / "build" / "omni-engine" / "omni_local_server.py").is_file())
-        self.assertTrue((REPO_ROOT / "build" / "omni-engine" / "index.html").is_file())
-        self.assertTrue((REPO_ROOT / "build" / "omni-engine" / "omni_desktop_readiness.js").is_file())
+        with tempfile.TemporaryDirectory() as tmp:
+            build_root = Path(tmp) / "build"
+            manifest = stage_desktop_bundle.stage_bundle(
+                download_offline=False,
+                create_venv=False,
+                build_root=build_root,
+            )
+            self.assertEqual(manifest["schema_version"], 1)
+            self.assertTrue((build_root / "BUNDLE_MANIFEST.json").is_file())
+            self.assertTrue((build_root / "omni-engine" / "omni_local_server.py").is_file())
+            self.assertTrue((build_root / "omni-engine" / "index.html").is_file())
+            self.assertTrue((build_root / "omni-engine" / "omni_desktop_readiness.js").is_file())
 
 
 if __name__ == "__main__":
