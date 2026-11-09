@@ -179,6 +179,7 @@ jobs:
             runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
               scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
               --electron-arg=--no-sandbox \
+              --timeout 3600 \
               --report out/smoke/smoke-linux-x64-deb.json
           "
 
@@ -195,6 +196,7 @@ jobs:
             runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
               scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
               --electron-arg=--no-sandbox \
+              --timeout 3600 \
               --report out/smoke/smoke-linux-x64-rpm.json
           "
 

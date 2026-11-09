@@ -6,6 +6,7 @@ from contextlib import closing
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,6 +79,43 @@ class DesktopPackagingTests(unittest.TestCase):
             rpm_template,
         )
         self.assertEqual(workflow.count("--electron-arg=--no-sandbox"), 2)
+        self.assertEqual(workflow.count("--timeout 3600"), 2)
+
+    @unittest.skipIf(os.name == "nt", "POSIX file permissions are not available on Windows")
+    def test_staged_offline_vendor_assets_are_readable_by_installed_user(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            vendor = repo / "vendor" / "nested"
+            vendor.mkdir(parents=True)
+            asset = vendor / "asset.js"
+            asset.write_text("offline asset", encoding="utf-8")
+            asset.chmod(0o600)
+            vendor.chmod(0o700)
+            build_root = Path(tmp) / "build"
+            with patch.object(stage_desktop_bundle, "REPO_ROOT", repo), \
+                    patch.object(stage_desktop_bundle, "ENGINE_PYTHON_FILES", ()), \
+                    patch.object(stage_desktop_bundle, "STATIC_ROOT_SUFFIXES", ()):
+                stage_desktop_bundle.stage_omni_engine(build_root)
+            staged_asset = build_root / "omni-engine" / "vendor" / "nested" / "asset.js"
+            self.assertEqual(staged_asset.stat().st_mode & 0o044, 0o044)
+            self.assertEqual(staged_asset.parent.stat().st_mode & 0o005, 0o005)
+
+    @unittest.skipIf(os.name == "nt", "The Linux Pandoc wrapper is a POSIX shell script")
+    def test_linux_pandoc_wrapper_uses_bundled_data_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            real = bin_dir / "pandoc.real"
+            real.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n", encoding="utf-8")
+            real.chmod(0o755)
+            wrapper = bin_dir / "pandoc"
+            stage_desktop_bundle.write_linux_pandoc_wrapper(wrapper)
+            proc = subprocess.run([str(wrapper), "--version"], capture_output=True, text=True, check=True)
+            args = proc.stdout.splitlines()
+            self.assertEqual(args[0], "--data-dir")
+            self.assertEqual(Path(args[1]).resolve(), (root / "share" / "pandoc" / "data").resolve())
+            self.assertEqual(args[2], "--version")
 
     def test_bundled_tools_dir_precedence_in_omni_environment(self):
         with tempfile.TemporaryDirectory() as tmp:

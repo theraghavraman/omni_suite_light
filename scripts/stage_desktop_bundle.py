@@ -323,7 +323,10 @@ def stage_omni_engine(build_root: Path) -> dict:
     for folder_name in ("vendor", "knowledge-base", "omni_sdk"):
         src_folder = REPO_ROOT / folder_name
         if src_folder.is_dir():
-            shutil.copytree(src_folder, engine_stage / folder_name, symlinks=False, ignore=ignore)
+            staged_folder = engine_stage / folder_name
+            shutil.copytree(src_folder, staged_folder, symlinks=False, ignore=ignore)
+            if folder_name == "vendor":
+                make_posix_tree_readable(staged_folder)
 
     return {
         "stage_dir": str(engine_stage),
@@ -635,6 +638,33 @@ def _copy_data_dir(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest, symlinks=False, ignore=shutil.ignore_patterns("*.la", "*.a"))
 
 
+def make_posix_tree_readable(tree: Path) -> None:
+    """Ensure packaged static assets can be read by the installing desktop user."""
+    if os.name == "nt":
+        return
+    for path in (tree, *tree.rglob("*")):
+        if path.is_symlink():
+            continue
+        mode = stat.S_IMODE(path.stat().st_mode)
+        mode |= stat.S_IRGRP | stat.S_IROTH
+        if path.is_dir():
+            mode |= stat.S_IXGRP | stat.S_IXOTH
+        if mode != stat.S_IMODE(path.stat().st_mode):
+            path.chmod(mode)
+
+
+def write_linux_pandoc_wrapper(wrapper: Path) -> None:
+    """Keep Pandoc's default templates beside the relocated Linux executable."""
+    wrapper.parent.mkdir(parents=True, exist_ok=True)
+    wrapper.write_text(
+        "#!/bin/sh\n"
+        'HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1\n'
+        'exec "$HERE/pandoc.real" --data-dir "$HERE/../share/pandoc/data" "$@"\n',
+        encoding="utf-8",
+    )
+    wrapper.chmod(0o755)
+
+
 def harvest_imagemagick(exe_src: Path, root: Path, relocator, env: dict, sanitize_prefixes: list[str]) -> None:
     conf = _parse_magick_configure(exe_src)
     im_root = root / "share" / "imagemagick"
@@ -768,14 +798,22 @@ def harvest_apt(executables: dict, root: Path, tools: dict, env: dict, component
             raise StageError(f"{exe} is not installed (see DESKTOP_PACKAGING.md for build prerequisites)")
         real = Path(src).resolve()
         dest = root / "bin" / name
-        relocator.add(real, dest)
+        staged_executable = root / "bin" / "pandoc.real" if name == "pandoc" else dest
+        relocator.add(real, staged_executable)
         tools[name] = {"path": _posix_rel(dest, root), "source": f"apt:{_dpkg_package_of(real) or real}"}
         originals.append(real)
         if name in ("convert", "magick"):
-            harvest_imagemagick(real, root, relocator, env, [])
+            harvest_imagemagick(real, root, relocator, env, [str(REPO_ROOT), "/repo"])
         if name == "gs":
             harvest_ghostscript(real, root, env)
+        if name == "pandoc":
+            data_dir = Path("/usr/share/pandoc/data")
+            if not data_dir.is_dir():
+                raise StageError(f"{data_dir} is missing (install Pandoc's data files on the build host)")
+            _copy_data_dir(data_dir, root / "share" / "pandoc" / "data")
     relocator.run()
+    if "pandoc" in tools:
+        write_linux_pandoc_wrapper(root / "bin" / "pandoc")
     packages: set[str] = set()
     for path in originals + list(relocator.lib_sources.values()):
         pkg = _dpkg_package_of(path)
