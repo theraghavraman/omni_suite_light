@@ -74,11 +74,10 @@ WIN_SOURCE_ARCHIVES = (
     },
     {
         "name": "pandoc-3.12-source.tar.gz",
-        "url": "https://github.com/jgm/pandoc/archive/381230ee36d8fa871c28f8982e22579f1a8f723b.tar.gz",
-        "revision": "381230ee36d8fa871c28f8982e22579f1a8f723b",
+        "url": "https://hackage.haskell.org/package/pandoc-3.12.tar.gz",
+        "sha256": "ef4475d2b137c72340d36723d6d694c5bd7b823d7a214efc1d5b7634d5bea9b1",
         "project": "Pandoc 3.12",
         "version": "3.12",
-        "sha256": "b19c416525f00e2c35a75dc377c767a57084ac22a9f1f4f9c5f6448dabe9819e",
     },
 )
 
@@ -208,8 +207,14 @@ def collect_macos(platform: str, destination: Path, entries: list[dict]) -> None
         info = json.loads(run(["brew", "info", "--json=v2", "--formula", formula]))["formulae"][0]
         stable = info["urls"]["stable"]
         version = str(info["versions"]["stable"])
-        if formula in formula_versions and formula_versions[formula] != version:
-            raise RuntimeError(f"Homebrew source version drift for {formula}: bundled {formula_versions[formula]}, formula {version}")
+        revision = int(info.get("revision") or 0)
+        staged_version = formula_versions.get(formula)
+        formula_build_version = f"{version}_{revision}" if revision else version
+        if staged_version and staged_version not in {version, formula_build_version}:
+            raise RuntimeError(
+                f"Homebrew source version drift for {formula}: bundled {staged_version}, "
+                f"formula source {version} (revision {revision})"
+            )
         url, checksum = stable["url"], stable["checksum"]
         if not checksum or len(checksum) != 64:
             raise RuntimeError(f"Homebrew formula has no SHA-256 pin: {formula}")
@@ -217,7 +222,13 @@ def collect_macos(platform: str, destination: Path, entries: list[dict]) -> None
         if not filename:
             filename = f"{formula}-{version}-source.tar.gz"
         record = download(url, archive_dir / f"{formula}-{version}-{filename}", algo="sha256", expected=checksum)
-        record.update({"project": formula, "version": version, "formula_sha256": checksum})
+        record.update({
+            "project": formula,
+            "version": staged_version or version,
+            "formula_source_version": version,
+            "formula_revision": revision,
+            "formula_sha256": checksum,
+        })
         entries.append(record)
         formula_dir.mkdir(parents=True, exist_ok=True)
         recipe = run(["brew", "cat", formula])
