@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import omni_environment
 import omni_local_server
@@ -375,6 +376,30 @@ class RelocationTests(unittest.TestCase):
             self.assertTrue(desktop_relocate.is_elf_host_lib(host), host)
         for bundled in ("libtesseract.so.5", "libMagickCore-6.Q16.so.7", "libstdc++.so.6", "libgs.so.10"):
             self.assertFalse(desktop_relocate.is_elf_host_lib(bundled), bundled)
+
+    def test_elf_relocator_bundles_transitive_dependencies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_dir = root / "source"
+            source_dir.mkdir()
+            sources = {}
+            for name in ("ffmpeg", "libavcodec.so.60", "libSDL2-2.0.so.0", "libexpat.so.1"):
+                sources[name] = source_dir / name
+                sources[name].write_bytes(b"fixture")
+            dependencies = {
+                "ffmpeg": {"libavcodec.so.60": str(sources["libavcodec.so.60"]), "libc.so.6": "/lib/libc.so.6"},
+                "libavcodec.so.60": {"libSDL2-2.0.so.0": str(sources["libSDL2-2.0.so.0"]), "libc.so.6": "/lib/libc.so.6"},
+                "libSDL2-2.0.so.0": {"libexpat.so.1": str(sources["libexpat.so.1"]), "libc.so.6": "/lib/libc.so.6"},
+                "libexpat.so.1": {"libc.so.6": "/lib/libc.so.6"},
+            }
+            relocator = desktop_relocate.ELFRelocator(root / "bundle" / "lib")
+            with patch.object(desktop_relocate, "ldd", side_effect=lambda path: dependencies[Path(path).name]), \
+                    patch.object(desktop_relocate, "patchelf"):
+                relocator.add(sources["ffmpeg"], root / "bundle" / "bin" / "ffmpeg")
+                relocator.run()
+
+            self.assertEqual(set(relocator.libs), {"libavcodec.so.60", "libSDL2-2.0.so.0", "libexpat.so.1"})
+            self.assertTrue((root / "bundle" / "lib" / "libexpat.so.1").is_file())
 
     @unittest.skipUnless(os.name == "nt", "PE parsing exercised on Windows")
     def test_pe_imports_of_python(self):

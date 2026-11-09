@@ -220,7 +220,7 @@
           "gs": "gs",
           "tesseract": "tesseract",
           "pandoc": "pandoc",
-          "7zz": "7zz"
+          "7z": "7z"
         }
       },
       "downloads": [

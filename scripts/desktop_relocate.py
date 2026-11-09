@@ -395,6 +395,35 @@ class ELFRelocator:
         self.staged: list[Path] = []
         self.libs: dict[str, Path] = {}
         self.lib_sources: dict[str, Path] = {}
+        self.pending_libs: list[tuple[str, Path]] = []
+        self.scanned_libs: set[str] = set()
+
+    def _stage_dependency(self, soname: str, target: str) -> None:
+        if soname in self.libs:
+            return
+        source = Path(target).resolve()
+        lib_dest = self.lib_dir / soname
+        shutil.copy2(source, lib_dest)
+        os.chmod(lib_dest, os.stat(lib_dest).st_mode | 0o200)
+        self.libs[soname] = lib_dest
+        self.lib_sources[soname] = source
+        self.pending_libs.append((soname, source))
+
+    def _collect_transitive_dependencies(self) -> None:
+        # Relocating only an executable's direct dependencies leaves those libraries
+        # free to resolve their own dependencies from the build host. Walk the full
+        # non-system closure so every copied library can run with only $ORIGIN paths.
+        while self.pending_libs:
+            soname, source = self.pending_libs.pop()
+            if soname in self.scanned_libs:
+                continue
+            self.scanned_libs.add(soname)
+            for dependency, target in ldd(source).items():
+                if is_elf_host_lib(dependency):
+                    continue
+                if target is None:
+                    raise RuntimeError(f"{source} needs {dependency}, which is not installed on the build host")
+                self._stage_dependency(dependency, target)
 
     def add(self, source: Path, dest: Path) -> Path:
         real = source.resolve()
@@ -409,12 +438,8 @@ class ELFRelocator:
                 continue
             if target is None:
                 raise RuntimeError(f"{real} needs {soname}, which is not installed on the build host")
-            if soname not in self.libs:
-                lib_dest = self.lib_dir / soname
-                shutil.copy2(Path(target).resolve(), lib_dest)
-                os.chmod(lib_dest, os.stat(lib_dest).st_mode | 0o200)
-                self.libs[soname] = lib_dest
-                self.lib_sources[soname] = Path(target).resolve()
+            self._stage_dependency(soname, target)
+        self._collect_transitive_dependencies()
         return dest
 
     def run(self) -> None:
