@@ -68,13 +68,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc 7zip
+          sudo apt-get install -y dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc 7zip unixodbc
 
       - name: Install build-host native packages (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ffmpeg qpdf poppler imagemagick librsvg ghostscript tesseract pandoc sevenzip
+          brew install ffmpeg qpdf poppler imagemagick librsvg ghostscript tesseract pandoc sevenzip unixodbc
 
       - name: Install build-host native packages (Windows, MSYS2 UCRT64)
         if: runner.os == 'Windows'

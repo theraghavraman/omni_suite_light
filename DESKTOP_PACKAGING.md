@@ -87,10 +87,10 @@ unless the base and every component were built for the platform/arch being packa
 `--engine-only` (base only) and `--only <id>` exist for fast development loops; they are marked
 incomplete and cannot be packaged.
 
-Build-machine prerequisites (never needed by users):
+Build-machine prerequisites (never needed by users; `unixodbc` is the ODBC driver manager pyodbc links, bundled into the libraries component):
 
-- **macOS:** `brew install ffmpeg qpdf poppler imagemagick librsvg ghostscript tesseract pandoc sevenzip`
-- **Ubuntu 24.04:** `sudo apt-get install dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc 7zip`
+- **macOS:** `brew install ffmpeg qpdf poppler imagemagick librsvg ghostscript tesseract pandoc sevenzip unixodbc`
+- **Ubuntu 24.04:** `sudo apt-get install dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc 7zip unixodbc`
 - **Windows:** MSYS2 with `pacman -S mingw-w64-ucrt-x86_64-librsvg` (`OMNI_MSYS2_ROOT` if not `C:\msys64`)
 - Python 3.10+ and Node.js 22.
 

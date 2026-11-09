@@ -108,7 +108,7 @@ test('packaged app.asar contains only the Electron shell', () => {
 });
 
 
-const { ComponentManager, mergeComponentManifests, resolveSelection } = require(path.join(repoRoot, 'electron', 'components.cjs'));
+const { ComponentManager, mergeComponentManifests, resolveSelection, tarExecutable } = require(path.join(repoRoot, 'electron', 'components.cjs'));
 
 function makeComponent(dir, id, platform, extra) {
   const src = path.join(dir, `src-${id}`);
@@ -116,7 +116,8 @@ function makeComponent(dir, id, platform, extra) {
   fs.writeFileSync(path.join(src, 'bin', 'tool'), '#!/bin/sh\necho ok\n', { mode: 0o755 });
   fs.writeFileSync(path.join(src, 'component.json'), JSON.stringify({ id, platform, version: '1.0.0', kind: 'native', tools: { [`${id}-tool`]: { path: 'bin/tool' } }, env: {}, path_dirs: ['bin'], ...extra }));
   const archive = path.join(dir, `${id}.tar.gz`);
-  execFileSync(process.platform === 'win32' ? 'tar.exe' : 'tar', ['-czf', archive, '-C', src, '.']);
+  // Same extractor the app uses (Windows' built-in bsdtar, not Git's GNU tar).
+  execFileSync(tarExecutable(), ['-czf', archive, '-C', src, '.']);
   const bytes = fs.readFileSync(archive);
   return { id, title: id, file: `${id}.tar.gz`, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), size: bytes.length, installed_size: 100, bytes };
 }

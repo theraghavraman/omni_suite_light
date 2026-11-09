@@ -360,4 +360,4 @@ class ComponentManager {
   }
 }
 
-module.exports = { ComponentManager, mergeComponentManifests, resolveSelection };
+module.exports = { ComponentManager, mergeComponentManifests, resolveSelection, tarExecutable };

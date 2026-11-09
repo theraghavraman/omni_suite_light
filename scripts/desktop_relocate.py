@@ -434,12 +434,24 @@ def audit_elf_files(paths: list[Path], bundle_root: Path, allowed_host: tuple[st
             if is_elf_host_lib(soname) or soname in allowed_host:
                 continue
             if target is None:
+                if allowed_host and _shipped_in_tree(bundle_root, soname):
+                    continue  # Python wheels: shipped by another wheel and preloaded by it at import time
                 problems.append(f"{path}: {soname} not found")
                 continue
             resolved = Path(target).resolve()
             if bundle_root not in resolved.parents:
                 problems.append(f"{path}: {soname} resolves outside the bundle ({target})")
     return problems
+
+
+_TREE_SONAMES: dict[str, set[str]] = {}
+
+
+def _shipped_in_tree(tree: Path, soname: str) -> bool:
+    key = str(tree.resolve())
+    if key not in _TREE_SONAMES:
+        _TREE_SONAMES[key] = {p.name for p in tree.rglob("*.so*") if p.is_file() or p.is_symlink()}
+    return soname in _TREE_SONAMES[key]
 
 
 def bundle_external_elf_deps_in_tree(tree: Path, lib_dir: Path) -> list[str]:
@@ -455,6 +467,8 @@ def bundle_external_elf_deps_in_tree(tree: Path, lib_dir: Path) -> list[str]:
             if is_elf_host_lib(soname) or soname in MANYLINUX_HOST_LIBS:
                 continue
             if target is None:
+                if _shipped_in_tree(tree, soname):
+                    continue  # provided by another wheel and preloaded at runtime (e.g. eckitlib for eccodes)
                 raise RuntimeError(f"{path} needs {soname}, which is not installed on the build host")
             resolved = Path(target).resolve()
             if tree in resolved.parents:
