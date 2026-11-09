@@ -62,6 +62,8 @@ class DesktopPackagingTests(unittest.TestCase):
         self.assertIn("executableName,", forge_config)
         self.assertEqual(forge_config.count("bin: executableName"), 2)
         self.assertIn("specTemplate: path.join(__dirname, 'omni-rpm.spec.ejs')", forge_config)
+        self.assertIn("this.userSupplied.specTemplate", forge_config)
+        self.assertIn("electronInstallerCommon.wrapError('creating spec file'", forge_config)
 
         rpm_template = (REPO_ROOT / "electron" / "omni-rpm.spec.ejs").read_text(encoding="utf-8")
         self.assertIn(
