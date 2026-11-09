@@ -1,0 +1,33 @@
+diff --git a/node_modules/appdmg/lib/appdmg.js b/node_modules/appdmg/lib/appdmg.js
+index 77748bf..09be13e 100644
+--- a/node_modules/appdmg/lib/appdmg.js
++++ b/node_modules/appdmg/lib/appdmg.js
+@@ -6,7 +6,7 @@ const path = require('path')
+ 
+ const async = require('async')
+ const DSStore = require('ds-store')
+-const sizeOf = require('image-size')
++const { imageSizeFromFile } = require('image-size/fromFile')
+ const validator = require('is-my-json-valid')
+ const parseColor = require('parse-color')
+ 
+@@ -286,12 +286,13 @@ module.exports = exports = function (options) {
+   pipeline.addStep('Reading background dimensions', function (next) {
+     if (!global.opts.background) return next.skip()
+ 
+-    sizeOf(resolvePath(global.opts.background), function (err, value) {
+-      if (err) return next(err)
+-
+-      global.bkgsize = [value.width, value.height]
+-      next(null)
+-    })
++    imageSizeFromFile(resolvePath(global.opts.background)).then(
++      (value) => {
++        global.bkgsize = [value.width, value.height]
++        next(null)
++      },
++      (err) => next(err)
++    )
+   })
+ 
+   /**

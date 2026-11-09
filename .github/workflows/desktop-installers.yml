@@ -87,5 +87,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install
+          npm ci
+          npm audit --audit-level=low
           npx electron-forge make

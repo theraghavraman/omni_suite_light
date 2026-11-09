@@ -17,6 +17,7 @@
     "forge": "./electron/forge.config.cjs"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "desktop:stage": "python3 scripts/stage_desktop_bundle.py",
     "desktop:start": "electron-forge start",
     "desktop:package": "python3 scripts/stage_desktop_bundle.py && electron-forge package",
@@ -50,12 +51,25 @@
     "electron-squirrel-startup": "^1.0.1"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.6.0",
-    "@electron-forge/maker-deb": "^7.6.0",
-    "@electron-forge/maker-dmg": "^7.6.0",
-    "@electron-forge/maker-rpm": "^7.6.0",
-    "@electron-forge/maker-squirrel": "^7.6.0",
-    "@electron-forge/maker-zip": "^7.6.0",
-    "electron": "^34.2.0"
+    "@electron-forge/cli": "^8.0.1",
+    "@electron-forge/maker-deb": "^8.0.1",
+    "@electron-forge/maker-dmg": "^8.0.1",
+    "@electron-forge/maker-rpm": "^8.0.1",
+    "@electron-forge/maker-squirrel": "^8.0.1",
+    "@electron-forge/maker-zip": "^8.0.1",
+    "electron": "^45.2.3",
+    "patch-package": "^8.0.1"
+  },
+  "overrides": {
+    "glob@>=9.0.0 <14.0.2": "14.0.4",
+    "minimatch@>=7.0.0 <11.0.1": "11.0.5",
+    "appdmg": {
+      "image-size": "2.1.0"
+    }
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.4": true,
+    "fs-xattr@0.3.1": true,
+    "macos-alias@0.2.12": true
   }
 }
