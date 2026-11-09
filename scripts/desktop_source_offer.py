@@ -19,6 +19,7 @@ import ssl
 import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -127,6 +128,30 @@ def download(url: str, destination: Path, *, algo: str | None = None,
             "size": destination.stat().st_size, "verified_by": f"{algo}:{expected}" if algo and expected else "immutable source revision/HTTPS"}
 
 
+def archive_git_revision(url: str, revision: str, destination: Path, prefix: str) -> dict:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="omni-source-git-") as temp_name:
+        repository = Path(temp_name) / "repository"
+        run(["git", "init", "--quiet", str(repository)])
+        run(["git", "-C", str(repository), "fetch", "--quiet", "--depth=1", url, revision])
+        actual_revision = run(["git", "-C", str(repository), "rev-parse", "FETCH_HEAD"]).strip()
+        if actual_revision.lower() != revision.lower():
+            raise RuntimeError(f"Git source revision mismatch for {url}: expected {revision}, got {actual_revision}")
+        with destination.open("wb") as output:
+            proc = subprocess.run(
+                ["git", "-C", str(repository), "archive", "--format=tar", f"--prefix={prefix}/", actual_revision],
+                stdout=output, stderr=subprocess.PIPE, check=False,
+            )
+        if proc.returncode:
+            destination.unlink(missing_ok=True)
+            raise RuntimeError(f"cannot archive Git source revision {actual_revision}: {proc.stderr.decode(errors='replace')[-2000:]}")
+    return {
+        "name": destination.name, "url": url, "revision": actual_revision,
+        "sha256": digest_file(destination), "size": destination.stat().st_size,
+        "verified_by": f"git commit {actual_revision}",
+    }
+
+
 def calibre_source(destination: Path) -> dict:
     return download(CALIBRE_URL, destination, algo="sha512", expected=CALIBRE_SHA512)
 
@@ -216,12 +241,18 @@ def collect_macos(platform: str, destination: Path, entries: list[dict]) -> None
                 f"formula source {version} (revision {revision})"
             )
         url, checksum = stable["url"], stable["checksum"]
-        if not checksum or len(checksum) != 64:
-            raise RuntimeError(f"Homebrew formula has no SHA-256 pin: {formula}")
         filename = urllib.parse.unquote(Path(urllib.parse.urlparse(url).path).name)
         if not filename:
             filename = f"{formula}-{version}-source.tar.gz"
-        record = download(url, archive_dir / f"{formula}-{version}-{filename}", algo="sha256", expected=checksum)
+        if checksum and len(checksum) == 64:
+            record = download(url, archive_dir / f"{formula}-{version}-{filename}", algo="sha256", expected=checksum)
+        elif stable.get("revision") and url.endswith(".git"):
+            record = archive_git_revision(
+                url, stable["revision"], archive_dir / f"{formula}-{version}-source.tar",
+                f"{formula}-{stable['revision'][:12]}",
+            )
+        else:
+            raise RuntimeError(f"Homebrew formula has neither a source SHA-256 nor an immutable Git revision: {formula}")
         record.update({
             "project": formula,
             "version": staged_version or version,
@@ -338,7 +369,7 @@ def write_source_offer(destination: Path, platform: str, app_version: str, entri
         "",
         f"Download this platform's corresponding source archive: https://github.com/theraghavraman/omni_suite_light/releases/download/desktop-v{app_version}/omni-desktop-{platform}-corresponding-sources.tar",
         "",
-        "The bundle includes source archives for the exact staged versions, applicable package-manager recipes or signed Ubuntu source packages, component license/provenance tables, and Omni's relocation/build scripts. On Windows it also includes the vendor release reference and FFmpeg's exact build configuration, plus the Poppler packaging recipe and patches. `SOURCE_MANIFEST.json` records each source URL or immutable revision and hashes the included source files and build materials. Ubuntu source packages were retrieved from the runner's signed `deb-src` indexes; Homebrew source archives were verified against the formula SHA-256; vendor archives were checked against their pinned digest or immutable source revision.",
+        "The bundle includes source archives for the exact staged versions, applicable package-manager recipes or signed Ubuntu source packages, component license/provenance tables, and Omni's relocation/build scripts. On Windows it also includes the vendor release reference and FFmpeg's exact build configuration, plus the Poppler packaging recipe and patches. `SOURCE_MANIFEST.json` records each source URL or immutable revision and hashes the included source files and build materials. Ubuntu source packages were retrieved from the runner's signed `deb-src` indexes; Homebrew source archives were verified against the formula SHA-256 or exact Git commit; vendor archives were checked against their pinned digest or immutable source revision.",
         "",
         "This source offer is provided from the same GitHub release as the corresponding component binaries. Keep this asset with any redistributed copy of the matching component archives.",
         "",
