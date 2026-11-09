@@ -443,11 +443,37 @@ class ELFRelocator:
         return dest
 
     def run(self) -> None:
-        for path in self.staged:
-            rel = os.path.relpath(self.lib_dir, path.parent)
-            patchelf("--set-rpath", "$ORIGIN" if rel == "." else f"$ORIGIN/{rel}", str(path))
-        for lib in self.libs.values():
-            patchelf("--set-rpath", "$ORIGIN", str(lib))
+        lib_root = self.lib_dir.resolve()
+
+        def set_rpaths() -> None:
+            for path in self.staged:
+                rel = os.path.relpath(self.lib_dir, path.parent)
+                patchelf("--set-rpath", "$ORIGIN" if rel == "." else f"$ORIGIN/{rel}", str(path))
+            for lib in self.libs.values():
+                patchelf("--set-rpath", "$ORIGIN", str(lib))
+
+        # The source ldd walk above normally captures the full closure. Verify the
+        # relocated files too: if a dependency still resolves from the build host,
+        # add it and repeat until every copied object resolves only through $ORIGIN.
+        while True:
+            set_rpaths()
+            count_before = len(self.libs)
+            for path in [*self.staged, *self.libs.values()]:
+                for soname, target in ldd(path).items():
+                    if is_elf_host_lib(soname):
+                        continue
+                    if target is None:
+                        raise RuntimeError(f"{path} needs {soname}, which is not installed on the build host")
+                    resolved = Path(target).resolve()
+                    if resolved == lib_root or lib_root in resolved.parents:
+                        continue
+                    if soname in self.libs:
+                        raise RuntimeError(f"{path} still resolves {soname} outside the bundle ({target})")
+                    self._stage_dependency(soname, str(resolved))
+            self._collect_transitive_dependencies()
+            if len(self.libs) == count_before:
+                break
+        set_rpaths()
 
 
 def audit_elf_files(paths: list[Path], bundle_root: Path, allowed_host: tuple[str, ...] = ()) -> list[str]:

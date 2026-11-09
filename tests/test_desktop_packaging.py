@@ -396,14 +396,35 @@ class RelocationTests(unittest.TestCase):
             for name in ("ffmpeg", "libavcodec.so.60", "libSDL2-2.0.so.0", "libexpat.so.1"):
                 sources[name] = source_dir / name
                 sources[name].write_bytes(b"fixture")
-            dependencies = {
-                "ffmpeg": {"libavcodec.so.60": str(sources["libavcodec.so.60"]), "libc.so.6": "/lib/libc.so.6"},
-                "libavcodec.so.60": {"libSDL2-2.0.so.0": str(sources["libSDL2-2.0.so.0"]), "libc.so.6": "/lib/libc.so.6"},
-                "libSDL2-2.0.so.0": {"libexpat.so.1": str(sources["libexpat.so.1"]), "libc.so.6": "/lib/libc.so.6"},
-                "libexpat.so.1": {"libc.so.6": "/lib/libc.so.6"},
-            }
-            relocator = desktop_relocate.ELFRelocator(root / "bundle" / "lib")
-            with patch.object(desktop_relocate, "ldd", side_effect=lambda path: dependencies[Path(path).name]), \
+            lib_dir = root / "bundle" / "lib"
+            host_expat = root / "host" / "libexpat.so.1"
+            host_expat.parent.mkdir()
+            host_expat.write_bytes(b"host fixture")
+
+            def fake_ldd(path):
+                path = Path(path)
+                name = path.name
+                if path.parent.resolve() == source_dir.resolve():
+                    dependencies = {
+                        "ffmpeg": {"libavcodec.so.60": str(sources["libavcodec.so.60"]), "libc.so.6": "/lib/libc.so.6"},
+                        "libavcodec.so.60": {"libSDL2-2.0.so.0": str(sources["libSDL2-2.0.so.0"]), "libc.so.6": "/lib/libc.so.6"},
+                        # Model a dependency that only appears on the relocated ELF's final ldd pass.
+                        "libSDL2-2.0.so.0": {"libc.so.6": "/lib/libc.so.6"},
+                        "libexpat.so.1": {"libc.so.6": "/lib/libc.so.6"},
+                    }
+                    return dependencies[name]
+                if name == "ffmpeg":
+                    return {"libavcodec.so.60": str(lib_dir / "libavcodec.so.60"), "libc.so.6": "/lib/libc.so.6"}
+                if name == "libavcodec.so.60":
+                    return {"libSDL2-2.0.so.0": str(lib_dir / "libSDL2-2.0.so.0"), "libc.so.6": "/lib/libc.so.6"}
+                if name == "libSDL2-2.0.so.0":
+                    expat = lib_dir / "libexpat.so.1"
+                    target = str(expat) if expat.exists() else str(host_expat)
+                    return {"libexpat.so.1": target, "libc.so.6": "/lib/libc.so.6"}
+                return {"libc.so.6": "/lib/libc.so.6"}
+
+            relocator = desktop_relocate.ELFRelocator(lib_dir)
+            with patch.object(desktop_relocate, "ldd", side_effect=fake_ldd), \
                     patch.object(desktop_relocate, "patchelf"):
                 relocator.add(sources["ffmpeg"], root / "bundle" / "bin" / "ffmpeg")
                 relocator.run()
