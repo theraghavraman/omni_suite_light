@@ -400,7 +400,8 @@ The UI is the primary interface; users should not need to construct API requests
 | electron/main.cjs | Electron main process managing the Python Local Engine lifecycle and native readiness IPC |
 | electron/preload.cjs | Context-isolated Electron preload bridge (`window.omniDesktop`) |
 | electron/forge.config.cjs | Electron Forge multi-OS installer configuration (Squirrel.Windows, DMG/ZIP, DEB, RPM) |
-| scripts/stage_desktop_bundle.py | Stages offline vendor assets, Python runtime, and native CLI tools into `build/` |
+| scripts/stage_desktop_bundle.py | Stages the self-contained desktop bundle into `build/`: pinned portable Python + `requirements-local.txt`, SHA-256-verified offline assets, relocated/pinned native tools; fails if anything is incomplete (see DESKTOP_PACKAGING.md) |
+| scripts/smoke_test_desktop.py | Clean-environment smoke test of an installed/packaged desktop app (audit, launch, engine health, tools, offline assets, real conversions) |
 | omni_desktop_readiness.js | First-launch readiness modal and interactive top-bar `READY` status badge |
 | DESKTOP_PACKAGING.md | Standalone desktop packaging and code-signing guide |
 | .github/workflows/local-engine-check.yml | Static/Python/native validation workflow |

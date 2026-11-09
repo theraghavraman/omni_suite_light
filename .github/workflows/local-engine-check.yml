@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Validate Python bridge syntax
-        run: python -m py_compile omni_environment.py omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py omni_security_primitives.py scripts/stage_desktop_bundle.py omni-cloud-engine/app.py omni-cloud-engine/omni_security_primitives.py social-resolver/app.py social-resolver/omni_security_primitives.py
+        run: python -m py_compile omni_environment.py omni_local_server.py omni_data_engine.py omni_platform.py omni_code_runner.py prepare_offline.py verify_local_environment.py omni_bootstrap.py omni_security_primitives.py scripts/stage_desktop_bundle.py scripts/desktop_relocate.py scripts/smoke_test_desktop.py omni-cloud-engine/app.py omni-cloud-engine/omni_security_primitives.py social-resolver/app.py social-resolver/omni_security_primitives.py
       - name: Validate shared environment inventory
         run: python .github/scripts/environment_inventory_test.py
       - name: Run Omni contract audit
@@ -71,6 +71,7 @@ jobs:
           node --check electron/main.cjs
           node --check electron/preload.cjs
           node --check electron/forge.config.cjs
+          node --check scripts/desktop_build.cjs
           python -m py_compile omni-cloud-engine/app.py
       - name: Validate RAG Studio JavaScript syntax
         run: node --check rag_studio.js

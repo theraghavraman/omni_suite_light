@@ -1,0 +1,599 @@
+{
+  "schema_version": 1,
+  "comment": "Pinned, checksum-verified inputs for the optional desktop components. The stager builds one archive per component (scripts/stage_desktop_bundle.py); the installer ships only a catalog of their SHA-256 digests and the Component Manager downloads the ones the user picks. A download that does not match its pin is rejected; listed 'mirrors' are tried in order. Platforms not listed are refused.",
+  "python": {
+    "implementation": "python-build-standalone (CPython, relocatable)",
+    "version": "3.12.15",
+    "release": "20261013",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-aarch64-apple-darwin-install_only_stripped.tar.gz",
+        "sha256": "9866e11cf2ae9caa1e671383786f248859a52dd8bfb702fb4c0dc2c65f1d36de"
+      },
+      "darwin-x64": {
+        "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-apple-darwin-install_only_stripped.tar.gz",
+        "sha256": "d09998f85752b646873a8a6bc7eea442a0d251b1c8d2413aa8ea06ef131c3335"
+      },
+      "linux-x64": {
+        "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+        "sha256": "178d3d83b6e8e99285a65d3fce9c16b87952cc5efdb4d1a0e3ff3be18ff0fc9c"
+      },
+      "win32-x64": {
+        "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.12.15%2B20261013-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+        "sha256": "7a2aef48e5ee569e310b29b32681debbc5d888e92790d85331a47736c6b06aad"
+      }
+    }
+  },
+  "tessdata": {
+    "source": "tesseract-ocr/tessdata_fast 4.1.0 (Apache-2.0)",
+    "base_url": "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/4.1.0/",
+    "files": {
+      "eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+      "osd.traineddata": "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff",
+      "hin.traineddata": "4c73ffc59d497c186b19d1e90f5d721d678ea6b2e277b719bee4e2af12271825",
+      "ben.traineddata": "31163084c279aaebd376216f0c3d5c17ad4b5fee8db49dae79c20000b5de5964",
+      "mar.traineddata": "0ba3f2d116972e72fe9e176bc84c38e81dfb6670f4ed1f7f6c8e16a27da7cb61",
+      "tam.traineddata": "d02fbec24be4b07e32e80d0ccfc3b6b67a3c5d61c9d0a7c8532677990912c6ec",
+      "tel.traineddata": "d10691fddd5b67802e1c12800ebb321d3b8bcd8d24a2ac3ff206f93188c04ab5",
+      "guj.traineddata": "fa69658614b4946a9afae8853d67e0689838803dfa3d12c2e35ec53ee6f8df34",
+      "pan.traineddata": "1ec0907fc3534065ea9ae190c6bb7ec9e5c74fd9d2fa996aaec7407f11ad8131",
+      "deu.traineddata": "19d219bbb6672c869d20a9636c6816a81eb9a71796cb93ebe0cb1530e2cdb22d",
+      "fra.traineddata": "ced037562e8c80c13122dece28dd477d399af80911a28791a66a63ac1e3445ca",
+      "spa.traineddata": "6f2e04d02774a18f01bed44b1111f2cd7f3ba7ac9dc4373cd3f898a40ea6b464",
+      "chi_sim.traineddata": "a5fcb6f0db1e1d6d8522f39db4e848f05984669172e584e8d76b6b3141e1f730"
+    }
+  },
+  "platforms": {
+    "darwin-arm64": {
+      "harvest": {
+        "manager": "homebrew",
+        "packages": [
+          "ffmpeg",
+          "qpdf",
+          "poppler",
+          "imagemagick",
+          "librsvg",
+          "ghostscript",
+          "tesseract",
+          "pandoc",
+          "sevenzip"
+        ],
+        "executables": {
+          "ffmpeg": "ffmpeg",
+          "ffprobe": "ffprobe",
+          "qpdf": "qpdf",
+          "pdftoppm": "pdftoppm",
+          "pdftotext": "pdftotext",
+          "magick": "magick",
+          "rsvg-convert": "rsvg-convert",
+          "gs": "gs",
+          "tesseract": "tesseract",
+          "pandoc": "pandoc",
+          "7zz": "7zz"
+        }
+      },
+      "downloads": [
+        {
+          "id": "libreoffice",
+          "version": "26.8.2.2",
+          "url": "https://mirrors.dotsrc.org/tdf/libreoffice/stable/26.8.2/mac/aarch64/LibreOffice_26.8.2_MacOS_aarch64.dmg",
+          "sha256": "9f24fe83ab1ed5c95eb3df580119f32932f713e577feeac02bf619fb00749b55",
+          "format": "dmg",
+          "dest": "apps/LibreOffice.app",
+          "dmg_item": "LibreOffice.app",
+          "tools": {
+            "soffice": "apps/LibreOffice.app/Contents/MacOS/soffice"
+          },
+          "mirrors": [
+            "https://ftp.halifax.rwth-aachen.de/tdf/libreoffice/stable/26.8.2/mac/aarch64/LibreOffice_26.8.2_MacOS_aarch64.dmg",
+            "https://download.documentfoundation.org/libreoffice/stable/26.8.2/mac/aarch64/LibreOffice_26.8.2_MacOS_aarch64.dmg",
+            "https://ftp.fau.de/tdf/libreoffice/stable/26.8.2/mac/aarch64/LibreOffice_26.8.2_MacOS_aarch64.dmg",
+            "https://downloadarchive.documentfoundation.org/libreoffice/old/26.8.2.2/mac/aarch64/LibreOffice_26.8.2.2_MacOS_aarch64.dmg"
+          ],
+          "component": "libreoffice"
+        },
+        {
+          "id": "calibre",
+          "version": "9.16.0",
+          "url": "https://download.calibre-ebook.com/9.16.0/calibre-9.16.0.dmg",
+          "sha512": "5eb6c88a8c8f3caf10197afd17360982208cc5eaeb61dd007e6930c5081c095484b5fd6cee2e40e96196ee0ecf6191b8a7778bbd2cd66d64c8e15b7858c7f145",
+          "format": "dmg",
+          "dest": "apps/calibre.app",
+          "dmg_item": "calibre.app",
+          "tools": {
+            "ebook-convert": "apps/calibre.app/Contents/MacOS/ebook-convert"
+          },
+          "component": "calibre"
+        },
+        {
+          "id": "yt-dlp",
+          "component": "yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos",
+          "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+          "format": "file",
+          "dest": "bin/yt-dlp",
+          "tools": {
+            "yt-dlp": "bin/yt-dlp"
+          }
+        }
+      ]
+    },
+    "darwin-x64": {
+      "harvest": {
+        "manager": "homebrew",
+        "packages": [
+          "ffmpeg",
+          "qpdf",
+          "poppler",
+          "imagemagick",
+          "librsvg",
+          "ghostscript",
+          "tesseract",
+          "pandoc",
+          "sevenzip"
+        ],
+        "executables": {
+          "ffmpeg": "ffmpeg",
+          "ffprobe": "ffprobe",
+          "qpdf": "qpdf",
+          "pdftoppm": "pdftoppm",
+          "pdftotext": "pdftotext",
+          "magick": "magick",
+          "rsvg-convert": "rsvg-convert",
+          "gs": "gs",
+          "tesseract": "tesseract",
+          "pandoc": "pandoc",
+          "7zz": "7zz"
+        }
+      },
+      "downloads": [
+        {
+          "id": "libreoffice",
+          "version": "26.8.2.2",
+          "url": "https://mirrors.dotsrc.org/tdf/libreoffice/stable/26.8.2/mac/x86_64/LibreOffice_26.8.2_MacOS_x86-64.dmg",
+          "sha256": "0af062779cc17f6f852918b2424c745f7dd2d20d51d7fb8a0925eb92ec0417a7",
+          "format": "dmg",
+          "dest": "apps/LibreOffice.app",
+          "dmg_item": "LibreOffice.app",
+          "tools": {
+            "soffice": "apps/LibreOffice.app/Contents/MacOS/soffice"
+          },
+          "mirrors": [
+            "https://ftp.halifax.rwth-aachen.de/tdf/libreoffice/stable/26.8.2/mac/x86_64/LibreOffice_26.8.2_MacOS_x86-64.dmg",
+            "https://download.documentfoundation.org/libreoffice/stable/26.8.2/mac/x86_64/LibreOffice_26.8.2_MacOS_x86-64.dmg",
+            "https://ftp.fau.de/tdf/libreoffice/stable/26.8.2/mac/x86_64/LibreOffice_26.8.2_MacOS_x86-64.dmg",
+            "https://downloadarchive.documentfoundation.org/libreoffice/old/26.8.2.2/mac/x86_64/LibreOffice_26.8.2.2_MacOS_x86-64.dmg"
+          ],
+          "component": "libreoffice"
+        },
+        {
+          "id": "calibre",
+          "version": "9.16.0",
+          "url": "https://download.calibre-ebook.com/9.16.0/calibre-9.16.0.dmg",
+          "sha512": "5eb6c88a8c8f3caf10197afd17360982208cc5eaeb61dd007e6930c5081c095484b5fd6cee2e40e96196ee0ecf6191b8a7778bbd2cd66d64c8e15b7858c7f145",
+          "format": "dmg",
+          "dest": "apps/calibre.app",
+          "dmg_item": "calibre.app",
+          "tools": {
+            "ebook-convert": "apps/calibre.app/Contents/MacOS/ebook-convert"
+          },
+          "component": "calibre"
+        },
+        {
+          "id": "yt-dlp",
+          "component": "yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos",
+          "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+          "format": "file",
+          "dest": "bin/yt-dlp",
+          "tools": {
+            "yt-dlp": "bin/yt-dlp"
+          }
+        }
+      ]
+    },
+    "linux-x64": {
+      "harvest": {
+        "manager": "apt",
+        "packages": [
+          "ffmpeg",
+          "qpdf",
+          "poppler-utils",
+          "imagemagick",
+          "librsvg2-bin",
+          "ghostscript",
+          "tesseract-ocr",
+          "pandoc",
+          "7zip",
+          "patchelf"
+        ],
+        "executables": {
+          "ffmpeg": "ffmpeg",
+          "ffprobe": "ffprobe",
+          "qpdf": "qpdf",
+          "pdftoppm": "pdftoppm",
+          "pdftotext": "pdftotext",
+          "convert": "convert",
+          "rsvg-convert": "rsvg-convert",
+          "gs": "gs",
+          "tesseract": "tesseract",
+          "pandoc": "pandoc",
+          "7zz": "7zz"
+        }
+      },
+      "downloads": [
+        {
+          "id": "libreoffice",
+          "version": "26.8.2.2",
+          "url": "https://mirrors.dotsrc.org/tdf/libreoffice/stable/26.8.2/deb/x86_64/LibreOffice_26.8.2_Linux_x86-64_deb.tar.gz",
+          "sha256": "8290c8f46cb33d6df8f681cb796e0697461ea070f86ec55b63c94d7eb9d9a476",
+          "format": "deb-tarball",
+          "dest": "apps/libreoffice",
+          "tools": {
+            "soffice": "glob:apps/libreoffice/opt/libreoffice*/program/soffice"
+          },
+          "mirrors": [
+            "https://ftp.halifax.rwth-aachen.de/tdf/libreoffice/stable/26.8.2/deb/x86_64/LibreOffice_26.8.2_Linux_x86-64_deb.tar.gz",
+            "https://download.documentfoundation.org/libreoffice/stable/26.8.2/deb/x86_64/LibreOffice_26.8.2_Linux_x86-64_deb.tar.gz",
+            "https://ftp.fau.de/tdf/libreoffice/stable/26.8.2/deb/x86_64/LibreOffice_26.8.2_Linux_x86-64_deb.tar.gz",
+            "https://downloadarchive.documentfoundation.org/libreoffice/old/26.8.2.2/deb/x86_64/LibreOffice_26.8.2.2_Linux_x86-64_deb.tar.gz"
+          ],
+          "component": "libreoffice"
+        },
+        {
+          "id": "calibre",
+          "version": "9.16.0",
+          "url": "https://download.calibre-ebook.com/9.16.0/calibre-9.16.0-x86_64.txz",
+          "sha512": "1016283a6b8567eb2bf3405ad957e4abac4ca57d66ddc7927c46514e0e1e4cbe1bc33780846626997b943e3fa8fd7c92c2902d635e5ac9c7ad7d16999b7b4308",
+          "format": "tar",
+          "dest": "apps/calibre",
+          "tools": {
+            "ebook-convert": "apps/calibre/ebook-convert"
+          },
+          "component": "calibre"
+        },
+        {
+          "id": "yt-dlp",
+          "component": "yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux",
+          "sha256": "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a",
+          "format": "file",
+          "dest": "bin/yt-dlp",
+          "tools": {
+            "yt-dlp": "bin/yt-dlp"
+          }
+        }
+      ]
+    },
+    "win32-x64": {
+      "harvest": {
+        "manager": "msys2",
+        "packages": [
+          "mingw-w64-ucrt-x86_64-librsvg"
+        ],
+        "executables": {
+          "rsvg-convert": "rsvg-convert"
+        }
+      },
+      "downloads": [
+        {
+          "id": "7zr",
+          "version": "26.05",
+          "url": "https://github.com/ip7z/7zip/releases/download/26.05/7zr.exe",
+          "sha256": "9bf582b894dfa665f852d7e9112b02290a1c303c2d95a21fcdc41ffcb03143b7",
+          "format": "file",
+          "dest": "t/7zr/7zr.exe",
+          "tools": {},
+          "component": null,
+          "build_only": true
+        },
+        {
+          "id": "7zip",
+          "version": "26.05",
+          "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-x64.exe",
+          "sha256": "fd99e86f57d8f429ef5ed045bf98315af962e2309b0f1ba87a147a44c71647d0",
+          "format": "7z-sfx",
+          "dest": "t/7zip",
+          "tools": {
+            "7z": "t/7zip/7z.exe"
+          },
+          "component": "7zip"
+        },
+        {
+          "id": "ffmpeg",
+          "version": "9.0.2",
+          "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+          "sha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
+          "format": "zip",
+          "dest": "t/ffmpeg",
+          "tools": {
+            "ffmpeg": "glob:t/ffmpeg/*/bin/ffmpeg.exe",
+            "ffprobe": "glob:t/ffmpeg/*/bin/ffprobe.exe"
+          },
+          "component": "ffmpeg"
+        },
+        {
+          "id": "qpdf",
+          "version": "12.4.1",
+          "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.1/qpdf-12.4.1-msvc64.zip",
+          "sha256": "3cd016cd433ef7232e42f4c13348a49cc14907a3c7278ef4f99120593126f7a6",
+          "format": "zip",
+          "dest": "t/qpdf",
+          "tools": {
+            "qpdf": "glob:t/qpdf/*/bin/qpdf.exe"
+          },
+          "component": "qpdf"
+        },
+        {
+          "id": "poppler",
+          "version": "26.07.0-0",
+          "url": "https://github.com/oschwartz10612/poppler-windows/releases/download/v26.07.0-0/Release-26.07.0-0.zip",
+          "sha256": "a711b0563b06edc488583d28198b6734c5a494afbbd1b9d87d3d2866062fb7e2",
+          "format": "zip",
+          "dest": "t/poppler",
+          "tools": {
+            "pdftoppm": "glob:t/poppler/*/Library/bin/pdftoppm.exe",
+            "pdftotext": "glob:t/poppler/*/Library/bin/pdftotext.exe"
+          },
+          "component": "poppler"
+        },
+        {
+          "id": "imagemagick",
+          "version": "7.1.2-34",
+          "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-34/ImageMagick-7.1.2-34-portable-Q16-HDRI-x64.7z",
+          "sha256": "8dcfd3644b7fc20a92aeedeb4798024e5947f25f4d7c0c313c883fbca3d723e6",
+          "format": "7z",
+          "dest": "t/magick",
+          "tools": {
+            "magick": "glob:t/magick/**/magick.exe"
+          },
+          "component": "imagemagick"
+        },
+        {
+          "id": "ghostscript",
+          "version": "10.08.0",
+          "url": "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10080/gs10080w64.exe",
+          "sha256": "52a91b8bf09298788d7a57b9206127026c23eacd75405f0a131e26dc381dce50",
+          "format": "nsis",
+          "dest": "t/gs",
+          "tools": {
+            "gswin64c": "glob:t/gs/**/gswin64c.exe"
+          },
+          "component": "ghostscript"
+        },
+        {
+          "id": "tesseract",
+          "version": "5.4.0.20240606",
+          "url": "https://github.com/UB-Mannheim/tesseract/releases/download/v5.4.0.20240606/tesseract-ocr-w64-setup-5.4.0.20240606.exe",
+          "sha256": "c885fff6998e0608ba4bb8ab51436e1c6775c2bafc2559a19b423e18678b60c9",
+          "format": "nsis",
+          "dest": "t/tesseract",
+          "tools": {
+            "tesseract": "glob:t/tesseract/**/tesseract.exe"
+          },
+          "component": "tesseract"
+        },
+        {
+          "id": "pandoc",
+          "version": "3.12",
+          "url": "https://github.com/jgm/pandoc/releases/download/3.12/pandoc-3.12-windows-x86_64.zip",
+          "sha256": "2a77ebc2517d13e95056e76b1cd5b574cfe958ac61aa6058117d80c22ca19b79",
+          "format": "zip",
+          "dest": "t/pandoc",
+          "tools": {
+            "pandoc": "glob:t/pandoc/**/pandoc.exe"
+          },
+          "component": "pandoc"
+        },
+        {
+          "id": "yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+          "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
+          "format": "file",
+          "dest": "bin/yt-dlp.exe",
+          "tools": {
+            "yt-dlp": "bin/yt-dlp.exe"
+          },
+          "component": "yt-dlp"
+        },
+        {
+          "id": "libreoffice",
+          "version": "26.8.2.2",
+          "url": "https://mirrors.dotsrc.org/tdf/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+          "sha256": "ff4b911403b67ee9e6249f820f9782c44bb32c94fdaa45b0da53a8e419e5307a",
+          "format": "msi",
+          "dest": "t/lo",
+          "tools": {
+            "soffice": "glob:t/lo/**/program/soffice.com"
+          },
+          "mirrors": [
+            "https://ftp.halifax.rwth-aachen.de/tdf/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+            "https://download.documentfoundation.org/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+            "https://ftp.fau.de/tdf/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+            "https://downloadarchive.documentfoundation.org/libreoffice/old/26.8.2.2/win/x86_64/LibreOffice_26.8.2.2_Win_x86-64.msi"
+          ],
+          "component": "libreoffice"
+        },
+        {
+          "id": "calibre",
+          "version": "9.16.0",
+          "url": "https://download.calibre-ebook.com/9.16.0/calibre-64bit-9.16.0.msi",
+          "sha512": "b5df2f8abe2032951395e582ece9d1ce6c01871f916a345745f95116a492f6cf31dc35e527ead68166f74f603af36fed23b3bf3b17e4096fa5743817d0a3dc66",
+          "format": "msi",
+          "dest": "t/calibre",
+          "tools": {
+            "ebook-convert": "glob:t/calibre/**/ebook-convert.exe"
+          },
+          "component": "calibre"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "id": "python-runtime",
+      "kind": "python-runtime",
+      "title": "Local Engine (Python 3.12)",
+      "recommended": true,
+      "description": "Runs engine-backed conversions on this computer. Needed by every other component except the stand-alone tools' own CLIs."
+    },
+    {
+      "id": "python-libraries",
+      "kind": "python-libraries",
+      "requires": [
+        "python-runtime"
+      ],
+      "title": "Data, science & database libraries",
+      "recommended": true,
+      "description": "pandas, pyarrow, DuckDB, Polars, SciPy, astropy, netCDF/HDF5/GRIB, Excel/ODF readers, SQL dialects and database/cloud connectors (requirements-local.txt)."
+    },
+    {
+      "id": "libreoffice",
+      "tools": [
+        "soffice"
+      ],
+      "title": "LibreOffice",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "Office document conversion (DOCX/XLSX/PPTX/ODF <-> PDF and more)."
+    },
+    {
+      "id": "calibre",
+      "tools": [
+        "ebook-convert"
+      ],
+      "title": "Calibre ebook-convert",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "Ebook conversion (EPUB, MOBI, AZW3, FB2, ...)."
+    },
+    {
+      "id": "ffmpeg",
+      "tools": [
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "title": "FFmpeg",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "Audio and video conversion, trimming and inspection."
+    },
+    {
+      "id": "poppler",
+      "tools": [
+        "pdftoppm",
+        "pdftotext"
+      ],
+      "title": "Poppler PDF tools",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "High-DPI PDF page rendering and text extraction."
+    },
+    {
+      "id": "qpdf",
+      "tools": [
+        "qpdf"
+      ],
+      "title": "qpdf",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "PDF merge, split, linearize and compress."
+    },
+    {
+      "id": "imagemagick",
+      "tools": [
+        "magick",
+        "convert"
+      ],
+      "title": "ImageMagick",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "Native image format bridge (HEIC, JXL, TIFF, PSD, ...)."
+    },
+    {
+      "id": "ghostscript",
+      "tools": [
+        "gs",
+        "gswin64c"
+      ],
+      "title": "Ghostscript",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "PostScript/EPS and PDF vector processing."
+    },
+    {
+      "id": "tesseract",
+      "tools": [
+        "tesseract"
+      ],
+      "tessdata": true,
+      "title": "Tesseract OCR (13 languages)",
+      "requires": [
+        "python-runtime"
+      ],
+      "recommended": true,
+      "description": "Native OCR with English, Hindi, Bengali, Marathi, Tamil, Telugu, Gujarati, Punjabi, German, French, Spanish and Chinese (Simplified)."
+    },
+    {
+      "id": "pandoc",
+      "tools": [
+        "pandoc"
+      ],
+      "title": "Pandoc",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "Document markup interchange (Markdown, HTML, DOCX, LaTeX, ...)."
+    },
+    {
+      "id": "7zip",
+      "tools": [
+        "7z",
+        "7zz"
+      ],
+      "title": "7-Zip",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "7z archive creation."
+    },
+    {
+      "id": "rsvg",
+      "tools": [
+        "rsvg-convert"
+      ],
+      "title": "librsvg (rsvg-convert)",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "Accurate SVG to PNG rendering."
+    },
+    {
+      "id": "yt-dlp",
+      "tools": [
+        "yt-dlp"
+      ],
+      "title": "yt-dlp",
+      "requires": [
+        "python-runtime"
+      ],
+      "description": "Social Media Download Studio command-line downloader."
+    }
+  ]
+}

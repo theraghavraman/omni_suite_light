@@ -1,5 +1,13 @@
 name: Build OmniConverter Desktop Installers
 
+# Builds the small base installers plus the optional component archives the app's
+# Component Manager downloads (Python runtime/libraries, LibreOffice, Calibre, FFmpeg, ...),
+# installs each installer into a clean environment and runs scripts/smoke_test_desktop.py
+# twice: base only (browser-only mode) and with every component installed through the app.
+# Artifacts: omni-desktop-<platform>-installers, -components, -smoke-reports.
+# On a v* tag the component archives are published to the GitHub release desktop-v<version>,
+# which is the download location baked into the installers' component catalog.
+
 on:
   workflow_dispatch:
   push:
@@ -11,18 +19,34 @@ permissions:
 
 jobs:
   desktop-installer:
-    name: Build Desktop Installer (${{ matrix.os }})
+    name: Desktop installer (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+          - os: windows-2025
+            platform: win32-x64
+          - os: macos-15
+            platform: darwin-arm64
+    env:
+      OMNI_DESKTOP_CACHE: ${{ github.workspace }}/.desktop-cache
+      PYTHONUTF8: '1'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Python 3.12
+      - name: Free disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          df -h /
+
+      - name: Set up build Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
@@ -32,45 +56,47 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install native tools & Packaging Dependencies (Ubuntu)
+      - name: Cache pinned, checksum-verified bundle downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .desktop-cache
+          key: desktop-bundle-${{ matrix.platform }}-${{ hashFiles('scripts/desktop_bundle_sources.json', 'requirements-local.txt', 'requirements-data.txt', 'requirements-extended.txt', 'offline_assets_manifest.json') }}
+
+      # Build-host packages whose binaries are relocated into the bundle (with their
+      # libraries and data) by scripts/stage_desktop_bundle.py. End users never install them.
+      - name: Install build-host native packages (Ubuntu)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg fakeroot rpm ffmpeg qpdf poppler-utils imagemagick librsvg2-bin tesseract-ocr libreoffice calibre pandoc p7zip-full
+          sudo apt-get install -y dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc 7zip
 
-      - name: Install native tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $pkgs = "ffmpeg","qpdf","poppler","imagemagick","tesseract","libreoffice","calibre","pandoc","7zip"
-          for ($i = 1; $i -le 3; $i++) {
-            choco install @pkgs -y --no-progress
-            if ($LASTEXITCODE -eq 0) { break }
-            Start-Sleep -Seconds 30
-          }
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Install native tools (macOS)
+      - name: Install build-host native packages (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ffmpeg qpdf poppler imagemagick ghostscript tesseract pandoc sevenzip
-          brew install --cask libreoffice calibre
+          brew install ffmpeg qpdf poppler imagemagick librsvg ghostscript tesseract pandoc sevenzip
 
-      - name: Stage desktop bundle (offline vendor assets + Python runtime + native tools)
-        run: python scripts/stage_desktop_bundle.py --download-offline --create-venv
+      - name: Install build-host native packages (Windows, MSYS2 UCRT64)
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-librsvg
 
-      - name: Install Python dependencies in staged runtime (Windows)
+      - name: Point the stager at MSYS2 (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          & ".\build\python-runtime\Scripts\python.exe" -m pip install -r requirements-local.txt
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "OMNI_MSYS2_ROOT=${{ steps.msys2.outputs.msys2-location }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install Python dependencies in staged runtime (macOS/Linux)
-        if: runner.os != 'Windows'
+      - name: Install Node dependencies and audit
         shell: bash
-        run: build/python-runtime/bin/python3 -m pip install -r requirements-local.txt
+        run: |
+          set -euo pipefail
+          npm ci
+          npm audit --audit-level=low
 
       - name: Run desktop & security verification suite
         shell: bash
@@ -82,11 +108,139 @@ jobs:
           python .github/scripts/local_engine_security_test.py
           node tests/test_security_browser.cjs
           node .github/scripts/studio_wiring_check.mjs
+          node tests/test_desktop_shell.cjs
 
-      - name: Install Electron Forge dependencies & build OS installer
+      # Same command as `npm run desktop:make` locally: stage (download + verify + relocate +
+      # audit + probe) and refuse to package unless the bundle is complete.
+      - name: Stage bundle and build installers
+        shell: bash
+        run: npm run desktop:make
+
+      - name: List installer outputs
         shell: bash
         run: |
+          find out/make -type f -exec ls -la {} \;
+          cat build/BUNDLE_MANIFEST.json | python -c "import json,sys; m=json.load(sys.stdin); print('complete:', m['complete']); print('errors:', m['errors'])"
+
+      - name: Upload installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-desktop-${{ matrix.platform }}-installers
+          path: out/make/**
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload component archives
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-desktop-${{ matrix.platform }}-components
+          path: out/components/${{ matrix.platform }}/**
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Clean-install smoke test (macOS DMG, Homebrew removed)
+        if: runner.os == 'macOS'
+        run: |
           set -euo pipefail
-          npm ci
-          npm audit --audit-level=low
-          npx electron-forge make
+          brew_prefix="$(brew --prefix)"
+          sudo mv "$brew_prefix" /opt/omni-hidden-homebrew
+          trap 'sudo mv /opt/omni-hidden-homebrew "$brew_prefix"' EXIT
+          python scripts/smoke_test_desktop.py \
+            --installer 'out/make/*.dmg' --mode both \
+            --hide /opt/omni-hidden-homebrew --hide /usr/local \
+            --report out/smoke/smoke-darwin-arm64-dmg.json
+
+      - name: Clean-install smoke test (Windows Squirrel Setup.exe)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          python scripts/smoke_test_desktop.py \
+            --installer 'out/make/squirrel.windows/x64/*Setup.exe' --mode both \
+            --report out/smoke/smoke-win32-x64-squirrel.json
+
+      - name: Clean-install smoke test (Ubuntu 24.04 container, .deb)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          deb="$(ls out/make/deb/x64/*.deb)"
+          docker run --rm --shm-size=1g -v "$PWD:/repo" -w /repo ubuntu:24.04 bash -euo pipefail -c "
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq ./$deb xvfb xauth >/dev/null
+            useradd -m omni
+            mkdir -p out/smoke && chmod 777 out/smoke
+            # The container has no Python of its own; the harness runs on the python-runtime
+            # component archive (the same file the app downloads), unpacked outside the app.
+            mkdir -p /opt/harness-python && tar -xzf out/components/linux-x64/python-runtime-linux-x64.tar.gz -C /opt/harness-python
+            runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
+              scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
+              --report out/smoke/smoke-linux-x64-deb.json
+          "
+
+      - name: Clean-install smoke test (Fedora 42 container, .rpm)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          rpm="$(ls out/make/rpm/x64/*.rpm)"
+          docker run --rm --shm-size=1g -v "$PWD:/repo" -w /repo fedora:42 bash -euo pipefail -c "
+            dnf install -y -q ./$rpm xorg-x11-server-Xvfb xauth util-linux glibc-common tar gzip >/dev/null
+            useradd -m omni
+            mkdir -p out/smoke && chmod 777 out/smoke
+            mkdir -p /opt/harness-python && tar -xzf out/components/linux-x64/python-runtime-linux-x64.tar.gz -C /opt/harness-python
+            runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
+              scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
+              --report out/smoke/smoke-linux-x64-rpm.json
+          "
+
+      - name: Upload smoke-test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-desktop-${{ matrix.platform }}-smoke-reports
+          path: |
+            out/smoke/**
+            build/BUNDLE_MANIFEST.json
+            build/components-catalog.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish-components:
+    name: Publish component archives (tag builds)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: desktop-installer
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download component archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: omni-desktop-*-components
+          path: components
+
+      - name: Publish to the release the installers download from
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
+            exit 1
+          fi
+          release="desktop-v${version}"
+          mkdir upload
+          for dir in components/omni-desktop-*-components; do
+            plat="${dir#components/omni-desktop-}"; plat="${plat%-components}"
+            cp "$dir"/*.tar.gz upload/
+            cp "$dir/catalog.json" "upload/catalog-${plat}.json"
+          done
+          (cd upload && sha256sum * > SHA256SUMS)
+          gh release view "$release" >/dev/null 2>&1 || gh release create "$release" --title "Desktop components ${version}" \
+            --notes "Optional components downloaded by OmniConverter Studio ${version}. Each archive is verified by the app against the SHA-256 in its built-in catalog."
+          gh release upload "$release" upload/* --clobber

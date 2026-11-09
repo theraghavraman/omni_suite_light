@@ -16,3 +16,6 @@ node_modules/
 build/
 out/
 dist/
+
+# Desktop bundle download cache (checksum-verified)
+.desktop-cache/

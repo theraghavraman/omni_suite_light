@@ -3,20 +3,28 @@
  *
  * Wraps the existing HTML/JS Studio interface (index.html) in an Electron shell:
  * 1. Resolves the bundled Python runtime, Local Engine (omni_local_server.py),
- *    offline browser assets (vendor/), and bundled native CLI tools.
+ *    offline browser assets (vendor/), and bundled native CLI tools described by
+ *    native-tools/<platform>-<arch>/TOOLS_MANIFEST.json.
  * 2. Starts the Python Local Engine in the background bound strictly to 127.0.0.1
- *    with OMNI_NO_BROWSER=1 so no external browser window is opened.
+ *    with OMNI_NO_BROWSER=1 so no external browser window is opened. A packaged app
+ *    only ever uses its bundled runtime and tools (OMNI_TOOL_RESOLUTION=bundled,
+ *    PATH limited to bundle + OS system directories).
  * 3. Polls http://127.0.0.1:<port>/healthz until the engine is ready, then loads
  *    http://127.0.0.1:<port>/ inside the BrowserWindow so ui_auth_bootstrap()
  *    injects window.OMNI_TOKEN and same-origin loopbacks succeed.
- * 4. Runs a first-launch readiness check across browser assets, Python modules,
- *    and native CLI tools (FFmpeg, qpdf, Poppler, Tesseract, LibreOffice, Calibre,
- *    ImageMagick, Pandoc, Ghostscript, 7-Zip).
+ * 4. Builds a truthful readiness report: native tools count as ready only when the
+ *    engine has executed them successfully, offline assets only when their SHA-256
+ *    matches the pinned manifest.
  * 5. Terminates the Python child process cleanly when Omni closes.
+ *
+ * Smoke-test mode: when OMNI_DESKTOP_SMOKE_REPORT=<file> is set, the app starts
+ * normally, additionally runs the bundled environment verifier, writes a JSON report
+ * to <file> and exits (0 = everything required is ready). Used by
+ * scripts/smoke_test_desktop.py against installed/packaged builds.
  */
 'use strict';
 
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, net: electronNet, shell } = require('electron');
 const { spawn, execFile } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -24,9 +32,7 @@ const http = require('node:http');
 const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
-const { promisify } = require('node:util');
-
-const execFileAsync = promisify(execFile);
+const { ComponentManager } = require('./components.cjs');
 
 // Handle Squirrel.Windows install/update/uninstall shortcuts on Windows
 try {
@@ -39,8 +45,17 @@ try {
 
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = Number(process.env.OMNI_PORT || 8765);
-const HEALTH_POLL_INTERVAL_MS = 200;
-const HEALTH_TIMEOUT_MS = 25000;
+const HEALTH_POLL_INTERVAL_MS = 250;
+const HEALTH_TIMEOUT_MS = Number(process.env.OMNI_ENGINE_START_TIMEOUT_MS || 120000);
+const SMOKE_REPORT_PATH = process.env.OMNI_DESKTOP_SMOKE_REPORT || '';
+const SMOKE_MODE = Boolean(SMOKE_REPORT_PATH);
+// Smoke mode only: "all", "none" or a comma-separated list of component ids to install first.
+const SMOKE_INSTALL = process.env.OMNI_SMOKE_INSTALL || 'none';
+
+// Lets tests (and portable setups) keep all state in a chosen folder; must run before 'ready'.
+if (app && process.env.OMNI_USER_DATA_DIR) {
+  app.setPath('userData', path.resolve(process.env.OMNI_USER_DATA_DIR));
+}
 
 let mainWindow = null;
 let pythonProcess = null;
@@ -48,126 +63,174 @@ let enginePort = DEFAULT_PORT;
 let engineToken = process.env.OMNI_TOKEN || crypto.randomBytes(24).toString('base64url');
 let isQuitting = false;
 let cachedReadiness = null;
+let engineStartError = null;
+let engineLogPath = null;
+let engineLogStream = null;
+const startupState = { usedFallbackUi: false, loadedUrl: null, browserOnly: false };
+let componentsWindow = null;
+let componentManager = null;
+let componentsChanged = false;
+
+class EngineNotInstalledError extends Error {}
+
+function getComponentManager() {
+  if (!componentManager) {
+    const packaged = isPackagedApp();
+    const catalogPath = packaged
+      ? path.join(process.resourcesPath, 'components-catalog.json')
+      : path.join(getRepoRoot(), 'build', 'components-catalog.json');
+    componentManager = new ComponentManager({
+      catalogPath,
+      rootDir: path.join(app.getPath('userData'), 'components'),
+      platform: `${process.platform}-${process.arch}`,
+      fetchImpl: electronNet && typeof electronNet.fetch === 'function' ? (url, opts) => electronNet.fetch(url, opts) : globalThis.fetch,
+      baseUrlOverride: process.env.OMNI_COMPONENTS_BASE_URL || '',
+      log: (msg) => console.log(`[OmniComponents] ${msg}`),
+    });
+    componentManager.writeMergedManifest();
+  }
+  return componentManager;
+}
 
 function isPackagedApp() {
   return Boolean(app && app.isPackaged);
 }
 
-function getRepoOrResourcesRoot() {
-  if (isPackagedApp()) {
-    return path.join(process.resourcesPath, 'omni-engine');
+function readJsonFile(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (_) {
+    return null;
   }
+}
+
+function getRepoRoot() {
   return path.resolve(__dirname, '..');
 }
 
+/**
+ * Packaged: <resources>/{omni-engine,python-runtime,native-tools,BUNDLE_MANIFEST.json}.
+ * Development: the same layout under build/ when it has been staged, otherwise the
+ * repository checkout (engine + UI) with a developer Python.
+ */
 function resolveResourcePaths() {
   const isWin = process.platform === 'win32';
   const platKey = `${process.platform}-${process.arch}`;
-  const engineRoot = getRepoOrResourcesRoot();
-  const baseStageRoot = isPackagedApp()
-    ? process.resourcesPath
-    : path.join(engineRoot, 'build');
+  const repoRoot = getRepoRoot();
+  const packaged = isPackagedApp();
+  const stageRoot = packaged ? process.resourcesPath : path.join(repoRoot, 'build');
+  const bundleManifestPath = path.join(stageRoot, 'BUNDLE_MANIFEST.json');
+  const stagedEngine = path.join(stageRoot, 'omni-engine');
+  const engineRoot = packaged || fs.existsSync(path.join(stagedEngine, 'omni_local_server.py')) ? stagedEngine : repoRoot;
 
-  const pythonRuntimeDir = path.join(baseStageRoot, 'python-runtime');
-  const bundledPythonExe = isWin
-    ? path.join(pythonRuntimeDir, 'python.exe')
-    : path.join(pythonRuntimeDir, 'bin', 'python3');
-
-  const venvPythonExe = isWin
-    ? path.join(engineRoot, '.venv', 'Scripts', 'python.exe')
-    : path.join(engineRoot, '.venv', 'bin', 'python3');
-
-  let pythonExe = process.env.OMNI_PYTHON_EXE || '';
-  if (!pythonExe) {
-    if (fs.existsSync(bundledPythonExe)) {
-      pythonExe = bundledPythonExe;
-    } else if (fs.existsSync(venvPythonExe)) {
-      pythonExe = venvPythonExe;
-    } else if (!isWin) {
-      const candidates = [
-        '/opt/homebrew/bin/python3.13',
-        '/opt/homebrew/bin/python3.12',
-        '/opt/homebrew/bin/python3.11',
-        '/usr/local/bin/python3.13',
-        '/usr/local/bin/python3.12',
-        '/usr/local/bin/python3.11',
-        '/opt/homebrew/bin/python3',
-        '/usr/local/bin/python3',
-      ];
-      pythonExe = candidates.find((p) => fs.existsSync(p)) || 'python3';
-    } else {
-      pythonExe = 'python';
-    }
+  const manager = app ? getComponentManager() : null;
+  const componentPython = manager ? manager.pythonExecutable() : null;
+  let pythonExe = '';
+  let pythonSource = 'component';
+  if (componentPython) {
+    pythonExe = componentPython;
+  } else if (!packaged && process.env.OMNI_PYTHON_EXE) {
+    pythonExe = process.env.OMNI_PYTHON_EXE;
+    pythonSource = 'OMNI_PYTHON_EXE';
+  } else {
+    pythonSource = 'not-installed'; // a packaged app never falls back to a host Python
   }
 
-  const nativeToolsDir = path.join(baseStageRoot, 'native-tools', platKey);
-  const nativeToolsBin = path.join(nativeToolsDir, 'bin');
-  const tessdataDir = path.join(nativeToolsDir, 'share', 'tessdata');
-  const serverScript = path.join(engineRoot, 'omni_local_server.py');
-  const uiIndexHtml = path.join(engineRoot, 'index.html');
-  const vendorManifest = path.join(engineRoot, 'vendor', 'OFFLINE_ASSETS.txt');
-  const noticesPath = path.join(engineRoot, 'THIRD_PARTY_NOTICES.md');
+  const nativeToolsDir = manager ? manager.root : path.join(stageRoot, 'components');
+  const pythonPath = manager ? manager.pythonPath() : [];
 
   return {
     isWin,
     platKey,
+    packaged,
+    stageRoot,
+    bundleManifestPath,
     engineRoot,
-    pythonRuntimeDir,
     pythonExe,
+    pythonSource,
+    pythonPath,
     nativeToolsDir,
-    nativeToolsBin,
-    tessdataDir,
-    serverScript,
-    uiIndexHtml,
-    vendorManifest,
-    noticesPath,
+    nativeToolsBin: path.join(nativeToolsDir, 'bin'),
+    toolsManifestPath: path.join(nativeToolsDir, 'TOOLS_MANIFEST.json'),
+    serverScript: path.join(engineRoot, 'omni_local_server.py'),
+    verifierScript: path.join(engineRoot, 'verify_local_environment.py'),
+    uiIndexHtml: path.join(engineRoot, 'index.html'),
+    vendorManifest: path.join(engineRoot, 'vendor', 'OFFLINE_ASSETS.txt'),
+    offlinePins: path.join(engineRoot, 'offline_assets_manifest.json'),
+    noticesPath: path.join(engineRoot, 'THIRD_PARTY_NOTICES.md'),
   };
 }
 
+function systemPathDirs() {
+  if (process.platform === 'win32') {
+    const root = process.env.SystemRoot || 'C:\\Windows';
+    return [path.join(root, 'System32'), root, path.join(root, 'System32', 'Wbem')];
+  }
+  return ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+}
+
+/** Mirror of omni_environment.bundled_tool_environment(). */
+function bundledToolEnvironment(root, manifest, baseEnv, sanitizePath) {
+  const env = { ...baseEnv };
+  for (const [key, rels] of Object.entries((manifest && manifest.env) || {})) {
+    const values = Array.isArray(rels) ? rels : [rels];
+    env[key] = values.map((rel) => path.join(root, rel)).join(path.delimiter);
+  }
+  const pathDirs = ((manifest && manifest.path_dirs) || []).map((rel) => path.join(root, rel));
+  const tail = sanitizePath ? systemPathDirs() : [baseEnv.PATH || ''];
+  env.PATH = [...pathDirs, ...tail].filter(Boolean).join(path.delimiter);
+  env.OMNI_NATIVE_TOOLS_ROOT = root;
+  env.OMNI_TOOL_RESOLUTION = 'bundled';
+  return env;
+}
+
 function buildEngineEnvironment(paths, port) {
-  const pathSep = process.platform === 'win32' ? ';' : ':';
-  const extraBinDirs = [];
-
-  if (fs.existsSync(paths.nativeToolsBin)) {
-    extraBinDirs.push(paths.nativeToolsBin);
-  }
-  const pyBinDir = path.dirname(paths.pythonExe);
-  if (pyBinDir && pyBinDir !== '.' && fs.existsSync(pyBinDir)) {
-    extraBinDirs.push(pyBinDir);
-  }
-  if (process.platform === 'darwin') {
-    for (const macDir of ['/opt/homebrew/bin', '/usr/local/bin', '/Applications/LibreOffice.app/Contents/MacOS', '/Applications/calibre.app/Contents/MacOS']) {
-      if (fs.existsSync(macDir)) {
-        extraBinDirs.push(macDir);
-      }
-    }
-  }
-
   const userDataDir = app ? app.getPath('userData') : path.join(os.homedir(), '.omni-studio');
   const allowedSqliteDir = path.join(userDataDir, 'sqlite-workspace');
   try {
     fs.mkdirSync(allowedSqliteDir, { recursive: true });
   } catch (_) {}
 
-  const env = {
-    ...process.env,
+  const baseEnv = { ...process.env };
+  for (const key of Object.keys(baseEnv)) {
+    if (/^(PYTHONPATH|PYTHONHOME|PYTHONSTARTUP|PYTHONEXECUTABLE|VIRTUAL_ENV|CONDA_PREFIX)$/i.test(key)) {
+      delete baseEnv[key];
+    }
+  }
+
+  const toolsManifest = readJsonFile(paths.toolsManifestPath);
+  let env;
+  if (toolsManifest && toolsManifest.tools) {
+    // Packaged apps get a sanitized PATH so nothing outside the bundle can stand in for a tool.
+    env = bundledToolEnvironment(paths.nativeToolsDir, toolsManifest, baseEnv, paths.packaged);
+  } else {
+    env = { ...baseEnv };
+    if (paths.packaged) {
+      env.OMNI_TOOL_RESOLUTION = 'bundled';
+      env.PATH = systemPathDirs().join(path.delimiter);
+    }
+  }
+  const pyBinDir = paths.pythonExe ? path.dirname(paths.pythonExe) : '';
+  if (pyBinDir && path.isAbsolute(pyBinDir) && fs.existsSync(pyBinDir)) {
+    env.PATH = [pyBinDir, env.PATH].filter(Boolean).join(path.delimiter);
+  }
+  if (paths.pythonPath && paths.pythonPath.length) {
+    env.PYTHONPATH = paths.pythonPath.join(path.delimiter);
+  }
+
+  return {
+    ...env,
     PYTHONUTF8: '1',
     PYTHONUNBUFFERED: '1',
+    PYTHONNOUSERSITE: '1',
     OMNI_HOST: HOST,
     OMNI_PORT: String(port),
     OMNI_TOKEN: engineToken,
     OMNI_NO_BROWSER: '1',
     OMNI_UI_ROOT: paths.engineRoot,
-    OMNI_BUNDLED_TOOLS_DIR: extraBinDirs.join(pathSep),
+    OMNI_DESKTOP_PACKAGED: paths.packaged ? '1' : '0',
     OMNI_ALLOWED_SQLITE_DIR: process.env.OMNI_ALLOWED_SQLITE_DIR || allowedSqliteDir,
-    PATH: [...extraBinDirs, process.env.PATH || ''].filter(Boolean).join(pathSep),
   };
-
-  if (fs.existsSync(paths.tessdataDir)) {
-    env.TESSDATA_PREFIX = paths.tessdataDir;
-  }
-
-  return env;
 }
 
 function findAvailablePort(preferredPort) {
@@ -190,7 +253,7 @@ function findAvailablePort(preferredPort) {
   });
 }
 
-function fetchLoopbackJson(pathname, port = enginePort, timeoutMs = 2500) {
+function fetchLoopback(pathname, port = enginePort, timeoutMs = 2500) {
   return new Promise((resolve, reject) => {
     const req = http.request(
       {
@@ -208,19 +271,9 @@ function fetchLoopbackJson(pathname, port = enginePort, timeoutMs = 2500) {
         },
       },
       (res) => {
-        let raw = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-          raw += chunk;
-        });
-        res.on('end', () => {
-          try {
-            const parsed = JSON.parse(raw || '{}');
-            resolve({ statusCode: res.statusCode || 0, body: parsed });
-          } catch (err) {
-            reject(err);
-          }
-        });
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve({ statusCode: res.statusCode || 0, body: Buffer.concat(chunks) }));
       }
     );
     req.on('timeout', () => req.destroy(new Error('Request timed out')));
@@ -229,9 +282,25 @@ function fetchLoopbackJson(pathname, port = enginePort, timeoutMs = 2500) {
   });
 }
 
+async function fetchLoopbackJson(pathname, port = enginePort, timeoutMs = 2500) {
+  const res = await fetchLoopback(pathname, port, timeoutMs);
+  return { statusCode: res.statusCode, body: JSON.parse(res.body.toString('utf8') || '{}') };
+}
+
+function tailEngineLog(maxChars = 4000) {
+  try {
+    return fs.readFileSync(engineLogPath, 'utf8').slice(-maxChars);
+  } catch (_) {
+    return '';
+  }
+}
+
 async function waitForEngineReady(port, timeoutMs = HEALTH_TIMEOUT_MS) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (!pythonProcess) {
+      throw new Error(`The Python Local Engine exited during startup.\n${tailEngineLog(1500)}`);
+    }
     try {
       const res = await fetchLoopbackJson('/healthz', port, 1200);
       if (res.statusCode === 200 && res.body && res.body.ok) {
@@ -242,7 +311,16 @@ async function waitForEngineReady(port, timeoutMs = HEALTH_TIMEOUT_MS) {
     }
     await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
   }
-  throw new Error(`Python Local Engine did not respond on http://${HOST}:${port}/healthz within ${timeoutMs}ms`);
+  throw new Error(`The Python Local Engine did not respond on http://${HOST}:${port}/healthz within ${Math.round(timeoutMs / 1000)}s.`);
+}
+
+function openEngineLog() {
+  const logDir = app ? path.join(app.getPath('userData'), 'logs') : os.tmpdir();
+  fs.mkdirSync(logDir, { recursive: true });
+  engineLogPath = path.join(logDir, 'local-engine.log');
+  if (engineLogStream) engineLogStream.end();
+  engineLogStream = fs.createWriteStream(engineLogPath, { flags: 'w' });
+  return engineLogStream;
 }
 
 async function startPythonEngine() {
@@ -250,33 +328,50 @@ async function startPythonEngine() {
   if (!fs.existsSync(paths.serverScript)) {
     throw new Error(`omni_local_server.py not found at ${paths.serverScript}`);
   }
+  if (!paths.pythonExe) {
+    throw new EngineNotInstalledError('The Local Engine component is not installed.');
+  }
+  if (path.isAbsolute(paths.pythonExe) && !fs.existsSync(paths.pythonExe)) {
+    throw new Error(`The Local Engine runtime is missing (${paths.pythonExe}). Reinstall it from File → Manage Components….`);
+  }
 
-  // Reuse an already-running Local Engine on DEFAULT_PORT if one is healthy
-  try {
-    const existing = await fetchLoopbackJson('/healthz', DEFAULT_PORT, 800);
-    if (existing.statusCode === 200 && existing.body && existing.body.ok) {
-      enginePort = DEFAULT_PORT;
-      return { reused: true, port: enginePort, health: existing.body };
-    }
-  } catch (_) {}
+  // Development convenience only: attach to an engine the developer already started.
+  if (!paths.packaged && process.env.OMNI_REUSE_ENGINE === '1') {
+    try {
+      const existing = await fetchLoopbackJson('/healthz', DEFAULT_PORT, 800);
+      if (existing.statusCode === 200 && existing.body && existing.body.ok) {
+        enginePort = DEFAULT_PORT;
+        return { reused: true, port: enginePort, health: existing.body };
+      }
+    } catch (_) {}
+  }
 
   enginePort = await findAvailablePort(DEFAULT_PORT);
   const env = buildEngineEnvironment(paths, enginePort);
+  const logStream = openEngineLog();
+  logStream.write(`[OmniDesktop] ${new Date().toISOString()} starting ${paths.pythonExe} ${paths.serverScript}\n`);
 
-  pythonProcess = spawn(paths.pythonExe, [paths.serverScript], {
+  pythonProcess = spawn(paths.pythonExe, ['-s', paths.serverScript], {
     cwd: paths.engineRoot,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
 
+  pythonProcess.on('error', (err) => {
+    logStream.write(`[OmniDesktop] failed to start engine: ${err.message}\n`);
+    pythonProcess = null;
+  });
   pythonProcess.stdout.on('data', (chunk) => {
-    process.stdout.write(`[OmniEngine] ${chunk}`);
+    logStream.write(chunk);
+    if (!isPackagedApp()) process.stdout.write(`[OmniEngine] ${chunk}`);
   });
   pythonProcess.stderr.on('data', (chunk) => {
-    process.stderr.write(`[OmniEngine:err] ${chunk}`);
+    logStream.write(chunk);
+    if (!isPackagedApp()) process.stderr.write(`[OmniEngine:err] ${chunk}`);
   });
   pythonProcess.on('exit', (code, signal) => {
+    logStream.write(`[OmniDesktop] engine exited code=${code} signal=${signal}\n`);
     pythonProcess = null;
     if (!isQuitting && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('omni:engine-stopped', { code, signal });
@@ -322,127 +417,131 @@ async function stopPythonEngine() {
   });
 }
 
+/** UI labels/features per native tool group (groups come from omni_environment.NATIVE_GROUPS). */
 const NATIVE_TOOL_SPECS = [
-  { id: 'ffmpeg', label: 'FFmpeg', bin: 'ffmpeg', args: ['-version'], features: ['Audio Studio', 'Video Studio', 'Media Transcode'] },
-  { id: 'ffprobe', label: 'FFprobe', bin: 'ffprobe', args: ['-version'], features: ['Media Stream Inspection'] },
-  { id: 'qpdf', label: 'qpdf', bin: 'qpdf', args: ['--version'], features: ['PDF Merge & Split', 'PDF Linearize & Compress'] },
-  { id: 'pdftoppm', label: 'Poppler (pdftoppm)', bin: 'pdftoppm', args: ['-v'], features: ['PDF High-DPI Page Rendering', 'PDF to PPTX'] },
-  { id: 'pdftotext', label: 'Poppler (pdftotext)', bin: 'pdftotext', args: ['-v'], features: ['PDF Structured Text Extraction', 'PDF to DOCX'] },
-  { id: 'tesseract', label: 'Tesseract OCR', bin: 'tesseract', args: ['--version'], features: ['Multi-Language Native OCR'] },
-  { id: 'soffice', label: 'LibreOffice (soffice)', bin: 'soffice', args: ['--version'], features: ['Office Format Converter', 'Unicode DOCX/PDF'] },
-  { id: 'ebook-convert', label: 'Calibre (ebook-convert)', bin: 'ebook-convert', args: ['--version'], features: ['Native Ebook Format Bridge (EPUB/MOBI/AZW3)'] },
-  { id: 'magick', label: 'ImageMagick', bin: 'magick', args: ['-version'], features: ['Native Image Format Bridge (HEIC/JXL/TIFF/PSD)'] },
-  { id: 'gs', label: 'Ghostscript', bin: 'gs', args: ['--version'], features: ['PostScript & PDF Vector Processing'] },
-  { id: 'pandoc', label: 'Pandoc', bin: 'pandoc', args: ['--version'], features: ['Document Markup Interchange'] },
-  { id: '7z', label: '7-Zip', bin: '7z', args: ['i'], features: ['7z Archive Compression'] },
+  { id: 'ffmpeg', component: 'ffmpeg', group: 'FFmpeg', label: 'FFmpeg', features: ['Audio Studio', 'Video Studio', 'Media Transcode'] },
+  { id: 'ffprobe', component: 'ffmpeg', group: 'FFprobe', label: 'FFprobe', features: ['Media Stream Inspection'] },
+  { id: 'yt-dlp', component: 'yt-dlp', group: 'yt-dlp', label: 'yt-dlp', features: ['Social Media Download Studio'] },
+  { id: 'qpdf', component: 'qpdf', group: 'qpdf', label: 'qpdf', features: ['PDF Merge & Split', 'PDF Linearize & Compress'] },
+  { id: 'pdftoppm', component: 'poppler', group: 'Poppler pdftoppm', label: 'Poppler (pdftoppm)', features: ['PDF High-DPI Page Rendering', 'PDF to PPTX'] },
+  { id: 'pdftotext', component: 'poppler', group: 'Poppler pdftotext', label: 'Poppler (pdftotext)', features: ['PDF Structured Text Extraction', 'PDF to DOCX'] },
+  { id: 'magick', component: 'imagemagick', group: 'ImageMagick', label: 'ImageMagick', features: ['Native Image Format Bridge (HEIC/JXL/TIFF/PSD)'] },
+  { id: 'rsvg-convert', component: 'rsvg', group: 'rsvg-convert', label: 'librsvg (rsvg-convert)', features: ['SVG to PNG Rendering'] },
+  { id: 'gs', component: 'ghostscript', group: 'Ghostscript', label: 'Ghostscript', features: ['PostScript & PDF Vector Processing'] },
+  { id: 'tesseract', component: 'tesseract', group: 'Tesseract', label: 'Tesseract OCR', features: ['Multi-Language Native OCR'] },
+  { id: 'soffice', component: 'libreoffice', group: 'LibreOffice', label: 'LibreOffice (soffice)', features: ['Office Format Converter', 'Unicode DOCX/PDF'] },
+  { id: 'ebook-convert', component: 'calibre', group: 'Calibre', label: 'Calibre (ebook-convert)', features: ['Native Ebook Format Bridge (EPUB/MOBI/AZW3)'] },
+  { id: 'pandoc', component: 'pandoc', group: 'Pandoc', label: 'Pandoc', features: ['Document Markup Interchange'] },
+  { id: '7z', component: '7zip', group: '7-Zip', label: '7-Zip', features: ['7z Archive Compression'] },
 ];
 
-function verifyOfflineManifest(manifestPath, engineRoot) {
-  if (!fs.existsSync(manifestPath)) {
-    return { ready: false, verifiedCount: 0, totalCount: 0, missing: ['vendor/OFFLINE_ASSETS.txt'] };
-  }
-  const lines = fs.readFileSync(manifestPath, 'utf8').split(/\r?\n/).filter(Boolean);
-  let verifiedCount = 0;
+const offlineVerifyCache = new Map();
+
+function sha256OfFile(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
+/** Verify every pinned offline asset by SHA-256 (not just existence). */
+function verifyOfflineManifest(manifestPath, engineRoot, pinsPath) {
+  const pins = readJsonFile(pinsPath || path.join(engineRoot, 'offline_assets_manifest.json')) || {};
+  const rels = Object.keys(pins);
   const missing = [];
-  for (const line of lines) {
-    const parts = line.split('\t');
-    const relPath = parts[0];
-    if (!relPath) continue;
-    const targetPath = path.join(engineRoot, 'vendor', relPath);
-    if (fs.existsSync(targetPath)) {
-      verifiedCount += 1;
-    } else {
-      missing.push(relPath);
+  let verifiedCount = 0;
+  for (const rel of rels) {
+    const target = path.join(engineRoot, 'vendor', rel);
+    let ok = false;
+    try {
+      const st = fs.statSync(target);
+      const key = `${target}:${st.size}:${st.mtimeMs}`;
+      if (!offlineVerifyCache.has(key)) {
+        offlineVerifyCache.set(key, sha256OfFile(target) === pins[rel]);
+      }
+      ok = offlineVerifyCache.get(key);
+    } catch (_) {
+      ok = false;
     }
+    if (ok) verifiedCount += 1;
+    else missing.push(rel);
   }
+  const manifestPresent = fs.existsSync(manifestPath);
+  if (!manifestPresent) missing.push('OFFLINE_ASSETS.txt');
   return {
-    ready: missing.length === 0 && verifiedCount > 0,
+    ready: rels.length > 0 && missing.length === 0,
     verifiedCount,
-    totalCount: lines.length,
+    totalCount: rels.length,
     missing,
+    manifestPresent,
   };
 }
 
-async function probeCliTool(spec, env, engineToolsMap) {
-  const fromEngine = engineToolsMap && engineToolsMap[spec.id];
-  const binToRun = (fromEngine && fromEngine.path) ? fromEngine.path : spec.bin;
-  const bundledRoot = resolveResourcePaths().nativeToolsDir;
-
-  try {
-    const { stdout, stderr } = await execFileAsync(binToRun, spec.args, {
-      env,
-      timeout: 3500,
-      windowsHide: true,
-    });
-    const firstLine = `${stdout || ''}\n${stderr || ''}`
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .find(Boolean) || 'Available';
-    const resolvedPath = (fromEngine && fromEngine.path) || binToRun;
+function toolsFromHealth(engineHealth, installedComponents, engineInstalled) {
+  const groups = (engineHealth && engineHealth.tool_groups) || {};
+  const installed = installedComponents || null;
+  return NATIVE_TOOL_SPECS.map((spec) => {
+    const info = groups[spec.group] || {};
+    let reason = null;
+    if (installed && !installed.includes(spec.component)) reason = 'Component not installed';
+    else if (engineInstalled === false) reason = 'Local Engine not installed';
+    else if (!engineHealth) reason = 'Local Engine offline';
+    else if (!info.ready) reason = info.path ? 'Found but failed to run' : 'Not installed';
     return {
       id: spec.id,
       label: spec.label,
-      available: true,
-      bundled: Boolean(resolvedPath && resolvedPath.startsWith(bundledRoot)),
-      path: resolvedPath,
-      version: firstLine.slice(0, 110),
+      group: spec.group,
+      component: spec.component,
+      required: info.required !== false,
+      available: Boolean(info.ready),
+      bundled: Boolean(info.bundled),
+      path: info.path || null,
+      version: info.version || null,
+      reason,
       features: spec.features,
     };
-  } catch (_) {
-    if (fromEngine && fromEngine.installed) {
-      return {
-        id: spec.id,
-        label: spec.label,
-        available: true,
-        bundled: Boolean(fromEngine.path && fromEngine.path.startsWith(bundledRoot)),
-        path: fromEngine.path,
-        version: 'Installed',
-        features: spec.features,
-      };
-    }
-    return {
-      id: spec.id,
-      label: spec.label,
-      available: false,
-      bundled: false,
-      path: null,
-      version: null,
-      features: spec.features,
-    };
-  }
+  });
 }
 
 async function runReadinessCheck() {
   const paths = resolveResourcePaths();
-  const env = buildEngineEnvironment(paths, enginePort);
-  const offlineAssets = verifyOfflineManifest(paths.vendorManifest, paths.engineRoot);
+  const offlineAssets = verifyOfflineManifest(paths.vendorManifest, paths.engineRoot, paths.offlinePins);
+  const bundleManifest = readJsonFile(paths.bundleManifestPath);
 
   let engineHealth = null;
-  try {
-    const resp = await fetchLoopbackJson('/api/health', enginePort, 3000);
-    if (resp.statusCode === 200 && resp.body && resp.body.ok) {
-      engineHealth = resp.body;
-    }
-  } catch (_) {}
+  if (!engineStartError && pythonProcess) {
+    try {
+      const resp = await fetchLoopbackJson('/api/health', enginePort, 180000);
+      if (resp.statusCode === 200 && resp.body && resp.body.ok) {
+        engineHealth = resp.body;
+      }
+    } catch (_) {}
+  }
 
-  const engineToolsMap = (engineHealth && engineHealth.tools) || {};
-  const tools = await Promise.all(
-    NATIVE_TOOL_SPECS.map((spec) => probeCliTool(spec, env, engineToolsMap))
-  );
-
-  const availableToolsCount = tools.filter((t) => t.available).length;
+  const manager = getComponentManager();
+  const componentList = manager.list();
+  const installedIds = componentList.components.filter((c) => c.installed).map((c) => c.id);
+  const engineInstalled = Boolean(paths.pythonExe);
+  const tools = toolsFromHealth(engineHealth, installedIds, engineInstalled);
+  const requiredTools = tools.filter((t) => t.required);
+  const engineOnline = Boolean(engineHealth && engineHealth.ok);
   cachedReadiness = {
     checkedAt: new Date().toISOString(),
     platform: `${process.platform}-${process.arch}`,
     isPackaged: isPackagedApp(),
+    bundle: bundleManifest
+      ? { complete: Boolean(bundleManifest.complete), stagedAt: bundleManifest.staged_at, platform: bundleManifest.platform }
+      : null,
+    components: componentList.components.map((c) => ({ id: c.id, title: c.title, installed: c.installed, size: c.size })),
     engine: {
-      online: Boolean(engineHealth && engineHealth.ok),
+      installed: engineInstalled,
+      online: engineOnline,
       url: `http://${HOST}:${enginePort}`,
+      error: engineStartError ? String(engineStartError.message || engineStartError) : null,
+      logPath: engineLogPath,
       apiVersion: engineHealth ? engineHealth.engine_api_version : null,
       build: engineHealth ? engineHealth.engine_build : null,
       pythonVersion: engineHealth ? engineHealth.python : null,
-      pythonExecutable: paths.pythonExe,
-      pythonModules: engineHealth ? engineHealth.python_modules : {},
+      pythonExecutable: engineHealth && engineHealth.python_executable ? engineHealth.python_executable : paths.pythonExe,
+      pythonSource: paths.pythonSource,
+      pythonModules: (engineHealth && engineHealth.python_modules) || {},
       doctor: engineHealth ? engineHealth.doctor : null,
     },
     offlineAssets,
@@ -450,12 +549,28 @@ async function runReadinessCheck() {
     summary: {
       browserStudiosReady: true,
       offlineVendorReady: offlineAssets.ready,
-      localEngineReady: Boolean(engineHealth && engineHealth.ok),
-      nativeToolsReady: availableToolsCount,
+      localEngineReady: engineOnline,
+      nativeToolsReady: tools.filter((t) => t.available).length,
       nativeToolsTotal: tools.length,
+      requiredToolsReady: requiredTools.filter((t) => t.available).length,
+      requiredToolsTotal: requiredTools.length,
+      componentsInstalled: installedIds.length,
+      componentsTotal: componentList.components.length,
+      allRequiredReady: engineOnline && offlineAssets.ready && requiredTools.every((t) => t.available),
     },
   };
   return cachedReadiness;
+}
+
+function startupPage(message, detail) {
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>OmniConverter Studio</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#FFE9CF;font:15px -apple-system,Segoe UI,sans-serif;color:#3b2a1a}
+.card{max-width:560px;padding:28px 32px;background:#fff8ef;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+h1{font-size:18px;margin:0 0 8px}p{margin:6px 0;line-height:1.45}pre{white-space:pre-wrap;font-size:12px;background:#f3e6d6;padding:10px;border-radius:8px;max-height:220px;overflow:auto}</style></head>
+<body><div class="card"><h1>${esc(message)}</h1>${detail ? `<pre>${esc(detail)}</pre>` : '<p>Starting the bundled Local Engine. The first launch can take up to a minute while Python libraries load.</p>'}</div></body></html>`;
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 
 async function createMainWindow() {
@@ -489,27 +604,220 @@ async function createMainWindow() {
     return { action: 'allow' };
   });
 
-  mainWindow.once('ready-to-show', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-    }
-  });
-
-  try {
-    await startPythonEngine();
-    await runReadinessCheck();
-    await mainWindow.loadURL(`http://${HOST}:${enginePort}/`);
-  } catch (err) {
-    console.error('[OmniDesktop] Engine startup fallback to static UI:', err.message);
-    await runReadinessCheck();
-    await mainWindow.loadFile(paths.uiIndexHtml);
-  }
-
   mainWindow.webContents.on('did-finish-load', () => {
     if (cachedReadiness && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('omni:readiness-report', cachedReadiness);
     }
   });
+
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+  });
+  await mainWindow.loadURL(startupPage('Starting OmniConverter Studio…'));
+
+  try {
+    engineStartError = null;
+    await startPythonEngine();
+    await runReadinessCheck();
+    startupState.loadedUrl = `http://${HOST}:${enginePort}/`;
+    await mainWindow.loadURL(startupState.loadedUrl);
+  } catch (err) {
+    if (err instanceof EngineNotInstalledError) {
+      // Not an error: the user chose browser-only mode (no Local Engine component).
+      engineStartError = null;
+      startupState.browserOnly = true;
+      await runReadinessCheck();
+      startupState.loadedUrl = `file://${paths.uiIndexHtml}`;
+      await mainWindow.loadFile(paths.uiIndexHtml);
+      return;
+    }
+    engineStartError = err;
+    console.error('[OmniDesktop] Local Engine failed to start:', err.message);
+    await stopPythonEngine();
+    await runReadinessCheck();
+    if (!SMOKE_MODE) {
+      await dialog.showMessageBox(mainWindow, {
+        type: 'error',
+        title: 'Local Engine unavailable',
+        message: 'The bundled Local Engine could not be started.',
+        detail: `${err.message}\n\nBrowser-only studios will still open. Engine-backed conversions (Office, OCR, media, PDF tools) stay unavailable until the engine starts (READY pill → Restart engine).\n\nLog: ${engineLogPath || 'not created'}`,
+        buttons: ['Continue in browser-only mode'],
+      });
+    }
+    startupState.usedFallbackUi = true;
+    startupState.loadedUrl = `file://${paths.uiIndexHtml}`;
+    await mainWindow.loadFile(paths.uiIndexHtml);
+  }
+}
+
+function openComponentsWindow() {
+  if (componentsWindow && !componentsWindow.isDestroyed()) {
+    componentsWindow.focus();
+    return componentsWindow;
+  }
+  componentsWindow = new BrowserWindow({
+    width: 860,
+    height: 760,
+    minWidth: 640,
+    minHeight: 520,
+    title: 'OmniConverter Studio — Components',
+    backgroundColor: '#FFE9CF',
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, 'components-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  componentsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  componentsWindow.webContents.on('will-navigate', (event) => event.preventDefault());
+  componentsWindow.on('closed', () => {
+    componentsWindow = null;
+    getComponentManager().markSetupCompleted();
+    if (componentsChanged) {
+      // Closed with the window button after installing/removing: apply the changes anyway.
+      componentsChanged = false;
+      applyComponentChanges().catch((err) => console.error('[OmniDesktop] applying component changes failed:', err));
+    }
+  });
+  componentsWindow.loadFile(path.join(__dirname, 'components.html'));
+  return componentsWindow;
+}
+
+/** Restart the engine with whatever components are installed now and reload the UI. */
+async function applyComponentChanges() {
+  await stopPythonEngine();
+  engineStartError = null;
+  startupState.browserOnly = false;
+  startupState.usedFallbackUi = false;
+  const paths = resolveResourcePaths();
+  try {
+    await startPythonEngine();
+    await runReadinessCheck();
+    startupState.loadedUrl = `http://${HOST}:${enginePort}/`;
+    if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(startupState.loadedUrl);
+  } catch (err) {
+    if (!(err instanceof EngineNotInstalledError)) engineStartError = err;
+    startupState.browserOnly = err instanceof EngineNotInstalledError;
+    startupState.usedFallbackUi = !startupState.browserOnly;
+    await runReadinessCheck();
+    startupState.loadedUrl = `file://${paths.uiIndexHtml}`;
+    if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadFile(paths.uiIndexHtml);
+  }
+  return cachedReadiness;
+}
+
+function installApplicationMenu() {
+  const manageItem = { label: 'Manage Components…', click: () => openComponentsWindow() };
+  const template = [
+    ...(process.platform === 'darwin'
+      ? [{ role: 'appMenu', submenu: [{ role: 'about' }, { type: 'separator' }, manageItem, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }]
+      : []),
+    { label: 'File', submenu: [manageItem, { type: 'separator' }, process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }] },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function runBundledVerifier(paths) {
+  return new Promise((resolve) => {
+    const env = buildEngineEnvironment(paths, enginePort);
+    execFile(
+      paths.pythonExe,
+      ['-s', paths.verifierScript, '--json'],
+      { cwd: paths.engineRoot, env, timeout: 900000, maxBuffer: 32 * 1024 * 1024, windowsHide: true },
+      (error, stdout, stderr) => {
+        let parsed = null;
+        try {
+          parsed = JSON.parse(String(stdout).trim().split(/\r?\n/).pop());
+        } catch (_) {}
+        resolve({ exitCode: error ? (error.code ?? 1) : 0, report: parsed, stderr: String(stderr || '').slice(-4000) });
+      }
+    );
+  });
+}
+
+async function runSmokeTest() {
+  const paths = resolveResourcePaths();
+  const readiness = await runReadinessCheck();
+  const report = {
+    schema: 2,
+    mode: SMOKE_INSTALL,
+    resourcesPath: process.resourcesPath,
+    execPath: process.execPath,
+    userData: app.getPath('userData'),
+    componentsRoot: getComponentManager().root,
+    packaged: isPackagedApp(),
+    startup: startupState,
+    readiness,
+    engineLogTail: tailEngineLog(6000),
+    renderer: null,
+    vendorFetch: null,
+    verifier: null,
+  };
+  try {
+    report.renderer = await mainWindow.webContents.executeJavaScript(
+      '({ href: location.href, tokenType: typeof window.OMNI_TOKEN, desktopBridge: Boolean(window.omniDesktop && window.omniDesktop.isDesktopApp), title: document.title, hasUi: Boolean(document.querySelector("body") && document.body.children.length > 0) })'
+    );
+  } catch (err) {
+    report.renderer = { error: err.message };
+  }
+  const engineRunning = Boolean(pythonProcess) && !engineStartError;
+  if (engineRunning) {
+    try {
+      const res = await fetchLoopback('/vendor/pdfjs/build/pdf.mjs', enginePort, 10000);
+      report.vendorFetch = { statusCode: res.statusCode, bytes: res.body.length };
+    } catch (err) {
+      report.vendorFetch = { error: err.message };
+    }
+    report.verifier = await runBundledVerifier(paths);
+  }
+  const shotDir = process.env.OMNI_SMOKE_SCREENSHOT_DIR;
+  if (shotDir) {
+    // Visual proof for CI artifacts: the studio window and the component picker.
+    fs.mkdirSync(shotDir, { recursive: true });
+    try {
+      await new Promise((r) => setTimeout(r, 1500));
+      fs.writeFileSync(path.join(shotDir, `studio-${SMOKE_INSTALL === 'none' ? 'base' : 'full'}.png`), (await mainWindow.webContents.capturePage()).toPNG());
+      const picker = openComponentsWindow();
+      await new Promise((resolve) => (picker.webContents.isLoading() ? picker.webContents.once('did-finish-load', resolve) : resolve()));
+      await new Promise((r) => setTimeout(r, 1000));
+      fs.writeFileSync(path.join(shotDir, `components-${SMOKE_INSTALL === 'none' ? 'base' : 'full'}.png`), (await picker.webContents.capturePage()).toPNG());
+      report.screenshots = fs.readdirSync(shotDir);
+    } catch (err) {
+      report.screenshots = { error: err.message };
+    }
+  }
+  const installs = startupState.componentInstall || {};
+  const installsOk = Object.values(installs).every((r) => r.ok);
+  if (SMOKE_INSTALL === 'none') {
+    // Base installer only: the app must open in browser-only mode, never pretend tools exist.
+    report.ok = Boolean(
+      startupState.browserOnly &&
+        !startupState.usedFallbackUi &&
+        readiness.engine.installed === false &&
+        readiness.offlineAssets.ready &&
+        readiness.tools.every((t) => !t.available && t.reason === 'Component not installed') &&
+        report.renderer && report.renderer.desktopBridge && report.renderer.hasUi
+    );
+  } else {
+    report.ok = Boolean(
+      installsOk &&
+        readiness.summary.allRequiredReady &&
+        !startupState.usedFallbackUi &&
+        report.renderer && report.renderer.tokenType === 'string' &&
+        report.vendorFetch && report.vendorFetch.statusCode === 200 &&
+        report.verifier && report.verifier.exitCode === 0
+    );
+  }
+  fs.mkdirSync(path.dirname(SMOKE_REPORT_PATH), { recursive: true });
+  fs.writeFileSync(SMOKE_REPORT_PATH, JSON.stringify(report, null, 2));
+  isQuitting = true;
+  await stopPythonEngine();
+  app.exit(report.ok ? 0 : 3);
 }
 
 function registerIpcHandlers() {
@@ -532,8 +840,43 @@ function registerIpcHandlers() {
 
   ipcMain.handle('omni:restart-engine', async () => {
     await stopPythonEngine();
-    await startPythonEngine();
+    try {
+      engineStartError = null;
+      await startPythonEngine();
+    } catch (err) {
+      engineStartError = err;
+    }
     return runReadinessCheck();
+  });
+
+  ipcMain.handle('omni:open-components', () => {
+    openComponentsWindow();
+    return true;
+  });
+
+  ipcMain.handle('omni-components:list', () => getComponentManager().list());
+  ipcMain.handle('omni-components:install', async (event, ids) => {
+    const sender = event.sender;
+    const results = await getComponentManager().install(Array.isArray(ids) ? ids : [], (progress) => {
+      if (!sender.isDestroyed()) sender.send('omni-components:progress', progress);
+    });
+    if (Object.values(results).some((r) => r.ok && !r.skipped)) componentsChanged = true;
+    return results;
+  });
+  ipcMain.handle('omni-components:cancel', (_event, id) => {
+    getComponentManager().cancel(String(id));
+    return true;
+  });
+  ipcMain.handle('omni-components:remove', async (_event, id) => {
+    await stopPythonEngine(); // release files (Windows locks binaries in use)
+    componentsChanged = true;
+    return getComponentManager().remove(String(id));
+  });
+  ipcMain.handle('omni-components:finish', async () => {
+    getComponentManager().markSetupCompleted();
+    componentsChanged = false;
+    if (componentsWindow && !componentsWindow.isDestroyed()) componentsWindow.close();
+    return applyComponentChanges();
   });
 
   ipcMain.handle('omni:open-notices', async () => {
@@ -547,7 +890,7 @@ function registerIpcHandlers() {
 }
 
 if (app) {
-  const gotSingleInstanceLock = app.requestSingleInstanceLock();
+  const gotSingleInstanceLock = SMOKE_MODE || app.requestSingleInstanceLock();
   if (!gotSingleInstanceLock) {
     app.quit();
   } else {
@@ -560,7 +903,34 @@ if (app) {
 
     app.whenReady().then(async () => {
       registerIpcHandlers();
+      if (SMOKE_MODE) {
+        try {
+          const manager = getComponentManager();
+          const wanted = SMOKE_INSTALL === 'all'
+            ? manager.catalog().components.map((c) => c.id)
+            : SMOKE_INSTALL === 'none' ? [] : SMOKE_INSTALL.split(',').map((x) => x.trim()).filter(Boolean);
+          const progressLog = [];
+          startupState.componentInstall = wanted.length
+            ? await manager.install(wanted, (p) => { if (p.phase !== 'downloading') progressLog.push(p); })
+            : {};
+          startupState.componentProgress = progressLog;
+          await createMainWindow();
+          await runSmokeTest();
+        } catch (err) {
+          try {
+            fs.writeFileSync(SMOKE_REPORT_PATH, JSON.stringify({ ok: false, error: String((err && err.stack) || err) }, null, 2));
+          } catch (_) {}
+          isQuitting = true;
+          await stopPythonEngine();
+          app.exit(4);
+        }
+        return;
+      }
+      installApplicationMenu();
       await createMainWindow();
+      if (!getComponentManager().state().setupCompleted) {
+        openComponentsWindow(); // first launch: let the user choose what to install
+      }
 
       app.on('activate', async () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -591,6 +961,8 @@ if (app) {
 module.exports = {
   resolveResourcePaths,
   buildEngineEnvironment,
+  bundledToolEnvironment,
   verifyOfflineManifest,
+  toolsFromHealth,
   NATIVE_TOOL_SPECS,
 };

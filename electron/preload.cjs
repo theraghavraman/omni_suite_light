@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('omniDesktop', Object.freeze({
   recheckReadiness: () => ipcRenderer.invoke('omni:recheck-readiness'),
   restartEngine: () => ipcRenderer.invoke('omni:restart-engine'),
   openThirdPartyNotices: () => ipcRenderer.invoke('omni:open-notices'),
+  openComponentManager: () => ipcRenderer.invoke('omni:open-components'),
   onReadinessReport: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload);

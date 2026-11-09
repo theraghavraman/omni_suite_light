@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib, importlib.util, json, re, shutil, subprocess
 from pathlib import Path
 from typing import Any
-from omni_environment import PYTHON_IMPORTS as PYTHON_PACKAGES, OPTIONAL_PYTHON_IMPORTS, NATIVE_TOOLS, find_native_tool_path
+from omni_environment import PYTHON_IMPORTS as PYTHON_PACKAGES, OPTIONAL_PYTHON_IMPORTS, NATIVE_TOOLS, find_native_tool_path, probe_native_tool
 
 
 DATA_BROWSER = {"csv","tsv","txt","json","jsonl","ndjson","yaml","yml","xml","html","md"}
@@ -39,7 +39,8 @@ def doctor():
     native={}
     for label,(cmd,package) in NATIVE_TOOLS.items():
         path=find_native_tool_path(cmd)
-        native[label]={"installed":bool(path),"path":path,"version":_version(path) if path else None,"package":package}
+        working,version=probe_native_tool(path,cmd) if path else (False,None)
+        native[label]={"installed":bool(path),"working":working,"path":path,"version":version,"package":package}
     return {"python":python,"native":native}
 
 def capability(source=None,target=None):

@@ -2,16 +2,41 @@
 
 OmniConverter Studio supports two distribution modes:
 1. **Source / Web Checkout Mode**: Native tools are installed separately by the user's operating system/package manager, and browser-side libraries are downloaded into `vendor/` by `prepare_offline.py`.
-2. **Standalone Electron Desktop Application Mode** (`npm run desktop:make`): Bundles the Electron application shell, the Python 3.12 runtime and `requirements-local.txt` packages, SHA-256-verified offline browser assets (`vendor/`), and staged native CLI tools under `build/native-tools/<platform>-<arch>/`. When distributing packaged installers, retain this `THIRD_PARTY_NOTICES.md` and the upstream license files staged in `resources/native-tools/<platform>-<arch>/licenses/`.
+2. **Standalone Electron Desktop Application Mode** (`npm run desktop:make`): The installer bundles the Electron shell, the Local Engine code, the Studio UI and the SHA-256-verified offline browser assets (`vendor/`). The Python runtime, `requirements-local.txt` libraries and native tools are optional components that the in-app Component Manager downloads (SHA-256-verified) into the user's profile; each component archive carries its upstream license files under `licenses/`. When distributing installers or component archives, retain this file and those license files.
 
 ## Desktop application shell & packaging dependencies
 
 | Dependency | Version used | License | Role |
 |---|---:|---|---|
-| Electron | ^34.2.0 | MIT | Cross-platform desktop application shell (`electron/main.cjs`, `electron/preload.cjs`) |
-| Electron Forge (`@electron-forge/*`) | ^7.6.0 | MIT | Cross-platform packaging and OS installer generation (Squirrel.Windows, DMG, ZIP, DEB, RPM) |
+| Electron | ^45.2.3 | MIT | Cross-platform desktop application shell (`electron/main.cjs`, `electron/preload.cjs`) |
+| Electron Forge (`@electron-forge/*`) | ^8.0.1 | MIT | Cross-platform packaging and OS installer generation (Squirrel.Windows, DMG, ZIP, DEB, RPM) |
 | electron-squirrel-startup | ^1.0.1 | Apache License 2.0 | Windows Squirrel installer shortcut and lifecycle handling |
-| Python Runtime (CPython) | 3.12+ | PSF License Agreement | Embedded Local Engine runtime (`omni_local_server.py`) |
+| Python Runtime (CPython, python-build-standalone) | 3.12.15 (release 20261013) | PSF License Agreement (+ bundled OpenSSL/SQLite/etc. licenses in the runtime) | Embedded Local Engine runtime (`omni_local_server.py`) |
+
+## Optional desktop components (downloaded by the Component Manager)
+
+Pinned sources and checksums are in `scripts/desktop_bundle_sources.json`; each installer also carries
+`resources/native-tools/<platform>-<arch>/licenses/` (upstream license files) and `BUNDLED_COMPONENTS.md`
+(exact versions of every bundled library, including package-manager dependencies).
+
+| Component | Version | License | Source |
+|---|---:|---|---|
+| LibreOffice | 26.8.2.2 | MPL-2.0 (and others, see bundle) | Official The Document Foundation builds |
+| Calibre (ebook-convert) | 9.16.0 | GPL-3.0 | Official calibre builds |
+| Ghostscript | 10.08 (Windows) / OS package | AGPL-3.0 | Artifex (Windows), Homebrew / Ubuntu (macOS / Linux) |
+| FFmpeg / FFprobe | 9.0.2 (Windows) / OS package | GPL-3.0 builds (LGPL core) | Gyan.dev (Windows), Homebrew / Ubuntu |
+| Poppler (pdftoppm, pdftotext) | 26.07 (Windows) / OS package | GPL-2.0-or-later | poppler-windows, Homebrew / Ubuntu |
+| qpdf | 12.4.1 (Windows) / OS package | Apache-2.0 | qpdf releases, Homebrew / Ubuntu |
+| ImageMagick | 7.1.2-34 (Windows) / OS package | ImageMagick License | ImageMagick releases, Homebrew / Ubuntu |
+| librsvg (rsvg-convert) | OS / MSYS2 package | LGPL-2.1-or-later | Homebrew / Ubuntu / MSYS2 UCRT64 |
+| Tesseract OCR | 5.4.0 (Windows) / OS package | Apache-2.0 | UB Mannheim (Windows), Homebrew / Ubuntu |
+| tessdata_fast language models | 4.1.0 | Apache-2.0 | tesseract-ocr/tessdata_fast |
+| Pandoc | 3.12 (Windows) / OS package | GPL-2.0-or-later | jgm/pandoc releases, Homebrew / Ubuntu |
+| 7-Zip | 26.05 (Windows) / OS package | LGPL-2.1 + unRAR restriction | 7-Zip releases, Homebrew / Ubuntu |
+| yt-dlp | 2026.08.19 | Unlicense | PyPI / yt-dlp releases (Windows exe) |
+
+Distributing these installers carries the obligations of the GPL/AGPL components (notably a source offer
+for Ghostscript, FFmpeg, Poppler, Calibre and Pandoc builds).
 
 ## Browser-side dependencies
 

@@ -26,9 +26,14 @@ where the %install working directory is below the staged usr tree.
 */%>
 %define _binary_payload w<%= compressionLevel %>.xzdio
 
-%if "%{_host_cpu}" != "%{_target_cpu}"
+# The payload is a self-contained bundle (relocated binaries with $ORIGIN RUNPATHs, a
+# private Python runtime, LibreOffice/Calibre builds). Never strip, re-shebang,
+# byte-compile, or generate debuginfo/build-id links for it.
 %global __strip /bin/true
-%endif
+%global __os_install_post %{nil}
+%global __brp_mangle_shebangs %{nil}
+%global debug_package %{nil}
+%global _build_id_links none
 
 Name: <%= name %>
 Version: <%= version %>

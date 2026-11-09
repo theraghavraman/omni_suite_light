@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>OmniConverter Studio — Components</title>
+<style>
+  :root { --bg: #FFE9CF; --card: #fff8ef; --ink: #3b2a1a; --muted: #7a6450; --accent: #c2561a; --ok: #2f7d4a; --err: #b3261e; --line: #ead8c3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 22px 28px 8px; }
+  h1 { margin: 0 0 6px; font-size: 20px; }
+  header p { margin: 0; color: var(--muted); line-height: 1.45; max-width: 760px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 28px; align-items: center; }
+  button { border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 7px 14px; border-radius: 8px; font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  .total { margin-left: auto; color: var(--muted); }
+  main { padding: 0 28px 110px; display: grid; gap: 8px; }
+  .item { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .item input { margin-top: 3px; width: 16px; height: 16px; }
+  .title { font-weight: 600; }
+  .desc { color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  .meta { color: var(--muted); font-size: 12px; text-align: right; white-space: nowrap; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; margin-left: 6px; vertical-align: 1px; }
+  .badge.ok { background: #dff0e3; color: var(--ok); }
+  .badge.rec { background: #f6e1cf; color: var(--accent); }
+  .status { font-size: 12px; margin-top: 6px; }
+  .status.err { color: var(--err); }
+  .status.ok { color: var(--ok); }
+  progress { width: 100%; height: 8px; margin-top: 6px; accent-color: var(--accent); }
+  .link { background: none; border: none; color: var(--accent); padding: 0; font-size: 12px; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 28px; display: flex; gap: 10px; align-items: center; }
+  footer .note { color: var(--muted); font-size: 12px; flex: 1; }
+  .empty { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Choose what to install</h1>
+  <p>OmniConverter Studio works without any of these: the browser studios are always available, offline. Each component adds engine-backed features. Downloads are verified against SHA-256 checksums built into this app and installed only for your user account. You can add or remove components later from <strong>File → Manage Components…</strong>.</p>
+</header>
+<div class="toolbar">
+  <button id="recommended">Select recommended</button>
+  <button id="all">Select all</button>
+  <button id="none">Clear</button>
+  <span class="total" id="total"></span>
+</div>
+<main id="list"></main>
+<footer>
+  <span class="note" id="note">Nothing is downloaded until you click Install.</span>
+  <button id="skip">Continue without installing</button>
+  <button id="install" class="primary">Install selected</button>
+</footer>
+<script src="components-ui.js"></script>
+</body>
+</html>

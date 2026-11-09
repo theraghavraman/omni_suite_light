@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 """Static contract audit for Omni Suite's browser/local capability model and desktop bundle."""
 from pathlib import Path
 import re
@@ -61,6 +62,11 @@ for desktop_file in [
     "electron/forge.config.cjs",
     "electron/entitlements.mac.plist",
     "scripts/stage_desktop_bundle.py",
+    "scripts/desktop_relocate.py",
+    "scripts/desktop_bundle_sources.json",
+    "scripts/desktop_build.cjs",
+    "scripts/smoke_test_desktop.py",
+    "tests/test_desktop_shell.cjs",
     "omni_desktop_readiness.js",
     "THIRD_PARTY_NOTICES.md",
     "DESKTOP_PACKAGING.md",
@@ -70,4 +76,8 @@ for desktop_file in [
 assert "omni_desktop_readiness.js" in index, "index.html does not load omni_desktop_readiness.js"
 assert "OMNI_NO_BROWSER" in server, "omni_local_server.py does not honor OMNI_NO_BROWSER for embedded desktop launch"
 assert "OMNI_BUNDLED_TOOLS_DIR" in environment, "omni_environment.py does not check OMNI_BUNDLED_TOOLS_DIR"
+assert "OMNI_TOOL_RESOLUTION" in environment and "TOOLS_MANIFEST.json" in environment, "omni_environment.py lacks strict bundled tool resolution"
+assert '"tool_groups"' in server, "/api/health does not report executed tool groups"
+pkg = json.loads((ROOT/"package.json").read_text("utf-8"))
+assert pkg["scripts"]["desktop:make"] == "node scripts/desktop_build.cjs make", "desktop:make must use the shared staging entry point"
 print("Desktop packaging contract checks: PASS")

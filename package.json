@@ -18,11 +18,12 @@
   },
   "scripts": {
     "postinstall": "node .github/scripts/apply_desktop_patches.cjs",
-    "desktop:stage": "python3 scripts/stage_desktop_bundle.py",
+    "desktop:stage": "node scripts/desktop_build.cjs stage",
     "desktop:start": "electron-forge start",
-    "desktop:package": "python3 scripts/stage_desktop_bundle.py && electron-forge package",
-    "desktop:make": "python3 scripts/stage_desktop_bundle.py && electron-forge make",
-    "desktop:verify": "python3 -m unittest discover -s tests -v && python3 .github/scripts/omni_contract_audit.py && python3 .github/scripts/environment_inventory_test.py"
+    "desktop:package": "node scripts/desktop_build.cjs package",
+    "desktop:make": "node scripts/desktop_build.cjs make",
+    "desktop:verify": "python3 -m unittest discover -s tests -v && python3 .github/scripts/omni_contract_audit.py && python3 .github/scripts/environment_inventory_test.py",
+    "desktop:smoke": "node scripts/desktop_build.cjs smoke"
   },
   "keywords": [
     "omni",

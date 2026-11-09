@@ -18,18 +18,20 @@
   var FIRST_LAUNCH_STORAGE_KEY = 'omni_desktop_readiness_seen_v1';
 
   var FALLBACK_TOOLS = [
-    { id: 'ffmpeg', label: 'FFmpeg', features: ['Audio Studio', 'Video Studio', 'Media Transcode'] },
-    { id: 'ffprobe', label: 'FFprobe', features: ['Media Stream Inspection'] },
-    { id: 'qpdf', label: 'qpdf', features: ['PDF Merge & Split', 'PDF Compress'] },
-    { id: 'pdftoppm', label: 'Poppler (pdftoppm)', features: ['PDF High-DPI Page Rendering', 'PDF to PPTX'] },
-    { id: 'pdftotext', label: 'Poppler (pdftotext)', features: ['PDF Text Extraction', 'PDF to DOCX'] },
-    { id: 'tesseract', label: 'Tesseract OCR', features: ['Multi-Language Native OCR'] },
-    { id: 'soffice', label: 'LibreOffice (soffice)', features: ['Office Format Converter', 'Unicode DOCX/PDF'] },
-    { id: 'ebook-convert', label: 'Calibre (ebook-convert)', features: ['Native Ebook Format Bridge'] },
-    { id: 'magick', label: 'ImageMagick', features: ['Native Image Format Bridge (HEIC/JXL/TIFF/PSD)'] },
-    { id: 'gs', label: 'Ghostscript', features: ['PostScript & PDF Vector Processing'] },
-    { id: 'pandoc', label: 'Pandoc', features: ['Document Markup Interchange'] },
-    { id: '7z', label: '7-Zip', features: ['7z Archive Compression'] }
+    { id: 'ffmpeg', group: 'FFmpeg', label: 'FFmpeg', features: ['Audio Studio', 'Video Studio', 'Media Transcode'] },
+    { id: 'ffprobe', group: 'FFprobe', label: 'FFprobe', features: ['Media Stream Inspection'] },
+    { id: 'yt-dlp', group: 'yt-dlp', label: 'yt-dlp', features: ['Social Media Download Studio'] },
+    { id: 'qpdf', group: 'qpdf', label: 'qpdf', features: ['PDF Merge & Split', 'PDF Compress'] },
+    { id: 'pdftoppm', group: 'Poppler pdftoppm', label: 'Poppler (pdftoppm)', features: ['PDF High-DPI Page Rendering', 'PDF to PPTX'] },
+    { id: 'pdftotext', group: 'Poppler pdftotext', label: 'Poppler (pdftotext)', features: ['PDF Text Extraction', 'PDF to DOCX'] },
+    { id: 'tesseract', group: 'Tesseract', label: 'Tesseract OCR', features: ['Multi-Language Native OCR'] },
+    { id: 'soffice', group: 'LibreOffice', label: 'LibreOffice (soffice)', features: ['Office Format Converter', 'Unicode DOCX/PDF'] },
+    { id: 'ebook-convert', group: 'Calibre', label: 'Calibre (ebook-convert)', features: ['Native Ebook Format Bridge'] },
+    { id: 'magick', group: 'ImageMagick', label: 'ImageMagick', features: ['Native Image Format Bridge (HEIC/JXL/TIFF/PSD)'] },
+    { id: 'rsvg-convert', group: 'rsvg-convert', label: 'librsvg (rsvg-convert)', features: ['SVG to PNG Rendering'] },
+    { id: 'gs', group: 'Ghostscript', label: 'Ghostscript', features: ['PostScript & PDF Vector Processing'] },
+    { id: 'pandoc', group: 'Pandoc', label: 'Pandoc', features: ['Document Markup Interchange'] },
+    { id: '7z', group: '7-Zip', label: '7-Zip', features: ['7z Archive Compression'] }
   ];
 
   function escapeHtml(value) {
@@ -58,23 +60,25 @@
       } catch (_) {}
     }
 
+    // Only tools the engine actually executed count as available (tool_groups.ready).
+    var groups = (health && health.tool_groups) || {};
     var toolsMap = (health && health.tools) || {};
     var tools = FALLBACK_TOOLS.map(function (spec) {
+      var group = groups[spec.group] || null;
       var entry = toolsMap[spec.id] || {};
-      var altEntry = spec.id === 'soffice' ? toolsMap.libreoffice : (spec.id === '7z' ? toolsMap['7zz'] : null);
-      var installed = Boolean(entry.installed || (altEntry && altEntry.installed));
-      var resolvedPath = entry.path || (altEntry && altEntry.path) || null;
+      var working = group ? Boolean(group.ready) : Boolean(entry.working);
       return {
         id: spec.id,
         label: spec.label,
-        available: installed,
-        bundled: false,
-        path: resolvedPath,
-        version: installed ? 'Installed' : null,
+        available: working,
+        bundled: Boolean(group && group.bundled),
+        path: (group && group.path) || entry.path || null,
+        version: working ? ((group && group.version) || entry.version || 'Ready') : null,
         features: spec.features
       };
     });
 
+    var offline = (health && health.offline_assets) || null;
     var availableCount = tools.filter(function (t) { return t.available; }).length;
     return {
       checkedAt: new Date().toISOString(),
@@ -89,15 +93,15 @@
         pythonModules: (health && health.python_modules) || {}
       },
       offlineAssets: {
-        ready: isLoopback,
-        verifiedCount: isLoopback ? 41 : 0,
-        totalCount: 41,
-        missing: []
+        ready: Boolean(offline && offline.ready),
+        verifiedCount: offline ? offline.verified : 0,
+        totalCount: offline ? offline.total : 41,
+        missing: (offline && offline.missing) || []
       },
       tools: tools,
       summary: {
         browserStudiosReady: true,
-        offlineVendorReady: isLoopback,
+        offlineVendorReady: Boolean(offline && offline.ready),
         localEngineReady: Boolean(health && health.ok),
         nativeToolsReady: availableCount,
         nativeToolsTotal: tools.length
@@ -166,7 +170,7 @@
 
     var toolsHtml = tools.map(function (tool) {
       var badgeClass = tool.available ? 'ok' : 'warn';
-      var badgeText = tool.available ? (tool.bundled ? 'Bundled ✓' : 'Ready ✓') : 'Browser Fallback';
+      var badgeText = tool.available ? (tool.bundled ? 'Installed ✓' : 'Ready ✓') : (tool.reason || 'Not available');
       var featuresText = (tool.features || []).join(' • ');
       return (
         '<div class="omni-readiness-tool">' +
@@ -215,6 +219,7 @@
       '<div class="omni-readiness-actions">' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           '<button type="button" class="btn btn-secondary" id="omniReadinessRecheckBtn">↻ Re-check Environment</button>' +
+          (window.omniDesktop && typeof window.omniDesktop.openComponentManager === 'function' ? '<button type="button" class="btn btn-secondary" id="omniReadinessComponentsBtn">⬇ Manage Components</button>' : '') +
           (window.omniDesktop ? '<button type="button" class="btn btn-secondary" id="omniReadinessNoticesBtn">📜 Third-Party Notices</button>' : '') +
         '</div>' +
         '<button type="button" class="btn btn-primary" id="omniReadinessDoneBtn">Continue to Studio</button>' +
@@ -227,6 +232,12 @@
 
     if (closeTop) closeTop.addEventListener('click', closeReadinessModal);
     if (doneBtn) doneBtn.addEventListener('click', closeReadinessModal);
+    var componentsBtn = document.getElementById('omniReadinessComponentsBtn');
+    if (componentsBtn) {
+      componentsBtn.addEventListener('click', function () {
+        window.omniDesktop.openComponentManager();
+      });
+    }
     if (recheckBtn) {
       recheckBtn.addEventListener('click', async function () {
         recheckBtn.disabled = true;
