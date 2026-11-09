@@ -73,7 +73,7 @@ class DesktopPackagingTests(unittest.TestCase):
 
         rpm_template = (REPO_ROOT / "electron" / "omni-rpm.spec.ejs").read_text(encoding="utf-8")
         self.assertIn(
-            "cp <%= process.platform === 'darwin' ? '-R' : '-r' %> ../usr/. %{buildroot}/usr/",
+            "cp <%= process.platform === 'darwin' ? '-R' : '-r' %> usr/. %{buildroot}/usr/",
             rpm_template,
         )
 
