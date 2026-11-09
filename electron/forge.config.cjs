@@ -121,6 +121,7 @@ module.exports = {
       name: '@electron-forge/maker-rpm',
       platforms: ['linux'],
       config: {
+        specTemplate: path.join(__dirname, 'omni-rpm.spec.ejs'),
         options: {
           name: 'omni-converter-studio',
           bin: executableName,

@@ -61,6 +61,13 @@ class DesktopPackagingTests(unittest.TestCase):
         self.assertIn("const executableName = 'omni-converter-studio';", forge_config)
         self.assertIn("executableName,", forge_config)
         self.assertEqual(forge_config.count("bin: executableName"), 2)
+        self.assertIn("specTemplate: path.join(__dirname, 'omni-rpm.spec.ejs')", forge_config)
+
+        rpm_template = (REPO_ROOT / "electron" / "omni-rpm.spec.ejs").read_text(encoding="utf-8")
+        self.assertIn(
+            "cp <%= process.platform === 'darwin' ? '-R' : '-r' %> ../usr/. %{buildroot}/usr/",
+            rpm_template,
+        )
 
     def test_bundled_tools_dir_precedence_in_omni_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
