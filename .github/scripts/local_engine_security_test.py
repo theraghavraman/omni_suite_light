@@ -8,6 +8,7 @@ from pathlib import Path
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from urllib import error, request
 
@@ -49,11 +50,12 @@ def main() -> int:
         "OMNI_NO_BROWSER": "1",
         "OMNI_UI_ROOT": str(ROOT),
     })
+    server_log = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
     server = subprocess.Popen(
         [sys.executable, str(ROOT / "omni_local_server.py")],
         cwd=ROOT,
         env=env,
-        stdout=subprocess.PIPE,
+        stdout=server_log,
         stderr=subprocess.STDOUT,
         text=True,
     )
@@ -61,7 +63,9 @@ def main() -> int:
         ready = False
         for _ in range(60):
             if server.poll() is not None:
-                raise RuntimeError("Local Engine exited during startup: " + (server.stdout.read() or ""))
+                server_log.flush()
+                server_log.seek(0)
+                raise RuntimeError("Local Engine exited during startup: " + server_log.read())
             try:
                 status, _, _ = http_call(base, "/healthz")
                 if status == 200:
@@ -155,6 +159,11 @@ def main() -> int:
 
         print("Local Engine security integration checks passed.")
         return 0
+    except Exception:
+        server_log.flush()
+        server_log.seek(0)
+        print("Local Engine log:\n" + server_log.read()[-12000:], file=sys.stderr)
+        raise
     finally:
         server.terminate()
         try:
@@ -162,6 +171,7 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             server.kill()
             server.wait(timeout=5)
+        server_log.close()
 
 
 if __name__ == "__main__":

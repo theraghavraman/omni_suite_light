@@ -73,7 +73,9 @@ jobs:
         run: build/python-runtime/bin/python3 -m pip install -r requirements-local.txt
 
       - name: Run desktop & security verification suite
+        shell: bash
         run: |
+          set -euo pipefail
           python -m unittest discover -s tests -v
           python .github/scripts/omni_contract_audit.py
           python .github/scripts/environment_inventory_test.py
@@ -82,6 +84,8 @@ jobs:
           node .github/scripts/studio_wiring_check.mjs
 
       - name: Install Electron Forge dependencies & build OS installer
+        shell: bash
         run: |
+          set -euo pipefail
           npm install
           npx electron-forge make

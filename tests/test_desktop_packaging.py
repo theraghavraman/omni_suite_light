@@ -109,23 +109,25 @@ class DesktopPackagingTests(unittest.TestCase):
                     conn.execute("INSERT INTO notes VALUES (1, 'ready')")
                     conn.commit()
 
+            inside_url = f"sqlite:///{inside_db.as_posix()}"
+            outside_url = f"sqlite:///{outside_db.as_posix()}"
             scheme, resolved = omni_security_primitives.validate_db_destination(
-                f"sqlite:///{inside_db}", sqlite_root=allowed_root
+                inside_url, sqlite_root=allowed_root
             )
             self.assertEqual(scheme, "sqlite")
             self.assertEqual(resolved, inside_db.resolve())
 
             with self.assertRaises(ValueError):
                 omni_security_primitives.validate_db_destination(
-                    f"sqlite:///{outside_db}", sqlite_root=allowed_root
+                    outside_url, sqlite_root=allowed_root
                 )
 
             old_env = os.environ.get("OMNI_ALLOWED_SQLITE_DIR")
             try:
                 os.environ["OMNI_ALLOWED_SQLITE_DIR"] = str(allowed_root)
-                tables = omni_platform.database_tables(f"sqlite:///{inside_db}")
+                tables = omni_platform.database_tables(inside_url)
                 self.assertIn("notes", tables["tables"]["main"])
-                res = omni_platform.database_query(f"sqlite:///{inside_db}", "SELECT title FROM notes")
+                res = omni_platform.database_query(inside_url, "SELECT title FROM notes")
                 self.assertEqual(res["rows"][0]["title"], "ready")
             finally:
                 if old_env is None:

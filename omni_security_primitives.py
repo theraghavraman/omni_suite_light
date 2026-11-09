@@ -20,7 +20,7 @@ import tempfile
 import time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from urllib.parse import parse_qs, quote, urlencode, urljoin, urlsplit
+from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlsplit
 
 MAX_SQL_ROWS = 1000
 MAX_SQL_CELL_BYTES = 1_000_000
@@ -57,7 +57,14 @@ def validate_db_destination(url: str, sqlite_root: Path | None = None,
         if sqlite_root is None:
             raise ValueError("OMNI_ALLOWED_SQLITE_DIR must be configured")
         root = sqlite_root.resolve(strict=True)
-        candidate = Path(p.path)
+        raw_path = unquote(p.path)
+        # SQLite URLs for Windows absolute paths commonly arrive as
+        # sqlite:///C:/path or sqlite:///C:\\path. urlsplit keeps the URL's
+        # leading slash, which would turn the drive letter into an invalid
+        # root-relative path on Windows.
+        if os.name == "nt" and re.match(r"^/[A-Za-z]:[\\/]", raw_path):
+            raw_path = raw_path[1:]
+        candidate = Path(raw_path)
         if candidate.is_symlink():
             raise ValueError("SQLite database symlinks are not supported")
         db = candidate.resolve(strict=True)

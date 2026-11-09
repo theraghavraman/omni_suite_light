@@ -44,14 +44,18 @@ jobs:
       - name: Run Omni contract audit
         run: python .github/scripts/omni_contract_audit.py
       - name: Run security regression tests
+        shell: bash
         run: |
+          set -euo pipefail
           python -m unittest discover -s tests -v
           python .github/scripts/local_engine_security_test.py
           node tests/test_security_browser.cjs
       - name: Validate Universal Data JavaScript syntax
         run: node --check universal_data_studio.js
       - name: Validate Office Tools, Diagram Forge, Electron shell, and cloud bridge syntax
+        shell: bash
         run: |
+          set -euo pipefail
           node --check omni_vendor_loader.js
           node --check office_tools_studio.js
           node --check diagram_forge_studio.js
