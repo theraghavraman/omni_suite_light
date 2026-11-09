@@ -206,7 +206,6 @@
           "ghostscript",
           "tesseract-ocr",
           "pandoc",
-          "7zip",
           "patchelf"
         ],
         "executables": {
@@ -219,11 +218,22 @@
           "rsvg-convert": "rsvg-convert",
           "gs": "gs",
           "tesseract": "tesseract",
-          "pandoc": "pandoc",
-          "7z": "7z"
+          "pandoc": "pandoc"
         }
       },
       "downloads": [
+        {
+          "id": "7zip",
+          "version": "26.05",
+          "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-linux-x64.tar.xz",
+          "sha256": "22cf82fcc6eb7474f1d5bb4f02c0f8ebd573a718089d6833dc30f8350a3b232e",
+          "format": "tar",
+          "dest": "bin/7zip",
+          "tools": {
+            "7zz": "bin/7zip/7zzs"
+          },
+          "component": "7zip"
+        },
         {
           "id": "libreoffice",
           "version": "26.8.2.2",

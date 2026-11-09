@@ -225,6 +225,12 @@ class BundleSourcesTests(unittest.TestCase):
         self.assertTrue(seven_zr["build_only"], "7zr is an extraction helper, never a user component")
         self.assertEqual(next(d for d in downloads if d["id"] == "7zip")["format"], "7z-sfx")
 
+    def test_linux_7zip_uses_pinned_upstream_static_binary(self):
+        downloads = self.sources["platforms"]["linux-x64"]["downloads"]
+        seven_zip = next(d for d in downloads if d["id"] == "7zip")
+        self.assertIn("7z2605-linux-x64.tar.xz", seven_zip["url"])
+        self.assertEqual(seven_zip["tools"], {"7zz": "bin/7zip/7zzs"})
+
 
 class VerifiedDownloadTests(unittest.TestCase):
     def _server(self, payload: bytes, mode: str):
