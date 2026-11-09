@@ -4,7 +4,7 @@ name: Build OmniConverter Desktop Installers
 # Component Manager downloads (Python runtime/libraries, LibreOffice, Calibre, FFmpeg, ...),
 # installs each installer into a clean environment and runs scripts/smoke_test_desktop.py
 # twice: base only (browser-only mode) and with every component installed through the app.
-# Artifacts: omni-desktop-<platform>-installers, -components, -smoke-reports.
+# Artifacts: omni-desktop-<platform>-installers, -components, -sources, -smoke-reports.
 # On a v* tag the component archives are published to the GitHub release desktop-v<version>,
 # which is the download location baked into the installers' component catalog.
 
@@ -67,8 +67,9 @@ jobs:
       - name: Install build-host native packages (Ubuntu)
         if: runner.os == 'Linux'
         run: |
+          sudo sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
           sudo apt-get update
-          sudo apt-get install -y dpkg fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc unixodbc
+          sudo apt-get install -y dpkg dpkg-dev fakeroot rpm patchelf ffmpeg qpdf poppler-utils imagemagick librsvg2-bin ghostscript tesseract-ocr pandoc unixodbc
 
       - name: Install build-host native packages (macOS)
         if: runner.os == 'macOS'
@@ -122,6 +123,14 @@ jobs:
           find out/make -type f -exec ls -la {} \;
           cat build/BUNDLE_MANIFEST.json | python -c "import json,sys; m=json.load(sys.stdin); print('complete:', m['complete']); print('errors:', m['errors'])"
 
+      - name: Assemble corresponding-source offer
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          python scripts/desktop_source_offer.py \
+            --platform '${{ matrix.platform }}' \
+            --app-version "$version"
+
       - name: Upload installers
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -136,6 +145,15 @@ jobs:
         with:
           name: omni-desktop-${{ matrix.platform }}-components
           path: out/components/${{ matrix.platform }}/**
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload corresponding-source offer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-desktop-${{ matrix.platform }}-sources
+          path: out/sources/omni-desktop-${{ matrix.platform }}-corresponding-sources.tar
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -212,8 +230,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  publish-components:
-    name: Publish component archives (tag builds)
+  publish-release:
+    name: Publish desktop release assets (tag builds)
     if: startsWith(github.ref, 'refs/tags/v')
     needs: desktop-installer
     runs-on: ubuntu-24.04
@@ -223,13 +241,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Download component archives
+      - name: Download desktop build assets
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: omni-desktop-*-components
-          path: components
+          pattern: omni-desktop-*
+          path: artifacts
 
-      - name: Publish to the release the installers download from
+      - name: Verify catalogs and prepare release assets
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          python scripts/prepare_desktop_release.py --artifacts artifacts --output upload --version "$version"
+
+      - name: Publish the release used by installed Component Managers
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -240,13 +264,9 @@ jobs:
             exit 1
           fi
           release="desktop-v${version}"
-          mkdir upload
-          for dir in components/omni-desktop-*-components; do
-            plat="${dir#components/omni-desktop-}"; plat="${plat%-components}"
-            cp "$dir"/*.tar.gz upload/
-            cp "$dir/catalog.json" "upload/catalog-${plat}.json"
-          done
-          (cd upload && sha256sum * > SHA256SUMS)
-          gh release view "$release" >/dev/null 2>&1 || gh release create "$release" --title "Desktop components ${version}" \
-            --notes "Optional components downloaded by OmniConverter Studio ${version}. Each archive is verified by the app against the SHA-256 in its built-in catalog."
+          if gh release view "$release" >/dev/null 2>&1; then
+            gh release edit "$release" --title "OmniConverter Studio ${version}" --notes-file upload/RELEASE_NOTES.md
+          else
+            gh release create "$release" --title "OmniConverter Studio ${version}" --notes-file upload/RELEASE_NOTES.md
+          fi
           gh release upload "$release" upload/* --clobber

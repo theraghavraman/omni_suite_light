@@ -94,7 +94,7 @@ The exact download URLs and pinned versions are defined in `prepare_offline.py`.
 | PptxGenJS | 4.0.1 | MIT | Browser-first PPTX generation and PDF-page-to-PPTX rendering |
 | js-yaml | 4.1.1 | MIT | Browser-first YAML parsing/serialization |
 
-When distributing pre-built desktop installers that bundle GPL/LGPL/MPL native tools (such as Poppler, Calibre, Pandoc, LibreOffice, or FFmpeg), include the corresponding upstream license texts and source-offer/build notices alongside the installer under `resources/native-tools/<platform>-<arch>/licenses/`.
+For tagged desktop releases, the build publishes platform-specific corresponding-source archives beside the component archives and installers on the `desktop-v<version>` GitHub release. The source archives include the GPL/AGPL/LGPL source packages used by the named native tools, package-manager/build provenance, and the relocation/build scripts; `SHA256SUMS` covers every release asset, while each platform catalog pins every component archive. See [`DESKTOP_SOURCE_OFFER.md`](./DESKTOP_SOURCE_OFFER.md) for the v1.0.0 source-offer contents and supported targets. Each installed component also carries its upstream license files and `BUNDLED_COMPONENTS.md`.
 
 This file is a practical dependency notice, not legal advice.
 

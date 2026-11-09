@@ -142,11 +142,13 @@ Per OS, each run uploads `omni-desktop-<platform>-installers` (`out/make/`),
 gh run download <run-id> --repo theraghavraman/omni_suite_light --name omni-desktop-darwin-arm64-installers
 ```
 
-On a `v<version>` tag matching `package.json`, the `publish-components` job uploads all component
-archives (plus `catalog-<platform>.json` and `SHA256SUMS`) to the release `desktop-v<version>`,
-the location the installers download from. **Installers built without that release (e.g. from
-`workflow_dispatch`) open and work in browser-only mode, but their Component Manager downloads
-fail until the release exists.**
+On a `v<version>` tag matching `package.json`, the `publish-release` job waits for all platform
+builds and clean-install smoke tests, then uploads the installers, component archives,
+`catalog-<platform>.json`, per-platform corresponding-source archives, and `SHA256SUMS` to the
+release `desktop-v<version>`, the location the installers download from. It verifies each
+component archive's final SHA-256 and byte size against its catalog before upload. **Installers
+built without that release (e.g. from `workflow_dispatch`) open and work in browser-only mode, but
+their Component Manager downloads fail until the release exists.**
 
 ## 5. Supported targets and limits
 
@@ -193,8 +195,12 @@ Builds are unsigned by default.
 Components redistribute third-party software under their own licenses (LibreOffice MPL-2.0,
 Calibre GPL-3.0, Ghostscript AGPL-3.0, FFmpeg GPL builds, Poppler GPL, Pandoc GPL, ImageMagick,
 Tesseract Apache-2.0, ...). Each component carries upstream license files and a generated
-`licenses/BUNDLED_COMPONENTS.md`; see `THIRD_PARTY_NOTICES.md`. Meet the source-offer obligations
-of the GPL/AGPL components when publishing the component archives.
+`licenses/BUNDLED_COMPONENTS.md`; see `THIRD_PARTY_NOTICES.md`. Tagged releases include
+platform-specific corresponding-source assets for the copyleft native components, together with
+the applicable package-manager recipes/source packages and Omni's relocation/build scripts. The
+source assets are on the same GitHub release as the corresponding binaries; `SHA256SUMS` covers
+the release files, and the built-in catalogs cover every component archive. See
+[`DESKTOP_SOURCE_OFFER.md`](./DESKTOP_SOURCE_OFFER.md).
 
 ## 8. Security verification & release gates
 
