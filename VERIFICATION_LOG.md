@@ -2,8 +2,18 @@
 
 ## Execution environment
 
-- Local test pass: 2026-10-25, macOS with Python 3.14.8 and Node.js.
-- The repository CI matrix targets Python 3.13 on Ubuntu, Windows, and macOS. Its first hosted run exposed Windows test-fixture/diagnostic latency and pip-cache issues, plus an Ubuntu dependency-resolution conflict. Those CI harness issues were corrected in the follow-up; see the latest commit's Actions checks for the current hosted result.
+- Latest desktop & security pass: 2026-11-09, macOS (`darwin-arm64`) with Python 3.14.8 and Node.js.
+- Previous baseline pass: 2026-10-25, macOS with Python 3.14.8 and Node.js.
+- The repository CI matrix targets Python 3.13 on Ubuntu, Windows, and macOS (`.github/workflows/local-engine-check.yml`), and `.github/workflows/desktop-installers.yml` builds the standalone Electron Forge installers across Ubuntu, Windows, and macOS.
+
+## Desktop packaging & security hardening pass (2026-11-09)
+
+- Added standalone Electron desktop shell (`electron/main.cjs`, `electron/preload.cjs`), Electron Forge multi-OS installer configuration (`electron/forge.config.cjs`, `electron/entitlements.mac.plist`), desktop resource staging utility (`scripts/stage_desktop_bundle.py`), and first-launch readiness modal (`omni_desktop_readiness.js`).
+- Updated `omni_local_server.py` (`OMNI_NO_BROWSER=1` guard) and `omni_environment.py` (`OMNI_BUNDLED_TOOLS_DIR` and OS GUI path discovery).
+- Hardened `omni_security_browser.js` (`installZipBudget`) to enforce per-entry (`60 MB`) and aggregate (`250 MB`) decompressed output byte limits on every `entry.async(...)` extraction call in addition to header metadata checks (`SEC-027`).
+- `python3 -m unittest discover -s tests -v`: 21 tests ran (`OK`, 1 skipped when NumPy is absent), including 8 desktop packaging & SQLite workspace confinement tests (`tests/test_desktop_packaging.py`), 7 shared security primitive tests, and 6 data-engine limit regressions.
+- `node tests/test_security_browser.cjs`: passed expanded browser security regressions covering `SEC-004`, `SEC-005`, `SEC-023`, `SEC-026`, `SEC-027` (spoofed-header decompression bomb rejection), `SEC-028`, and `SEC-036`.
+- `python3 .github/scripts/omni_contract_audit.py`, `python3 .github/scripts/environment_inventory_test.py`, `node .github/scripts/studio_wiring_check.mjs`, `node .github/scripts/assistant_rag_regression.mjs`, and `python3 .github/scripts/build_public.py` (with `main.cjs`, `preload.cjs`, and `forge.config.cjs` leak-guard verification) all passed.
 
 ## Passed locally
 

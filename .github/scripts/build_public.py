@@ -38,7 +38,10 @@ def main() -> int:
     copy_tree(ROOT / "knowledge-base", DIST / "knowledge-base", KB_SUFFIXES)
     copy_tree(ROOT / "vendor", DIST / "vendor", VENDOR_SUFFIXES)
     # Fail closed if a future allowlist change accidentally copies repository internals.
-    forbidden = {".env", ".git", "Dockerfile", "pyproject.toml", "requirements-local.txt", "omni_local_server.py"}
+    forbidden = {
+        ".env", ".git", "Dockerfile", "pyproject.toml", "requirements-local.txt",
+        "omni_local_server.py", "main.cjs", "preload.cjs", "forge.config.cjs",
+    }
     leaked = [p.relative_to(DIST).as_posix() for p in DIST.rglob("*") if p.name in forbidden]
     if leaked:
         print("Forbidden file(s) in Pages artifact: " + ", ".join(leaked), file=sys.stderr)

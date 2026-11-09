@@ -204,10 +204,52 @@ def _is_imagemagick_convert(path: str) -> bool:
         return False
 
 def find_native_tool_path(name: str) -> str | None:
-    """Resolve native tool aliases consistently for Doctor, verifier and health API."""
+    """Resolve native tool aliases consistently for Doctor, verifier, Electron bundle, and health API."""
     import os
+    import platform
     import shutil
+    from pathlib import Path
+
     candidates = _NATIVE_ALIASES.get(name, (name,))
+    suffixes = (".exe", ".cmd", ".bat", "") if os.name == "nt" else ("",)
+    repo_root = Path(__file__).resolve().parent
+
+    # 1. Check bundled native tools directory (set by Electron or staged in build/native-tools/<platform>-<arch>/bin)
+    plat_map = {"Darwin": "darwin", "Windows": "win32", "Linux": "linux"}
+    arch_map = {"x86_64": "x64", "AMD64": "x64", "arm64": "arm64", "aarch64": "arm64"}
+    plat_key = plat_map.get(platform.system(), platform.system().lower())
+    arch_key = arch_map.get(platform.machine(), platform.machine().lower())
+
+    bundled_dirs: list[Path] = []
+    env_bundled = os.environ.get("OMNI_BUNDLED_TOOLS_DIR", "").strip()
+    if env_bundled:
+        for raw_dir in env_bundled.split(os.pathsep):
+            if raw_dir.strip():
+                bundled_dirs.append(Path(raw_dir.strip()))
+    bundled_dirs.extend([
+        repo_root / "build" / "native-tools" / f"{plat_key}-{arch_key}" / "bin",
+        repo_root / "build" / "python-runtime" / ("Scripts" if os.name == "nt" else "bin"),
+        repo_root / ".venv" / ("Scripts" if os.name == "nt" else "bin"),
+    ])
+
+    for search_dir in bundled_dirs:
+        try:
+            if not search_dir.is_dir():
+                continue
+        except OSError:
+            continue
+        for candidate in candidates:
+            for suffix in suffixes:
+                local_path = search_dir / f"{candidate}{suffix}"
+                try:
+                    if local_path.is_file():
+                        if candidate == "convert" and not _is_imagemagick_convert(str(local_path)):
+                            continue
+                        return str(local_path)
+                except OSError:
+                    continue
+
+    # 2. Check interactive/process PATH via shutil.which
     for candidate in candidates:
         path = shutil.which(candidate)
         if not path:
@@ -216,39 +258,56 @@ def find_native_tool_path(name: str) -> str | None:
             continue
         return path
 
-    # Match the engine's Windows fallback for common Poppler package locations.
-    if os.name == "nt" and name in {"pdftoppm", "pdftotext"}:
-        from pathlib import Path
+    # 3. Platform-specific GUI fallback directories (Finder/Explorer launches do not inherit shell PATH)
+    if platform.system() == "Darwin":
+        mac_dirs = [
+            Path("/opt/homebrew/bin"),
+            Path("/usr/local/bin"),
+            Path("/Applications/LibreOffice.app/Contents/MacOS"),
+            Path("/Applications/calibre.app/Contents/MacOS"),
+        ]
+        for mac_dir in mac_dirs:
+            for candidate in candidates:
+                candidate_path = mac_dir / candidate
+                try:
+                    if candidate_path.is_file():
+                        if candidate == "convert" and not _is_imagemagick_convert(str(candidate_path)):
+                            continue
+                        return str(candidate_path)
+                except OSError:
+                    continue
+
+    # 4. Windows fallback for common Poppler and desktop native tool locations
+    if os.name == "nt":
         program_files = os.environ.get("PROGRAMFILES", r"C:\Program Files")
         local_app_text = os.environ.get("LOCALAPPDATA", "")
-        candidates = [
-            Path(program_files) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(program_files) / "poppler" / "bin" / f"{name}.exe",
-            Path(local_app_text) / "poppler" / "Library" / "bin" / f"{name}.exe",
-            Path(r"C:\msys64\mingw64\bin") / f"{name}.exe",
-            Path(r"C:\ProgramData\chocolatey\bin") / f"{name}.exe",
-        ]
-        local_app = Path(local_app_text)
-        if local_app.exists():
-            candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/Library/bin/" + f"{name}.exe"))
-            candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/bin/" + f"{name}.exe"))
-        for candidate in candidates:
+        win_candidates: list[Path] = []
+        if name in {"pdftoppm", "pdftotext"}:
+            win_candidates.extend([
+                Path(program_files) / "poppler" / "Library" / "bin" / f"{name}.exe",
+                Path(program_files) / "poppler" / "bin" / f"{name}.exe",
+                Path(local_app_text) / "poppler" / "Library" / "bin" / f"{name}.exe",
+                Path(r"C:\msys64\mingw64\bin") / f"{name}.exe",
+                Path(r"C:\ProgramData\chocolatey\bin") / f"{name}.exe",
+            ])
+            local_app = Path(local_app_text)
+            if local_app.exists():
+                win_candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/Library/bin/" + f"{name}.exe"))
+                win_candidates.extend(local_app.glob("Microsoft/WinGet/Packages/oschwartz10612.Poppler_*/**/bin/" + f"{name}.exe"))
+        elif name in {"soffice", "libreoffice"}:
+            win_candidates.append(Path(program_files) / "LibreOffice" / "program" / "soffice.exe")
+        elif name == "ebook-convert":
+            win_candidates.append(Path(program_files) / "Calibre2" / "ebook-convert.exe")
+        elif name == "tesseract":
+            win_candidates.append(Path(program_files) / "Tesseract-OCR" / "tesseract.exe")
+        elif name in {"7z", "7zz"}:
+            win_candidates.append(Path(program_files) / "7-Zip" / "7z.exe")
+        for candidate_path in win_candidates:
             try:
-                if candidate.is_file():
-                    return str(candidate)
+                if candidate_path.is_file():
+                    return str(candidate_path)
             except OSError:
                 pass
-    # Console entry points installed inside the project's virtual environment
-    # (notably yt-dlp) may not be on the parent shell's PATH.
-    from pathlib import Path
-    venv_bin = Path(__file__).resolve().parent / ".venv" / ("Scripts" if os.name == "nt" else "bin")
-    suffixes = (".exe", ".cmd", ".bat", "") if os.name == "nt" else ("",)
-    for candidate in _NATIVE_ALIASES.get(name, (name,)):
-        for suffix in suffixes:
-            local_path = venv_bin / f"{candidate}{suffix}"
-            if local_path.is_file():
-                if candidate == "convert" and not _is_imagemagick_convert(str(local_path)):
-                    continue
-                return str(local_path)
 
     return None
+

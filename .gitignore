@@ -10,3 +10,9 @@ Thumbs.db
 # Scientific/GRIB indexes and local outputs
 *.idx
 omni_converter_engine/
+
+# Desktop packaging & public build outputs
+node_modules/
+build/
+out/
+dist/

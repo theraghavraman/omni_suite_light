@@ -4,9 +4,10 @@
 
 OmniConverter Studio is a browser-first document, image, OCR, audio, video, archive and data-engineering utility suite. The public layer works without installation for browser-capable jobs; the optional Local Engine adds native desktop processing for heavy and specialist formats.
 
-It has two execution modes:
-1. Browser mode — the public GitHub Pages site. Files are processed locally by JavaScript/WASM inside the browser.
-2. Local Engine mode — the same interface served from your computer, with a Python loopback server that can call installed native tools such as FFmpeg, qpdf, Poppler, LibreOffice, Calibre, ImageMagick, Tesseract and Pandoc.
+It has three execution modes:
+1. **Standalone Desktop App (Electron)** — installs once via native OS installers (Windows `.exe`, macOS `.dmg`/`.zip`, Linux `.deb`/`.rpm`), automatically starts the bundled Python Local Engine on `127.0.0.1` in the background, exposes bundled native CLI tools (`FFmpeg`, `qpdf`, `Poppler`, `Tesseract`, `LibreOffice`, `Calibre`, `ImageMagick`, `Ghostscript`, `Pandoc`, `7-Zip`), runs a first-launch readiness check, and stops the engine when closed. See [`DESKTOP_PACKAGING.md`](./DESKTOP_PACKAGING.md).
+2. **Browser mode** — the public GitHub Pages site. Files are processed locally by JavaScript/WASM inside the browser.
+3. **Local Engine mode** — the same interface served from your computer (`Omni.bat` / `Omni.command`), with a Python loopback server that calls installed native tools.
 
 > GitHub Pages can run browser JavaScript, but it cannot execute programs installed on your PC. When a conversion needs a native program, use the Local Engine instructions below.
 
@@ -396,7 +397,14 @@ The UI is the primary interface; users should not need to construct API requests
 | THIRD_PARTY_NOTICES.md | Third-party dependency/licensing notes |
 | requirements-data.txt | Optional Data Studio Python stack |
 | omni_data_engine.py | Structured/semi-structured data and SQL/NoSQL conversion engine |
+| electron/main.cjs | Electron main process managing the Python Local Engine lifecycle and native readiness IPC |
+| electron/preload.cjs | Context-isolated Electron preload bridge (`window.omniDesktop`) |
+| electron/forge.config.cjs | Electron Forge multi-OS installer configuration (Squirrel.Windows, DMG/ZIP, DEB, RPM) |
+| scripts/stage_desktop_bundle.py | Stages offline vendor assets, Python runtime, and native CLI tools into `build/` |
+| omni_desktop_readiness.js | First-launch readiness modal and interactive top-bar `READY` status badge |
+| DESKTOP_PACKAGING.md | Standalone desktop packaging and code-signing guide |
 | .github/workflows/local-engine-check.yml | Static/Python/native validation workflow |
+| .github/workflows/desktop-installers.yml | Multi-OS Electron Forge desktop installer build workflow |
 
 ## 16. Troubleshooting checklist
 

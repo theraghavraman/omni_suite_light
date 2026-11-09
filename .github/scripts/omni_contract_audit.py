@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static contract audit for Omni Suite's browser/local capability model."""
+"""Static contract audit for Omni Suite's browser/local capability model and desktop bundle."""
 from pathlib import Path
 import re
 
@@ -51,6 +51,23 @@ assert (ROOT/"verify_local_environment.py").is_file(), "Strict local environment
 for launcher in ["Omni.bat","Omni.command","start_omni.bat","start_omni.command","setup_and_start.bat","setup_and_start.command"]:
     assert (ROOT/launcher).is_file() and (ROOT/launcher).stat().st_size>0, f"Missing launcher: {launcher}"
 
-
 assert "ENGINE_API_VERSION = 4" in server, "Local Engine API version handshake missing"
 assert (ROOT/"omni_bootstrap.py").is_file(), "Self-healing local bootstrap is missing"
+
+# Desktop Packaging & Electron Shell contract checks
+for desktop_file in [
+    "electron/main.cjs",
+    "electron/preload.cjs",
+    "electron/forge.config.cjs",
+    "electron/entitlements.mac.plist",
+    "scripts/stage_desktop_bundle.py",
+    "omni_desktop_readiness.js",
+    "THIRD_PARTY_NOTICES.md",
+    "DESKTOP_PACKAGING.md",
+]:
+    assert (ROOT/desktop_file).is_file() and (ROOT/desktop_file).stat().st_size > 0, f"Missing desktop packaging file: {desktop_file}"
+
+assert "omni_desktop_readiness.js" in index, "index.html does not load omni_desktop_readiness.js"
+assert "OMNI_NO_BROWSER" in server, "omni_local_server.py does not honor OMNI_NO_BROWSER for embedded desktop launch"
+assert "OMNI_BUNDLED_TOOLS_DIR" in environment, "omni_environment.py does not check OMNI_BUNDLED_TOOLS_DIR"
+print("Desktop packaging contract checks: PASS")

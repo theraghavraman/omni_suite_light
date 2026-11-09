@@ -6337,6 +6337,7 @@ body[data-active-studio="tabAllTests"] #tabAllTests button:disabled{background:#
 }
 </style>
   <script src="./file_sharing_studio.js?v=6"></script>
+  <script src="./omni_desktop_readiness.js?v=1"></script>
   <link rel="stylesheet" href="./omni-ui-revamp-color.css?v=8">
 <script id="omni-overview-height">(function(){function upd(){const o=document.querySelector('.module-panel.active > .studio-overview');const h=o?Math.ceil(o.getBoundingClientRect().height):56;document.documentElement.style.setProperty('--rv-overview-h',h+'px');}
 const ro=window.ResizeObserver?new ResizeObserver(upd):null;function watch(){document.querySelectorAll('.module-panel > .studio-overview').forEach(o=>ro&&ro.observe(o));upd();}

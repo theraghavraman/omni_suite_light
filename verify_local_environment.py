@@ -43,7 +43,7 @@ def pip_check() -> tuple[bool, str]:
 
 def check_python_runtime() -> tuple[bool, str]:
     major, minor = sys.version_info[:2]
-    supported = (major == 3 and 11 <= minor <= 13)
+    supported = (major == 3 and 11 <= minor <= 15)
     return supported, f"{major}.{minor}"
 
 def main() -> int:

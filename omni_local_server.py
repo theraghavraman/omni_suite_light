@@ -2158,7 +2158,7 @@ def main():
     print(f"API:      http://{HOST}:{PORT}/api/health")
     print("Installed engines:", json.dumps(tool_versions(), indent=2))
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
-    if UI_AVAILABLE:
+    if UI_AVAILABLE and os.environ.get("OMNI_NO_BROWSER") != "1":
         threading.Timer(0.8, lambda: webbrowser.open(f"http://{ui_host}:{PORT}/")).start()
     try:
         httpd.serve_forever()

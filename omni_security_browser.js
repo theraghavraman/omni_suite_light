@@ -119,6 +119,30 @@
       if (fileBytes > ZIP_LIMITS.archiveBytes) throw new Error('Archive too large');
       const zip = await original.call(this, input, options);
       zipBudget(zip, fileBytes);
+      let decompressedTotal = 0;
+      for (const entry of Object.values(zip.files || {})) {
+        if (!entry || entry.dir || typeof entry.async !== 'function' || entry.async.__omniGuarded) continue;
+        const origAsync = entry.async;
+        const wrappedAsync = async function (type, onUpdate) {
+          const out = await origAsync.call(this, type, onUpdate);
+          const actualBytes = out == null ? 0 : (
+            typeof out === 'string' ? out.length :
+            typeof out.byteLength === 'number' ? out.byteLength :
+            typeof out.size === 'number' ? out.size :
+            typeof out.length === 'number' ? out.length : 0
+          );
+          if (actualBytes > ZIP_LIMITS.entryBytes) {
+            throw new Error('Decompressed archive entry exceeds byte limit');
+          }
+          decompressedTotal += actualBytes;
+          if (decompressedTotal > ZIP_LIMITS.aggregateBytes) {
+            throw new Error('Decompressed archive total exceeds aggregate byte limit');
+          }
+          return out;
+        };
+        wrappedAsync.__omniGuarded = true;
+        entry.async = wrappedAsync;
+      }
       return zip;
     };
     guarded.__omniBudgeted = true;

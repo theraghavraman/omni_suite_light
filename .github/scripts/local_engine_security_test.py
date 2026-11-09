@@ -46,6 +46,7 @@ def main() -> int:
         "OMNI_HOST": "127.0.0.1",
         "OMNI_PORT": str(port),
         "OMNI_TOKEN": token,
+        "OMNI_NO_BROWSER": "1",
         "OMNI_UI_ROOT": str(ROOT),
     })
     server = subprocess.Popen(
@@ -91,6 +92,12 @@ def main() -> int:
 
         status, _, _ = http_call(base, "/omni_local_server.py")
         assert status == 404, f"Python source was served with status {status}"
+        status, _, _ = http_call(base, "/electron/main.cjs")
+        assert status == 404, f"Electron main process source was served with status {status}"
+        status, _, _ = http_call(base, "/electron/preload.cjs")
+        assert status == 404, f"Electron preload source was served with status {status}"
+        status, _, _ = http_call(base, "/omni_desktop_readiness.js")
+        assert status == 200, f"Desktop readiness script should be served, got {status}"
         status, _, _ = http_call(base, "/%2e%2e/pyproject.toml")
         assert status in (403, 404), f"path traversal request returned {status}"
 
