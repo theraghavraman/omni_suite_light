@@ -117,6 +117,19 @@ class DesktopPackagingTests(unittest.TestCase):
             self.assertEqual(Path(args[1]).resolve(), (root / "share" / "pandoc" / "data").resolve())
             self.assertEqual(args[2], "--version")
 
+    def test_linux_pandoc_data_removes_build_host_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "source"
+            (src / "odt").mkdir(parents=True)
+            template = src / "odt" / "content.xml"
+            template.write_text(f"<a>/repo/cache {REPO_ROOT}/build</a>", encoding="utf-8")
+            dest = Path(tmp) / "component" / "share" / "pandoc" / "data"
+            stage_desktop_bundle.stage_linux_pandoc_data(src, dest)
+            staged = (dest / "odt" / "content.xml").read_text(encoding="utf-8")
+            self.assertNotIn("/repo", staged)
+            self.assertNotIn(str(REPO_ROOT), staged)
+            self.assertEqual(staged, "<a>@OMNI_BUNDLE@/cache @OMNI_BUNDLE@/build</a>")
+
     def test_bundled_tools_dir_precedence_in_omni_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake_bin = Path(tmp) / ("qpdf.exe" if os.name == "nt" else "qpdf")

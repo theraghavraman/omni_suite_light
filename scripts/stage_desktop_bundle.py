@@ -638,6 +638,13 @@ def _copy_data_dir(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest, symlinks=False, ignore=shutil.ignore_patterns("*.la", "*.a"))
 
 
+def stage_linux_pandoc_data(src: Path, dest: Path) -> None:
+    if not src.is_dir():
+        raise StageError(f"{src} is missing (install Pandoc's data files on the build host)")
+    _copy_data_dir(src, dest)
+    _sanitize_text_tree(dest, [str(REPO_ROOT), "/repo"])
+
+
 def make_posix_tree_readable(tree: Path) -> None:
     """Ensure packaged static assets can be read by the installing desktop user."""
     if os.name == "nt":
@@ -808,9 +815,7 @@ def harvest_apt(executables: dict, root: Path, tools: dict, env: dict, component
             harvest_ghostscript(real, root, env)
         if name == "pandoc":
             data_dir = Path("/usr/share/pandoc/data")
-            if not data_dir.is_dir():
-                raise StageError(f"{data_dir} is missing (install Pandoc's data files on the build host)")
-            _copy_data_dir(data_dir, root / "share" / "pandoc" / "data")
+            stage_linux_pandoc_data(data_dir, root / "share" / "pandoc" / "data")
     relocator.run()
     if "pandoc" in tools:
         write_linux_pandoc_wrapper(root / "bin" / "pandoc")
