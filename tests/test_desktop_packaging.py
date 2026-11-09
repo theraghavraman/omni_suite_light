@@ -64,6 +64,7 @@ class DesktopPackagingTests(unittest.TestCase):
 
     def test_linux_installers_use_the_packaged_executable_name(self):
         forge_config = (REPO_ROOT / "electron" / "forge.config.cjs").read_text(encoding="utf-8")
+        workflow = (REPO_ROOT / ".github" / "workflows" / "desktop-installers.yml").read_text(encoding="utf-8")
         self.assertIn("const executableName = 'omni-converter-studio';", forge_config)
         self.assertIn("executableName,", forge_config)
         self.assertEqual(forge_config.count("bin: executableName"), 2)
@@ -76,6 +77,7 @@ class DesktopPackagingTests(unittest.TestCase):
             "cp <%= process.platform === 'darwin' ? '-R' : '-r' %> usr/. %{buildroot}/usr/",
             rpm_template,
         )
+        self.assertEqual(workflow.count("--electron-arg=--no-sandbox"), 2)
 
     def test_bundled_tools_dir_precedence_in_omni_environment(self):
         with tempfile.TemporaryDirectory() as tmp:

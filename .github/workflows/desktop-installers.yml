@@ -160,6 +160,8 @@ jobs:
             --installer 'out/make/squirrel.windows/x64/*Setup.exe' --mode both \
             --report out/smoke/smoke-win32-x64-squirrel.json
 
+      # Docker's default seccomp profile blocks Chromium's user namespace sandbox. Disable
+      # it only for these isolated CI smoke launches; packaged app defaults stay unchanged.
       - name: Clean-install smoke test (Ubuntu 24.04 container, .deb)
         if: runner.os == 'Linux'
         run: |
@@ -176,6 +178,7 @@ jobs:
             mkdir -p /opt/harness-python && tar -xzf out/components/linux-x64/python-runtime-linux-x64.tar.gz -C /opt/harness-python
             runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
               scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
+              --electron-arg=--no-sandbox \
               --report out/smoke/smoke-linux-x64-deb.json
           "
 
@@ -191,6 +194,7 @@ jobs:
             mkdir -p /opt/harness-python && tar -xzf out/components/linux-x64/python-runtime-linux-x64.tar.gz -C /opt/harness-python
             runuser -u omni -- xvfb-run -a /opt/harness-python/bin/python3 -s \
               scripts/smoke_test_desktop.py --app /usr/lib/omni-converter-studio --mode both \
+              --electron-arg=--no-sandbox \
               --report out/smoke/smoke-linux-x64-rpm.json
           "
 
