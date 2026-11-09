@@ -18,6 +18,7 @@ const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const buildRoot = path.join(repoRoot, 'build');
+const executableName = 'omni-converter-studio';
 
 function collectExtraResources() {
   const resources = [];
@@ -38,7 +39,7 @@ const enableMacNotarization =
 module.exports = {
   packagerConfig: {
     name: 'OmniConverter Studio',
-    executableName: 'omni-converter-studio',
+    executableName,
     appBundleId: 'io.redmarkforge.omniconverter.desktop',
     appCategoryType: 'public.app-category.productivity',
     asar: true,
@@ -107,6 +108,7 @@ module.exports = {
       config: {
         options: {
           name: 'omni-converter-studio',
+          bin: executableName,
           productName: 'OmniConverter Studio',
           genericName: 'Universal File & Data Converter',
           categories: ['Utility', 'Office', 'AudioVideo', 'Science'],
@@ -121,6 +123,7 @@ module.exports = {
       config: {
         options: {
           name: 'omni-converter-studio',
+          bin: executableName,
           productName: 'OmniConverter Studio',
           license: 'MIT',
           categories: ['Utility', 'Office', 'AudioVideo'],

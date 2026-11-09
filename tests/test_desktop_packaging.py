@@ -56,6 +56,12 @@ class DesktopPackagingTests(unittest.TestCase):
         for script_name in ("desktop:stage", "desktop:start", "desktop:package", "desktop:make", "desktop:verify"):
             self.assertIn(script_name, pkg["scripts"])
 
+    def test_linux_installers_use_the_packaged_executable_name(self):
+        forge_config = (REPO_ROOT / "electron" / "forge.config.cjs").read_text(encoding="utf-8")
+        self.assertIn("const executableName = 'omni-converter-studio';", forge_config)
+        self.assertIn("executableName,", forge_config)
+        self.assertEqual(forge_config.count("bin: executableName"), 2)
+
     def test_bundled_tools_dir_precedence_in_omni_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake_bin = Path(tmp) / ("qpdf.exe" if os.name == "nt" else "qpdf")
