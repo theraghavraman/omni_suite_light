@@ -15,23 +15,30 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const electronInstaller = require('electron-installer-redhat');
-const electronInstallerCommon = require('electron-installer-common');
-const rpmInstallerPrototype = electronInstaller.Installer.prototype;
 const rpmSpecTemplatePatch = Symbol.for('omni-suite.rpm-spec-template-patch');
 
-if (!rpmInstallerPrototype[rpmSpecTemplatePatch]) {
-  const originalCreateSpec = rpmInstallerPrototype.createSpec;
-  rpmInstallerPrototype.createSpec = function createSpecFromConfiguredTemplate() {
-    const specTemplate = this.userSupplied.specTemplate;
-    if (!specTemplate) return originalCreateSpec.call(this);
+try {
+  const electronInstaller = require('electron-installer-redhat');
+  const electronInstallerCommon = require('electron-installer-common');
+  const rpmInstallerPrototype = electronInstaller.Installer.prototype;
 
-    this.options.logger(`Creating spec file at ${this.specPath}`);
-    return electronInstallerCommon.wrapError('creating spec file', async () =>
-      this.createTemplatedFile(specTemplate, this.specPath),
-    );
-  };
-  Object.defineProperty(rpmInstallerPrototype, rpmSpecTemplatePatch, { value: true });
+  if (!rpmInstallerPrototype[rpmSpecTemplatePatch]) {
+    const originalCreateSpec = rpmInstallerPrototype.createSpec;
+    rpmInstallerPrototype.createSpec = function createSpecFromConfiguredTemplate() {
+      const specTemplate = this.userSupplied.specTemplate;
+      if (!specTemplate) return originalCreateSpec.call(this);
+
+      this.options.logger(`Creating spec file at ${this.specPath}`);
+      return electronInstallerCommon.wrapError('creating spec file', async () =>
+        this.createTemplatedFile(specTemplate, this.specPath),
+      );
+    };
+    Object.defineProperty(rpmInstallerPrototype, rpmSpecTemplatePatch, { value: true });
+  }
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND' || !error.message.includes("'electron-installer-redhat'")) {
+    throw error;
+  }
 }
 
 const repoRoot = path.resolve(__dirname, '..');
