@@ -35,6 +35,9 @@ SOURCE_COMPONENTS = ("ffmpeg", "ghostscript", "poppler", "pandoc", "calibre")
 CALIBRE_VERSION = "9.16.0"
 CALIBRE_URL = f"https://download.calibre-ebook.com/{CALIBRE_VERSION}/calibre-{CALIBRE_VERSION}.tar.xz"
 CALIBRE_SHA512 = "c606194e31ccf868ed298a908fcddf8c2f4ab5dbd3678e10de559d6c05b51c953e6bb7575c7a385e957360a64a62b8e00b3c8bf05b65455984374471aea9b2d8"
+X264_HOMEBREW_REVISION = "b35605ace3ddf7c1a5d67a2eb553f034aef41d55"
+X264_SOURCE_URL = f"https://github.com/mirror/x264/archive/{X264_HOMEBREW_REVISION}.tar.gz"
+X264_SOURCE_SHA256 = "cd71a7515b0e9a012e1ac9b1f8415bebcaf6fc97d4db32286642ac4c0fbe24f9"
 
 # These are immutable source revisions for the Windows vendor-built components.
 WIN_SOURCE_ARCHIVES = (
@@ -246,6 +249,12 @@ def collect_macos(platform: str, destination: Path, entries: list[dict]) -> None
             filename = f"{formula}-{version}-source.tar.gz"
         if checksum and len(checksum) == 64:
             record = download(url, archive_dir / f"{formula}-{version}-{filename}", algo="sha256", expected=checksum)
+        elif formula == "x264" and stable.get("revision") == X264_HOMEBREW_REVISION:
+            record = download(
+                X264_SOURCE_URL, archive_dir / f"x264-{version}-source.tar.gz",
+                algo="sha256", expected=X264_SOURCE_SHA256,
+            )
+            record["revision"] = X264_HOMEBREW_REVISION
         elif stable.get("revision") and url.endswith(".git"):
             record = archive_git_revision(
                 url, stable["revision"], archive_dir / f"{formula}-{version}-source.tar",
