@@ -148,7 +148,7 @@ jobs:
           sudo mv "$brew_prefix" /opt/omni-hidden-homebrew
           trap 'sudo mv /opt/omni-hidden-homebrew "$brew_prefix"' EXIT
           python scripts/smoke_test_desktop.py \
-            --installer 'out/make/*.dmg' --mode both \
+          --installer 'out/make/dmg/arm64/*.dmg' --mode both \
             --hide /opt/omni-hidden-homebrew --hide /usr/local \
             --report out/smoke/smoke-darwin-arm64-dmg.json
 

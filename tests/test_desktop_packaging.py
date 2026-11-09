@@ -37,6 +37,10 @@ class DesktopPackagingTests(unittest.TestCase):
         for path in required:
             self.assertTrue(path.is_file(), f"Missing desktop packaging file: {path}")
 
+    def test_macos_smoke_uses_the_packaged_dmg_output_directory(self):
+        workflow = (REPO_ROOT / ".github" / "workflows" / "desktop-installers.yml").read_text(encoding="utf-8")
+        self.assertIn("--installer 'out/make/dmg/arm64/*.dmg' --mode both", workflow)
+
     def test_electron_main_enforces_security_boundaries(self):
         main_src = (REPO_ROOT / "electron" / "main.cjs").read_text(encoding="utf-8")
         self.assertIn("contextIsolation: true", main_src)
