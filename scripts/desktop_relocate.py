@@ -8,7 +8,7 @@ scripts/smoke_test_desktop.py (to audit the packaged/installed app).
   rewrite load commands to @loader_path-relative paths, drop absolute
   LC_RPATHs, and ad-hoc re-sign every modified file (required on arm64).
 * Linux (ELF): copy the ldd closure (minus the glibc/graphics-driver set the
-  host OS must provide) and set $ORIGIN-relative RUNPATHs with patchelf.
+  host OS must provide) and set $ORIGIN-relative RPATHs with patchelf.
 * Windows (PE): copy the non-system DLL import closure next to the executable
   (Windows searches the executable's own directory first).
 """
@@ -448,9 +448,9 @@ class ELFRelocator:
         def set_rpaths() -> None:
             for path in self.staged:
                 rel = os.path.relpath(self.lib_dir, path.parent)
-                patchelf("--set-rpath", "$ORIGIN" if rel == "." else f"$ORIGIN/{rel}", str(path))
+                patchelf("--force-rpath", "--set-rpath", "$ORIGIN" if rel == "." else f"$ORIGIN/{rel}", str(path))
             for lib in self.libs.values():
-                patchelf("--set-rpath", "$ORIGIN", str(lib))
+                patchelf("--force-rpath", "--set-rpath", "$ORIGIN", str(lib))
 
         # The source ldd walk above normally captures the full closure. Verify the
         # relocated files too: if a dependency still resolves from the build host,

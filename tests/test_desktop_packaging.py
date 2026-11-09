@@ -425,12 +425,14 @@ class RelocationTests(unittest.TestCase):
 
             relocator = desktop_relocate.ELFRelocator(lib_dir)
             with patch.object(desktop_relocate, "ldd", side_effect=fake_ldd), \
-                    patch.object(desktop_relocate, "patchelf"):
+                    patch.object(desktop_relocate, "patchelf") as mocked_patchelf:
                 relocator.add(sources["ffmpeg"], root / "bundle" / "bin" / "ffmpeg")
                 relocator.run()
 
             self.assertEqual(set(relocator.libs), {"libavcodec.so.60", "libSDL2-2.0.so.0", "libexpat.so.1"})
             self.assertTrue((root / "bundle" / "lib" / "libexpat.so.1").is_file())
+            self.assertTrue(mocked_patchelf.call_count)
+            self.assertTrue(all(call.args[0] == "--force-rpath" for call in mocked_patchelf.call_args_list))
 
     @unittest.skipUnless(os.name == "nt", "PE parsing exercised on Windows")
     def test_pe_imports_of_python(self):
