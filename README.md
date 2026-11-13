@@ -1,5 +1,43 @@
 # OmniConverter Studio
 
+**Converting a PDF, video or data file usually means uploading it to someone else's server; OmniConverter does it on your own device, in the browser or through a local engine.**
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[index.html: studios UI] --> R{Capability router}
+    R -->|browser-capable job| B[JavaScript + WASM in the tab]
+    R -->|native or large job| L[Local Engine: Python on 127.0.0.1:8765]
+    B --> B1[PDF, images, OCR, archives, data formats]
+    L --> T[Per-launch token + origin check]
+    T --> N[Native tools: FFmpeg, qpdf, Poppler, Tesseract, LibreOffice, Calibre, ImageMagick, Pandoc, 7-Zip]
+    T --> P[Python data stack: pandas, PyArrow, DuckDB, database drivers]
+    E[Electron desktop app] -. bundles and starts .-> L
+    E -. serves .-> U
+    G[GitHub Pages] -. hosts .-> U
+```
+
+The same interface runs in three ways: the public site (browser only), the site served by the Local Engine, and the desktop app that bundles both. Files stay on the device in all three.
+
+## Quickstart
+
+No install: open the [live site](https://theraghavraman.github.io/omni_suite_light/), pick a tab and drop a file. That covers images, OCR, lighter PDF work and archives.
+
+For video, audio, Office, ebook and large files, run the Local Engine. The first run installs the Python packages and native tools it needs:
+
+```bash
+git clone https://github.com/theraghavraman/omni_suite_light.git
+```
+
+```bash
+sh omni_suite_light/Omni.command
+```
+
+On Windows, double-click `Omni.bat` instead. The browser opens `http://127.0.0.1:8765/` and the header shows **Local Engine connected**.
+
+---
+
 **A private, offline-capable file toolkit that keeps processing on your device.**
 
 OmniConverter Studio is a browser-first document, image, OCR, audio, video, archive and data-engineering utility suite. The public layer works without installation for browser-capable jobs; the optional Local Engine adds native desktop processing for heavy and specialist formats.
