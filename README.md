@@ -1,5 +1,7 @@
 # OmniConverter Studio
 
+[![Validate OmniConverter](https://github.com/theraghavraman/omni_suite_light/actions/workflows/local-engine-check.yml/badge.svg)](https://github.com/theraghavraman/omni_suite_light/actions/workflows/local-engine-check.yml)
+
 **Converting a PDF, video or data file usually means uploading it to someone else's server; OmniConverter does it on your own device, in the browser or through a local engine.**
 
 ## Architecture

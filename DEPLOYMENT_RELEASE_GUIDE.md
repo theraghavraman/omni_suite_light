@@ -24,4 +24,4 @@ Do not enable cloud/social processing by setting a token. The current APIs inten
 4. Verify package/action pins, installer dependency locks, native parser resource limits, and rollback behavior.
 5. Record independent security review and only then update blocked/unverified findings.
 
-`VERIFICATION_LOG.md` records what was not run in this change set.
+`VERIFICATION_LOG.md` lists what each pass tested and anything that was skipped.
